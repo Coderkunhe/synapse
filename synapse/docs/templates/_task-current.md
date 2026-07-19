@@ -6,7 +6,7 @@
 >
 > **一期使用时**，Admin 根据实际分配的 Task 填写以下占位符。`--from-api` 模式会自动将此文件替换为含详细填写指引的模板。
 >
-> **二期**：`POST /agents/{id}/handshake` 响应中 Synapse 自动返回当前 Task 信息，`generate-skill.sh` 自动填充此文件。
+> **二期**：`POST /workers/{id}/handshake` 响应中 Synapse 自动返回当前 Task 信息，`generate-skill.sh` 自动填充此文件。
 
 ---
 

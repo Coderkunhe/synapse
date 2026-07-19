@@ -636,7 +636,7 @@ elif $CLIENT_MODE; then
     echo ""
     echo "下一步:"
     echo "  1. 配置 3 个环境变量（参见 _env.md）"
-    echo "  2. Agent 启动 → 自动加载 Skill → 调用 GET /agents/{id}/protocol 拉取项目上下文"
+    echo "  2. Agent 启动 → 自动加载 Skill → 调用 GET /workers/{id}/protocol 拉取项目上下文"
     echo "  3. 握手 → 就绪"
 else
     echo ""
@@ -658,5 +658,5 @@ else
     echo "下一步:"
     echo "  1. 检查并填入所有 {{VAR}} 占位符"
     echo "  2. 配置环境变量（参见 _env.md）"
-    echo "  3. Agent 启动 → 自动加载 Skill 文件 → POST /agents/{id}/handshake"
+    echo "  3. Agent 启动 → 自动加载 Skill 文件 → POST /workers/{id}/handshake"
 fi

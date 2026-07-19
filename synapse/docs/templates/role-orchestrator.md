@@ -107,7 +107,7 @@ Task 完成 / 打回返工
 | 分配 Task | `POST /tasks/{id}/assign` |
 | 查看所有 Task 状态 | `GET /projects/{id}/tasks` |
 | 审批 Verification | `POST /verifications/{id}/verify` |
-| 查看 Agent 状态 | `GET /teams/{id}/agents` |
+| 查看 Worker 状态 | `GET /teams/{id}/workers` |
 | 创建 Batch | `POST /projects/{id}/batches` |
 
 ---

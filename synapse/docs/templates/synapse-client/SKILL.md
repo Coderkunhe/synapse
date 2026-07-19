@@ -36,6 +36,7 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 - `SYNAPSE_API_URL` — Synapse 实例地址
 - `SYNAPSE_API_KEY` — Agent API Key
 - `SYNAPSE_WORKER_ID` — 你的 Agent ID
+- `SYNAPSE_PROJECT_ID` — 默认项目 ID
 
 **如果任一变量未设置**，输出以下内容并**停止**：
 
@@ -48,6 +49,7 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
   export SYNAPSE_API_URL=http://localhost:8000
   export SYNAPSE_API_KEY=sk_xxx
   export SYNAPSE_WORKER_ID=wa_xxx
+  export SYNAPSE_PROJECT_ID=prj_xxx
 
 ⚠️ 在环境变量完整之前，我不会执行任何操作。
 """
@@ -57,7 +59,7 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 调用 B21 Protocol API 获取渲染后的项目上下文：
 
 ```
-GET ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/protocol?project_id=${SYNAPSE_PROJECT_ID}&role=your_role
+GET ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/protocol?project_id=${SYNAPSE_PROJECT_ID}&role=your_role
 ```
 
 请求头：`Authorization: Bearer ${SYNAPSE_API_KEY}`
@@ -136,7 +138,7 @@ Protocol API 调用成功后，你的**第一条消息**必须是以下角色身
 ### Step 3: 握手激活
 
 ```
-POST ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/handshake
+POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/handshake
 ```
 
 请求体：
@@ -178,13 +180,13 @@ POST ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/handshake
 
 所有请求需带 `Authorization: Bearer ${SYNAPSE_API_KEY}` 头。Base URL 为 `${SYNAPSE_API_URL}/v1`。
 
-### Agent 生命周期
+### Worker 生命周期
 
 | 操作 | 方法 | 端点 |
 |------|------|------|
-| 握手激活 | `POST` | `/agents/{agent_id}/handshake` |
-| 心跳保活 | `POST` | `/agents/{agent_id}/heartbeat` |
-| 拉取协议 | `GET` | `/agents/{agent_id}/protocol?project_id={id}&role={role}` |
+| 握手激活 | `POST` | `/workers/{worker_id}/handshake` |
+| 心跳保活 | `POST` | `/workers/{worker_id}/heartbeat` |
+| 拉取协议 | `GET` | `/workers/{worker_id}/protocol?project_id={id}&role={role}` |
 
 ### Task 工作流
 
@@ -198,7 +200,7 @@ POST ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/handshake
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
 | 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
-| 开始执行 | `POST` | `/agents/{agent_id}/start-task?task_id={id}` |
+| 开始执行 | `POST` | `/workers/{worker_id}/start-task?task_id={id}` |
 
 ### 提交验证（submit）必须包含 evidence
 
@@ -222,7 +224,7 @@ POST ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/handshake
 每 60 秒发送心跳，保持 `active` 状态：
 
 ```
-POST ${SYNAPSE_API_URL}/v1/agents/${SYNAPSE_WORKER_ID}/heartbeat
+POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 ```
 
 请求体：
