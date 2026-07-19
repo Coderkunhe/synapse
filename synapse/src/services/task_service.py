@@ -763,8 +763,24 @@ async def _count_verifications(db: AsyncSession, task_id: str) -> int:
 # ── 查询 ─────────────────────────────────────────────────────────
 
 
-def task_to_response(task: Task) -> dict:
-    """将 Task ORM 对象转换为响应字典，含 JSON 反序列化。"""
+async def task_to_response(task: Task, db: AsyncSession) -> dict:
+    """将 Task ORM 对象转换为响应字典，含 JSON 反序列化和 owner 名称解析。"""
+    # ── P11-B14: 解析 owner 名称 ──────────────────────────
+    owner_name = None
+    if task.owner_type and task.owner_id:
+        if task.owner_type == OwnerType.WORKER:
+            from src.models.worker import Worker
+            result = await db.execute(
+                select(Worker.name).where(Worker.id == task.owner_id)
+            )
+            owner_name = result.scalar()
+        elif task.owner_type == OwnerType.MEMBER:
+            from src.models.member import Member
+            result = await db.execute(
+                select(Member.display_name).where(Member.id == task.owner_id)
+            )
+            owner_name = result.scalar()
+
     return {
         "id": task.id,
         "project_id": task.project_id,
@@ -772,6 +788,7 @@ def task_to_response(task: Task) -> dict:
         "description": task.description,
         "owner_type": task.owner_type,
         "owner_id": task.owner_id,
+        "owner_name": owner_name,
         "status": task.status,
         "priority": task.priority,
         "parent_task_id": task.parent_task_id,

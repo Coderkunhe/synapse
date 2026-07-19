@@ -184,6 +184,7 @@ class TaskResponse(AuditFields):
     description: str | None = None
     owner_type: OwnerType | None = None
     owner_id: str | None = None
+    owner_name: str | None = None
     status: str
     priority: str
     parent_task_id: str | None = None

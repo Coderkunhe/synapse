@@ -373,6 +373,49 @@ verify_client_output() {
     fi
 }
 
+# ─── 共享工具：生成 SessionStart hook ───
+
+write_settings_json() {
+    local CLIENT_ROOT="$1"
+    local CLAUDE_DIR="$CLIENT_ROOT/.claude"
+    local SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+
+    mkdir -p "$CLAUDE_DIR"
+
+    if [[ -f "$SETTINGS_FILE" ]]; then
+        # 已有 settings.json，合并 hook（用 python 处理 JSON）
+        python3 -c "
+import json, sys
+with open('$SETTINGS_FILE') as f:
+    cfg = json.load(f)
+cfg.setdefault('hooks', {})
+hooks = cfg['hooks'].setdefault('SessionStart', [])
+# 检查是否已有同名 hook
+if not any('source .env' in h.get('command','') for h in hooks):
+    hooks.append({'matcher': '', 'command': 'set -a; source \"\$CLAUDEDIR/.env\"; set +a'})
+with open('$SETTINGS_FILE', 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
+"
+    else
+        # 首次创建
+        cat > "$SETTINGS_FILE" << 'SETEOF'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
+      }
+    ]
+  }
+}
+SETEOF
+    fi
+
+    echo "  ✅ .claude/settings.json（SessionStart hook → auto source .env）"
+}
+
 # ─── Client Skill: Claude Code ───
 
 generate_client_claude() {
@@ -387,6 +430,7 @@ generate_client_claude() {
     write_client_env "$OUT_DIR"
     echo "  ✅ _env.md（3 个必需环境变量）"
 
+    write_settings_json "$OUTPUT"
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
 
@@ -596,6 +640,9 @@ TASKEOP
         echo "⚠️  API 报告以下变量未解析: ${UNFILLED}"
         echo "   这些通常是 Task 级变量（TASK_ID/TASK_TITLE/...），需在 _task-current.md 中手动填写。"
     fi
+
+    # ── Generate SessionStart hook ──
+    write_settings_json "$OUTPUT"
 
     echo ""
     echo "✅ 完成。Skill 文件已渲染，0 未填充 VAR（Task 级除外）。"

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, VerificationStatus
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_project_role, require_role
 from src.exceptions import NotFoundError
+from src.permissions import require_permission
 from src.schemas.batch import BatchAssignRequest, BatchCreate, BatchResponse
 from src.schemas.verification import (
     VerificationBatchRequest,
@@ -37,6 +38,24 @@ from .helpers import get_project_or_404
 def _normalize_verdict(status: str) -> str:
     """Map intuitive verdict values to internal status (P9-B63: F-B61-3)."""
     return {"approved": VerificationStatus.PASSED, "rejected": VerificationStatus.FAILED}.get(status, status)
+
+
+async def _resolve_project_from_verification(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from verification_id in URL path parameters.
+
+    Used by ``require_permission`` for the verify endpoint
+    (``POST /verifications/{verification_id}/verify``) which doesn't have
+    ``project_id`` in its URL path.
+    """
+    from src.models.task import Task
+    from src.models.verification import Verification
+
+    verification_id = request.path_params["verification_id"]
+    ver = await db.get(Verification, verification_id)
+    if ver is None:
+        raise NotFoundError("verification", verification_id)
+    task = await db.get(Task, ver.task_id)
+    return task.project_id
 
 
 router = APIRouter()
@@ -164,7 +183,7 @@ async def assign_batch(
 async def verify(
     verification_id: str,
     body: VerificationVerifyRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:verify", resolve_project_id=_resolve_project_from_verification)),
     db: AsyncSession = Depends(get_db),
 ):
     ver, task = await execute_verification(

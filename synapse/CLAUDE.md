@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-19（P11-B13 ✅ 闭环 · B14 狗粮验证就绪）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-20（P11-B15 ▶️ — PFL-034 + PFL-039 权限修复）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -462,7 +462,8 @@ synapse/
 - P11-B10 ✅：模板适配 — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files · 纯机械替换
 - P11-B12 ✅：阻断修复 — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过
 - P11-B13 ✅：环境搭建 — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix
-- P11-B14 🔜：狗粮全链路验证 — Orchestrator + Builder 双终端 · 观察 Task 生命周期 · 卡点记录
+- P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线
+- P11-B15 ▶️：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
 - P11-B14a ✅：Bootstrap 端点 + 文档同步 — GET /v1/bootstrap (sh+json) · 3 new files + 3 modified · 18 tests · 623 passed 零回归
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
@@ -482,6 +483,7 @@ synapse/
 - **P11-B10**：模板适配 ✅ — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files · 纯机械替换 · 零残留
 - **P11-B9**：接线 + 项目发现 ✅ — 2端点require_permission接线 · GET /workers/me/projects · Protocol project_key鉴权 · 5 files · 605 tests
 - **P11-B8**：地基 ✅ — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
+- **P11-B15**：权限修复 ✅ — PFL-034 assign_task + PFL-039 verify guard require_role→require_permission · PFL-040 Swagger token 登记 · 1 new test
 - **P11-B7**：串联就绪审查 ✅ — 🚧停止点·7维前置验证·全链路VAR管道·判定GO → B8实战
 - **P11-B6**：Skill 生成管道闭环 ✅ — conventions读取路径修复 · generate-skill.sh --from-api · D-P11-010决策落地 · 3 files
 - **P11-B5**：项目管理增强 ✅ — Projects始终可见+ProjecDetail(Info/Roles/Conventions)+role API接线 · 8 files

@@ -487,6 +487,128 @@ class TestVerificationRework:
         assert task["redo_count"] == 1  # redo_count 从第一次拒绝保留
 
 
+class TestOrchestratorWorkerAuth:
+    """P11-B15: Orchestrator Worker 应能通过 API key 执行 assign 和 verify。
+
+    验证 require_permission 守卫正确支持 Worker actor（PFL-034 + PFL-039）。
+    """
+
+    @pytest.mark.asyncio
+    async def test_orchestrator_worker_can_assign_and_verify(
+        self, client: AsyncClient, seed: SeedData
+    ):
+        """Orchestrator Worker (API key auth) 执行 assign + verify 全链路。"""
+        admin_headers = auth_header(seed.token)
+
+        # ── 1. 创建 Project ──
+        slug = _uniq_slug("p11-b15")
+        proj_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "P11-B15 Test", "slug": slug},
+            headers=admin_headers,
+        )
+        assert proj_resp.status_code == 201, proj_resp.text
+        project_id = proj_resp.json()["id"]
+
+        # ── 2. 注册 Orchestrator Worker Agent ──
+        orch_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/agents",
+            json={"name": "Orch Test", "provider": "claude", "provider_model": "sonnet"},
+            headers=admin_headers,
+        )
+        assert orch_resp.status_code == 201, orch_resp.text
+        orch_id = orch_resp.json()["worker"]["id"]
+        orch_api_key = orch_resp.json()["api_key"]
+        orch_headers = auth_header(orch_api_key)
+
+        # Handshake 激活
+        hs_resp = await client.post(
+            f"/v1/agents/{orch_id}/handshake",
+            json={"worker_version": "1.0.0", "capabilities": ["orchestrate"], "preferred_channel": "websocket"},
+            headers=orch_headers,
+        )
+        assert hs_resp.status_code == 200, hs_resp.text
+
+        # ── 3. 赋予 Orchestrator 项目角色 ──
+        role_resp = await client.post(
+            f"/v1/admin/projects/{project_id}/roles",
+            json={"worker_id": orch_id, "role": "orchestrator"},
+            headers=admin_headers,
+        )
+        assert role_resp.status_code == 201, role_resp.text
+
+        # ── 4. 创建 Task（带 verification 条件）──
+        task_resp = await client.post(
+            f"/v1/projects/{project_id}/tasks",
+            json={
+                "title": "P11-B15: Assign + Verify 权限测试",
+                "description": "验证 Orchestrator 能用 API key 执行核心操作",
+                "priority": "p2",
+                "verifications": [
+                    {"type": "manual", "description": "手动确认", "criteria": {"check": "所有检查通过"}}
+                ],
+            },
+            headers=admin_headers,
+        )
+        assert task_resp.status_code == 201, task_resp.text
+        task_id = task_resp.json()["id"]
+        task_version = task_resp.json()["version_no"]
+
+        # Ready
+        ready_resp = await client.post(
+            f"/v1/tasks/{task_id}/ready",
+            json={"expected_version": task_version},
+            headers=admin_headers,
+        )
+        assert ready_resp.status_code == 200, ready_resp.text
+        task_version = ready_resp.json()["version_no"]
+
+        # ── 5. TEST: Orchestrator API key 分配 Task → 200 ──
+        assign_resp = await client.post(
+            f"/v1/tasks/{task_id}/assign",
+            json={"owner_type": "worker", "owner_id": orch_id, "expected_version": task_version},
+            headers=orch_headers,
+        )
+        assert assign_resp.status_code == 200, (
+            f"PFL-034: Orchestrator assign 应返回 200，实际 {assign_resp.status_code}: {assign_resp.text}"
+        )
+        task_version = assign_resp.json()["version_no"]
+
+        # ── 6. Orchestrator Worker 提交（模拟 Builder 完成工作）──
+        ver_id = task_resp.json().get("verifications", [{}])[0].get("id")
+        if not ver_id:
+            ver_list = await client.get(f"/v1/tasks/{task_id}/verifications", headers=admin_headers)
+            ver_id = ver_list.json()[0]["id"]
+
+        submit_resp = await client.post(
+            f"/v1/tasks/{task_id}/submit",
+            json={
+                "summary": "已完成",
+                "verification_results": [
+                    {"verification_id": ver_id, "status": "passed", "evidence": "自检通过"}
+                ],
+                "expected_version": task_version,
+            },
+            headers=orch_headers,
+        )
+        assert submit_resp.status_code == 200, submit_resp.text
+        task_version = submit_resp.json()["version_no"]
+
+        # ── 7. TEST: Orchestrator API key 验收 → 200 ──
+        verify_resp = await client.post(
+            f"/v1/verifications/{ver_id}/verify",
+            json={"status": "approved", "comment": "Orchestrator 验收通过", "expected_task_version": task_version},
+            headers=orch_headers,
+        )
+        assert verify_resp.status_code == 200, (
+            f"PFL-039: Orchestrator verify 应返回 200，实际 {verify_resp.status_code}: {verify_resp.text}"
+        )
+
+        # 验证 Task 状态流转到 completed
+        final_resp = await client.get(f"/v1/tasks/{task_id}", headers=admin_headers)
+        assert final_resp.json()["status"] == "completed"
+
+
 class TestProjectResolve:
     """P9-B1: Project resolve-by-name — Task 入口放松的基石。"""
 

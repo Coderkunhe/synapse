@@ -165,9 +165,10 @@ class TestSingleClaim:
         )
         await db.flush()
 
-        resp = task_to_response(claimed)
+        resp = await task_to_response(claimed, db)
         assert resp["claimed_at"] is not None
         assert resp["lease_expires_at"] is not None
+        assert resp["owner_name"] is not None  # P11-B14: owner_name 已富化
 
 
 # ═══════════════════════════════════════════════════════════════════

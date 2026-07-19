@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B14 ▶️ · P10 全量闭环 🎉
-last_batch: P11-B13
-next_batch: P11-B14
-description: Synapse 主项目 — P11-B13 ✅ 闭环 · B14 ▶️ 狗粮全链路验证
+phase: P11-B15 ▶️ · P10 全量闭环 🎉
+last_batch: P11-B14
+next_batch: P11-B15
+description: Synapse 主项目 — P11-B14 ✅ 闭环 · B15 ▶️ 权限修复（PFL-034 + PFL-039）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B13 ✅ 闭环 · B14 ▶️ 狗粮全链
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B84 | — ✅ | 暂告段落 · S-067~S-072 全量消化 🎉 · B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B13 | **P11-B14** ▶️ | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ▶️ 全链路验证 |
+| **P11** | P11-B14 | **P11-B15** ▶️ | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ▶️ 权限修复 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -78,8 +78,16 @@ description: Synapse 主项目 — P11-B13 ✅ 闭环 · B14 ▶️ 狗粮全链
 │   — ✅ project_key · ✅ worker 创建 · ✅ 模板修复     │
 │   — ✅ 5 项发现闭环 · generate-skill.sh bugfix       │
 │                                                    │
-│ P11-B14 ▶️ 狗粮全链路验证                             │
+│ P11-B14 ✅ 狗粮全链路验证                             │
 │   — Builder Agent 接入→项目发现→接Task→提交      │
+│   — 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线     │
+│                                                    │
+│ P11-B15 ▶️ 权限修复（PFL-034 + PFL-039）              │
+│   — assign_task + verify guard require_role→         │
+│   — require_permission · 根因修复                    │
+│                                                    │
+│ P11-B16 🔜 God's-eye 决策 + SessionStart 部署        │
+│   — PFL-037 角色正式化 · PFL-038 hook 部署           │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -205,6 +213,7 @@ P100-B84 🔜 治理消化(2)  ← S-071 dep lock + S-072 violations counter (~4
 | G24 | V-023 防呆 v2 ✅ — `l5-reset.sh` 证据质量门禁（长度+路径+动词 三关机械校验）+ V-024 session-checkpoint.sh L5 状态输出 | tools/l5-reset.sh + session-checkpoint.sh | 🟢 P100-B71 |
 | G25 | 文档膨胀治理 — requirements-log 7400+行 · 每批 doc overhead 6-7 files · B32 新建 200行架构文档 · 需建立文档生命周期（新建/合并/归档/删除）机制 | 多文件 | 🟠 → ✅ P100-B72 |
 | G26 | 议题编号与状态自洽校验 — B32 将议题 ⑦ 通知通道误标为议题 ⑥ 且误标完成 · 需机械校验：议题编号↔track 定义↔CLAUDE.md 状态三方对齐 | CLAUDE.md + tracks | 🟠 → ✅ P100-B72 |
+| G27 | pitfalls 前缀从 P- 改为 PFL- — 与 Phase-Batch P{N}- 彻底区分。新条目直接使用 PFL- 前缀，旧 35 条 P- 逐步迁移 | docs/pitfalls.md | 🟡 待排期 |
 
 ### P10 架构升级（B1→B47 · 议题 ①-⑧ 全部闭环 🎉）
 

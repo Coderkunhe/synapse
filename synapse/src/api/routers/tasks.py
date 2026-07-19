@@ -127,7 +127,7 @@ async def create_task(
         depends_on=depends_on,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -157,7 +157,7 @@ async def ready_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -213,7 +213,7 @@ async def create_tasks_batch(
         team_id=actor.team_id,
     )
     await db.commit()
-    return [TaskResponse.model_validate(task_to_response(t)) for t in tasks]
+    return [TaskResponse.model_validate(await task_to_response(t, db)) for t in tasks]
 
 
 @router.get(
@@ -243,7 +243,7 @@ async def list_tasks(
         db, project_id, status=status, owner_id=owner_id,
         batch_id=batch_id, search=search, cursor=cursor, limit=limit,
     )
-    items = [TaskResponse.model_validate(task_to_response(t)) for t in tasks]
+    items = [TaskResponse.model_validate(await task_to_response(t, db)) for t in tasks]
     return CursorPage(items=items, next_cursor=next_cursor, total=total)
 
 
@@ -268,7 +268,7 @@ async def get_task(
         if task.owner_type != OwnerType.WORKER or task.owner_id != actor.actor_id:
             raise NotFoundError("task", task_id)
 
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.patch(
@@ -302,7 +302,7 @@ async def update_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.get(
@@ -324,7 +324,7 @@ async def get_available_tasks(
     tasks, next_cursor, total = await _get_available_tasks(
         db, project_id, capability=capability, cursor=cursor, limit=limit
     )
-    items = [TaskResponse.model_validate(task_to_response(t)) for t in tasks]
+    items = [TaskResponse.model_validate(await task_to_response(t, db)) for t in tasks]
     return CursorPage(items=items, next_cursor=next_cursor, total=total)
 
 
@@ -359,7 +359,7 @@ async def claim_task(
         expected_version=version, actor_type=actor.actor_type,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -418,7 +418,7 @@ async def assign_batch(
 async def assign_task(
     task_id: str,
     body: TaskAssignRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:assign", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     task = await _assign_task(
@@ -432,7 +432,7 @@ async def assign_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -466,7 +466,7 @@ async def submit_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -492,7 +492,7 @@ async def cancel_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 @router.post(
@@ -520,7 +520,7 @@ async def terminate_task(
         team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 # ── P8-B7: Blocker report ─────────────────────────────────────────
@@ -560,7 +560,7 @@ async def report_blocker(
         worker_team_id=actor.team_id,
     )
     await db.commit()
-    return TaskResponse.model_validate(task_to_response(task))
+    return TaskResponse.model_validate(await task_to_response(task, db))
 
 
 # ── P9-B72: Batch operations (S-033) ─────────────────────────────
