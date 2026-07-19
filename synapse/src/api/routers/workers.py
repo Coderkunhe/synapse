@@ -1,0 +1,757 @@
+"""Worker API routes — registration, lifecycle, handshake, heartbeat."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi.responses import Response
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from src.auth import extract_bearer_token, hash_api_key, hash_project_key
+from src.db import get_db
+from src.dependencies import ActorInfo, get_current_actor, require_role
+from src.exceptions import AuthenticationError, ForbiddenError, NotFoundError
+from src.models.worker import Worker
+from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, WorkerActorType, WorkerStatus
+from src.models.project import Project
+from src.permissions import require_permission
+from src.schemas.worker import (
+    API_KEY_WARNING,
+    WorkerCreate,
+    WorkerCreateResponse,
+    WorkerHandshakeRequest,
+    WorkerHeartbeatRequest,
+    WorkerProjectResponse,
+    WorkerResponse,
+)
+from src.schemas.common import CursorPage
+from src.schemas.protocol import ProtocolResponse
+from src.services.worker_service import (
+    worker_handshake as _worker_handshake,
+    worker_heartbeat as _worker_heartbeat,
+    worker_to_response,
+    deactivate_worker,
+    get_worker as _get_worker,
+    hard_delete_worker,
+    list_workers as _list_workers,
+    register_worker as _register_worker,
+    resume_worker as _resume_worker,
+    suspend_worker as _suspend_worker,
+)
+from src.services.project_role_service import get_worker_projects
+from src.services.worker_scheduler import start_task as _start_task
+
+from src.services.template_service import render_protocol, resolve_role
+
+from .helpers import get_team_or_404
+
+router = APIRouter()
+agents_router = APIRouter()  # backward compat, all routes deprecated
+
+
+# ── Helpers ────────────────────────────────────────────────────────────
+
+
+async def _resolve_human_worker_id(db: AsyncSession, actor: ActorInfo) -> str | None:
+    """Return the human Worker ID for the current actor.
+
+    P10-B7: actor_id is now a worker_id (derived from member_id via derive_id).
+    For humans (actor_type=HUMAN, has role), actor_id IS the worker_id.
+    For AI agents (actor_type=WORKER, no role), return None.
+    """
+    if actor.actor_type == ActorType.WORKER:
+        return None  # AI agent — no human worker to resolve
+    # Human actor — actor_id is already the worker_id (P10-B7).
+    # Verify the Worker exists and return its id.
+    worker = await db.get(Worker, actor.actor_id)
+    return worker.id if worker else None
+
+
+async def _resolve_project_from_task_query(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from task_id in query parameters.
+
+    Used by ``require_permission`` for the start-task endpoint where
+    ``task_id`` is a query parameter (not a path parameter).
+    """
+    from src.services.task_service import get_task as _get_task_svc
+
+    task_id = request.query_params.get("task_id")
+    if not task_id:
+        raise RuntimeError("Missing 'task_id' query parameter for project resolution")
+    task = await _get_task_svc(db, task_id)
+    return task.project_id
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Project Discovery (P11-B9)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/me/projects",
+    response_model=list[WorkerProjectResponse],
+)
+async def get_my_projects(
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all projects the current actor belongs to.
+
+    For both human and worker actors, actor_id is the worker_id.
+    Returns each project's basic info plus the actor's role in it.
+    Used by Workers for project discovery — the first step after boot.
+    """
+    projects = await get_worker_projects(db, actor.actor_id)
+    return [WorkerProjectResponse(**p) for p in projects]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Registration
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/teams/{team_id}/workers",
+    response_model=WorkerCreateResponse,
+    status_code=201,
+)
+async def register_worker(
+    team_id: str,
+    body: WorkerCreate,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    team = await get_team_or_404(db, team_id)
+    if team.id != actor.team_id:
+        raise NotFoundError("team", team_id)
+
+    worker, api_key = await _register_worker(
+        db,
+        team_id=team_id,
+        name=body.name,
+        provider=body.provider,
+        provider_model=body.provider_model,
+        system_prompt=body.system_prompt,
+        metadata=body.metadata,
+        registered_by=await _resolve_human_worker_id(db, actor),
+        batch_size=body.batch_size,  # P9-B57
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+    )
+    await db.commit()
+
+    return WorkerCreateResponse(
+        worker=WorkerResponse.model_validate(worker_to_response(worker)),
+        api_key=api_key,
+        warning=API_KEY_WARNING,
+    )
+
+
+# ── Deprecated ──
+
+
+@agents_router.post(
+    "/teams/{team_id}/agents",
+    response_model=WorkerCreateResponse,
+    status_code=201,
+    deprecated=True,
+)
+async def register_agent(
+    team_id: str,
+    body: WorkerCreate,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await register_worker(team_id=team_id, body=body, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Listing
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/teams/{team_id}/workers",
+    response_model=CursorPage[WorkerResponse],
+)
+async def list_workers(
+    team_id: str,
+    cursor: str | None = Query(None),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    status: str | None = Query(None, description="Filter: active | suspended | all"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    team = await get_team_or_404(db, team_id)
+    if team.id != actor.team_id:
+        raise NotFoundError("team", team_id)
+
+    workers, next_cursor, total = await _list_workers(
+        db, team_id, cursor=cursor, limit=limit, status=status
+    )
+    items = [WorkerResponse.model_validate(worker_to_response(w)) for w in workers]
+    return CursorPage(items=items, next_cursor=next_cursor, total=total)
+
+
+# ── Deprecated ──
+
+
+@agents_router.get(
+    "/teams/{team_id}/agents",
+    response_model=CursorPage[WorkerResponse],
+    deprecated=True,
+)
+async def list_agents(
+    team_id: str,
+    cursor: str | None = Query(None),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    status: str | None = Query(None, description="Filter: active | suspended | all"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    return await list_workers(
+        team_id=team_id, cursor=cursor, limit=limit, status=status, actor=actor, db=db
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Detail
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/{worker_id}",
+    response_model=WorkerResponse,
+    responses={404: {"model": None}},
+)
+async def get_worker(
+    worker_id: str,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+    return WorkerResponse.model_validate(worker_to_response(worker))
+
+
+# ── Deprecated ──
+
+
+@agents_router.get(
+    "/agents/{agent_id}",
+    response_model=WorkerResponse,
+    deprecated=True,
+)
+async def get_agent(
+    agent_id: str,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_worker(worker_id=agent_id, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Deletion
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.delete("/workers/{worker_id}", status_code=204)
+async def remove_worker(
+    worker_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    await hard_delete_worker(
+        db, worker_id, actor_type=actor.actor_type, actor_id=actor.actor_id
+    )
+    await db.commit()
+    return Response(status_code=204)
+
+
+# ── Deprecated ──
+
+
+@agents_router.delete("/agents/{agent_id}", status_code=204, deprecated=True)
+async def remove_agent(
+    agent_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await remove_worker(worker_id=agent_id, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Suspend / Resume
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post("/workers/{worker_id}/suspend", response_model=WorkerResponse)
+async def suspend_worker(
+    worker_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    worker = await _suspend_worker(
+        db, worker_id, actor_type=actor.actor_type, actor_id=actor.actor_id
+    )
+    await db.commit()
+    return WorkerResponse.model_validate(worker_to_response(worker))
+
+
+# ── Deprecated ──
+
+
+@agents_router.post("/agents/{agent_id}/suspend", response_model=WorkerResponse, deprecated=True)
+async def suspend_agent(
+    agent_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await suspend_worker(worker_id=agent_id, actor=actor, db=db)
+
+
+@router.post("/workers/{worker_id}/resume", response_model=WorkerResponse)
+async def resume_worker(
+    worker_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    worker = await _resume_worker(
+        db, worker_id, actor_type=actor.actor_type, actor_id=actor.actor_id
+    )
+    await db.commit()
+    return WorkerResponse.model_validate(worker_to_response(worker))
+
+
+# ── Deprecated ──
+
+
+@agents_router.post("/agents/{agent_id}/resume", response_model=WorkerResponse, deprecated=True)
+async def resume_agent(
+    agent_id: str,
+    actor: ActorInfo = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await resume_worker(worker_id=agent_id, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Handshake
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/workers/{worker_id}/handshake",
+    response_model=WorkerResponse,
+)
+async def worker_handshake(
+    worker_id: str,
+    body: WorkerHandshakeRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Worker handshake — manual API key validation (no get_current_actor).
+
+    Accepts workers in pending or active status so newly registered
+    workers can handshake to become active.
+    """
+    token = await extract_bearer_token(request)
+    if not token:
+        raise AuthenticationError("AUTH_MISSING_TOKEN", "Missing authentication token")
+
+    key_hash = hash_api_key(token)
+    result = await db.execute(
+        select(Worker).where(
+            Worker.id == worker_id,
+            Worker.api_key_hash == key_hash,
+        )
+    )
+    worker = result.scalar_one_or_none()
+    if worker is None:
+        raise AuthenticationError("AUTH_INVALID_API_KEY", "Invalid API key")
+    if worker.status not in (WorkerStatus.PENDING, WorkerStatus.ACTIVE):
+        raise AuthenticationError(
+            "AUTH_WORKER_NOT_ELIGIBLE_FOR_HANDSHAKE",
+            "Worker is not eligible for handshake",
+        )
+
+    capabilities = [
+        {
+            "name": c.name,
+            "description": c.description,
+            "input_schema": c.input_schema,
+            "output_schema": c.output_schema,
+        }
+        for c in body.capabilities
+    ]
+
+    worker = await _worker_handshake(
+        db,
+        worker_id=worker_id,
+        worker_version=body.worker_version,
+        capabilities=capabilities,
+        supported_events=body.supported_events,
+        preferred_channel=body.preferred_channel,
+    )
+    await db.commit()
+    return WorkerResponse.model_validate(worker_to_response(worker))
+
+
+# ── Deprecated ──
+
+
+@agents_router.post(
+    "/agents/{agent_id}/handshake",
+    response_model=WorkerResponse,
+    deprecated=True,
+)
+async def agent_handshake(
+    agent_id: str,
+    body: WorkerHandshakeRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    return await worker_handshake(worker_id=agent_id, body=body, request=request, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Heartbeat
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post("/workers/{worker_id}/heartbeat", status_code=200)
+async def worker_heartbeat(
+    worker_id: str,
+    body: WorkerHeartbeatRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Worker heartbeat — manual API key validation."""
+    token = await extract_bearer_token(request)
+    if not token:
+        raise AuthenticationError("AUTH_MISSING_TOKEN", "Missing authentication token")
+
+    key_hash = hash_api_key(token)
+    result = await db.execute(
+        select(Worker).where(
+            Worker.id == worker_id,
+            Worker.api_key_hash == key_hash,
+        )
+    )
+    worker = result.scalar_one_or_none()
+    if worker is None:
+        raise AuthenticationError("AUTH_INVALID_API_KEY", "Invalid API key")
+    if worker.status not in (WorkerStatus.PENDING, WorkerStatus.ACTIVE):
+        raise AuthenticationError(
+            "AUTH_WORKER_NOT_ACTIVE",
+            "Worker is not active",
+        )
+
+    worker, recovery_event = await _worker_heartbeat(
+        db,
+        worker_id=worker_id,
+        current_load=body.current_load,
+        current_task_id=body.current_task_id,
+    )
+    await db.commit()
+    result: dict = {"status": "ok", "runtime_status": worker.runtime_status}
+    if recovery_event:
+        result["recovery_event"] = recovery_event
+    return result
+
+
+# ── Deprecated ──
+
+
+@agents_router.post("/agents/{agent_id}/heartbeat", status_code=200, deprecated=True)
+async def agent_heartbeat(
+    agent_id: str,
+    body: WorkerHeartbeatRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    return await worker_heartbeat(worker_id=agent_id, body=body, request=request, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Task scheduling (P8-B5)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/workers/{worker_id}/start-task",
+)
+async def start_task_endpoint(
+    worker_id: str,
+    task_id: str = Query(..., description="Task ID to start working on"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Begin work on a task. Transitions REJECTED → IN_PROGRESS (P8-B5)."""
+    worker = await _start_task(db, worker_id=worker_id, task_id=task_id)
+    await db.commit()
+    return {"status": "ok", "runtime_status": worker.runtime_status, "active_task_id": worker.active_task_id}
+
+
+# ── Deprecated ──
+
+
+@agents_router.post("/agents/{agent_id}/start-task", deprecated=True)
+async def start_task_agent(
+    agent_id: str,
+    task_id: str = Query(..., description="Task ID to start working on"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    return await start_task_endpoint(worker_id=agent_id, task_id=task_id, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Protocol delivery (P9-B21)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/{worker_id}/protocol",
+    response_model=ProtocolResponse,
+)
+async def get_worker_protocol(
+    worker_id: str,
+    request: Request,
+    project_id: str = Query(..., description="Project ID to load context for"),
+    role: str | None = Query(None, description="Override role (orchestrator|builder|steward)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch rendered collaboration protocol for a worker.
+
+    Authenticated via API Key or project_key (P11-B9).
+    Returns project context, collaboration norms, role instructions,
+    and env template with all ``{{VARIABLE}}`` placeholders filled from
+    live DB data.
+    """
+    # ── Manual authentication ──
+    token = await extract_bearer_token(request)
+    if not token:
+        raise AuthenticationError("AUTH_MISSING_TOKEN", "Missing authentication token")
+
+    worker = None
+    project = None
+
+    # ① Try API key validation first
+    key_hash = hash_api_key(token)
+    result = await db.execute(
+        select(Worker)
+        .options(selectinload(Worker.team))
+        .where(
+            Worker.id == worker_id,
+            Worker.api_key_hash == key_hash,
+        )
+    )
+    worker = result.scalar_one_or_none()
+
+    # ② API key failed → try project_key (P11-B9)
+    if worker is None:
+        proj_key_hash = hash_project_key(token)
+        proj_result = await db.execute(
+            select(Project).where(
+                Project.project_key_hash == proj_key_hash,
+            )
+        )
+        project_from_key = proj_result.scalar_one_or_none()
+
+        if project_from_key is not None:
+            # Load the worker and verify same-team membership
+            worker = await db.get(Worker, worker_id)
+            if worker is not None and worker.team_id == project_from_key.team_id:
+                project = project_from_key  # use the key-authenticated project
+            else:
+                raise AuthenticationError(
+                    "AUTH_WORKER_NOT_IN_PROJECT_TEAM",
+                    "Worker does not belong to the same team as the project key",
+                )
+
+    if worker is None:
+        raise AuthenticationError("AUTH_INVALID_API_KEY", "Invalid API key or project key")
+    if worker.status not in (WorkerStatus.PENDING, WorkerStatus.ACTIVE):
+        raise AuthenticationError(
+            "AUTH_WORKER_NOT_ELIGIBLE",
+            "Worker is not eligible for protocol access",
+        )
+
+    # ── Resolve role ──
+    resolved_role, role_source = resolve_role(worker, role)
+
+    # ── Load project (if not already loaded via project_key) ──
+    if project is None:
+        project = await db.get(Project, project_id)
+        if project is None:
+            raise NotFoundError("project", project_id)
+        if project.team_id != worker.team_id:
+            raise ForbiddenError(
+                "FORBIDDEN_CROSS_TEAM",
+                "Worker and project belong to different teams",
+            )
+
+    # ── Derive API base URL from request ──
+    api_base_url = str(request.base_url).rstrip("/")
+
+    # ── Render ──
+    protocol = await render_protocol(
+        worker,
+        project,
+        resolved_role,
+        api_base_url=api_base_url,
+        role_source=role_source,
+    )
+
+    return ProtocolResponse(**protocol)
+
+
+# ── Deprecated ──
+
+
+@agents_router.get(
+    "/agents/{agent_id}/protocol",
+    response_model=ProtocolResponse,
+    deprecated=True,
+)
+async def get_agent_protocol(
+    agent_id: str,
+    request: Request,
+    project_id: str = Query(..., description="Project ID to load context for"),
+    role: str | None = Query(None, description="Override role (orchestrator|builder|steward)"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_worker_protocol(
+        worker_id=agent_id, request=request, project_id=project_id, role=role, db=db
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Skill download (P9-B27)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/{worker_id}/skill/download",
+    responses={404: {"model": None}, 403: {"model": None}},
+)
+async def download_skill(
+    worker_id: str,
+    project_id: str = Query(..., description="Project ID to load context for"),
+    role: str | None = Query(None, description="Override role (orchestrator|builder|steward)"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download a rendered SKILL.md file for a worker.
+
+    Uses JWT auth (human users download Skills via the Web UI).
+    Calls ``render_protocol()`` to resolve template variables from live DB
+    data, then assembles the four rendered sections into a downloadable
+    Markdown file with ``Content-Disposition: attachment``.
+    """
+    # ── Load worker with team relationship ──
+    result = await db.execute(
+        select(Worker)
+        .options(selectinload(Worker.team))
+        .where(Worker.id == worker_id)
+    )
+    worker = result.scalar_one_or_none()
+    if worker is None:
+        raise NotFoundError("worker", worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    # ── Load project ──
+    project = await db.get(Project, project_id)
+    if project is None:
+        raise NotFoundError("project", project_id)
+    if project.team_id != actor.team_id:
+        raise ForbiddenError(
+            "FORBIDDEN_CROSS_TEAM",
+            "Project belongs to a different team",
+        )
+
+    # ── Resolve role ──
+    resolved_role, role_source = resolve_role(worker, role)
+
+    # ── Render protocol sections ──
+    protocol = await render_protocol(worker, project, resolved_role, role_source=role_source)
+
+    # ── Assemble SKILL.md ──
+    skill_md = f"""---
+name: synapse
+description: Synapse Worker — {worker.name} ({resolved_role})
+---
+
+# Synapse Worker — {worker.name}
+
+> Role: **{resolved_role}** · Team: **{getattr(worker.team, 'name', 'Unknown')}** · Project: **{project.name}**
+
+## 项目上下文
+
+{protocol['project_context']}
+
+---
+
+## 协作纪律
+
+{protocol['collaboration_norms']}
+
+---
+
+## 角色职责
+
+{protocol['role_instructions']}
+
+---
+
+## 环境配置
+
+{protocol['env_template']}
+"""
+
+    # ── Sanitize filename ──
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "-" for c in worker.name).strip("-") or "worker"
+
+    return Response(
+        content=skill_md,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="synapse-skill-{safe_name}.md"',
+        },
+    )
+
+
+# ── Deprecated ──
+
+
+@agents_router.get(
+    "/agents/{agent_id}/skill/download",
+    responses={404: {"model": None}, 403: {"model": None}},
+    deprecated=True,
+)
+async def download_skill_agent(
+    agent_id: str,
+    project_id: str = Query(..., description="Project ID to load context for"),
+    role: str | None = Query(None, description="Override role (orchestrator|builder|steward)"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    return await download_skill(
+        worker_id=agent_id, project_id=project_id, role=role, actor=actor, db=db
+    )

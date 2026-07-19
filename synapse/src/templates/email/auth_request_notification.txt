@@ -1,0 +1,13 @@
+$request_type_label — Synapse
+
+$worker_name has requested $request_type_label in project $project_id.
+
+What they need:
+$prompt_message
+
+Review this request at:
+$approvals_url
+
+You received this email because you are an admin of this project.
+
+— Synapse

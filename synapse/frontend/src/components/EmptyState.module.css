@@ -1,0 +1,36 @@
+/* EmptyState — shared empty/placeholder styles */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  text-align: center;
+  padding: var(--gm-space-6, 32px) var(--gm-space-4, 16px);
+}
+
+.icon {
+  font-size: 48px;
+  margin-bottom: var(--gm-space-4, 16px);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 var(--gm-space-2, 8px);
+  color: var(--gm-text);
+}
+
+.description {
+  color: var(--gm-text-secondary, #8892a6);
+  font-size: 14px;
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Extra content slot — hints, code blocks, action buttons */
+.empty > :not(.icon):not(.title):not(.description) {
+  margin-top: var(--gm-space-4, 16px);
+}

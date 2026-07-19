@@ -1,0 +1,294 @@
+/**
+ * Approvals page styles — P10-B23.
+ *
+ * Design tokens from global design system (CSS custom properties).
+ * Dark theme with Cyan (#00C8E8) → Blue (#6C8CF5) gradient accents.
+ */
+
+.shell {
+  max-width: 960px;
+}
+
+.loading {
+  color: var(--gm-text-secondary, #94a3b8);
+  font-size: 14px;
+  padding: var(--gm-space-4, 16px) 0;
+}
+
+/* ── Card list ────────────────────────────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-3, 12px);
+  margin-top: var(--gm-space-4, 16px);
+}
+
+.card {
+  background: var(--gm-surface, #1e293b);
+  border: 1px solid var(--gm-border, #334155);
+  border-radius: var(--gm-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: var(--gm-border-hover, #475569);
+}
+
+/* ── Card header ──────────────────────────────────────────────────────── */
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-3, 12px);
+  padding: var(--gm-space-3, 12px) var(--gm-space-4, 16px);
+  background: var(--gm-surface-raised, #1a2332);
+  border-bottom: 1px solid var(--gm-border, #334155);
+}
+
+.typeBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: var(--gm-radius-sm, 4px);
+}
+
+.typeApiAuth {
+  background: rgba(0, 200, 232, 0.15);
+  color: #00C8E8;
+  border: 1px solid rgba(0, 200, 232, 0.3);
+}
+
+.typeInteractive {
+  background: rgba(108, 140, 245, 0.15);
+  color: #6C8CF5;
+  border: 1px solid rgba(108, 140, 245, 0.3);
+}
+
+.projectName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gm-text, #f1f5f9);
+  flex: 1;
+}
+
+.expires {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gm-text-secondary, #94a3b8);
+}
+
+/* ── Card body ────────────────────────────────────────────────────────── */
+
+.cardBody {
+  padding: var(--gm-space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-3, 12px);
+}
+
+.apiAuthDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2, 8px);
+}
+
+.detailRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gm-space-2, 8px);
+}
+
+.detailLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  min-width: 64px;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: var(--gm-text, #f1f5f9);
+}
+
+.detailValue code,
+code.detailValue {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  background: var(--gm-surface-raised, #1a2332);
+  padding: 1px 6px;
+  border-radius: var(--gm-radius-sm, 4px);
+  color: #00C8E8;
+}
+
+/* ── Interactive prompt details ─────────────────────────────────────── */
+
+.promptDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2, 8px);
+}
+
+.promptMessage {
+  font-size: 14px;
+  color: var(--gm-text, #f1f5f9);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.promptTypeTag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6C8CF5;
+  background: rgba(108, 140, 245, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--gm-radius-sm, 4px);
+  align-self: flex-start;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choiceChip {
+  font-size: 12px;
+  color: var(--gm-text, #f1f5f9);
+  background: var(--gm-surface-raised, #1a2332);
+  border: 1px solid var(--gm-border, #334155);
+  padding: 3px 10px;
+  border-radius: var(--gm-radius-sm, 4px);
+}
+
+/* ── Worker ID row ──────────────────────────────────────────────────── */
+
+.workerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2, 8px);
+  padding-top: var(--gm-space-2, 8px);
+  border-top: 1px solid var(--gm-border, #334155);
+}
+
+.workerId {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: var(--gm-text-secondary, #94a3b8);
+}
+
+/* ── Card footer: actions ────────────────────────────────────────────── */
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-3, 12px);
+  padding: var(--gm-space-3, 12px) var(--gm-space-4, 16px);
+  border-top: 1px solid var(--gm-border, #334155);
+  background: var(--gm-surface-raised, #1a2332);
+}
+
+.noteInput {
+  flex: 1;
+  font-size: 13px;
+  padding: 6px 10px;
+  background: var(--gm-surface, #1e293b);
+  border: 1px solid var(--gm-border, #334155);
+  border-radius: var(--gm-radius-sm, 4px);
+  color: var(--gm-text, #f1f5f9);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.noteInput:focus {
+  border-color: #00C8E8;
+}
+
+.noteInput::placeholder {
+  color: var(--gm-text-tertiary, #64748b);
+}
+
+.actions {
+  display: flex;
+  gap: var(--gm-space-2, 8px);
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--gm-radius-sm, 4px);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.denyBtn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.denyBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.approveBtn {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.approveBtn:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .cardHeader {
+    flex-wrap: wrap;
+  }
+
+  .cardFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actionBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .detailRow {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .noteInput {
+    font-size: 16px; /* prevent iOS zoom */
+  }
+}

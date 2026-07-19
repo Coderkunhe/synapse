@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$request_type_label — Synapse</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#ffffff;border-radius:8px;overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:32px 32px 16px;text-align:center;">
+              <h1 style="margin:0;font-size:24px;font-weight:700;color:#1a1a2e;">Synapse</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:16px 32px 24px;color:#333333;font-size:15px;line-height:1.6;">
+              <p style="margin:0 0 16px;">
+                <strong>$worker_name</strong> has requested <strong>$request_type_label</strong> in project <code>$project_id</code>.
+              </p>
+
+              <p style="margin:0 0 8px;"><strong>What they need:</strong></p>
+              <p style="margin:0 0 24px;padding:12px 16px;background-color:#f8f9fa;border-left:3px solid #4f46e5;font-size:14px;color:#555555;">
+                $prompt_message
+              </p>
+
+              <!-- Action Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                <tr>
+                  <td align="center" style="background-color:#4f46e5;border-radius:6px;">
+                    <a href="$approvals_url" target="_blank" rel="noopener noreferrer"
+                       style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;white-space:nowrap;">
+                      Review Request
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0;font-size:13px;color:#888888;">
+                Or visit the approvals page in Synapse:<br>
+                <a href="$approvals_url" style="color:#4f46e5;word-break:break-all;">$approvals_url</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px 24px;text-align:center;font-size:12px;color:#aaaaaa;border-top:1px solid #eeeeee;">
+              <p style="margin:0;">You received this email because you are an admin of this project.</p>
+              <p style="margin:4px 0 0;">&copy; Synapse</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

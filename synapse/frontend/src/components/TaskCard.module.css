@@ -1,0 +1,247 @@
+.card {
+  background: var(--gm-surface-raised);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  padding: var(--gm-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2);
+  cursor: pointer;
+  box-shadow: var(--gm-shadow-sm);
+  transition: box-shadow var(--gm-transition), transform var(--gm-transition), border-color var(--gm-transition);
+  position: relative;
+}
+
+.card:hover {
+  border-color: var(--gm-primary-dim);
+  box-shadow: var(--gm-shadow-md);
+  transform: translateY(-1px);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--gm-primary);
+  outline-offset: 2px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.priority {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.p0 { background: rgba(239, 68, 68, 0.2); color: var(--gm-danger); }
+.p1 { background: rgba(245, 158, 11, 0.2); color: var(--gm-warning); }
+.p2 { background: rgba(56, 189, 248, 0.2); color: var(--gm-info); }
+.p3 { background: rgba(136, 146, 166, 0.2); color: var(--gm-text-secondary); }
+
+.deadline {
+  font-size: 11px;
+  color: var(--gm-text-secondary);
+}
+
+.overdue {
+  color: var(--gm-danger, #f87171);
+  font-weight: 600;
+}
+
+.overdueLabel {
+  margin-left: 4px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--gm-danger, #f87171);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.depBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gm-info);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.batchBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--badge-color);
+  background: color-mix(in srgb, var(--badge-color) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 30%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.batchBadgeHovered {
+  background: color-mix(in srgb, var(--badge-color) 28%, transparent);
+  border-color: var(--badge-color);
+}
+
+.batchBadge:focus-visible {
+  outline: 2px solid var(--gm-primary);
+  outline-offset: 1px;
+}
+
+/* ── Same-batch highlight ────────────────────────────────── */
+
+.highlighted {
+  border-color: var(--badge-color, var(--gm-primary-dim));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--badge-color, var(--gm-primary-dim)) 40%, transparent);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.owner {
+  font-size: 11px;
+  color: var(--gm-text-secondary);
+  font-family: var(--gm-font-mono);
+}
+
+/* ── Unclaimed task marker (P9-B36) ─────────────────────── */
+
+.unclaimed {
+  border-style: dashed;
+  border-color: var(--gm-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.unclaimed:hover {
+  border-color: var(--gm-warning, #f59e0b);
+}
+
+.unclaimedBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gm-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ── My task highlight (P9-B36) ─────────────────────────── */
+
+.mine {
+  border-color: var(--gm-primary, #5b7ef5);
+  box-shadow: 0 0 0 1px rgba(91, 126, 245, 0.35);
+}
+
+.mine:hover {
+  border-color: var(--gm-primary-light, #8aadff);
+}
+
+/* ── Quick action buttons (P9-B37) ────────────────────────── */
+
+.quickAction {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.quickActionPromote {
+  color: var(--gm-info, #38bdf8);
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.quickActionPromote:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.quickActionClaim {
+  color: var(--gm-success, #22c55e);
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.quickActionClaim:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.quickActionSubmit {
+  color: var(--gm-primary, #5b7ef5);
+  border-color: rgba(91, 126, 245, 0.4);
+  background: rgba(91, 126, 245, 0.1);
+}
+
+.quickActionSubmit:hover {
+  background: rgba(91, 126, 245, 0.2);
+}
+
+.quickAction:focus-visible {
+  outline: 2px solid var(--gm-primary);
+  outline-offset: 1px;
+}
+
+/* ── Selection mode ──────────────────────────────────────── */
+
+.selectCheckbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gm-primary, #6c8cf5);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.selectCheckbox:focus-visible {
+  outline: 2px solid var(--gm-primary);
+  outline-offset: 2px;
+}
+
+.selected {
+  border-color: var(--gm-primary, #6c8cf5);
+  box-shadow: 0 0 0 1px var(--gm-primary, #6c8cf5);
+}
+
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2);
+  flex: 1;
+}

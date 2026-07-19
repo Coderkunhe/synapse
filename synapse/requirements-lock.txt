@@ -1,0 +1,28 @@
+# Requirements Lock File — Pinned Dependencies
+# Auto-generated: 2026-07-18 (P100-B84 S-071)
+# Source: pip freeze from verified working environment
+# Usage: pip install -r requirements-lock.txt
+#
+# ⚠️  Do NOT edit by hand.  When upgrading:
+#     1. pip install -U <package>
+#     2. Verify with full gate suite (make check)
+#     3. Regenerate: pip freeze | grep -f <(sed 's/[>=<].*//' requirements.txt) > requirements-lock.txt
+#
+# Separate from requirements.txt (loose >= constraints) per CLAUDE.md §14
+# Dependency Upgrade Discipline.
+
+fastapi==0.139.0
+uvicorn[standard]==0.49.0
+sqlalchemy[asyncio]==2.0.51
+aiosqlite==0.22.1
+alembic==1.18.5
+pydantic-settings==2.14.2
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0
+uuid6==2025.0.1
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1
+aiosmtplib==5.1.2
+pywebpush==2.3.0
+mypy==2.1.0

@@ -1,0 +1,116 @@
+/* Synapse Dashboard — CSS Custom Properties & Reset */
+
+:root {
+  /* GlassCortex-compatible palette */
+  --gm-bg: #0b0e13;
+  --gm-surface: #141820;
+  --gm-surface-raised: #1c2230;
+  --gm-border: #272d3a;
+  --gm-text: #e4e8f0;
+  --gm-text-secondary: #8892a6;
+  --gm-primary: #6c8cf5;
+  --gm-primary-dim: #4a62b8;
+  --gm-success: #4ade80;
+  --gm-warning: #f59e0b;
+  --gm-danger: #ef4444;
+  --gm-info: #38bdf8;
+
+  /* Spacing scale */
+  --gm-space-1: 4px;
+  --gm-space-2: 8px;
+  --gm-space-3: 12px;
+  --gm-space-4: 16px;
+  --gm-space-5: 24px;
+  --gm-space-6: 32px;
+  --gm-space-8: 48px;
+
+  /* Typography */
+  --gm-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --gm-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --gm-radius: 8px;
+  --gm-radius-sm: 4px;
+  --gm-radius-lg: 12px;
+  --gm-radius-full: 9999px;
+
+  /* Elevation */
+  --gm-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --gm-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --gm-shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+
+  /* Motion */
+  --gm-transition: 0.15s ease;
+
+  /* Z-index scale */
+  --gm-z-dropdown: 100;
+  --gm-z-modal: 200;
+  --gm-z-toast: 300;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--gm-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── Focus-visible: visible only for keyboard nav, hidden for mouse clicks ── */
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gm-primary);
+  outline-offset: 2px;
+}
+
+/* ── Dark scrollbar — avoids white scrollbars in dark mode ── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gm-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gm-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gm-text-secondary);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gm-border) var(--gm-bg);
+}

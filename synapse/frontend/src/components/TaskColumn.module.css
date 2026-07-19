@@ -1,0 +1,50 @@
+.column {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  min-width: 220px;
+  max-width: 280px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: var(--gm-space-3) var(--gm-space-3);
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gm-text-secondary);
+}
+
+.count {
+  background: var(--gm-surface-raised);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cards {
+  padding: var(--gm-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.empty {
+  text-align: center;
+  color: var(--gm-text-secondary);
+  font-size: 20px;
+  padding: var(--gm-space-4);
+}

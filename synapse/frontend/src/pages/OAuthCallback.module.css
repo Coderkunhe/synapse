@@ -1,0 +1,47 @@
+.shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  background: var(--gm-bg);
+}
+
+.card {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: var(--gm-space-8);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.icon {
+  font-size: 40px;
+  margin-bottom: var(--gm-space-4);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--gm-space-3);
+}
+
+.message {
+  color: var(--gm-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: var(--gm-space-5);
+  color: var(--gm-primary);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}

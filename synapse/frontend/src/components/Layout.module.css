@@ -1,0 +1,229 @@
+.shell {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  width: 220px;
+  background: var(--gm-surface);
+  border-right: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--gm-space-4);
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--gm-space-3);
+  padding-bottom: var(--gm-space-5);
+  border-bottom: 1px solid var(--gm-border);
+  margin-bottom: var(--gm-space-4);
+}
+
+.logo {
+  font-size: 20px;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.slogan {
+  font-size: 11px;
+  color: var(--gm-text-secondary, #666);
+  width: 100%;
+  line-height: 1.4;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-1);
+  flex: 1;
+}
+
+.navDivider {
+  height: 1px;
+  background: var(--gm-border);
+  margin: var(--gm-space-2) var(--gm-space-3);
+}
+
+.navItemSupport {
+  color: var(--gm-text-tertiary, #999);
+  font-size: 13px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-3);
+  padding: var(--gm-space-2) var(--gm-space-3);
+  border-radius: var(--gm-radius-sm);
+  color: var(--gm-text-secondary);
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+
+.navItem:hover {
+  background: var(--gm-surface-raised);
+  color: var(--gm-text);
+  text-decoration: none;
+}
+
+.navItemActive {
+  background: var(--gm-primary-dim);
+  color: #fff;
+}
+
+.navIcon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.footer {
+  border-top: 1px solid var(--gm-border);
+  padding-top: var(--gm-space-3);
+}
+
+.langSwitch {
+  display: flex;
+  gap: 4px;
+  padding: 0 var(--gm-space-3);
+  margin-bottom: var(--gm-space-3);
+}
+
+.langBtn {
+  flex: 1;
+  padding: 3px 6px;
+  border-radius: var(--gm-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--gm-surface-raised);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.langBtn:hover {
+  background: var(--gm-primary-dim);
+  color: #fff;
+  border-color: var(--gm-primary-dim);
+}
+
+.langActive {
+  background: var(--gm-primary);
+  color: #fff;
+  border-color: var(--gm-primary);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2);
+  padding: var(--gm-space-2) var(--gm-space-3);
+  margin-bottom: var(--gm-space-2);
+}
+
+.userAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gm-primary-dim);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 13px;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motto {
+  font-size: 11px;
+  color: var(--gm-text-secondary, #888);
+  padding: var(--gm-space-2) var(--gm-space-3);
+  text-align: center;
+  font-style: italic;
+}
+
+.footerLinks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-1);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-3);
+  padding: var(--gm-space-2) var(--gm-space-3);
+  border-radius: var(--gm-radius-sm);
+  color: var(--gm-text-secondary);
+  font-size: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.logoutBtn:hover {
+  background: var(--gm-surface-raised);
+  color: var(--gm-danger);
+}
+
+/* ── Push Notification Toggle (P10-B45) ──────────────────────── */
+.pushBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2);
+  padding: var(--gm-space-2) var(--gm-space-3);
+  margin-bottom: var(--gm-space-2);
+  border-radius: var(--gm-radius-sm);
+  color: var(--gm-text-secondary);
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.pushBtn:hover {
+  background: var(--gm-surface-raised);
+  color: var(--gm-text);
+}
+
+.pushBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pushActive {
+  color: var(--gm-primary);
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--gm-space-6);
+}
