@@ -483,6 +483,23 @@ async def find_or_create_by_name(
     return project
 
 
+async def set_project_key(
+    db: AsyncSession,
+    project_id: str,
+) -> tuple[Project, str]:
+    """为项目生成 project_key。返回 (project, plaintext_key)。
+
+    明文 key 仅在生成时返回一次 — 调用方负责展示/传递，本函数不存储明文。
+    project_key_hash 写入 DB 后可用于 Worker 认证（project_key 鉴权路径）。
+    """
+    from src.auth import generate_project_key
+
+    project = await get_project(db, project_id)
+    plaintext_key, hashed_key = generate_project_key(project.id)
+    project.project_key_hash = hashed_key
+    return project, plaintext_key
+
+
 def project_to_response(project: Project) -> dict:
     """将 Project ORM 对象转换为响应字典，含 JSON 反序列化。"""
     return {

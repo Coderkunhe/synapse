@@ -39,6 +39,7 @@ Synapse 是一个人机混合协调平台——你和人类同事在同一个 Ta
 - `SYNAPSE_API_URL` — Synapse 实例地址
 - `SYNAPSE_API_KEY` — Agent API Key
 - `SYNAPSE_WORKER_ID` — 你的 Agent ID
+- `SYNAPSE_PROJECT_ID` — 默认项目 ID
 
 **如果任一变量未设置**，输出以下内容并**停止**：
 
@@ -51,6 +52,7 @@ Synapse 是一个人机混合协调平台——你和人类同事在同一个 Ta
   export SYNAPSE_API_URL=http://localhost:8000
   export SYNAPSE_API_KEY=sk_xxx
   export SYNAPSE_WORKER_ID=wa_xxx
+  export SYNAPSE_PROJECT_ID=prj_xxx
 
 ⚠️ 在环境变量完整之前，我不会执行任何操作。
 """
@@ -60,7 +62,7 @@ Synapse 是一个人机混合协调平台——你和人类同事在同一个 Ta
 调用 Protocol API 获取渲染后的项目上下文：
 
 ```
-GET {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/protocol?project_id={{SYNAPSE_PROJECT_ID}}&role={{YOUR_ROLE}}
+GET {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/protocol?project_id={{SYNAPSE_PROJECT_ID}}&role={{YOUR_ROLE}}
 ```
 
 请求头：`Authorization: Bearer {{SYNAPSE_API_KEY}}`
@@ -110,7 +112,7 @@ Protocol API 调用成功后，你的**第一条消息**必须是角色身份横
 ### Step 3: 握手激活
 
 ```
-POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/handshake
+POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 ```
 
 请求体：
@@ -182,7 +184,7 @@ Task 状态的任何变更必须通过对应的 API 端点，不在本地脑补�
 
 每 `{{SYNAPSE_HEARTBEAT_INTERVAL}}` 秒发送心跳：
 ```
-POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/heartbeat
+POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 ```
 60 秒无心跳 → 你的状态自动变为 `paused`，不再接收新 Task。
 
@@ -196,13 +198,13 @@ POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/heartbeat
 
 所有请求需带 `Authorization: Bearer {{SYNAPSE_API_KEY}}` 头。Base URL 为 `{{SYNAPSE_API_URL}}/v1`。
 
-### Agent 生命周期
+### Worker 生命周期
 
 | 操作 | 方法 | 端点 |
 |------|------|------|
-| 握手激活 | `POST` | `/agents/{agent_id}/handshake` |
-| 心跳保活 | `POST` | `/agents/{agent_id}/heartbeat` |
-| 拉取协议 | `GET` | `/agents/{agent_id}/protocol?project_id={id}&role={role}` |
+| 握手激活 | `POST` | `/workers/{worker_id}/handshake` |
+| 心跳保活 | `POST` | `/workers/{worker_id}/heartbeat` |
+| 拉取协议 | `GET` | `/workers/{worker_id}/protocol?project_id={id}&role={role}` |
 
 ### Task 工作流
 
@@ -224,7 +226,7 @@ POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/heartbeat
 每 `{{SYNAPSE_HEARTBEAT_INTERVAL}}` 秒发送心跳，保持 `active` 状态：
 
 ```
-POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/heartbeat
+POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 ```
 
 请求体：
@@ -339,7 +341,7 @@ GET {{SYNAPSE_API_URL}}/v1/workers/me/authorization-requests?status=pending
 ```
 1. Admin 给你 _env.md + 本文件 + _project.md + role-*.md
 2. 配置环境变量（SYNAPSE_API_URL, SYNAPSE_API_KEY, SYNAPSE_WORKER_ID）
-3. POST {{SYNAPSE_API_URL}}/v1/agents/{{SYNAPSE_WORKER_ID}}/handshake
+3. POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 4. 收到 200 → 你的状态变为 active → 可以接收 Task
 5. 开始心跳循环
 ```
