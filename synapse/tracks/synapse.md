@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B13 ✅ · P11-B14 🔜 · P10 全量闭环 🎉
-last_batch: P11-B13
-next_batch: P11-B14
-description: Synapse 主项目 — P11-B13 ✅ 阻断修复+环境搭建 · P11-B14 🔜 狗粮全链路验证
+phase: P11-B13 ▶️ · P10 全量闭环 🎉
+last_batch: P11-B12
+next_batch: P11-B13
+description: Synapse 主项目 — P11-B13 ▶️ 阻断修复+环境搭建（进行中·待讨论问题）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B13 ✅ 阻断修复+环境搭建 · P11-
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B84 | — ✅ | 暂告段落 · S-067~S-072 全量消化 🎉 · B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B13 | **P11-B14** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ Feature Scope · B13 ✅ 阻断修复+环境搭建 · B14 🔜 全链路验证 |
+| **P11** | P11-B12 | **P11-B13** ▶️ | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ Feature Scope · B13 ▶️ 阻断修复+环境搭建（进行中）· B14 ⬜ 全链路验证 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -74,10 +74,10 @@ description: Synapse 主项目 — P11-B13 ✅ 阻断修复+环境搭建 · P11-
 │   — "Worker 名称富化" — API 消灭裸 Worker ID         │
 │   — 狗粮范围决策 · 0 code files                      │
 │                                                    │
-│ P11-B13 ✅ 阻断修复 + 环境搭建                        │
-│   — project_key 生成 · orchestrator/builder 创建     │
-│   — 7 模板 deprecated 路径清零 · team_members 补齐   │
-│   — 客户端工作区 + Skill 生成                         │
+│ P11-B13 ▶️ 阻断修复 + 环境搭建                        │
+│   — ✅ project_key · ✅ worker 创建 · ✅ 模板修复     │
+│   — ⚠️ 待讨论：5 项发现（gen-skill bug 等）             │
+│   — 🔜 讨论完毕 → B13 闭环 → B14 全链路验证            │
 │                                                    │
 │ P11-B14 🔜 狗粮全链路验证                             │
 │   — Builder Agent 接入→项目发现→接Task→提交      │
