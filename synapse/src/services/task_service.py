@@ -582,17 +582,10 @@ async def ready_task(
         )
     ver_count = await _count_verifications(db, task_id)
     if ver_count < 1:
-        # P9-B69: 若任务无验证条件，自动创建默认 "Manual PM review"
-        default_ver = Verification(
-            id=generate_id("verification"),
-            task_id=task.id,
-            type="manual",
-            description="Manual PM review",
-            criteria=None,
-            status=VerificationStatus.PENDING,
-            create_user_id=actor_id,
+        raise ConflictError(
+            "TASK_NOT_READY",
+            "Task must have at least one verification condition before moving to READY",
         )
-        db.add(default_ver)
 
     event_type, payload = apply_transition(
         task, TaskStatus.READY, actor_type=actor_type, actor_id=actor_id,

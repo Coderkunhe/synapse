@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from src.api.router import api_router
 from src.api.routers.ws import websocket_endpoint
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
         description="Human-AI hybrid team coordination platform",
         version="0.1.0",
         lifespan=lifespan,
+        swagger_ui_parameters={"persistAuthorization": True},
     )
 
     # CORS — credentials required for httpOnly cookie auth
@@ -81,3 +83,34 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+# ── OpenAPI customisation: Bearer token security scheme for Swagger UI (PFL-040) ──
+
+
+def _custom_openapi():
+    """Inject Bearer token security scheme so Swagger UI shows an Authorize button."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    openapi_schema.setdefault("components", {})["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT or API Key",
+            "description": "JWT token from /v1/auth/login, or Worker API Key (sk-syn-…)",
+        }
+    }
+    # NOTE: No global "security" — declaring the scheme is enough for the
+    # Authorize button to appear. Unauthenticated endpoints (/health,
+    # /v1/auth/login, etc.) stay lock-free.
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = _custom_openapi

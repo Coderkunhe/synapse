@@ -408,7 +408,12 @@ async def worker_handshake(
         preferred_channel=body.preferred_channel,
     )
     await db.commit()
-    return WorkerResponse.model_validate(worker_to_response(worker))
+    worker_data = worker_to_response(worker)
+    # PFL-036: return WS URL so Worker knows where to connect
+    parsed = request.url
+    ws_scheme = "wss" if parsed.scheme == "https" else "ws"
+    worker_data["ws_url"] = f"{ws_scheme}://{parsed.netloc}/v1/ws"
+    return WorkerResponse.model_validate(worker_data)
 
 
 # ── Deprecated ──

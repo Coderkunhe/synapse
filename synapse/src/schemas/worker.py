@@ -90,6 +90,7 @@ class WorkerResponse(AuditFields):
     active_task_count: int = 0
     completed_task_count: int = 0
     active_batches: int = 0
+    ws_url: str | None = Field(None, description="WebSocket connection URL (returned during handshake)")
 
     model_config = {"from_attributes": True}
 
