@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B15 ▶️ · P10 全量闭环 🎉
-last_batch: P11-B14
-next_batch: P11-B15
-description: Synapse 主项目 — P11-B14 ✅ 闭环 · B15 ▶️ 权限修复（PFL-034 + PFL-039）
+phase: P11-B16 ✅ · P10 全量闭环 🎉
+last_batch: P11-B16
+next_batch: P11-B17
+description: Synapse 主项目 — P11-B16 ✅ 闭环 · B17 → PFL-035 + PFL-036 + PFL-040
 ---
 
 # Synapse 轨道

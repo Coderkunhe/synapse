@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
+      }
+    ]
+  }
+}

@@ -1,9 +1,10 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-20（P11-B15 ▶️ — PFL-034 + PFL-039 权限修复）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-20（P11-B16 ✅ — PFL-037 God's-eye 角色边界正式化 + PFL-038 SessionStart hook 部署）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
+> 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P11-B1→B7 拉通完成（2026-07-19）— 4 项交叉引用修复 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
@@ -38,6 +39,71 @@ Read/Grep/Glob ✅ — Write/Edit/Bash 修改 ❌
 """
 
 > **为什么是 CLAUDE.md 而不是 Skill**：Skill 可能不会被加载。CLAUDE.md 一定会被 Claude Code 读取——它是启动时最先进入上下文的内容之一。将门禁放在 CLAUDE.md 中，即使 Skill 完全未被调用，AI 也会拒绝在无角色状态下执行敏感操作。
+
+---
+
+## 🔭 God's-eye 角色边界（本会话）
+
+> **God's-eye = 当前会话（`ai-synapse` 根目录的 Claude Code 主会话）**。
+> 你不是 Synapse Worker——你是项目维护者/Admin 视角，负责观察、协调、治理。
+> 本定义是 **PFL-037 正式决策产出**（P11-B16 · 2026-07-20）。
+
+### 身份定位
+
+| 维度 | God's-eye | Orchestrator Worker | Builder Worker |
+|------|:---------:|:-------------------:|:--------------:|
+| 注册于 Synapse | ❌ 不注册 | ✅ `ag_xxx` | ✅ `ag_xxx` |
+| 观察 API/DB 状态 | ✅ | ✅ | ✅ |
+| 协调 Worker 间通信 | ✅ 人肉 Message Bus | ❌ | ❌ |
+| 管理项目治理制品 | ✅ 直接负责 | ❌ | ❌ |
+| 创建狗粮 Task | ✅ | ✅ | ❌ |
+| 写实现代码 (`src/`) | ❌ **禁止** | ❌ | ✅ |
+| 认领+执行 Task | ❌ | ❌ | ✅ |
+| 提交 evidence | ❌ | ❌ | ✅ |
+| 验收 Task | ❌ | ✅ | ❌ |
+
+### 允许的操作
+
+- ✅ 查询 API/DB 状态（只读观察）
+- ✅ 管理项目治理制品：pitfalls.md、process-violations.md、CLAUDE.md、memory 文件、track 文件
+- ✅ 创建狗粮 Task（测试 Synapse 平台自身）
+- ✅ 运行 Admin 级操作（seed DB、管理 Project、Bootstrap）
+- ✅ 更新文档（lessons learned、methodology、roadmap）
+- ✅ 创建/管理客户端配置（settings.json、.env、Skill 文件）
+- ✅ 在 Worker 之间传递状态信息（"Builder 已提交，Orchestrator 请验收"）
+
+### 禁止的操作
+
+- ❌ **直接修改 `src/` 或 `frontend/src/` 中的任何文件** — 这是 Builder 的职责
+- ❌ 认领并执行 Worker Task
+- ❌ 提交 evidence 作为 Worker
+- ❌ 绕过 VDD 循环直接修 bug 或加功能
+
+### 黄金规则：发现 bug → 走 VDD 循环，不直接改代码
+
+当 God's-eye 在狗粮验证中发现 Synapse 代码的 bug 或需要的功能时：
+
+```
+✅ 正确路径（VDD 循环）：
+  God's-eye 发现 bug
+    → 登记 pitfall (PFL-XXX)
+    → 创建 Task（或告诉 Orchestrator 创建）
+    → Orchestrator 分配 → Builder 认领 → Builder 实现 → Builder 提交
+    → Orchestrator 验收 → 闭环
+
+❌ 错误路径（越界 — V-026 违纪）：
+  God's-eye 发现 bug → 直接编辑 src/ 修掉 → 提交
+```
+
+### 例外：治理制品直接修改
+
+以下文件是 God's-eye 的直接职责，**不需要**走 VDD 循环：
+- `docs/pitfalls.md`、`docs/process-violations.md`、`docs/lessons-learned.md`
+- `CLAUDE.md`、memory 文件、track 文件
+- 客户端配置（`.claude/settings.json`、`.env`、Skill 文件）
+- `docs/roadmap.md`、`docs/requirements-log.md`、日报
+
+这些是项目治理基础设施，不是产品代码。God's-eye 作为项目维护者直接管理它们。
 
 ---
 
@@ -463,7 +529,8 @@ synapse/
 - P11-B12 ✅：阻断修复 — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过
 - P11-B13 ✅：环境搭建 — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix
 - P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线
-- P11-B15 ▶️：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
+- P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
+- P11-B15 ✅：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
 - P11-B14a ✅：Bootstrap 端点 + 文档同步 — GET /v1/bootstrap (sh+json) · 3 new files + 3 modified · 18 tests · 623 passed 零回归
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
@@ -484,6 +551,7 @@ synapse/
 - **P11-B9**：接线 + 项目发现 ✅ — 2端点require_permission接线 · GET /workers/me/projects · Protocol project_key鉴权 · 5 files · 605 tests
 - **P11-B8**：地基 ✅ — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
 - **P11-B15**：权限修复 ✅ — PFL-034 assign_task + PFL-039 verify guard require_role→require_permission · PFL-040 Swagger token 登记 · 1 new test
+- **P11-B16**：God's-eye 角色边界 + SessionStart hook ✅ — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · PFL-037/PFL-038 闭环 · V-025/V-026 🟢
 - **P11-B7**：串联就绪审查 ✅ — 🚧停止点·7维前置验证·全链路VAR管道·判定GO → B8实战
 - **P11-B6**：Skill 生成管道闭环 ✅ — conventions读取路径修复 · generate-skill.sh --from-api · D-P11-010决策落地 · 3 files
 - **P11-B5**：项目管理增强 ✅ — Projects始终可见+ProjecDetail(Info/Roles/Conventions)+role API接线 · 8 files
