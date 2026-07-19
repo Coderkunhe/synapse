@@ -90,10 +90,12 @@ if [[ -z "$OUTPUT" ]]; then
     usage
 fi
 
-# ── Mode 3: --from-api (mutually exclusive with --client / --role) ──
+# ── Mode 3: --from-api (mutually exclusive with --client) ──
+# --role is allowed with --from-api: it provides a role hint for the
+# Protocol API call (line 104 reads it from CLI or SYNAPSE_ROLE env).
 if $FROM_API; then
-    if $CLIENT_MODE || [[ -n "$ROLE" ]]; then
-        echo "❌ --from-api 与 --client / --role 互斥"
+    if $CLIENT_MODE; then
+        echo "❌ --from-api 与 --client 互斥"
         exit 1
     fi
 

@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-19（P11-B10 模板适配 · L5 P11-B8→B10 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-19（P11-B13 ✅ 闭环 · B14 狗粮验证就绪）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -460,6 +460,10 @@ synapse/
 ## 当前状态
 
 - P11-B10 ✅：模板适配 — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files · 纯机械替换
+- P11-B12 ✅：阻断修复 — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过
+- P11-B13 ✅：环境搭建 — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix
+- P11-B14 🔜：狗粮全链路验证 — Orchestrator + Builder 双终端 · 观察 Task 生命周期 · 卡点记录
+- P11-B14a ✅：Bootstrap 端点 + 文档同步 — GET /v1/bootstrap (sh+json) · 3 new files + 3 modified · 18 tests · 623 passed 零回归
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
 - P11-B7 ✅：串联就绪审查 — 🚧停止点·7 维前置验证通过 · GO → B8 实战
