@@ -61,7 +61,7 @@ description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · PFL-
 ┌─ 实战验证（狗粮驱动）────────────────────────────┐
 │ P11-B8 ✅ 地基 — project_key + 权限引擎          │
 │   — project_key_hash · permissions.py ·          │
-│   — verify_api_key PENDING 修复 · 5 files        │
+│   — verify_api_key PENDING→ACCEPT 修复 · 5 files  │
 │                                                    │
 │ P11-B9 ✅ 接线 + 项目发现                         │
 │   — 2端点角色绑定 · GET /workers/me/projects      │
