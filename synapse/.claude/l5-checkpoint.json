@@ -1,7 +1,7 @@
 {
-  "lastL5Batch": "P11-B8→B19 L5 拉通 — 📄 roadmap.md B12-B19 补登记（8 批）· 🔗 CLAUDE.md B15/B16 顺序修正 · 🔧 .git/hooks 安装（post-commit + commit-msg）· V-028 hooks 未安装违纪登记",
+  "lastL5Batch": "P11-B19→P100-B85 L5 拉通 — 📄 tracks/synapse.md P100 track B85 G-028 登记 · 📄 CLAUDE.md P100-B85 当前状态 · 📄 roadmap.md header 同步 · 双轨分治确认",
   "lastL5Timestamp": "2026-07-20",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [
     "P11-B12",
     "P11-B13",
@@ -12,6 +12,6 @@
     "P11-B18",
     "P11-B19"
   ],
-  "lastL5Evidence": "P11-B8→B19 L5 拉通 — roadmap.md P11 段 B11 计划→实际同步 · B12-B19 补登记（原子弹→环境搭建→全链路验证→权限修复→角色边界→狗粮消化→可见性修复→Bootstrap接线）· CLAUDE.md B15/B16 顺序修正 · CLAUDE.md header 同步 · 计数器复位",
-  "notes": "L5 拉通完成 · 发现 hooks 从未安装（V-028 登记）· 3 项 drift 全部修复 · 计数器复位"
+  "lastL5Evidence": "P11-B19→P100-B85 L5 拉通 — P11 track B19 产品线稳定（Bootstrap router 接线 ✅）· P100 track B85 G-028 治理基础设施独立批登记（check-hooks.sh 防呆 + make check 管道 + CLAUDE.md 自检增强）· 双轨分治：P11（P1-P99 产品功能）↔ P100（P100-P199 治理基础设施）边界确认 · 计数器复位",
+  "notes": "L5 门禁触发（batchesSinceLastL5=2）→ 执行拉通复位 · P100-B85 G-028 独立批完成 · P11 产品线 next_batch=B20（PFL-041 待办）"
 }
