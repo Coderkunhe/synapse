@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P11-B20 ✅ hooks 补测+防御验证+L5 拉通复位 — §11 批次路由校验规则）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P100-B86 ✅ 违纪全量清零 · P11 B8-B19 L5 全量拉通 · §11 批次路由校验规则）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B8→B19 拉通完成（2026-07-20）— 3 项 drift 修复 · 计数器复位
+> 🔄 L5 P11-B8→B19 全量拉通完成（2026-07-21）— 5 项 drift 修复 · B8-B10 措辞 · B11-B14 ADR-006 重拆叙事 · B15-B19 零 drift · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -556,7 +556,9 @@ synapse/
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
 - P11-B7 ✅：串联就绪审查 — 🚧停止点·7 维前置验证通过 · GO → B8 实战
-- 🔄 **L5 P11-B8→B19 拉通 ✅** — roadmap.md B12-B19 补登记（8 批）· CLAUDE.md B15/B16 顺序修正 · hooks 安装 · V-028 登记 · 计数器复位（2026-07-20）
+- 🔄 **L5 P11-B8→B19 全量拉通 ✅** — 5 项 drift 修复（B8-B10 措辞 + B11-B14 ADR-006 重拆 B12↔B13 · B15-B19 零 drift）· 计数器复位 · 2026-07-21
+- **P11-B20 ✅**：hooks 补测 + 裸奔期防御验证 — check-hooks.sh 四场景 · 裸奔期 12 commits 审计 · 5 层防御 · PFL-041 评估 · L5 拉通复位
+- **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
 - P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
 - P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files
 - P11-B4 ✅：L2b 约定层+生成管线适配 · L5 P11-B1→B4 全量拉通 🎉 — Skill 模块化前置 4 批全量闭环

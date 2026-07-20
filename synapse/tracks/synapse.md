@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B20 ✅ · hooks 补测 + 裸奔期防御验证 + L5 拉通复位
+phase: P100-B86 ✅ 违纪全量清零 · P11 B8-B19 L5 全量拉通
 last_batch: P11-B20
 next_batch: P11-B21
-description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · PFL-041 WS 推送剩余 2/3 待 B21 · L5 拉通复位完成
+description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · P100-B86 ✅ 违纪清零 · PFL-041 WS 推送待 B21 · L5 counter=1
 ---
 
 # Synapse 轨道
