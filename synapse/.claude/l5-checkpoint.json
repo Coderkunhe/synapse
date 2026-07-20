@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B15→B16 L5 拉通 — 权限修复 + God's-eye 角色边界 · 2 批四层零 drift · track/roadmap/CLAUDE 三文件一致",
+  "lastL5Batch": "P11-B17→B19 L5 拉通 — 狗粮消化 + Worker 可见性 + Bootstrap 接线 · 3 批四层零 drift · track/roadmap/CLAUDE 三文件一致",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B15→B16 L5 拉通 — B15 权限修复（PFL-034 assign_task + PFL-039 verify guard require_role→require_permission）: 1 commit (6730052, 与 B14 合并提交) · require_permission 已接线 4 文件（tasks/workers/batches/permissions）· require_role 保留用于 teams 管理端点（admin/lead 角色访问），与 require_permission 并存，非残留。B16 God's-eye 角色边界正式化（PFL-037）+ SessionStart hook 部署（PFL-038）: 1 commit (8771024) · CLAUDE.md God's-eye 角色边界专节 4 处引用 · 双客户端 settings.json 部署 · 纪律明确：God's-eye 不能改 src/，发现 bug 走 VDD 循环。L1 双覆盖 · L2 三文件一致 · L3 代码-文档对齐 · L4 git 历史一致。",
-  "notes": "P11-B15→B16 L5 拉通完成 ✅ · 2 批零 drift · B15 require_role/require_permission 并存为设计意图非残留 · 计数器 0"
+  "lastL5Evidence": "P11-B17→B19 L5 拉通 — B17 狗粮发现消化（PFL-035/036/040 闭环 · 1 commit f08fa84 · 5 files）: Verification 强制门禁 (PFL-035) · handshake WS URL (PFL-036) · Swagger Bearer auth (PFL-040) · PFL-041 登记。B18 Worker 可见性 + Catch-22（PFL-032/033 闭环 · 1 commit 2eeeaab · 3 files）: get_task() 角色感知过滤 · version_no schema 补齐 · claim 错误消息去 Catch-22。B19 Bootstrap router 接线（B14 遗留 · 1 commit 2eeeaab + housekeeping cc4c87b + V-027 cleanup 04ca214 · 2 行 fix · 18 tests 0→18）: bootstrap router 随 B14 提交但从未挂载到 api_router · V-027 幽灵 Batch P11-B14a 清理。L1 三覆盖 · L2 三文件一致（CLAUDE.md 双段引用统一）· L3 代码-文档对齐 · L4 git 历史一致。",
+  "notes": "P11-B17→B19 L5 拉通完成 ✅ · 3 批零 drift · P11-B8→B19 全量 L5 拉通进度: B8-B10 ✅ B11-B14 ✅ B15-B16 ✅ B17-B19 ✅ · 仅余 P11-B20（本会话已完成）· 计数器 0"
 }
