@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-19（P11-B10 ✅ — 模板适配 · B8-B10 地基→接线→适配 三层拉通）
+> 最后更新：2026-07-20（P11-B19 ✅ — P11 L5 B8→B19 拉通 · B12-B19 补登记 · hooks 安装）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -80,7 +80,15 @@
 | **P11-B8** | **地基** — project_key + 权限引擎（PERMISSION_MAP + require_permission）+ PENDING修复 · 5 files | ✅ |
 | **P11-B9** | **接线 + 项目发现** — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files | ✅ |
 | **P11-B10** | **模板适配** — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID 变量名一致性修复 · 3 files | ✅ |
-| **P11-B11** | **狗粮全链路验证** — Builder Agent 接入→项目发现→接Task→提交 · 实战验证 | 🔜 |
+| **P11-B11** | **前置阻断项全量审计** — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch · memory 登记 | ✅ |
+| **P11-B12** | **阻断修复** — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过 | ✅ |
+| **P11-B13** | **环境搭建** — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix | ✅ |
+| **P11-B14** | **狗粮全链路验证** — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化 · bootstrap 端点随此批提交 | ✅ |
+| **P11-B15** | **权限修复** — PFL-034 assign_task + PFL-039 verify guard · require_role→require_permission · PFL-040 Swagger token 登记 · 3 code + 2 doc | ✅ |
+| **P11-B16** | **God's-eye 角色边界 + SessionStart hook** — PFL-037 God's-eye 角色边界正式化 · PFL-038 SessionStart hook 部署 · 双客户端 settings.json · CLAUDE.md 新增角色边界专节 | ✅ |
+| **P11-B17** | **狗粮发现消化** — PFL-035 ready 强制 Verification · PFL-036 handshake WS URL · PFL-040 Swagger Bearer auth · 5 files · PFL-041 登记 | ✅ |
+| **P11-B18** | **Worker 可见性 + Catch-22** — PFL-032 get_task() 角色感知过滤 · PFL-033 version_no schema 补齐 + claim 错误消息去死锁 · 3 files | ✅ |
+| **P11-B19** | **Bootstrap router 接线** — B14 遗留缺陷修复 · 2 行 fix · 18 tests 0→18 · V-027 幽灵 Batch 清理 + 违纪登记 | ✅ |
 
 ---
 

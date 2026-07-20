@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-frontend setup hooks db-init db-sync contracts-baseline
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend setup hooks db-init db-sync contracts-baseline
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -35,6 +35,7 @@ help: ## 显示所有可用 target
 	@echo "    make check-issue-numbers  议题编号自洽校验（G26，警告级）"
 	@echo "    make check-db-consistency  DB ↔ docs 一致性检查（警告级）"
 	@echo "    make check-role-isolation  角色隔离观测门禁（ADR-006 S1-S3/S7，警告级）"
+	@echo "    make check-hooks         Git hooks 完整性检测（V-028 防呆 — 新 clone 后必检）"
 	@echo "    make check-tests         测试门禁（pytest）"
 	@echo "    make check-types         Python 类型检查（mypy — V-004 防呆）"
 	@echo "    make check-frontend      前端门禁（oxlint + tsc typecheck）"
@@ -46,7 +47,7 @@ help: ## 显示所有可用 target
 	@echo "    make db-sync     从 DB 导出 Batch 状态到 docs/batch-status.md"
 	@echo ""
 
-check: check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-types check-tests ## 完整门禁
+check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-types check-tests ## 完整门禁
 	@echo ""
 	@echo "✅ 门禁全部通过"
 
@@ -150,6 +151,9 @@ check-db-consistency: ## DB ↔ docs 一致性检查（警告级）
 
 check-role-isolation: ## 角色隔离观测门禁（ADR-006 S1-S3/S7，警告级，不阻断）
 	@bash tools/check-role-isolation.sh
+
+check-hooks: ## Git hooks 完整性检测（V-028 防呆 — 新 clone/迁库后首次 make check 即可发现）
+	@bash tools/check-hooks.sh
 
 contracts-baseline: ## 生成/更新 API 契约基线快照
 	@PYTHONPATH=. .venv/bin/python tools/_gen_contracts_baseline.py

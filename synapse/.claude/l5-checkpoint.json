@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B8→B10 L5 拉通 — 📄 roadmap.md P11 段 B8-B10 计划→实际同步 · 🔗 CLAUDE.md/track/roadmap 三方 B8-B10 描述一致 · B8-B10 地基→接线→适配 叙事连贯",
-  "lastL5Timestamp": "2026-07-19",
+  "lastL5Batch": "P11-B8→B19 L5 拉通 — 📄 roadmap.md B12-B19 补登记（8 批）· 🔗 CLAUDE.md B15/B16 顺序修正 · 🔧 .git/hooks 安装（post-commit + commit-msg）· V-028 hooks 未安装违纪登记",
+  "lastL5Timestamp": "2026-07-20",
   "batchesSinceLastL5": 0,
-  "completedBatches": [],
-  "lastL5Evidence": "P11-B8→B10 L5 拉通 — roadmap.md P11 B8-B10 原计划(实战验证/Builder B/跨Agent)已替换为实际完成描述(地基/接线+项目发现/模板适配) · CLAUDE.md header 同步 · 计数器复位",
-  "notes": "L5 拉通完成，计数器复位 — B8-B10 三层地基→接线→模板适配 全链叙事连贯"
+  "completedBatches": ["P11-B12", "P11-B13", "P11-B14", "P11-B15", "P11-B16", "P11-B17", "P11-B18", "P11-B19"],
+  "lastL5Evidence": "P11-B8→B19 L5 拉通 — roadmap.md P11 段 B11 计划→实际同步 · B12-B19 补登记（原子弹→环境搭建→全链路验证→权限修复→角色边界→狗粮消化→可见性修复→Bootstrap接线）· CLAUDE.md B15/B16 顺序修正 · CLAUDE.md header 同步 · 计数器复位",
+  "notes": "L5 拉通完成 · 发现 hooks 从未安装（V-028 登记）· 3 项 drift 全部修复 · 计数器复位"
 }

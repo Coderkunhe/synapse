@@ -128,6 +128,7 @@ L5 拉通层    — 全链路闭环，新人能看懂（每 2 批执行，叙事
 - **L5 commit 不计入批次计数**：`post-commit.sh` 检测 commit message 含 `L5`/`拉通` → 跳过 `batchesSinceLastL5` 递增。L5 是同步点，不是"一批工作"——复位后的第一次递增应从下一个功能 Batch 开始
 - **L5 机械门禁**：`tools/l5-gate.sh` 已接入 `.git/hooks/pre-commit`。`batchesSinceLastL5 ≥ 2` → commit 被硬阻断。操作流程：执行 L5 → `l5-reset.sh --yes` → 将复位后的 checkpoint 与功能变更 staged 在一起 → **单次 commit**（commit message 注明 L5 范围，不再拆分独立 L5 doc commit）
 - **新会话启动 L5 自检（V-024 防呆）**：读到暗号/继续指令后第一步——读 `.claude/l5-checkpoint.json` → 若 `batchesSinceLastL5 >= 2` → **必须先 L5 拉通再开新 Batch**。不允许 commit 时才被动补救。MEMORY.md 暗号段应携带 L5 状态标记
+- **新会话启动 hooks 完整性自检（G-028 · V-028 防呆）**：启动后检查 `.git/hooks/post-commit` 是否存在。缺失 → 立即告警："⚠️ Git hooks 未安装 — L5 门禁未武装。运行: cd synapse && make hooks"。新 clone / 迁库后 hooks 不会自动跟随，必须重装
 - 详细检测手段和分层映射见 [`docs/methodology.md`](docs/methodology.md) §五层自检金字塔
 
 ### 2. 发现即待办
@@ -483,6 +484,7 @@ synapse/
 │   ├── check-commit-prefix.sh  ← Commit 前缀门禁 ✅
 │   ├── check-phase.sh          ← Phase 治理门禁（G-004）✅
 │   ├── check-discussions.sh    ← 讨论→登记管道孤儿 D-ID 检测（G-005-a）✅
+│   ├── check-hooks.sh          ← Git hooks 完整性检测（G-028 · V-028 防呆）✅
 │   ├── check-plan-mode.sh      ← Plan Mode 入口检测（V-003 防呆）✅
 │   ├── check-doc-curl.sh       ← Doc curl 块结构校验 + Live 模式 subprocess E2E（S-024b）✅
 │   ├── db-backup.sh            ← 数据库备份（保留最近 20 个）✅
@@ -529,8 +531,8 @@ synapse/
 - P11-B12 ✅：阻断修复 — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过
 - P11-B13 ✅：环境搭建 — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix
 - P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线 · bootstrap 端点随此批提交（router 未挂载，B19 接线 · V-027 登记）
-- P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
 - P11-B15 ✅：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
+- P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
 - P11-B17 ✅：狗粮发现消化（PFL-035 + PFL-036 + PFL-040） — ready 强制 Verification · handshake 返回 WS URL · Swagger Bearer auth · 5 files · 🟡 PFL-041 登记（任务状态 WS 推送缺口）
 - P11-B18 ✅：Worker 可见性 + Catch-22 修复（PFL-032 + PFL-033） — get_task() 可见性过滤角色感知化 · TaskResponse 新增 version_no · claim 错误消息去 Catch-22 · 3 files · pitfalls 8/10 ✅
 - P11-B19 ✅：Bootstrap router 接线 — B14 遗留缺陷（bootstrap router 随 B14 提交但从未挂载到 api_router）· 2 行修复 · 18 个测试 0→18 · 1 file · V-027 登记
@@ -538,7 +540,7 @@ synapse/
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
 - P11-B7 ✅：串联就绪审查 — 🚧停止点·7 维前置验证通过 · GO → B8 实战
-- 🔄 **L5 P11-B8→B10 拉通 ✅** — roadmap.md P11 段 B8-B10 计划→实际同步 · 3 项交叉引用修复 · 计数器复位
+- 🔄 **L5 P11-B8→B19 拉通 ✅** — roadmap.md B12-B19 补登记（8 批）· CLAUDE.md B15/B16 顺序修正 · hooks 安装 · V-028 登记 · 计数器复位（2026-07-20）
 - P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
 - P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files
 - P11-B4 ✅：L2b 约定层+生成管线适配 · L5 P11-B1→B4 全量拉通 🎉 — Skill 模块化前置 4 批全量闭环
