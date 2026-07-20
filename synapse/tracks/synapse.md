@@ -99,7 +99,7 @@ description: Synapse 主项目 — P11-B19 ✅ 闭环 · B20 → 待定
 │   — TaskResponse 新增 version_no                    │
 │                                                    │
 │ P11-B19 ✅ Bootstrap router 接线                     │
-│   — P11-B14a 遗留缺陷 · 2 行 fix                      │
+│   — B14 遗留缺陷（router 未挂载）· 2 行 fix · V-027     │
 │   — 18 tests 0→18                                  │
 └────────────────────────────────────────────────────┘
 ```
