@@ -192,6 +192,7 @@ class TaskResponse(AuditFields):
     estimated_effort: str | None = None
     tags: list[str] | None = None
     metadata: dict | None = None
+    version_no: int
     deadline_at: datetime | None = None
     completed_at: datetime | None = None
     redo_count: int = 0

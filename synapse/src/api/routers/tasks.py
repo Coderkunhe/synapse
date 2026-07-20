@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Path, Query, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
 from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, VerificationStatus
 from src.dependencies import ActorInfo, get_current_actor, require_role
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, SynapseError
+from src.models import ProjectActorRole
 from src.permissions import require_permission
 from src.schemas.common import CursorPage
 from src.schemas.task import (
@@ -56,6 +58,22 @@ from .helpers import get_project_or_404
 def _normalize_verdict(status: str) -> str:
     """Map intuitive verdict values to internal status (P9-B63: F-B61-3)."""
     return {"approved": VerificationStatus.PASSED, "rejected": VerificationStatus.FAILED}.get(status, status)
+
+
+async def _worker_has_project_role(db: AsyncSession, worker_id: str, project_id: str) -> bool:
+    """Check whether a Worker has an orchestrator/admin/lead role in a project.
+
+    Workers with project-level management roles should have full visibility
+    into all project tasks, not just the ones they own (PFL-032).
+    """
+    result = await db.execute(
+        select(ProjectActorRole).where(
+            ProjectActorRole.worker_id == worker_id,
+            ProjectActorRole.project_id == project_id,
+            ProjectActorRole.role.in_(["orchestrator", "admin", "lead"]),
+        ).limit(1)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def _resolve_project_from_task(request: Request, db: AsyncSession) -> str:
@@ -263,10 +281,13 @@ async def get_task(
     if project.team_id != actor.team_id:
         raise NotFoundError("task", task_id)
 
-    # Worker visibility: workers only see tasks they own
+    # Worker visibility: workers only see tasks they own,
+    # unless they hold a project management role (PFL-032).
     if actor.actor_type == ActorType.WORKER:
-        if task.owner_type != OwnerType.WORKER or task.owner_id != actor.actor_id:
-            raise NotFoundError("task", task_id)
+        has_project_role = await _worker_has_project_role(db, actor.actor_id, task.project_id)
+        if not has_project_role:
+            if task.owner_type != OwnerType.WORKER or task.owner_id != actor.actor_id:
+                raise NotFoundError("task", task_id)
 
     return TaskResponse.model_validate(await task_to_response(task, db))
 
@@ -345,7 +366,8 @@ async def claim_task(
             status_code=422,
             code="MISSING_EXPECTED_VERSION",
             message=f"expected_version is required. "
-            f"GET /v1/tasks/{task_id} first to obtain the current version, "
+            f"Use GET /v1/projects/<project_id>/tasks or GET /v1/tasks/available "
+            f"to obtain the current version from the task list, "
             f"then include it in your request body.",
         )
     if actor.actor_type not in (ActorType.WORKER, ActorType.HUMAN):
