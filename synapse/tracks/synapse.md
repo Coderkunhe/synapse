@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B17 ✅ · PFL-035 + PFL-036 + PFL-040 闭环
-last_batch: P11-B17
-next_batch: P11-B18
-description: Synapse 主项目 — P11-B17 ✅ 闭环 · B18 → PFL-032 + PFL-033 (建议)
+phase: P11-B19 ✅ · PFL-032 + PFL-033 闭环 + Bootstrap router 接线
+last_batch: P11-B19
+next_batch: P11-B20
+description: Synapse 主项目 — P11-B19 ✅ 闭环 · B20 → 待定
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B17 ✅ 闭环 · B18 → PFL-032 + PFL-0
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B84 | — ✅ | 暂告段落 · S-067~S-072 全量消化 🎉 · B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B17 | **P11-B18** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 |
+| **P11** | P11-B19 | **P11-B20** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 · B18 ✅ PFL-032+PFL-033 · B19 ✅ Bootstrap router接线 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -92,6 +92,15 @@ description: Synapse 主项目 — P11-B17 ✅ 闭环 · B18 → PFL-032 + PFL-0
 │ P11-B17 ✅ 狗粮发现消化（PFL-035/036/040）            │
 │   — PFL-035 ready 强制 Verification · PFL-036      │
 │   — handshake 返回 WS URL · PFL-040 Swagger token   │
+│                                                    │
+│ P11-B18 ✅ Worker 可见性 + Catch-22（PFL-032/033）    │
+│   — _worker_has_project_role() helper              │
+│   — get_task() 可见性过滤角色感知化                    │
+│   — TaskResponse 新增 version_no                    │
+│                                                    │
+│ P11-B19 ✅ Bootstrap router 接线                     │
+│   — P11-B14a 遗留缺陷 · 2 行 fix                      │
+│   — 18 tests 0→18                                  │
 └────────────────────────────────────────────────────┘
 ```
 
