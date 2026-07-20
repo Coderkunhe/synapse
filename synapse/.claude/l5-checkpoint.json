@@ -1,17 +1,8 @@
 {
-  "lastL5Batch": "P11-B19→P100-B85 L5 拉通 — 📄 tracks/synapse.md P100 track B85 G-028 登记 · 📄 CLAUDE.md P100-B85 当前状态 · 📄 roadmap.md header 同步 · 双轨分治确认",
-  "lastL5Timestamp": "2026-07-20",
+  "lastL5Batch": "P11-B19→P11-B20 L5 拉通 — 📄 tracks/synapse.md P11-B20 登记 · 📄 roadmap.md B20 条目新增 · 📄 pitfalls.md PFL-041 评估更新 · 📄 CLAUDE.md 时间戳同步 · hooks 补测三场景通过 · 裸奔期防御 5 层验证充足 · 计数器复位",
+  "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
-  "completedBatches": [
-    "P11-B12",
-    "P11-B13",
-    "P11-B14",
-    "P11-B15",
-    "P11-B16",
-    "P11-B17",
-    "P11-B18",
-    "P11-B19"
-  ],
-  "lastL5Evidence": "P11-B19→P100-B85 L5 拉通 — P11 track B19 产品线稳定（Bootstrap router 接线 ✅）· P100 track B85 G-028 治理基础设施独立批登记（check-hooks.sh 防呆 + make check 管道 + CLAUDE.md 自检增强）· 双轨分治：P11（P1-P99 产品功能）↔ P100（P100-P199 治理基础设施）边界确认 · 计数器复位",
-  "notes": "L5 门禁触发（batchesSinceLastL5=2）→ 执行拉通复位 · P100-B85 G-028 独立批完成 · P11 产品线 next_batch=B20（PFL-041 待办）"
+  "completedBatches": [],
+  "lastL5Evidence": "P11-B19→P11-B20 L5 拉通 — 📄 tracks/synapse.md P11-B20 登记 · 📄 roadmap.md B20 条目新增 · 📄 pitfalls.md PFL-041 评估更新 · 📄 CLAUDE.md 时间戳同步 · hooks 补测三场景通过 · 裸奔期防御 5 层验证充足 · 计数器复位",
+  "notes": "L5 拉通完成 · P11-B20 ✅ hooks 补测+防御验证 · PFL-041 WS 推送剩余 2/3 评估完成 · next_batch=P11-B21"
 }

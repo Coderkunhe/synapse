@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B85 ✅ · G-028 治理基础设施独立批 — check-hooks.sh 防呆注册
-last_batch: P11-B19
-next_batch: P11-B20
-description: Synapse 主项目 — P11-B19 ✅ 闭环 · P100-B85 ✅ G-028 独立批 · B20 → PFL-041（L5 门禁待触发）
+phase: P11-B20 ✅ · hooks 补测 + 裸奔期防御验证 + L5 拉通复位
+last_batch: P11-B20
+next_batch: P11-B21
+description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · PFL-041 WS 推送剩余 2/3 待 B21 · L5 拉通复位完成
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B19 ✅ 闭环 · P100-B85 ✅ G-028 独�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B85 | — ✅ | 暂告段落 · G-028 治理基础设施独立批 ✅ · S-067~S-072 全量消化 🎉 · B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B19 | **P11-B20** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 · B18 ✅ PFL-032+PFL-033 · B19 ✅ Bootstrap router接线 |
+| **P11** | P11-B20 | **P11-B21** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 · B18 ✅ PFL-032+PFL-033 · B19 ✅ Bootstrap router接线 · B20 ✅ hooks 补测+防御验证+L5 复位 |
 
 ## P11 路线图：多 Agent 接入战
 

@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-20（P11-B19 ✅ — Bootstrap router 接线 · P100-B85 ✅ G-028 治理基础设施独立批）
+> 最后更新：2026-07-21（P11-B20 ✅ — hooks 补测 + 裸奔期防御验证 + PFL-041 评估 · L5 拉通复位）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -89,6 +89,7 @@
 | **P11-B17** | **狗粮发现消化** — PFL-035 ready 强制 Verification · PFL-036 handshake WS URL · PFL-040 Swagger Bearer auth · 5 files · PFL-041 登记 | ✅ |
 | **P11-B18** | **Worker 可见性 + Catch-22** — PFL-032 get_task() 角色感知过滤 · PFL-033 version_no schema 补齐 + claim 错误消息去死锁 · 3 files | ✅ |
 | **P11-B19** | **Bootstrap router 接线** — B14 遗留缺陷修复 · 2 行 fix · 18 tests 0→18 · V-027 幽灵 Batch 清理 + 违纪登记 | ✅ |
+| **P11-B20** | **hooks 补测 + 裸奔期防御验证** — check-hooks.sh 三场景(正常/缺失/截断)验证 · L5 gate 阻塞确认 · 裸奔期 12 commits 审计无违规 · 5 层防御充足 · PFL-041 WS 推送剩余 2/3 登记 · L5 拉通复位 | ✅ |
 
 ---
 
