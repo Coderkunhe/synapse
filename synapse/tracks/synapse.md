@@ -70,6 +70,10 @@ description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · PFL-
 │ P11-B10 ✅ 模板适配                                  │
 │   — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files     │
 │                                                    │
+│ P11-B11 ✅ 前置阻断项全量审计                          │
+│   — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch    │
+│   — 0 code files · memory 登记                        │
+│                                                    │
 │ P11-B12 ✅ Feature Scope 定义                        │
 │   — "Worker 名称富化" — API 消灭裸 Worker ID         │
 │   — 狗粮范围决策 · 0 code files                      │
@@ -79,7 +83,7 @@ description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · PFL-
 │   — ✅ 5 项发现闭环 · generate-skill.sh bugfix       │
 │                                                    │
 │ P11-B14 ✅ 狗粮全链路验证                             │
-│   — Builder Agent 接入→项目发现→接Task→提交      │
+│   — Orchestrator + Builder 双终端接入→Task 全生命周期   │
 │   — 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线     │
 │                                                    │
 │ P11-B15 ✅ 权限修复（PFL-034 + PFL-039）              │

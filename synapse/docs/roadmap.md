@@ -80,9 +80,9 @@
 | **P11-B8** | **地基** — project_key + 权限引擎（PERMISSION_MAP + require_permission）+ PENDING修复 · 5 files | ✅ |
 | **P11-B9** | **接线 + 项目发现** — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files | ✅ |
 | **P11-B10** | **模板适配** — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID 变量名一致性修复 · 3 files | ✅ |
-| **P11-B11** | **前置阻断项全量审计** — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch · memory 登记 | ✅ |
-| **P11-B12** | **阻断修复** — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过 | ✅ |
-| **P11-B13** | **环境搭建** — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix | ✅ |
+| **P11-B11** | **前置阻断项全量审计** — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch · 0 code files · memory 登记 | ✅ |
+| **P11-B12** | **Feature Scope 定义** — "Worker 名称富化" 决策 · 狗粮范围锁定 · 0 code files（ADR-006 重拆后从"阻断修复"重定义为 Scope） | ✅ |
+| **P11-B13** | **阻断修复 + 环境搭建** — project_key + orchestrator + 角色绑定 + 模板修复 · 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix · 7 files · DB 验证通过 | ✅ |
 | **P11-B14** | **狗粮全链路验证** — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化 · bootstrap 端点随此批提交 | ✅ |
 | **P11-B15** | **权限修复** — PFL-034 assign_task + PFL-039 verify guard · require_role→require_permission · PFL-040 Swagger token 登记 · 3 code + 2 doc | ✅ |
 | **P11-B16** | **God's-eye 角色边界 + SessionStart hook** — PFL-037 God's-eye 角色边界正式化 · PFL-038 SessionStart hook 部署 · 双客户端 settings.json · CLAUDE.md 新增角色边界专节 | ✅ |

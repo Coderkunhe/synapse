@@ -542,8 +542,9 @@ synapse/
 ## 当前状态
 
 - P11-B10 ✅：模板适配 — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files · 纯机械替换
-- P11-B12 ✅：阻断修复 — project_key + orchestrator + 角色绑定 + 模板修复 · 7 files · DB 验证通过
-- P11-B13 ✅：环境搭建 — 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix
+- P11-B11 ✅：前置阻断项全量审计 — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch · 0 code files · memory 登记
+- P11-B12 ✅：Feature Scope 定义 — "Worker 名称富化" 决策 · 狗粮范围锁定 · 0 code files（ADR-006 重拆后 B12 从"阻断修复"重定义为 Scope 定义）
+- P11-B13 ✅：阻断修复 + 环境搭建 — project_key + orchestrator + 角色绑定 + 模板修复 · 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix · 7 files · DB 验证通过
 - P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线 · bootstrap 端点随此批提交（router 未挂载，B19 接线 · V-027 登记）
 - P11-B15 ✅：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
 - P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
