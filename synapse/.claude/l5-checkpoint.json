@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B11→B14 L5 拉通 — 📄 CLAUDE.md B11 补登记+B12↔B13 重拆后描述修正 · 📄 roadmap.md B12/B13 同步修正 · 📄 tracks/synapse.md B11 补入路线图+B14 双终端措辞 · 4 项 drift 全量修复",
+  "lastL5Batch": "P11-B8→B14 L5 全量拉通 — B8-B10 措辞修正+B11 补登记+B12↔B13 ADR-006 重拆后叙事修复 · 7 批四层全部对齐 · commits 66e6890 + dfe5576",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B11→B14 L5 拉通 — 根因：ADR-006 重拆（7→9 批）后 B12 从"阻断修复"重定义为"Feature Scope 定义"，B13 吸收阻断修复+环境搭建双职责。CLAUDE.md 和 roadmap.md 仍使用重拆前编号（B12=阻断修复, B13=环境搭建），track file 使用重拆后编号。修正：CLAUDE.md 补 B11 + B12→Scope 定义 + B13→阻断修复+环境搭建；roadmap.md 同步修正；track file 补 B11 入路线图 + B14 双终端措辞。git 历史验证：0 个 B12 commit，5 个 B13 commit（阻断修复），与 track file 重拆后编号一致。",
-  "notes": "P11-B11→B14 L5 拉通完成 · 4 项 drift 修复（B11 missing×2, B12/B13 swapped×2）· 计数器 0 · P11-B21 下一站"
+  "lastL5Evidence": "P11-B8→B14 L5 全量拉通 — 分两段执行后统一验证。第一段 B8→B10: verify_api_key PENDING→ACCEPT 措辞 drift 修正（track file），B10 SYNAPSE_AGENT_ID 零残留确认，B9 project_key 接线确认。第二段 B11→B14: ADR-006 重拆（7→9 批）导致 B12/B13 叙事断裂——B12 从阻断修复重定义为 Scope 定义（0 files），B13 吸收阻断修复+环境搭建双职责（5 commits），CLAUDE.md+roadmap 使用重拆前编号（B12=阻断修复 7 files），track file+git 历史一致为重拆后编号。修复 4 项 drift: B11 补入 CLAUDE.md+track 路线图，B12→Scope 定义(CLAUDE+roadmap)，B13→阻断修复+环境搭建(CLAUDE+roadmap)，B14 双终端措辞(track)。最终验证: L1 7 批全覆盖，L2 三文件叙事一致，L3 代码-文档对齐（0 残留、接线正常），L4 git 与文档一致（B12 0 commits, B13 5 commits, B14 2 commits）。",
+  "notes": "P11-B8→B14 L5 全量拉通完成 ✅ · 7 批四层零 drift · 计数器 0 · P11-B21 下一站"
 }
