@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B8→B14 L5 全量拉通 — B8-B10 措辞修正+B11 补登记+B12↔B13 ADR-006 重拆后叙事修复 · 7 批四层全部对齐 · commits 66e6890 + dfe5576",
+  "lastL5Batch": "P11-B15→B16 L5 拉通 — 权限修复 + God's-eye 角色边界 · 2 批四层零 drift · track/roadmap/CLAUDE 三文件一致",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B8→B14 L5 全量拉通 — 分两段执行后统一验证。第一段 B8→B10: verify_api_key PENDING→ACCEPT 措辞 drift 修正（track file），B10 SYNAPSE_AGENT_ID 零残留确认，B9 project_key 接线确认。第二段 B11→B14: ADR-006 重拆（7→9 批）导致 B12/B13 叙事断裂——B12 从阻断修复重定义为 Scope 定义（0 files），B13 吸收阻断修复+环境搭建双职责（5 commits），CLAUDE.md+roadmap 使用重拆前编号（B12=阻断修复 7 files），track file+git 历史一致为重拆后编号。修复 4 项 drift: B11 补入 CLAUDE.md+track 路线图，B12→Scope 定义(CLAUDE+roadmap)，B13→阻断修复+环境搭建(CLAUDE+roadmap)，B14 双终端措辞(track)。最终验证: L1 7 批全覆盖，L2 三文件叙事一致，L3 代码-文档对齐（0 残留、接线正常），L4 git 与文档一致（B12 0 commits, B13 5 commits, B14 2 commits）。",
-  "notes": "P11-B8→B14 L5 全量拉通完成 ✅ · 7 批四层零 drift · 计数器 0 · P11-B21 下一站"
+  "lastL5Evidence": "P11-B15→B16 L5 拉通 — B15 权限修复（PFL-034 assign_task + PFL-039 verify guard require_role→require_permission）: 1 commit (6730052, 与 B14 合并提交) · require_permission 已接线 4 文件（tasks/workers/batches/permissions）· require_role 保留用于 teams 管理端点（admin/lead 角色访问），与 require_permission 并存，非残留。B16 God's-eye 角色边界正式化（PFL-037）+ SessionStart hook 部署（PFL-038）: 1 commit (8771024) · CLAUDE.md God's-eye 角色边界专节 4 处引用 · 双客户端 settings.json 部署 · 纪律明确：God's-eye 不能改 src/，发现 bug 走 VDD 循环。L1 双覆盖 · L2 三文件一致 · L3 代码-文档对齐 · L4 git 历史一致。",
+  "notes": "P11-B15→B16 L5 拉通完成 ✅ · 2 批零 drift · B15 require_role/require_permission 并存为设计意图非残留 · 计数器 0"
 }
