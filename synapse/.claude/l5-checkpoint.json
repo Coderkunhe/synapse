@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B21→B22 拉通 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx WS 集成 · 624 tests 零回归",
+  "lastL5Batch": "P11-B22→B23 拉通 — WS 加固三板斧全量闭环 · graceful_shutdown + 连接数上限 + 消息大小限制 · 4 files · 624 tests 零回归",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B21→B22 拉通 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx WS 集成 · 624 tests 零回归",
-  "notes": "L5 拉通完成，计数器复位 — P11-B22 2 files 零drift"
+  "lastL5Evidence": "P11-B22→B23 拉通 — L1 code/L2 imports/L3 contracts/L4 624 tests/L5 docs all verified · 4 files WS hardening zero drift",
+  "notes": "L5 拉通完成，计数器复位 — B23 加固三板斧零 drift · post-commit 将递增为 1（B24 触发下一轮 L5 门禁）"
 }

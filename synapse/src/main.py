@@ -36,6 +36,8 @@ async def lifespan(app: FastAPI):
     global _reaper_task
     _reaper_task = asyncio.create_task(_ws_reaper())
     yield
+    # P11-B23: 优雅关闭 — 通知所有 WS 客户端后断开
+    await ws_manager.graceful_shutdown()
     if _reaper_task:
         _reaper_task.cancel()
         try:

@@ -176,6 +176,41 @@ class ConnectionManager:
         client.message_timestamps.append(now)
         return True
 
+    # ── 优雅关闭 ──────────────────────────────────────────────────────
+
+    async def graceful_shutdown(self) -> int:
+        """优雅关闭所有 WebSocket 连接。
+
+        向每个客户端发送 shutdown 通知，然后关闭连接。
+        返回已关闭的连接数。
+        """
+        async with self._lock:
+            actor_ids = list(self._connections.keys())
+
+        # 第一遍：通知所有客户端服务器即将关闭
+        for actor_id in actor_ids:
+            client = self._connections.get(actor_id)
+            if client is None:
+                continue
+            try:
+                await self._safe_send(client, {
+                    "type": "shutdown",
+                    "detail": "Server is shutting down",
+                })
+            except Exception:
+                pass
+
+        # 第二遍：断开所有连接
+        closed = 0
+        for actor_id in actor_ids:
+            try:
+                await self.disconnect(actor_id)
+                closed += 1
+            except Exception:
+                pass
+
+        return closed
+
     # ── 统计 ──────────────────────────────────────────────────────────────
 
     @property

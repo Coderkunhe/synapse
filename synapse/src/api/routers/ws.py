@@ -25,6 +25,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import decode_access_token, verify_api_key
+from src.config import settings
 from src.constants import ActorType, EventType
 from src.db import async_session_factory
 from src.services.ws_manager import HEARTBEAT_INTERVAL, ws_manager, WSClient
@@ -174,6 +175,15 @@ async def websocket_endpoint(
         subscribed_topics=set(),
     )
 
+    # P11-B23: 连接数上限 — 超过限制则拒绝新连接
+    if ws_manager.connection_count >= settings.ws_max_connections:
+        await ws.send_json({
+            "type": "error",
+            "detail": f"Too many connections (max {settings.ws_max_connections})",
+        })
+        await ws.close(code=4013, reason="Too many connections")
+        return
+
     await ws_manager.connect(client)
 
     # P10-B32: Auto-subscribe Workers to authorization request topics
@@ -236,6 +246,17 @@ async def websocket_endpoint(
         while not stop_event.is_set():
             try:
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=HEARTBEAT_INTERVAL + 5)
+                # P11-B23: 消息大小限制 — 拒绝超大消息
+                if len(raw) > settings.ws_max_message_size:
+                    await ws_manager.broadcast_to_actor(
+                        client.actor_id,
+                        {
+                            "type": "error",
+                            "detail": f"Message too large: {len(raw)} bytes "
+                            f"(max {settings.ws_max_message_size})",
+                        },
+                    )
+                    continue
                 await _handle_message(client, raw)
             except asyncio.TimeoutError:
                 # No message received within timeout — check if client is still alive
