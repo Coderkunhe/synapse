@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B27 ✅ SKILL.md 启动流重构 — 新增 Step 3.5 状态同步 + HTTP-first 模型文档化
-last_batch: P11-B27
-next_batch: P11-B28
-description: Synapse 主项目 — P11-B27 ✅ SKILL.md 重构（Step 3.5 状态同步 + HTTP Poll 主通道）· B28 🔜 架构文档更新 · 624 tests
+phase: P11-B28 ✅ worker-admin-interaction-flow.md 双通道重新定位 + 时序图更新
+last_batch: P11-B28
+next_batch: P11-B29
+description: Synapse 主项目 — P11-B28 ✅ 架构文档更新 · B29 🔜 待定 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B27 ✅ SKILL.md 重构（Step 3.5 状态
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B27 | **P11-B28** 🔜 | B1-B27 ✅ · B28 🔜 架构文档更新 |
+| **P11** | P11-B28 | **P11-B29** 🔜 | B1-B28 ✅ · B29 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -157,10 +157,10 @@ description: Synapse 主项目 — P11-B27 ✅ SKILL.md 重构（Step 3.5 状态
 │   — 模板 + builder + orchestrator 三文件同步              │
 │   — 🟢 微型 · 3 files (纯文档)                          │
 │                                                    │
-│ P11-B28 🔜 架构文档更新                                │
+│ P11-B28 ✅ 架构文档更新                                │
 │   — worker-admin-interaction-flow.md 双通道重新定位      │
-│   — 按时序图更新 · 持久 vs 短生命周期客户端分工             │
-│   — 🟢 微型 (纯文档)                                    │
+│   — 时序图更新 · 持久 vs 短生命周期客户端分工             │
+│   — 🟢 微型 · 1 file (纯文档)                           │
 └────────────────────────────────────────────────────┘
 ```
 
