@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B30 ✅ L5 B28→B29 拉通 — 零 drift · 计数器复位
-last_batch: P11-B30
-next_batch: P11-B31
-description: Synapse 主项目 — P11-B30 ✅ L5 拉通 · B31 🔜 狗粮 Prep · 624 tests
+phase: P11-B31 ✅ 狗粮 Prep — Task 定义 + 环境校验
+last_batch: P11-B31
+next_batch: P11-B32
+description: Synapse 主项目 — P11-B31 ✅ 狗粮 Prep · B32 🔜 单 Task 全链路 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B30 ✅ L5 拉通 · B31 🔜 狗粮 Prep
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B30 | **P11-B31** 🔜 | B1-B30 ✅ · B31 🔜 狗粮 Prep |
+| **P11** | P11-B31 | **P11-B32** 🔜 | B1-B31 ✅ · B32 🔜 单 Task 全链路 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -171,6 +171,13 @@ description: Synapse 主项目 — P11-B30 ✅ L5 拉通 · B31 🔜 狗粮 Prep
 │   — 零 drift · 2批纯文档 · HTTP-first 三文档对齐验证      │
 │   — 计数器复位 · 📄 治理制品全量同步                      │
 │   — 🟢 微型 (L5 质量保障)                                │
+│                                                    │
+│ P11-B31 ✅ 狗粮 Prep — Task 定义 + 环境校验              │
+│   — 双客户端连通性验证（DB + API 双检）                    │
+│   — Task #1 定义（Orchestrator 视角）                    │
+│   — Task #2 定义（Builder 视角）                         │
+│   — Verification 条件 + 边界约束 + 失败模式              │
+│   — 🟡 标准 · 1 file (plan) + 治理制品                   │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -181,7 +188,7 @@ description: Synapse 主项目 — P11-B30 ✅ L5 拉通 · B31 🔜 狗粮 Prep
 | 方向 | 目标 | 关键交付 |
 |------|------|------|
 | **授权审批实时化** ✅ | 审批人无需盯终端，在 Synapse 网站实时看到授权申请并处理 | ws.py humans 订阅 `authorization_request.*` · Approvals 页面 WS 实时刷新 · P11-B22 |
-| **双客户端拉通** 🔄 | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 拉通 🔜 B30 → 狗粮 B31-B33 → 修复 B34-B36 · 8 批拆解 |
+| **双客户端拉通** 🔄 | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 ✅ B30 → Prep ✅ B31 → 狗粮 B32-B33 🔜 → 修复 B34-B36 · 8 批拆解 |
 | **三客户端实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实协作 | 多角色并发 · WS 推送贯穿 VDD 循环 |
 | **看板可视化** | 任务状态实时看板，拖拽/状态流转可视化 | Dashboard Kanban · 实时 WS 更新 · 拖拽改变状态 |
 
