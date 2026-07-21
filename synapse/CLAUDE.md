@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P100-B86 ✅ 违纪全量清零 · P11 B8-B19 L5 全量拉通 · §11 批次路由校验规则）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P11-B21 ✅ PFL-041 WS 推送 · P100-B86 ✅ 违纪全量清零 · §11 批次路由校验规则）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -548,7 +548,7 @@ synapse/
 - P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线 · bootstrap 端点随此批提交（router 未挂载，B19 接线 · V-027 登记）
 - P11-B15 ✅：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
 - P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
-- P11-B17 ✅：狗粮发现消化（PFL-035 + PFL-036 + PFL-040） — ready 强制 Verification · handshake 返回 WS URL · Swagger Bearer auth · 5 files · 🟡 PFL-041 登记（任务状态 WS 推送缺口）
+- P11-B17 ✅：狗粮发现消化（PFL-035 + PFL-036 + PFL-040） — ready 强制 Verification · handshake 返回 WS URL · Swagger Bearer auth · 5 files · PFL-041 已登记（P11-B21 ✅ 闭环）
 - P11-B18 ✅：Worker 可见性 + Catch-22 修复（PFL-032 + PFL-033） — get_task() 可见性过滤角色感知化 · TaskResponse 新增 version_no · claim 错误消息去 Catch-22 · 3 files · pitfalls 8/10 ✅
 - P11-B19 ✅：Bootstrap router 接线 — B14 遗留缺陷（bootstrap router 随 B14 提交但从未挂载到 api_router）· 2 行修复 · 18 个测试 0→18 · 1 file · V-027 登记
 - **P100-B85 ✅**：**G-028 治理基础设施独立批** — check-hooks.sh 防呆（V-028 修复） + make check 管道接线 + CLAUDE.md 启动自检增强 · 从 B19 L5 commit（`6c1fdbb`）拆出独立 P100 编号 · 3 files · 🟢 微型（纯文档）
@@ -558,6 +558,7 @@ synapse/
 - P11-B7 ✅：串联就绪审查 — 🚧停止点·7 维前置验证通过 · GO → B8 实战
 - 🔄 **L5 P11-B8→B19 全量拉通 ✅** — 5 项 drift 修复（B8-B10 措辞 + B11-B14 ADR-006 重拆 B12↔B13 · B15-B19 零 drift）· 计数器复位 · 2026-07-21
 - **P11-B20 ✅**：hooks 补测 + 裸奔期防御验证 — check-hooks.sh 四场景 · 裸奔期 12 commits 审计 · 5 层防御 · PFL-041 评估 · L5 拉通复位
+- **P11-B21 ✅**：PFL-041 WS 推送 3/3 步全量闭环 — task_service.py 9 函数 + verification_service.py → broadcast_to_actor · ws.py auto-subscribe task.* (Workers+Humans) · Worker SKILL.md 模板 WS push 文档化 · 624 tests 零回归
 - **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
 - P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
 - P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files

@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B86 违纪回顾 — V-027/V-028 🔴→🟢 · violations-review 11→0 · 26/27 🟢 · 活跃清零",
+  "lastL5Batch": "P11-B20→B21 拉通 — PFL-041 WS 推送 3/3 步闭环 · task_service+verification_service broadcast · ws.py task.* auto-subscribe · 624 tests",
   "lastL5Timestamp": "2026-07-21",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B86 违纪回顾 — process-violations.md: V-027 防呆(B19幽灵清理+§13 scope门禁) + V-028 防呆(G-028 check-hooks.sh) → 状态 🔴→🟢 · violations-checkpoint.json: batchesSinceLastReview 11→0, totalViolations 22→27 同步, recurringCount 0, unguardedCount 0 · tracks/synapse.md: P100 重开 B86 · roadmap.md: B85(G-028)+B86 补登记 · 3 files · 🟢 微型",
-  "notes": "P100 重开→闭环 · B86 违纪全量清零 🎉 · 26/27 🟢 已闭环 · 计数器 0 · P11-B21 下一站"
+  "lastL5Evidence": "P11-B20→B21 拉通 — PFL-041 WS 推送 3/3 步闭环 · task_service+verification_service broadcast · ws.py task.* auto-subscribe · 624 tests",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

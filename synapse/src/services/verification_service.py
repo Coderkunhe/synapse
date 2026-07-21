@@ -21,6 +21,7 @@ from src.exceptions import (
 from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
+from src.services.ws_manager import ws_manager
 from src.constants import TaskStatus, VerificationStatus
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_dumps, safe_loads
@@ -187,6 +188,22 @@ async def execute_verification(
         target_id=task.id,
         payload=payload,
     )
+
+    # P11-B21 PFL-041: WS push — notify owner and creator of completion/rejection
+    verify_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+            "verification_count": len(all_vers_list),
+            "all_passed": all_passed,
+        },
+    }
+    if task.owner_id:
+        await ws_manager.broadcast_to_actor(task.owner_id, verify_event)
+    if task.create_user_id and task.create_user_id != task.owner_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, verify_event)
 
     return ver, task
 

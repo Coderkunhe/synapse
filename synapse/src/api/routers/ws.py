@@ -177,6 +177,19 @@ async def websocket_endpoint(
     await ws_manager.connect(client)
 
     # P10-B32: Auto-subscribe Workers to authorization request topics
+    # P11-B21 PFL-041: Auto-subscribe ALL actors to task lifecycle topics
+    task_topics = [
+        EventType.TASK_CREATED,
+        EventType.TASK_READIED,
+        EventType.TASK_ASSIGNED,
+        EventType.TASK_CLAIMED,
+        EventType.TASK_SUBMITTED,
+        EventType.TASK_COMPLETED,
+        EventType.TASK_REJECTED,
+        EventType.TASK_CANCELLED,
+        EventType.TASK_PAUSED,
+        EventType.TASK_RESUMED,
+    ]
     if actor["actor_type"] == ActorType.WORKER:
         await ws_manager.subscribe(
             client.actor_id,
@@ -185,8 +198,12 @@ async def websocket_endpoint(
                 EventType.AUTHORIZATION_REQUEST_RESPONDED,
                 EventType.AUTHORIZATION_REQUEST_EXPIRED,
                 EventType.AUTHORIZATION_REQUEST_CANCELLED,
+                *task_topics,
             ],
         )
+    else:
+        # Humans (Orchestrator) auto-subscribe to task topics for real-time VDD loop
+        await ws_manager.subscribe(client.actor_id, task_topics)
 
     # Send welcome message
     await ws_manager.broadcast_to_actor(

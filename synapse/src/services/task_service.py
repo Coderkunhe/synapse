@@ -22,6 +22,7 @@ from src.models.project import Project
 from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
+from src.services.ws_manager import ws_manager
 from src.task_state_machine import apply_transition, validate_transition
 from src.utils.id_gen import derive_id, generate_id
 from src.utils.json_utils import safe_dumps, safe_loads
@@ -169,6 +170,20 @@ async def create_task(
     # Flush 以便调用方可读取服务端默认值（version_no 等）
     await db.flush()
 
+    # P11-B21 PFL-041: WS push — notify creator
+    await ws_manager.broadcast_to_actor(
+        actor_id,
+        {
+            "type": "event",
+            "data": {
+                "event_type": "task.created",
+                "task_id": task.id,
+                "status": task.status,
+                "title": title,
+            },
+        },
+    )
+
     return task
 
 async def get_task(db: AsyncSession, task_id: str) -> Task:
@@ -315,6 +330,21 @@ async def assign_task(
         payload=payload,
     )
 
+    # P11-B21 PFL-041: WS push — notify assignee
+    await ws_manager.broadcast_to_actor(
+        owner_id,
+        {
+            "type": "event",
+            "data": {
+                "event_type": event_type,
+                "task_id": task.id,
+                "status": task.status,
+                "owner_type": owner_type,
+                "owner_id": owner_id,
+            },
+        },
+    )
+
     return task
 
 
@@ -401,6 +431,21 @@ async def claim_task(
         target_type="task",
         target_id=task.id,
         payload=payload,
+    )
+
+    # P11-B21 PFL-041: WS push — notify claimer
+    await ws_manager.broadcast_to_actor(
+        worker_id,
+        {
+            "type": "event",
+            "data": {
+                "event_type": event_type,
+                "task_id": task.id,
+                "status": task.status,
+                "owner_type": actor_type,
+                "owner_id": worker_id,
+            },
+        },
     )
 
     return task
@@ -513,6 +558,20 @@ async def submit_task(
         from src.services.worker_scheduler import finish_current_task
         await finish_current_task(db, actor_id)
 
+    # P11-B21 PFL-041: WS push — notify submitter and creator
+    submit_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+            "summary": summary,
+        },
+    }
+    await ws_manager.broadcast_to_actor(actor_id, submit_event)
+    if task.create_user_id and task.create_user_id != actor_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, submit_event)
+
     return task
 
 
@@ -552,6 +611,20 @@ async def cancel_task(
     # P8-B9: 终态转换后检查批次完成状态
     from src.services.batch_service import check_batch_completion
     await check_batch_completion(db, task, team_id, actor_type, actor_id)
+
+    # P11-B21 PFL-041: WS push — notify owner and creator
+    cancel_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+        },
+    }
+    if task.owner_id:
+        await ws_manager.broadcast_to_actor(task.owner_id, cancel_event)
+    if task.create_user_id and task.create_user_id != task.owner_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, cancel_event)
 
     return task
 
@@ -603,6 +676,20 @@ async def ready_task(
         payload=payload,
     )
 
+    # P11-B21 PFL-041: WS push — notify creator that task is ready
+    if task.create_user_id:
+        await ws_manager.broadcast_to_actor(
+            task.create_user_id,
+            {
+                "type": "event",
+                "data": {
+                    "event_type": event_type,
+                    "task_id": task.id,
+                    "status": task.status,
+                },
+            },
+        )
+
     return task
 
 
@@ -648,6 +735,21 @@ async def pause_task(
         payload=payload,
     )
 
+    # P11-B21 PFL-041: WS push — notify owner and creator
+    pause_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+            "reason": reason,
+        },
+    }
+    if task.owner_id:
+        await ws_manager.broadcast_to_actor(task.owner_id, pause_event)
+    if task.create_user_id and task.create_user_id != task.owner_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, pause_event)
+
     return task
 
 
@@ -685,6 +787,20 @@ async def resume_task(
         target_id=task.id,
         payload=payload,
     )
+
+    # P11-B21 PFL-041: WS push — notify owner and creator
+    resume_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+        },
+    }
+    if task.owner_id:
+        await ws_manager.broadcast_to_actor(task.owner_id, resume_event)
+    if task.create_user_id and task.create_user_id != task.owner_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, resume_event)
 
     return task
 
@@ -740,6 +856,21 @@ async def terminate_task(
     # P8-B9: 终态转换后检查批次完成状态
     from src.services.batch_service import check_batch_completion
     await check_batch_completion(db, task, team_id, actor_type, actor_id)
+
+    # P11-B21 PFL-041: WS push — notify previous owner and creator
+    term_event = {
+        "type": "event",
+        "data": {
+            "event_type": event_type,
+            "task_id": task.id,
+            "status": task.status,
+            "reason": reason,
+        },
+    }
+    if previous_owner_id:
+        await ws_manager.broadcast_to_actor(previous_owner_id, term_event)
+    if task.create_user_id and task.create_user_id != previous_owner_id:
+        await ws_manager.broadcast_to_actor(task.create_user_id, term_event)
 
     return task
 

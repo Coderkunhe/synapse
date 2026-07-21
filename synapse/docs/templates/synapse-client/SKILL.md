@@ -265,12 +265,20 @@ Worker 通过两条通道发现授权请求，互为备份：
 
 **WebSocket Push 流程**：
 
-1. Worker 连接 WS（`/v1/ws?token=...`）→ 自动订阅 `authorization_request.*` 事件
-2. 系统创建/响应授权请求 → WS push 即时送达 Worker
-3. Worker 收到 push → 提取 `authorization_request_id` → 根据 `status` 行动：
-   - `"pending"` → 等待管理员审批，无需轮询
-   - `"approved"` → 审批通过！重试原始请求
-   - `"denied"` → 审批被拒，报告给用户
+1. Worker 连接 WS（`/v1/ws?token=...`）→ 自动订阅 `authorization_request.*` + `task.*` 事件
+2. 系统创建/响应授权请求或任务状态变更 → WS push 即时送达 Worker
+3. Worker 收到 push → 根据 `event_type` 行动：
+   - `authorization_request.*` → 提取 `authorization_request_id`，根据 `status` 行动：
+     - `"pending"` → 等待管理员审批，无需轮询
+     - `"approved"` → 审批通过！重试原始请求
+     - `"denied"` → 审批被拒，报告给用户
+   - `task.*` → 提取 `task_id`，根据状态行动：
+     - `task.assigned` → 任务已分配给你，开始执行
+     - `task.submitted` → 提交成功，等待验证
+     - `task.completed` → 任务通过验证 ✅
+     - `task.rejected` → 任务未通过验证，检查原因并重做
+     - `task.cancelled` → 任务已取消，停止工作
+     - `task.paused` → 任务已暂停，等待恢复
 
 **WS Push 消息格式**（Worker 收到）：
 
@@ -283,6 +291,21 @@ Worker 通过两条通道发现授权请求，互为备份：
     "status": "pending",
     "request_type": "api_auth",
     "operation": "POST:/v1/projects/p1/tasks"
+  }
+}
+```
+
+**任务状态 WS Push**（P11-B21 PFL-041 新增）：
+
+```json
+{
+  "type": "event",
+  "data": {
+    "event_type": "task.assigned",
+    "task_id": "tsk_xxx",
+    "status": "in_progress",
+    "owner_type": "worker",
+    "owner_id": "ag_xxx"
   }
 }
 ```

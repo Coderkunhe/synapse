@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B86 ✅ 违纪全量清零 · P11 B8-B19 L5 全量拉通
-last_batch: P11-B20
-next_batch: P11-B21
-description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · P100-B86 ✅ 违纪清零 · PFL-041 WS 推送待 B21 · L5 counter=1
+phase: P11-B21 ✅ PFL-041 WS 推送全量闭环 · P100-B86 ✅ 违纪清零
+last_batch: P11-B21
+next_batch: P11-B22
+description: Synapse 主项目 — P11-B21 ✅ PFL-041 WS 推送 3/3 步闭环 · 624 tests · 9/10 PFLs resolved · L5 counter=1
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · P100
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B20 | **P11-B21** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 · B18 ✅ PFL-032+PFL-033 · B19 ✅ Bootstrap router接线 · B20 ✅ hooks 补测+防御验证+L5 复位 |
+| **P11** | P11-B21 | **P11-B22** 🔜 | B1-B7 ✅ 角色隔离+Skill模块化+串联审查 · B8 ✅ 地基 · B9 ✅ 接线+项目发现 · B10 ✅ 模板适配 · B12 ✅ 阻断修复 · B13 ✅ 环境搭建+闭环 · B14 ✅ 全链路验证 · B15 ✅ 权限修复 · B16 ✅ God's-eye角色边界+SessionStart hook · B17 ✅ PFL-035+PFL-036+PFL-040 · B18 ✅ PFL-032+PFL-033 · B19 ✅ Bootstrap router接线 · B20 ✅ hooks 补测+防御验证+L5 复位 · B21 ✅ PFL-041 WS 推送 3/3 步闭环 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -105,10 +105,21 @@ description: Synapse 主项目 — P11-B20 ✅ hooks 补测+防御验证 · P100
 │ P11-B19 ✅ Bootstrap router 接线                     │
 │   — B14 遗留缺陷（router 未挂载）· 2 行 fix · V-027     │
 │   — 18 tests 0→18                                  │
+│                                                    │
+│ P11-B20 ✅ hooks 补测 + 防御验证 + L5 复位             │
+│   — check-hooks.sh 四场景 · 裸奔期 12 commits 审计    │
+│   — PFL-041 评估 → B21 实施候选                       │
+│                                                    │
+│ P11-B21 ✅ PFL-041 WS 推送 3/3 步闭环 🎉              │
+│   — task_service.py 9 functions → broadcast_to_actor │
+│   — verification_service.py COMPLETED/REJECTED → WS  │
+│   — ws.py auto-subscribe task.* (Workers + Humans)   │
+│   — Worker SKILL.md 模板 WS push 流程文档化            │
+│   — 624 tests 零回归 · dogfood Task 已创建            │
 └────────────────────────────────────────────────────┘
 ```
 
-## 路线图（2026-07-20 更新 · P100/P9 双轨分治）
+## 路线图（2026-07-21 更新 · P100/P9 双轨分治）
 
 ### P100 治理轨道（B35→B45）
 
