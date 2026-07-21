@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-21（P11-B21 ✅ PFL-041 WS 推送 · P100-B86 ✅ 违纪全量清零 · 10/10 PFLs 闭环 🎉）
+> 最后更新：2026-07-21（P11-B22 ✅ 授权审批 WS 实时化 · P11-B21 ✅ PFL-041 WS 推送 · P100-B86 ✅ 违纪全量清零 · 10/10 PFLs 闭环 🎉）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -91,6 +91,7 @@
 | **P11-B19** | **Bootstrap router 接线** — B14 遗留缺陷修复 · 2 行 fix · 18 tests 0→18 · V-027 幽灵 Batch 清理 + 违纪登记 | ✅ |
 | **P11-B20** | **hooks 补测 + 裸奔期防御验证** — check-hooks.sh 三场景(正常/缺失/截断)验证 · L5 gate 阻塞确认 · 裸奔期 12 commits 审计无违规 · 5 层防御充足 · PFL-041 WS 推送剩余 2/3 登记 · L5 拉通复位 | ✅ |
 | **P11-B21** | **PFL-041 WS 推送 3/3 步全量闭环** — task_service.py 9 函数 + verification_service.py COMPLETED/REJECTED → ws_manager.broadcast_to_actor() · ws.py auto-subscribe task.* (Workers + Humans) · Worker SKILL.md 模板 WS push 文档化 · dogfood Task tsk_019f82022c10741b 创建 · 624 tests 零回归 · PFL-041 🟡→🟢 | ✅ |
+| **P11-B22** | **授权审批 WS 实时化** — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx useWebSocket 实时刷新 · event_store → broadcast_to_team 闭环 · 2 files · 624 tests 零回归 | ✅ |
 
 ---
 

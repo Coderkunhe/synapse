@@ -7,7 +7,7 @@
  * with optional response note.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ShieldCheck, Clock, Check, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -17,9 +17,18 @@ import {
   respondToAuthRequest,
   type AuthRequestSummary,
 } from '../api/client'
+import { useWebSocket } from '../api/ws'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import styles from './Approvals.module.css'
+
+/** Event types that should trigger an approvals list refresh. */
+const AUTH_EVENT_TYPES = [
+  'authorization_request.created',
+  'authorization_request.responded',
+  'authorization_request.expired',
+  'authorization_request.cancelled',
+]
 
 /** Augmented request with resolved project name for display. */
 interface ApprovalItem extends AuthRequestSummary {
@@ -94,6 +103,23 @@ export default function Approvals() {
   useEffect(() => {
     load()
   }, [load])
+
+  // ── P11-B22: WebSocket real-time updates ──────────────────────────────────
+  const { lastEvent } = useWebSocket(token, AUTH_EVENT_TYPES)
+  const pendingRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!lastEvent) return
+    if (!AUTH_EVENT_TYPES.includes(lastEvent.event_type)) return
+
+    // Debounce rapid events (e.g., batch expiry) into a single re-fetch
+    if (pendingRefreshRef.current) {
+      clearTimeout(pendingRefreshRef.current)
+    }
+    pendingRefreshRef.current = setTimeout(() => {
+      load()
+    }, 200)
+  }, [lastEvent, load])
 
   const handleRespond = async (requestId: string, status: 'approved' | 'denied') => {
     if (!token) return

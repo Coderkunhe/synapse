@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B20→B21 拉通 — PFL-041 WS 推送 3/3 步闭环 · task_service+verification_service broadcast · ws.py task.* auto-subscribe · 624 tests",
+  "lastL5Batch": "P11-B21→B22 拉通 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx WS 集成 · 624 tests 零回归",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B20→B21 拉通 — PFL-041 WS 推送 3/3 步闭环 · task_service+verification_service broadcast · ws.py task.* auto-subscribe · 624 tests",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "P11-B21→B22 拉通 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx WS 集成 · 624 tests 零回归",
+  "notes": "L5 拉通完成，计数器复位 — P11-B22 2 files 零drift"
 }

@@ -202,8 +202,18 @@ async def websocket_endpoint(
             ],
         )
     else:
-        # Humans (Orchestrator) auto-subscribe to task topics for real-time VDD loop
-        await ws_manager.subscribe(client.actor_id, task_topics)
+        # P11-B21: Humans auto-subscribe to task topics for real-time VDD loop
+        # P11-B22: + authorization_request.* for real-time Approvals page updates
+        await ws_manager.subscribe(
+            client.actor_id,
+            [
+                *task_topics,
+                EventType.AUTHORIZATION_REQUEST_CREATED,
+                EventType.AUTHORIZATION_REQUEST_RESPONDED,
+                EventType.AUTHORIZATION_REQUEST_EXPIRED,
+                EventType.AUTHORIZATION_REQUEST_CANCELLED,
+            ],
+        )
 
     # Send welcome message
     await ws_manager.broadcast_to_actor(
