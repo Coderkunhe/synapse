@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B24 ✅ WS 去重 — authorization_service 移除冗余 broadcast_to_actor
-last_batch: P11-B24
-next_batch: P11-B25
-description: Synapse 主项目 — P11-B24 ✅ WS 去重（create/respond 移除冗余 broadcast_to_actor）· B25-B26 🔜 CLI体验·长连接方案 · 624 tests
+phase: P11-B25 ✅ CLI 授权体验 — Worker SKILL.md 模板 202 → 等待提示 + 超时降级
+last_batch: P11-B25
+next_batch: P11-B26
+description: Synapse 主项目 — P11-B25 ✅ CLI 授权体验（202 → ⏳等待提示 + ⏰超时降级）· B26 🔜 长连接方案 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B24 ✅ WS 去重（create/respond 移除
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B24 | **P11-B25** 🔜 | B1-B24 ✅ · B25-B26 🔜 CLI体验·长连接方案 |
+| **P11** | P11-B25 | **P11-B26** 🔜 | B1-B25 ✅ · B26 🔜 长连接方案 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -136,9 +136,14 @@ description: Synapse 主项目 — P11-B24 ✅ WS 去重（create/respond 移除
 │   — task_service.py 巡检通过（P11-B21 新加 · 不同模式）    │
 │   — 🟢 微型 · 1 file · 624 tests 零回归                  │
 │                                                    │
-│ P11-B25 🔜 CLI 授权体验                                  │
-│   — SKILL.md 模板 202 响应 → "⏳ 等待管理员审批..."     │
-│   — 超时降级策略 · 🟢 微型 · ~2 files (纯文档)          │
+│ P11-B25 ✅ CLI 授权体验 — 等待提示 + 超时降级                │
+│   — SKILL.md 模板新增「202 CLI 用户体验」节                  │
+│   — ⏳ 即时响应模板（替代裸错误码）                            │
+│   — 等待期间行为规则（WS 静默 / HTTP 一次提示后静默轮询）      │
+│   — ✅ 审批通过自动重试 / ❌ 被拒告知用户                     │
+│   — ⏰ 超时降级：5 分钟后提供 3 个选项（继续/重试/手动）      │
+│   — 降级规则：最多循环 2 次（15 分钟强制降级）+ task blocked  │
+│   — 🟢 微型 · 1 file (纯文档)                               │
 │                                                    │
 │ P11-B26 🔜 Worker WS 长连接方案评估                      │
 │   — 方案 A sidecar / B hook / C 接受poll · 三选一       │
