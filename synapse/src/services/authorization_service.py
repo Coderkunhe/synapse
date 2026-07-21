@@ -162,22 +162,6 @@ async def create_authorization_request(
         },
     )
 
-    # P10-B32: WS push to Worker — fire-and-forget, silently dropped if offline
-    from src.services.ws_manager import ws_manager
-    await ws_manager.broadcast_to_actor(
-        worker_id,
-        {
-            "type": "event",
-            "data": {
-                "event_type": EventType.AUTHORIZATION_REQUEST_CREATED,
-                "authorization_request_id": record.id,
-                "status": "pending",
-                "request_type": request_type,
-                "operation": operation,
-            },
-        },
-    )
-
     # P10-B33: Email notify project admins — fire-and-forget
     from src.services.notification_service import notify_project_admins
     await notify_project_admins(
@@ -304,21 +288,6 @@ async def respond_to_request(
             "responder_worker_id": responder_worker_id,
         },
         team_id=team_id,
-    )
-
-    # P10-B32: WS push to Worker — notify of approval/denial
-    from src.services.ws_manager import ws_manager
-    await ws_manager.broadcast_to_actor(
-        record.worker_id,
-        {
-            "type": "event",
-            "data": {
-                "event_type": EventType.AUTHORIZATION_REQUEST_RESPONDED,
-                "authorization_request_id": request_id,
-                "status": status,
-                "request_type": record.request_type,
-            },
-        },
     )
 
     return record

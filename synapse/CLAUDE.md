@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P11-B23 ✅ WS 加固三板斧 · P11-B22 ✅ 授权审批 WS 实时化 · P11-B21 ✅ PFL-041 WS 推送 · P100-B86 ✅ 违纪全量清零）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P11-B24 ✅ WS 去重 · P11-B23 ✅ WS 加固三板斧 · P11-B22 ✅ 授权审批 WS 实时化 · P11-B21 ✅ PFL-041 WS 推送）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -561,7 +561,7 @@ synapse/
 - **P11-B21 ✅**：PFL-041 WS 推送 3/3 步全量闭环 — task_service.py 9 函数 + verification_service.py → broadcast_to_actor · ws.py auto-subscribe task.* (Workers+Humans) · Worker SKILL.md 模板 WS push 文档化 · 624 tests 零回归
 - **P11-B22 ✅**：授权审批 WS 实时化 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx useWebSocket 实时刷新 · event_store → broadcast_to_team 闭环 · 2 files · 624 tests 零回归
 - **P11-B23 ✅**：WS 加固三板斧 — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB 配置 · ws.py 连接数/消息大小门禁 · main.py lifespan 关机钩子 · 🟡 标准 · 4 files
-- **P11-B24 🔜**：重复事件去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store 已覆盖）· 🟢 微型 · ~2 files
+- **P11-B24 ✅**：WS 去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store → broadcast_to_team 已覆盖）· expire/cancel 保留 · 🟢 微型 · 1 file
 - **P11-B25 🔜**：CLI 授权体验 — SKILL.md 模板 202 → "⏳ 等待管理员审批..." + 超时降级 · 🟢 微型 · ~2 files (纯文档)
 - **P11-B26 🔜**：Worker WS 长连接方案 — 方案 A sidecar / B hook / C 接受poll 三选一 · 🟢 微型 (纯设计)
 - **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
@@ -576,8 +576,8 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B24**：WS 去重 ✅ — authorization_service create/respond 移除冗余 broadcast_to_actor · expire/cancel 保留 · 1 file · 624 tests 零回归
 - **P11-B23**：WS 加固三板斧 ✅ — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 · ws_max_message_size=64KB · main.py lifespan 关机钩子 · 4 files · 624 tests 零回归
-- **P11-B22**：授权审批 WS 实时化 ✅ — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx useWebSocket 实时刷新 · 2 files · 624 tests 零回归
 - **P11-B21**：PFL-041 WS 推送 ✅ — task_service.py 9 函数 + verification_service.py → broadcast_to_actor · ws.py task.* auto-subscribe · 624 tests 零回归
 - **P100-B85**：G-028 治理基础设施独立批 ✅ — check-hooks.sh 防呆 + make check 管道 + CLAUDE.md 自检 · 3 files · 🟢 微型（纯文档）
 - **P11-B17**：狗粮发现消化 ✅ — PFL-035 ready 强制 Verification · PFL-036 handshake WS URL · PFL-040 Swagger Bearer auth · 5 files

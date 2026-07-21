@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B23 ✅ WS 加固三板斧 — 优雅关闭·连接数上限·消息大小限制
-last_batch: P11-B23
-next_batch: P11-B24
-description: Synapse 主项目 — P11-B23 ✅ WS 加固三板斧（优雅关闭·连接数上限·消息大小限制）· B24-B26 🔜 去重·CLI体验·长连接方案 · 624 tests
+phase: P11-B24 ✅ WS 去重 — authorization_service 移除冗余 broadcast_to_actor
+last_batch: P11-B24
+next_batch: P11-B25
+description: Synapse 主项目 — P11-B24 ✅ WS 去重（create/respond 移除冗余 broadcast_to_actor）· B25-B26 🔜 CLI体验·长连接方案 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B23 ✅ WS 加固三板斧（优雅关闭
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B23 | **P11-B24** 🔜 | B1-B22 ✅ · B23 ✅ WS 加固三板斧 · B24-B26 🔜 去重·CLI体验·长连接方案 |
+| **P11** | P11-B24 | **P11-B25** 🔜 | B1-B24 ✅ · B25-B26 🔜 CLI体验·长连接方案 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -128,10 +128,13 @@ description: Synapse 主项目 — P11-B23 ✅ WS 加固三板斧（优雅关闭
 │   — ws_max_message_size 消息大小限制 (64KB)                 │
 │   — main.py lifespan 关机钩子 · 🟡 标准 · 4 files          │
 │                                                    │
-│ P11-B24 🔜 重复事件去重                                  │
-│   — authorization_service create/respond 移除冗余       │
-│     broadcast_to_actor（event_store 已覆盖）            │
-│   — task_service.py 同模式巡检 · 🟢 微型 · ~2 files     │
+│ P11-B24 ✅ 重复事件去重 🎉                                  │
+│   — authorization_service create/respond 移除冗余         │
+│     broadcast_to_actor（event_store → broadcast_to_team   │
+│     已覆盖全队 · Worker 通过 auto-subscribe 收到）         │
+│   — expire/cancel 保留（team_id="" 不触发全队广播）        │
+│   — task_service.py 巡检通过（P11-B21 新加 · 不同模式）    │
+│   — 🟢 微型 · 1 file · 624 tests 零回归                  │
 │                                                    │
 │ P11-B25 🔜 CLI 授权体验                                  │
 │   — SKILL.md 模板 202 响应 → "⏳ 等待管理员审批..."     │
