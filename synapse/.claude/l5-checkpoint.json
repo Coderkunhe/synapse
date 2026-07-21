@@ -1,8 +1,8 @@
 {
   "lastL5Batch": "B28→B29 L5 拉通 — 零 drift · 2批纯文档（B28 worker-admin-interaction-flow 双通道重新定位 + B29 Scope 定义）· HTTP-first 模型三文档对齐 · 📄 CLAUDE.md+track+requirements-log+daily 已同步 · 📚 叙事一致性验证通过",
   "lastL5Timestamp": "2026-07-21",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B28→B29 L5 拉通 — 零 drift · 2批纯文档（B28 worker-admin-interaction-flow 双通道重新定位 + B29 Scope 定义）· HTTP-first 模型三文档对齐 · 📄 CLAUDE.md+track+requirements-log+daily 已同步 · 📚 叙事一致性验证通过",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "notes": "L5 拉通完成，计数器复位。B31 后修正：3 个 chore(landing): 临时任务不占批次 → 计数器 4→1。V-023 防呆: --yes 已确认"
 }
