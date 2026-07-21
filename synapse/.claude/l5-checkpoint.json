@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B22→B23 拉通 — WS 加固三板斧全量闭环 · graceful_shutdown + 连接数上限 + 消息大小限制 · 4 files · 624 tests 零回归",
+  "lastL5Batch": "B25→B27 拉通 — 1项 drift 修复（B25 requirements-log 补登记）· 3批纯文档 · 📄 roadmap+reqlog+daily 已更新 · 📚 叙事一致性验证通过 · SKILL.md 三文件 diff 0",
   "lastL5Timestamp": "2026-07-21",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B22→B23 拉通 — L1 code/L2 imports/L3 contracts/L4 624 tests/L5 docs all verified · 4 files WS hardening zero drift",
-  "notes": "L5 拉通完成，计数器复位 — B23 加固三板斧零 drift · post-commit 将递增为 1（B24 触发下一轮 L5 门禁）"
+  "lastL5Evidence": "B25→B27 拉通 — 1项 drift 修复（B25 requirements-log 补登记）· 3批纯文档 · 📄 roadmap+reqlog+daily 已更新 · 📚 叙事一致性验证通过 · SKILL.md 三文件 diff 0",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

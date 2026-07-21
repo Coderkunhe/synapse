@@ -156,6 +156,43 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/handshake
 
 握手成功后你的状态变为 `active`，可以接收 Task。
 
+### Step 3.5: 状态同步（每次会话必须执行）
+
+握手成功后，通过 HTTP 拉取当前待处理状态。**这是你作为 Claude Code Worker 的主要状态发现机制。**
+
+> 💡 **为什么是 HTTP Poll？** 你是短生命周期 HTTP 客户端（请求-响应模型），不是持久进程。你无法在 session 之间维持 WebSocket 连接。HTTP Poll 是你唯一可靠的发现通道——所有状态都持久化在 Synapse 服务端 DB 中，session 启动时全量拉取即可恢复完整上下文。WebSocket 是持久客户端（Admin Web UI、IDE 插件）的延迟优化通道。
+
+**同步清单**（按顺序执行）：
+
+**① 待处理授权请求**：
+```
+GET ${SYNAPSE_API_URL}/v1/workers/me/authorization-requests?status=pending
+```
+检查是否有待审批的权限请求（`api_auth`）或 Interactive Prompt（`interactive_prompt`）。如有：
+- `api_auth` 且已批准 → 你已获得角色，继续后续操作
+- `api_auth` 且仍 pending → 按「202 CLI 用户体验」节提示用户等待
+- `interactive_prompt` → 按「交互式提示」节渲染给用户
+
+**② 已认领任务状态**（如果你之前 claim 过任务）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_progress
+```
+检查你认领的任务是否有状态变更（被暂停/取消/驳回）。如有驳回（`rejected`）→ 读验证结果，准备返工。
+
+**③ 可用任务**（Builder 角色）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=ready
+```
+检查是否有新分配给团队的就绪任务。
+
+**④ 待验收任务**（Orchestrator 角色）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verification
+```
+检查是否有 Builder 提交后等待验收的任务。
+
+> ⚠️ 如果上述任一请求返回 `202`（权限不足），说明你尚未获得项目角色。系统已自动创建授权请求，按「202 CLI 用户体验」节等待审批。
+
 ---
 
 ## 核心工作循环（VDD：验证驱动开发）
@@ -245,7 +282,7 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 |------|------|------|
 | `400` | 请求格式错误 | 读 `detail` 字段修正请求，不重试相同的请求 |
 | `401` | API Key 无效 | **停止重试**。Key 可能已被撤销，联系 Admin |
-| `202` | 权限待审批 | 🆕 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见下方） |
+| `202` | 权限待审批 | 🆕 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。通过 HTTP Poll 检查审批状态（Step 3.5 ①），或通过 WS Push 即时获知结果（如果已连接） |
 | `403` | 权限不足 | 人类用户看到此错误时检查角色；Worker 不应再收到此错误（已升级为 202） |
 | `404` | 资源不存在 | 检查 ID 是否正确，确认资源未被删除 |
 | `409` | 状态冲突 | Task 已被他人认领或状态不允许此操作 |
@@ -272,11 +309,11 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 
 **等待期间的行为规则**：
 
-- **WS 在线**（常态）：静默等待 WS push 通知。**不要**每 N 秒输出"仍在等待"——只在状态变更时通知用户。
-- **WS 断连**（HTTP 轮询 fallback）：首次开始轮询时输出一次提示，之后静默轮询：
+- **WS 在线**（如果你已通过 Monitor 或后台进程连接）：静默等待 WS push 通知。**不要**每 N 秒输出"仍在等待"——只在状态变更时通知用户。
+- **HTTP 轮询**（标准模式）：首次开始轮询时输出一次提示，之后静默轮询：
 
 ```
-⏳ 正在等待管理员审批...（WS 离线，通过 HTTP 轮询检查状态）
+⏳ 正在等待管理员审批...（通过 HTTP 轮询检查状态）
 ```
 
 **审批结果通知**：
@@ -314,20 +351,22 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 - 降级后标记当前 task 为 blocked：`POST /tasks/{task_id}/blockers`（附上授权请求 ID）
 - 每次"继续等待"前先确认授权请求是否仍为 pending（可能已被自动 expire）
 
-### 授权通知通道（双通道策略）
+### 授权通知通道
 
-Worker 通过两条通道发现授权请求，互为备份：
+Worker 通过两条通道发现授权请求。**你是 Claude Code Worker（短生命周期 HTTP 客户端），以 HTTP Poll 为主要通道。**
 
 | 通道 | 机制 | 延迟 | 适用场景 |
 |------|------|:--:|------|
-| **WebSocket Push（主）** | 连接 WS 后自动接收 push | <1s | Worker 在线时 |
-| **HTTP Poll（fallback）** | `GET /workers/me/authorization-requests` | ≤30s | WS 断连时 |
+| **HTTP Poll（主）** | `GET /workers/me/authorization-requests` | ≤30s | Claude Code Worker 的标准模式 · session 启动时 + 按需 |
+| **WebSocket Push（优化）** | 连接 WS 后自动接收 push | <1s | session 内可用时的延迟优化 · 不阻塞工作 |
 
-**WebSocket Push 流程**：
+**WebSocket Push（可选优化）**：
 
-1. Worker 连接 WS（`/v1/ws?token=...`）→ 自动订阅 `authorization_request.*` + `task.*` 事件
-2. 系统创建/响应授权请求或任务状态变更 → WS push 即时送达 Worker
-3. Worker 收到 push → 根据 `event_type` 行动：
+> ⚠️ WebSocket 是持久客户端（浏览器、IDE 插件）的优化通道。Claude Code Worker 以 HTTP Poll 为主通道——Step 3.5 的状态同步已经拉取了所有待处理状态。如果在当前 session 内你能维持 WS 连接（如通过 Monitor 工具或后台进程），它可以降低状态变更的感知延迟，但**不阻塞工作**——WS 不可用时回退到 HTTP 轮询，不会丢失任何信息。
+
+**连接方式**：`/v1/ws?token=${SYNAPSE_API_KEY}` → 自动订阅 `authorization_request.*` + `task.*` 事件
+
+**事件处理**（收到 push 时）：
    - `authorization_request.*` → 提取 `authorization_request_id`，根据 `status` 行动：
      - `"pending"` → 等待管理员审批，无需轮询
      - `"approved"` → 审批通过！重试原始请求
@@ -370,11 +409,9 @@ Worker 通过两条通道发现授权请求，互为备份：
 }
 ```
 
-**HTTP Poll Fallback**：WS 断连时，Worker 回退到 HTTP 轮询。WS 重连后自动切回 push 模式。
+### HTTP 轮询详情
 
-### HTTP 轮询详情（Fallback）
-
-当你收到 `202 Accepted` 响应时，表示你缺少执行此操作所需的 Project 角色。系统已自动创建授权请求，等待人类管理员审批。
+当你收到 `202 Accepted` 响应时，表示你缺少执行此操作所需的 Project 角色。系统已自动创建授权请求，等待人类管理员审批。**你作为 Claude Code Worker，HTTP 轮询是你的标准状态发现方式。**
 
 **轮询流程**：
 
@@ -415,11 +452,9 @@ async function waitForAuthorization(requestId: string, timeoutMs = 300_000): Pro
 
 ### 交互式提示（Interactive Prompt）— 选项决策
 
-当系统需要人工做选择/确认/输入时，会创建 `interactive_prompt` 类型的授权请求。WS 在线时通过 push 即时收到通知；WS 断连时回退到 HTTP 轮询。
+当系统需要人工做选择/确认/输入时，会创建 `interactive_prompt` 类型的授权请求。通过 HTTP 轮询（Step 3.5 ①）发现待处理 prompts，或通过 WS Push 即时收到通知（如果已连接）。
 
-**发现待处理的 Prompts**（WS 断连时每 30 秒检查一次）：
-
-**发现待处理的 Prompts**（建议每次会话启动时和每 30 秒检查一次）：
+**发现待处理的 Prompts**（建议每次会话启动时通过 Step 3.5 ① 检查，以及 session 内按需检查）：
 
 ```
 GET /v1/workers/me/authorization-requests?status=pending

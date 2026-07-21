@@ -4,6 +4,6 @@
   "totalViolations": 27,
   "recurringCount": 0,
   "unguardedCount": 0,
-  "batchesSinceLastReview": 1,
+  "batchesSinceLastReview": 9,
   "notes": "P100-B86 违纪回顾 — V-027 防呆：B19 幽灵清理 + §13 scope 门禁 · V-028 防呆：G-028 check-hooks.sh · 26/27 🟢 已闭环 · 活跃清零"
 }

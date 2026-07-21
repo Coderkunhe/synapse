@@ -156,6 +156,43 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/handshake
 
 握手成功后你的状态变为 `active`，可以接收 Task。
 
+### Step 3.5: 状态同步（每次会话必须执行）
+
+握手成功后，通过 HTTP 拉取当前待处理状态。**这是你作为 Claude Code Worker 的主要状态发现机制。**
+
+> 💡 **为什么是 HTTP Poll？** 你是短生命周期 HTTP 客户端（请求-响应模型），不是持久进程。你无法在 session 之间维持 WebSocket 连接。HTTP Poll 是你唯一可靠的发现通道——所有状态都持久化在 Synapse 服务端 DB 中，session 启动时全量拉取即可恢复完整上下文。WebSocket 是持久客户端（Admin Web UI、IDE 插件）的延迟优化通道。
+
+**同步清单**（按顺序执行）：
+
+**① 待处理授权请求**：
+```
+GET ${SYNAPSE_API_URL}/v1/workers/me/authorization-requests?status=pending
+```
+检查是否有待审批的权限请求（`api_auth`）或 Interactive Prompt（`interactive_prompt`）。如有：
+- `api_auth` 且已批准 → 你已获得角色，继续后续操作
+- `api_auth` 且仍 pending → 按「202 CLI 用户体验」节提示用户等待
+- `interactive_prompt` → 按「交互式提示」节渲染给用户
+
+**② 已认领任务状态**（如果你之前 claim 过任务）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_progress
+```
+检查你认领的任务是否有状态变更（被暂停/取消/驳回）。如有驳回（`rejected`）→ 读验证结果，准备返工。
+
+**③ 可用任务**（Builder 角色）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=ready
+```
+检查是否有新分配给团队的就绪任务。
+
+**④ 待验收任务**（Orchestrator 角色）：
+```
+GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verification
+```
+检查是否有 Builder 提交后等待验收的任务。
+
+> ⚠️ 如果上述任一请求返回 `202`（权限不足），说明你尚未获得项目角色。系统已自动创建授权请求，按「202 CLI 用户体验」节等待审批。
+
 ---
 
 ## 核心工作循环（VDD：验证驱动开发）
@@ -245,7 +282,7 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 |------|------|------|
 | `400` | 请求格式错误 | 读 `detail` 字段修正请求，不重试相同的请求 |
 | `401` | API Key 无效 | **停止重试**。Key 可能已被撤销，联系 Admin |
-| `202` | 权限待审批 | 🆕 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见下方） |
+| `202` | 权限待审批 | 🆕 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。通过 HTTP Poll 检查审批状态（Step 3.5 ①），或通过 WS Push 即时获知结果（如果已连接） |
 | `403` | 权限不足 | 人类用户看到此错误时检查角色；Worker 不应再收到此错误（已升级为 202） |
 | `404` | 资源不存在 | 检查 ID 是否正确，确认资源未被删除 |
 | `409` | 状态冲突 | Task 已被他人认领或状态不允许此操作 |
@@ -254,23 +291,93 @@ POST ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/heartbeat
 | `5xx` | 服务端错误 | 指数退避重试：1s → 5s → 25s → 放弃（最多 3 次） |
 | WebSocket 断开 | 连接中断 | 1s 后重连 → 失败则 5s → 25s → 报告给 Orchestrator |
 
-### 授权通知通道（双通道策略）
+### 202 CLI 用户体验 — 等待提示与超时降级
 
-Worker 通过两条通道发现授权请求，互为备份：
+> 收到 202 不是错误——是正常的授权流程。不要让用户看到裸错误码。用户需要知道三件事：**发生了什么、需要等多久、等不到怎么办**。
+
+**即时响应**（收到 202 后立即输出给用户，替代裸错误信息）：
+
+```
+⏳ 权限审批中
+
+你尚未获得此项目的操作权限，系统已自动创建授权请求并通知管理员。
+  📋 授权请求 ID: {authorization_request_id}
+  📡 通知方式: WebSocket 实时推送 + Email 通知
+
+审批通过后我会自动重试，你不需要做任何操作。
+```
+
+**等待期间的行为规则**：
+
+- **WS 在线**（如果你已通过 Monitor 或后台进程连接）：静默等待 WS push 通知。**不要**每 N 秒输出"仍在等待"——只在状态变更时通知用户。
+- **HTTP 轮询**（标准模式）：首次开始轮询时输出一次提示，之后静默轮询：
+
+```
+⏳ 正在等待管理员审批...（通过 HTTP 轮询检查状态）
+```
+
+**审批结果通知**：
+
+审批通过时，立即输出并自动重试原始请求：
+
+```
+✅ 授权审批通过！管理员已批准你的权限请求。正在重试原始操作...
+```
+
+审批被拒时，输出拒绝原因并停止：
+
+```
+❌ 授权审批被拒。管理员拒绝了你的权限请求。
+  💡 如需申请权限，请联系项目管理员说明使用需求。
+```
+
+**⏰ 超时降级**（等待 5 分钟后仍无结果）：
+
+不要无限等待。主动向用户提供选项：
+
+```
+⏰ 授权审批等待超时（已等待 5 分钟）
+
+管理员可能不在线。授权请求 ID: {authorization_request_id}
+
+你可以选择：
+  1. 继续等待 — 再等 5 分钟
+  2. 稍后重试 — 本次操作取消，下次需要时重新发起（会创建新的授权请求）
+  3. 手动跟进 — 保留授权请求 ID，通过 Web UI 或直接联系管理员处理
+```
+
+**超时降级规则**：
+- "继续等待"最多循环 2 次（总计 15 分钟后强制降级，不再询问）
+- 降级后标记当前 task 为 blocked：`POST /tasks/{task_id}/blockers`（附上授权请求 ID）
+- 每次"继续等待"前先确认授权请求是否仍为 pending（可能已被自动 expire）
+
+### 授权通知通道
+
+Worker 通过两条通道发现授权请求。**你是 Claude Code Worker（短生命周期 HTTP 客户端），以 HTTP Poll 为主要通道。**
 
 | 通道 | 机制 | 延迟 | 适用场景 |
 |------|------|:--:|------|
-| **WebSocket Push（主）** | 连接 WS 后自动接收 push | <1s | Worker 在线时 |
-| **HTTP Poll（fallback）** | `GET /workers/me/authorization-requests` | ≤30s | WS 断连时 |
+| **HTTP Poll（主）** | `GET /workers/me/authorization-requests` | ≤30s | Claude Code Worker 的标准模式 · session 启动时 + 按需 |
+| **WebSocket Push（优化）** | 连接 WS 后自动接收 push | <1s | session 内可用时的延迟优化 · 不阻塞工作 |
 
-**WebSocket Push 流程**：
+**WebSocket Push（可选优化）**：
 
-1. Worker 连接 WS（`/v1/ws?token=...`）→ 自动订阅 `authorization_request.*` 事件
-2. 系统创建/响应授权请求 → WS push 即时送达 Worker
-3. Worker 收到 push → 提取 `authorization_request_id` → 根据 `status` 行动：
-   - `"pending"` → 等待管理员审批，无需轮询
-   - `"approved"` → 审批通过！重试原始请求
-   - `"denied"` → 审批被拒，报告给用户
+> ⚠️ WebSocket 是持久客户端（浏览器、IDE 插件）的优化通道。Claude Code Worker 以 HTTP Poll 为主通道——Step 3.5 的状态同步已经拉取了所有待处理状态。如果在当前 session 内你能维持 WS 连接（如通过 Monitor 工具或后台进程），它可以降低状态变更的感知延迟，但**不阻塞工作**——WS 不可用时回退到 HTTP 轮询，不会丢失任何信息。
+
+**连接方式**：`/v1/ws?token=${SYNAPSE_API_KEY}` → 自动订阅 `authorization_request.*` + `task.*` 事件
+
+**事件处理**（收到 push 时）：
+   - `authorization_request.*` → 提取 `authorization_request_id`，根据 `status` 行动：
+     - `"pending"` → 等待管理员审批，无需轮询
+     - `"approved"` → 审批通过！重试原始请求
+     - `"denied"` → 审批被拒，报告给用户
+   - `task.*` → 提取 `task_id`，根据状态行动：
+     - `task.assigned` → 任务已分配给你，开始执行
+     - `task.submitted` → 提交成功，等待验证
+     - `task.completed` → 任务通过验证 ✅
+     - `task.rejected` → 任务未通过验证，检查原因并重做
+     - `task.cancelled` → 任务已取消，停止工作
+     - `task.paused` → 任务已暂停，等待恢复
 
 **WS Push 消息格式**（Worker 收到）：
 
@@ -287,11 +394,24 @@ Worker 通过两条通道发现授权请求，互为备份：
 }
 ```
 
-**HTTP Poll Fallback**：WS 断连时，Worker 回退到 HTTP 轮询。WS 重连后自动切回 push 模式。
+**任务状态 WS Push**（P11-B21 PFL-041 新增）：
 
-### HTTP 轮询详情（Fallback）
+```json
+{
+  "type": "event",
+  "data": {
+    "event_type": "task.assigned",
+    "task_id": "tsk_xxx",
+    "status": "in_progress",
+    "owner_type": "worker",
+    "owner_id": "ag_xxx"
+  }
+}
+```
 
-当你收到 `202 Accepted` 响应时，表示你缺少执行此操作所需的 Project 角色。系统已自动创建授权请求，等待人类管理员审批。
+### HTTP 轮询详情
+
+当你收到 `202 Accepted` 响应时，表示你缺少执行此操作所需的 Project 角色。系统已自动创建授权请求，等待人类管理员审批。**你作为 Claude Code Worker，HTTP 轮询是你的标准状态发现方式。**
 
 **轮询流程**：
 
@@ -332,11 +452,9 @@ async function waitForAuthorization(requestId: string, timeoutMs = 300_000): Pro
 
 ### 交互式提示（Interactive Prompt）— 选项决策
 
-当系统需要人工做选择/确认/输入时，会创建 `interactive_prompt` 类型的授权请求。WS 在线时通过 push 即时收到通知；WS 断连时回退到 HTTP 轮询。
+当系统需要人工做选择/确认/输入时，会创建 `interactive_prompt` 类型的授权请求。通过 HTTP 轮询（Step 3.5 ①）发现待处理 prompts，或通过 WS Push 即时收到通知（如果已连接）。
 
-**发现待处理的 Prompts**（WS 断连时每 30 秒检查一次）：
-
-**发现待处理的 Prompts**（建议每次会话启动时和每 30 秒检查一次）：
+**发现待处理的 Prompts**（建议每次会话启动时通过 Step 3.5 ① 检查，以及 session 内按需检查）：
 
 ```
 GET /v1/workers/me/authorization-requests?status=pending
