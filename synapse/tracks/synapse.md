@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B29 ✅ 双客户端拉通 Scope 定义 — 8 批拆解（B29→B37）
-last_batch: P11-B29
-next_batch: P11-B30
-description: Synapse 主项目 — P11-B29 ✅ Scope 定义 · B30 🔜 L5 B28→B29 拉通 · 624 tests
+phase: P11-B30 ✅ L5 B28→B29 拉通 — 零 drift · 计数器复位
+last_batch: P11-B30
+next_batch: P11-B31
+description: Synapse 主项目 — P11-B30 ✅ L5 拉通 · B31 🔜 狗粮 Prep · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B29 ✅ Scope 定义 · B30 🔜 L5 B28�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B29 | **P11-B30** 🔜 | B1-B29 ✅ · B30 🔜 L5 拉通 |
+| **P11** | P11-B30 | **P11-B31** 🔜 | B1-B30 ✅ · B31 🔜 狗粮 Prep |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -166,6 +166,11 @@ description: Synapse 主项目 — P11-B29 ✅ Scope 定义 · B30 🔜 L5 B28�
 │   — 8 批拆解（B29→B37）· 狗粮 Prep→Run→收割→修复→闭环   │
 │   — 现状评估（B1-B28 全部就绪）· 风险识别 · PFL-042 观察  │
 │   — 🟢 微型 · 1 file (纯设计)                           │
+│                                                    │
+│ P11-B30 ✅ L5 B28→B29 拉通                             │
+│   — 零 drift · 2批纯文档 · HTTP-first 三文档对齐验证      │
+│   — 计数器复位 · 📄 治理制品全量同步                      │
+│   — 🟢 微型 (L5 质量保障)                                │
 └────────────────────────────────────────────────────┘
 ```
 

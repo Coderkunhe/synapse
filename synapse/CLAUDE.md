@@ -6,7 +6,7 @@
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P11-B8→B19 全量拉通完成（2026-07-21）— 5 项 drift 修复 · B8-B10 措辞 · B11-B14 ADR-006 重拆叙事 · B15-B19 零 drift · 计数器复位
-> 最后更新：2026-07-21（P11-B29 ✅ 双客户端拉通 Scope 定义 · P11-B28 ✅ 架构文档更新）
+> 最后更新：2026-07-21（P11-B30 ✅ L5 B28→B29 拉通 · P11-B29 ✅ Scope 定义）
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -564,6 +564,7 @@ synapse/
 - **P11-B23 ✅**：WS 加固三板斧 — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB 配置 · ws.py 连接数/消息大小门禁 · main.py lifespan 关机钩子 · 🟡 标准 · 4 files
 - **P11-B24 ✅**：WS 去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store → broadcast_to_team 已覆盖）· expire/cancel 保留 · 🟢 微型 · 1 file
 - **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
+- **P11-B30 ✅**：L5 B28→B29 拉通 — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
 - **P11-B29 ✅**：双客户端拉通 Scope 定义 — 8 批拆解（B29→B37）· 现状评估 · 风险识别 · 1 file · 🟢 微型 (纯设计)
 - **P11-B28 ✅**：架构文档更新 — worker-admin-interaction-flow.md 双通道重新定位 · 时序图更新 · 持久 vs 短生命周期客户端分工 · 1 file · 🟢 微型 (纯文档)
 - **P11-B27 ✅**：SKILL.md 启动流重构 — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files · 🟢 微型 (纯文档)
@@ -580,8 +581,8 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
-- **P11-B29**：双客户端拉通 Scope 定义 ✅ — 8 批拆解（B29→B37）· 狗粮 Prep→Run→收割→修复→闭环 · 1 file · 🟢 微型 (纯设计)
-- **P11-B28**：架构文档更新 ✅ — worker-admin-interaction-flow.md 双通道重新定位 · 时序图更新 · 1 file · 🟢 微型 (纯文档)
+- **P11-B30**：L5 B28→B29 拉通 ✅ — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
+- **P11-B29**：双客户端拉通 Scope 定义 ✅ — 8 批拆解（B29→B37）· 1 file · 🟢 微型 (纯设计)
 - **P11-B27**：SKILL.md 启动流重构 ✅ — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files · 纯文档
 - **P11-B26**：WS 长连接方案 ✅ — 选 C（HTTP Poll 永久模式 · WS→持久客户端）· 设计文档 · 纯设计
 - **P11-B25**：CLI 授权体验 ✅ — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳等待提示 + 行为规则 + ⏰超时降级 · 1 file · 纯文档
