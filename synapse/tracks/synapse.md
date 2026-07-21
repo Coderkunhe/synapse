@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B28 ✅ worker-admin-interaction-flow.md 双通道重新定位 + 时序图更新
-last_batch: P11-B28
-next_batch: P11-B29
-description: Synapse 主项目 — P11-B28 ✅ 架构文档更新 · B29 🔜 待定 · 624 tests
+phase: P11-B29 ✅ 双客户端拉通 Scope 定义 — 8 批拆解（B29→B37）
+last_batch: P11-B29
+next_batch: P11-B30
+description: Synapse 主项目 — P11-B29 ✅ Scope 定义 · B30 🔜 L5 B28→B29 拉通 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B28 ✅ 架构文档更新 · B29 🔜 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B28 | **P11-B29** 🔜 | B1-B28 ✅ · B29 🔜 待定 |
+| **P11** | P11-B29 | **P11-B30** 🔜 | B1-B29 ✅ · B30 🔜 L5 拉通 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -161,6 +161,11 @@ description: Synapse 主项目 — P11-B28 ✅ 架构文档更新 · B29 🔜 �
 │   — worker-admin-interaction-flow.md 双通道重新定位      │
 │   — 时序图更新 · 持久 vs 短生命周期客户端分工             │
 │   — 🟢 微型 · 1 file (纯文档)                           │
+│                                                    │
+│ P11-B29 ✅ 双客户端拉通 Scope 定义                      │
+│   — 8 批拆解（B29→B37）· 狗粮 Prep→Run→收割→修复→闭环   │
+│   — 现状评估（B1-B28 全部就绪）· 风险识别 · PFL-042 观察  │
+│   — 🟢 微型 · 1 file (纯设计)                           │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -171,7 +176,7 @@ description: Synapse 主项目 — P11-B28 ✅ 架构文档更新 · B29 🔜 �
 | 方向 | 目标 | 关键交付 |
 |------|------|------|
 | **授权审批实时化** ✅ | 审批人无需盯终端，在 Synapse 网站实时看到授权申请并处理 | ws.py humans 订阅 `authorization_request.*` · Approvals 页面 WS 实时刷新 · P11-B22 |
-| **双客户端拉通** | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | 两终端独立角色 · Task 分配→执行→提交→验收全链路 |
+| **双客户端拉通** 🔄 | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 拉通 🔜 B30 → 狗粮 B31-B33 → 修复 B34-B36 · 8 批拆解 |
 | **三客户端实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实协作 | 多角色并发 · WS 推送贯穿 VDD 循环 |
 | **看板可视化** | 任务状态实时看板，拖拽/状态流转可视化 | Dashboard Kanban · 实时 WS 更新 · 拖拽改变状态 |
 
