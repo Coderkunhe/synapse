@@ -18,6 +18,7 @@ from src.exceptions import (
     InvalidStateTransition,
     NotFoundError,
 )
+from src.models.authorization_request import AuthorizationRequest
 from src.models.project import Project
 from src.models.task import Task
 from src.models.verification import Verification
@@ -51,6 +52,41 @@ def _check_version(task: Task, expected_version: int) -> None:
 def _bump_version(task: Task) -> None:
     """变更成功后递增任务版本号。"""
     task.version_no += 1
+
+
+async def _check_no_pending_auth(
+    db: AsyncSession,
+    *,
+    task_id: str,
+    actor_id: str,
+) -> None:
+    """PFL-046: 若存在该 Worker 对此 Task 的 pending 授权请求，硬拒绝 409。
+
+    在每次 mutation（assign/claim/submit/cancel/ready/pause/resume/terminate）
+    前调用。防止 Worker 在授权审批 pending 期间绕过审批直接操作。
+    """
+    result = await db.execute(
+        select(AuthorizationRequest).where(
+            AuthorizationRequest.worker_id == actor_id,
+            AuthorizationRequest.target_resource_type == "task",
+            AuthorizationRequest.target_resource_id == task_id,
+            AuthorizationRequest.status == "pending",
+        )
+    )
+    pending = result.scalars().all()
+    if pending:
+        request_ids = [r.id for r in pending]
+        raise ConflictError(
+            "PENDING_AUTHORIZATION",
+            f"Worker {actor_id} has {len(pending)} pending authorization "
+            f"request(s) for Task {task_id}: {request_ids}. "
+            f"Wait for approval before retrying this operation.",
+            {
+                "pendingRequestIds": request_ids,
+                "taskId": task_id,
+                "workerId": actor_id,
+            },
+        )
 
 # ── 状态机 ─────────────────────────────────────────────────
 
@@ -211,6 +247,7 @@ async def update_task(
 ) -> Task:
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     changed = False
     if title is not None:
@@ -264,6 +301,7 @@ async def assign_task(
 ) -> Task:
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     # 校验状态转换：必须处于 backlog 或 ready
     target_status = TaskStatus.IN_PROGRESS
@@ -364,6 +402,7 @@ async def claim_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=worker_id)
 
     # 任务必须未分配或已分配给此认领者（在校验状态转换之前检查，
     # 以便返回清晰的 TASK_ALREADY_CLAIMED 而非 InvalidStateTransition）
@@ -480,6 +519,7 @@ async def submit_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
     ok = task.owner_type == actor_type and task.owner_id == actor_id  # P10-B7
     if not ok and task.owner_type == OwnerType.MEMBER and actor_type == ActorType.HUMAN:
         ok = derive_id(task.owner_id, "worker") == actor_id
@@ -587,6 +627,7 @@ async def cancel_task(
     """取消任务。任意非终态 → cancelled。"""
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     _validate_transition(task, TaskStatus.CANCELLED)
 
@@ -647,6 +688,7 @@ async def ready_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     if not task.description:
         raise ConflictError(
@@ -712,6 +754,7 @@ async def pause_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     event_type, payload = apply_transition(
         task, TaskStatus.PAUSED,
@@ -765,6 +808,7 @@ async def resume_task(
     """将暂停的任务恢复为 IN_PROGRESS。"""
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     event_type, payload = apply_transition(
         task, TaskStatus.IN_PROGRESS,
@@ -825,6 +869,7 @@ async def terminate_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
+    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
     previous_owner_id = task.owner_id
 

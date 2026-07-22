@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.constants import OwnerType, TaskStatus
 from src.schemas.common import AuditFields
@@ -40,6 +40,14 @@ class TaskCreate(BaseModel):
     # 任务依赖（P9-B6）
     depends_on: list[TaskDependency] | None = None
 
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, v: str) -> str:
+        """FR3: 规范化 description — \r\n→\n · strip 首尾空白 · 保留合法 JSON 换行。"""
+        if v is None:
+            return v
+        return v.replace("\r\n", "\n").replace("\r", "\n").strip()
+
 
 class BatchTaskCreateRequest(BaseModel):
     """批量创建 Task 的请求体（P8-B9, D-P7-023: Creator 批量操作）。"""
@@ -64,6 +72,14 @@ class TaskUpdate(BaseModel):
     metadata: dict | None = None
     deadline_at: datetime | None = None
     expected_version: int = Field(..., ge=1)
+
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, v: str | None) -> str | None:
+        """FR3: 规范化 description — \r\n→\n · strip 首尾空白。"""
+        if v is None:
+            return None
+        return v.replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
 class TaskAssignRequest(BaseModel):

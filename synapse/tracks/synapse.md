@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B33 ✅ SKILL.md 模板全面升级 — Worker 行为契约 v2
-last_batch: P11-B33
-next_batch: P11-B34
-description: Synapse 主项目 — P11-B33 ✅ 模板升级 · B34 🔜 JSON 转义修复 · 624 tests
+phase: P11-B34 ✅ 授权硬门禁 + JSON 转义修复
+last_batch: P11-B34
+next_batch: P11-B35
+description: Synapse 主项目 — P11-B34 ✅ 硬门禁+FR3 · B35 🔜 Key 隔离 · 624 tests
 ---
 
 # Synapse 轨道

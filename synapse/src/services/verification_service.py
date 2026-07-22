@@ -18,6 +18,7 @@ from src.exceptions import (
     InvalidStateTransition,
     NotFoundError,
 )
+from src.models.authorization_request import AuthorizationRequest
 from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
@@ -73,6 +74,25 @@ async def execute_verification(
     if task is None:
         raise NotFoundError("task", ver.task_id)
     _check_version(task, expected_version)
+    # PFL-046: 检查是否有 pending 授权请求
+    auth_result = await db.execute(
+        select(AuthorizationRequest).where(
+            AuthorizationRequest.worker_id == actor_id,
+            AuthorizationRequest.target_resource_type == "task",
+            AuthorizationRequest.target_resource_id == task.id,
+            AuthorizationRequest.status == "pending",
+        )
+    )
+    pending_auths = auth_result.scalars().all()
+    if pending_auths:
+        request_ids = [r.id for r in pending_auths]
+        raise ConflictError(
+            "PENDING_AUTHORIZATION",
+            f"Worker {actor_id} has {len(pending_auths)} pending authorization "
+            f"request(s) for Task {task.id}: {request_ids}. "
+            f"Wait for approval before retrying this operation.",
+            {"pendingRequestIds": request_ids, "taskId": task.id, "workerId": actor_id},
+        )
     if task.status != TaskStatus.IN_VERIFICATION:
         raise InvalidStateTransition(
             "verification_execute",
