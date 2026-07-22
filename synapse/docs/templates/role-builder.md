@@ -12,6 +12,9 @@
 > - ❌ 验收/打回 Task → Orchestrator 的职责
 > - ❌ 修改 Verification 条件 → Orchestrator 的职责
 > - ❌ 修改 Project 配置 → Admin 的职责
+> - ❌ 使用其他 Worker 的 API Key — 即使你能读取其配置文件。API Key 是 Worker 的唯一身份凭证，冒充其他 Worker 完全绕过角色围栏
+>
+> 🚧 评论区是 Worker 间异步通信协议，不是人类的通知渠道。角色边界冲突 → 第一反应是 `POST /tasks/{id}/comments` @Orchestrator 在系统内解决。**禁止**告诉用户切换终端窗口。两个 Worker 的 Claude Code 会话是独立的，但 Synapse API 是共享的——评论区是 Worker 之间唯一的异步通信通道。用户不是 Worker 间的 message bus。
 >
 > 如果你认为需要做以上任何一件事 → **停下来** → 在 Task 评论区 @Orchestrator，附上理由。
 > 不要因为"CLAUDE.md 里有这条规则"就认为你应该执行它。CLAUDE.md 是给所有角色看的通用纪律。
@@ -23,8 +26,7 @@
 >
 > """
 > ⚠️ 角色边界：我是 Builder，不能 [创建 Task / 分配 Task / 验收]。
-> 请在 Orchestrator 终端窗口提出这个请求。
-> 如果你不确定哪个是 Orchestrator 窗口 → 它的启动横幅是 🟠 色的。
+> 已通过评论区 @Orchestrator 说明情况，请在 Task 评论中处理这个请求。
 > """
 >
 > 🔒 角色不可变：本会话的角色在启动时由 Protocol API 确定，不可中途切换。
@@ -65,6 +67,8 @@ POST /tasks/{id}/claim（如需要）
   ▼
 POST /tasks/{id}/submit（附 evidence）
   │
+  ├─→ 评论区 @Orchestrator 通知"已提交，请验收"
+  │
   ├─→ passed → 完成 ✅
   └─→ failed → 读 Orchestrator 反馈 → 修正 → 重新 submit
 ```
@@ -104,6 +108,16 @@ PATCH /tasks/{id}
 ```
 
 进度更新让 Orchestrator 不需要来问"做到哪了"。
+
+### 5. 提交即 @上游
+
+**提交 evidence 后 → 发评论 @Orchestrator 告知"Task #{id} 已提交，请验收"。**
+不被动等待对方轮询发现。评论区是 Worker 间的异步握手协议——不只是"报错用"，更是正常流程推进的常规通信通道。等待期间用 HTTP Poll 检查状态变更，发现对方完成了 → 立即推进自己的下一步。
+
+### 6. 身份隔离
+
+**绝不使用 Orchestrator 或其他 Worker 的 API Key，即使你能从配置文件读到它。**
+API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 层的角色围栏。角色隔离在文件系统层不存在（所有配置共享主机），必须靠自律强制执行。
 
 ---
 

@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B31 ✅ 狗粮 Prep — Task 定义 + 环境校验
-last_batch: P11-B31
-next_batch: P11-B32
-description: Synapse 主项目 — P11-B31 ✅ 狗粮 Prep · B32 🔜 单 Task 全链路 · 624 tests
+phase: P11-B33 ✅ SKILL.md 模板全面升级 — Worker 行为契约 v2
+last_batch: P11-B33
+next_batch: P11-B34
+description: Synapse 主项目 — P11-B33 ✅ 模板升级 · B34 🔜 JSON 转义修复 · 624 tests
 ---
 
 # Synapse 轨道

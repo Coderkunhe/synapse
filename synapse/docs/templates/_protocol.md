@@ -130,6 +130,8 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 握手成功后你的状态变为 `active`，可以接收 Task。
 
+> ⚠️ `preferred_channel` 仅接受 `"websocket"` 或 `"webhook"`。HTTP 轮询是独立于 handshake channel 声明的默认行为——填 `"http"` 或其他值会返回 `422` 验证失败。
+
 ---
 
 ## 4. 核心工作循环（VDD：验证驱动开发）
@@ -180,6 +182,8 @@ Task 状态的任何变更必须通过对应的 API 端点，不在本地脑补�
 - 更新进度 → `PATCH /tasks/{id}`
 - 提交验证 → `POST /tasks/{id}/submit`
 
+> ⚠️ **预分配 Task 的特殊路径**：如果 Task 已被 Orchestrator 通过 `assign` API 预分配给你（状态为 `in_progress`），**不要调用 claim**。claim 会返回 `409` 或状态转换错误——Task 已经在 in_progress，不需要再次认领。直接开始执行，完成后 submit evidence。
+
 ### 5.4 心跳保持
 
 每 `{{SYNAPSE_HEARTBEAT_INTERVAL}}` 秒发送心跳：
@@ -191,6 +195,19 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 ### 5.5 能力边界
 
 你只能执行已声明 Capability 范围内的操作。尝试越权操作 → API 返回 `403 FORBIDDEN_CAPABILITY_REQUIRED`。
+
+### 5.6 每次写入前重读（乐观锁）
+
+**所有 mutation（claim/submit/assign/verify/comment/update）都要求传入 `expected_version`。**
+这不是可选参数——不传或传错 → API 返回 `422 MISSING_EXPECTED_VERSION` 或 `409 VERSION_CONFLICT`。
+
+**机械步骤**（不是 409 后补救，是每次 mutation 的前置动作）：
+1. `GET /v1/tasks/{task_id}` → 从响应取 `version_no`
+2. 构造 mutation 请求体，填入 `"expected_version": <version_no>`
+3. 发起 mutation
+4. 若收到 `409 VERSION_CONFLICT` → 回到步骤 1 重新读取
+
+**为什么每个操作都要重读**：Task 的 `version_no` 在每次成功操作后自动 +1——创建、分配、认领、评论、提交、验收都会 bump 版本号。你持有的版本号在上一个操作完成时就已经过期了。
 
 ---
 
@@ -216,8 +233,46 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 | 更新进度 | `PATCH` | `/tasks/{task_id}` |
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
+| 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
 | 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
+
+> 💡 **使用 Python 代替 curl**：curl 在 shell 中的 JSON 转义、管道交织、`-w` 格式化输出污染是已知问题（P-043）。Worker 应优先使用 Python 单行调用模式：
+
+```bash
+# 认领 Task（含 expected_version）
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/tasks/{task_id}/claim',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_version': version_no}
+)
+print(json.dumps(r.json(), indent=2))
+"
+
+# 提交 evidence（含 expected_version）
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/tasks/{task_id}/submit',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_version': version_no, 'evidence': {'file': 'result.txt', 'hash': 'sha256:...'}}
+)
+print(json.dumps(r.json(), indent=2))
+"
+
+# 验收验证
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/verifications/{ver_id}/verify',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_task_version': version_no, 'status': 'passed', 'evidence': '验收通过'}
+)
+print(json.dumps(r.json(), indent=2))
+"
+```
 
 ---
 
@@ -247,10 +302,10 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 |------|------|------|
 | `400` | 请求格式错误 | 读 `detail` 字段修正请求，不重试相同的请求 |
 | `401` | API Key 无效 | **停止重试**。Key 可能已被撤销，联系 Admin |
-| `202` | 权限待审批 | 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见 §9） |
+| `202` | 权限待审批 | **硬阻断。操作未执行。** 系统已自动创建授权请求，你的请求被拦截——这不是"等一下就好"，而是"没批就不能做"。从响应体 `details.authorization_request_id` 获取请求 ID，等待审批通过后**重试原请求**。不允许因为"任务简单"就跳过审批或替其他 Worker 执行。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见 §9） |
 | `403` | 权限不足 | 人类用户看到此错误时检查角色；Worker 不应再收到此错误（已升级为 202） |
 | `404` | 资源不存在 | 检查 ID 是否正确，确认资源未被删除 |
-| `409` | 状态冲突 | Task 已被他人认领或状态不允许此操作 |
+| `409` | 状态冲突 | Task 已被他人认领、状态不允许此操作（如对已 `in_progress` 的预分配 Task 调用 claim）、或版本冲突（`VERSION_CONFLICT` — 重读后重试） |
 | `422` | 验证失败 | 读 `detail` 修正请求体 |
 | `429` | 频率限制 | 等待 `Retry-After` 秒后重试 |
 | `5xx` | 服务端错误 | 指数退避重试：1s → 5s → 25s → 放弃（最多 3 次） |
