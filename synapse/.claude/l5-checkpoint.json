@@ -1,11 +1,8 @@
 {
-  "lastL5Batch": "B30→B31 L5 拉通 — 零 drift · 2批（B30 L5 B28→B29 拉通 + B31 狗粮 Prep Task定义+环境校验）· 叙事：B28架构文档→B29 Scope拆解→B30 L5拉通→B31 Prep就位→B32 执行 · 📄 CLAUDE.md+track+requirements-log+daily 已同步 · 📚 双客户端拉通主线一致",
+  "lastL5Batch": "B33→B34 L5 拉通 — 零 drift · 2批（B33 SKILL.md 模板全面升级 + B34 授权硬门禁+JSON转义修复）· 叙事：B32狗粮13摩擦点→B33模板10项闭环→B34服务端2项修复 · 📄 track+requirements-log+pitfalls+daily 已同步",
   "lastL5Timestamp": "2026-07-22",
-  "batchesSinceLastL5": 1,
-  "completedBatches": [
-    "B30",
-    "B31"
-  ],
-  "lastL5Evidence": "B30→B31 L5 拉通 — 零 drift · B30 是 L5 批（B28→B29 拉通，纯治理）· B31 是狗粮 Prep（Task #1/#2 定义+环境连通性验证，双客户端 API 200 ✅）· 叙事连续：架构文档重定位(B28)→8批拆解(B29)→L5拉通(B30)→狗粮准备(B31)→狗粮执行(B32)",
-  "notes": "L5 B30→B31 拉通完成，计数器复位。B30→B31 均为非代码批：B30 治理 · B31 计划+环境。B32 狗粮 Run ① 已闭环（单 Task 全链路 14min · 6 摩擦点），将在下个 L5 纳入。V-023 防呆: --yes 已确认"
+  "batchesSinceLastL5": 0,
+  "completedBatches": [],
+  "lastL5Evidence": "B33→B34 L5 拉通 — 零 drift · 2批（B33 SKILL.md 模板全面升级 + B34 授权硬门禁+JSON转义修复）· 叙事：B32狗粮13摩擦点→B33模板10项闭环→B34服务端2项修复 · 📄 track+requirements-log+pitfalls+daily 已同步",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
