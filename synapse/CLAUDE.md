@@ -1,12 +1,13 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-21（P11-B27 ✅ SKILL.md 重构 · P11-B26 ✅ WS 长连接方案 · P11-B25 ✅ CLI 授权体验）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-22（P11-B32 ✅ 狗粮 Run ① 闭环 · P11-B31 ✅ 狗粮 Prep）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P11-B8→B19 全量拉通完成（2026-07-21）— 5 项 drift 修复 · B8-B10 措辞 · B11-B14 ADR-006 重拆叙事 · B15-B19 零 drift · 计数器复位
-> 最后更新：2026-07-21（P11-B31 ✅ 狗粮 Prep · P11-B30 ✅ L5 B28→B29 拉通 · P11-B29 ✅ Scope 定义）
+> 🔄 L5 P11-B30→B31 拉通完成（2026-07-22）— 零 drift · B30 纯治理 · B31 狗粮 Prep · B32 狗粮 Run ① 闭环
+> 最后更新：2026-07-22（P11-B32 ✅ 狗粮 Run ① 闭环 · P11-B31 ✅ 狗粮 Prep · P11-B30 ✅ L5 B28→B29 拉通）
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -429,6 +430,7 @@ synapse/
 ├── CLAUDE.md              ← 本文件（AI 入口）
 ├── README.md              ← 人类入口
 ├── PITCH.md               ← 项目介绍（电梯/咖啡/晚餐分层 — 对外交流用）
+├── public-pitch.md         ← 通俗说明书（非技术向 · 一个特性一篇 · 对外宣发用）
 ├── CONTRIBUTING.md        ← 协作规范
 ├── docs/
 │   ├── prd.md             ← 产品需求文档 ✅
@@ -564,6 +566,7 @@ synapse/
 - **P11-B23 ✅**：WS 加固三板斧 — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB 配置 · ws.py 连接数/消息大小门禁 · main.py lifespan 关机钩子 · 🟡 标准 · 4 files
 - **P11-B24 ✅**：WS 去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store → broadcast_to_team 已覆盖）· expire/cancel 保留 · 🟢 微型 · 1 file
 - **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
+- **P11-B32 ✅**：狗粮 Run ① — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events（created→assigned→submitted→completed）· 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B31 ✅**：狗粮 Prep — Task 定义 + 环境校验 — 双客户端连通性验证 · Task #1 (Orchestrator) + Task #2 (Builder) · Verification 条件 + 边界约束 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B30 ✅**：L5 B28→B29 拉通 — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
 - **P11-B29 ✅**：双客户端拉通 Scope 定义 — 8 批拆解（B29→B37）· 现状评估 · 风险识别 · 1 file · 🟢 微型 (纯设计)
@@ -582,6 +585,7 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B32**：狗粮 Run ① ✅ — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events · 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B31**：狗粮 Prep ✅ — 双客户端连通性验证（DB + API 双检）· Task #1/#2 定义 + Verification 条件 + 边界约束 + 失败模式 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B30**：L5 B28→B29 拉通 ✅ — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
 - **P11-B29**：双客户端拉通 Scope 定义 ✅ — 8 批拆解（B29→B37）· 1 file · 🟢 微型 (纯设计)
