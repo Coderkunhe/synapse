@@ -93,7 +93,7 @@ async def create_auth_request(
     )
     await db.commit()
 
-    return _to_response(record)
+    return await _to_response(record, db)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -131,7 +131,7 @@ async def list_auth_requests(
     )
     records = result.scalars().all()
 
-    return [_to_response(r) for r in records]
+    return [await _to_response(r, db) for r in records]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -176,7 +176,7 @@ async def respond_to_auth_request(
     )
     await db.commit()
 
-    return _to_response(record)
+    return await _to_response(record, db)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -222,7 +222,7 @@ async def heartbeat_auth_request(
     updated = await heartbeat_service(db, request_id)
     await db.commit()
 
-    return _to_response(updated)
+    return await _to_response(updated, db)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -253,17 +253,17 @@ async def get_auth_request(
     # Owner check: Worker can see their own requests
     is_owner = record.worker_id == actor.actor_id
     if is_owner:
-        return _to_response(record)
+        return await _to_response(record, db)
 
     # Admin check: project admin/lead can see requests in their project
     if actor.is_super_admin:
-        return _to_response(record)
+        return await _to_response(record, db)
 
     if actor.actor_type != ActorType.WORKER:
         from src.services.project_role_service import get_project_role
         role = await get_project_role(db, record.project_id, actor.actor_id)
         if role in ("admin", "lead"):
-            return _to_response(record)
+            return await _to_response(record, db)
 
     raise ForbiddenError(
         "FORBIDDEN_NOT_REQUEST_OWNER",
@@ -308,7 +308,7 @@ async def list_my_auth_requests(
     )
     records = result.scalars().all()
 
-    return [_to_response(r) for r in records]
+    return [await _to_response(r, db) for r in records]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -316,13 +316,16 @@ async def list_my_auth_requests(
 # ═══════════════════════════════════════════════════════════════════
 
 
-def _to_response(record: AuthorizationRequest) -> AuthorizationRequestResponse:
-    """将 ORM 对象转换为 API 响应 schema。
+async def _to_response(record: AuthorizationRequest, db: AsyncSession) -> AuthorizationRequestResponse:
+    """将 ORM 对象转换为 API 响应 schema，并富化 worker name。
 
     使用 model_validate 自动从 ORM 属性提取字段（from_attributes=True）。
     prompt_choices_json 字符串 → prompt_choices list 手动转换。
+    worker_name / responded_by_worker_name 从 Worker 表 lookup 填充。
     """
     import json
+
+    from src.models.worker import Worker
 
     # 使用 from_attributes 自动映射 ORM → Pydantic
     response = AuthorizationRequestResponse.model_validate(record)
@@ -339,5 +342,17 @@ def _to_response(record: AuthorizationRequest) -> AuthorizationRequestResponse:
     # Map ORM attribute name to Pydantic field name
     # (model_validate can't auto-map response_data_json → response_data)
     response.response_data = record.response_data_json
+
+    # ── 富化: resolve worker names ──
+    worker_result = await db.execute(
+        select(Worker.name).where(Worker.id == record.worker_id)
+    )
+    response.worker_name = worker_result.scalar_one_or_none()
+
+    if record.responded_by_worker_id:
+        responder_result = await db.execute(
+            select(Worker.name).where(Worker.id == record.responded_by_worker_id)
+        )
+        response.responded_by_worker_name = responder_result.scalar_one_or_none()
 
     return response

@@ -1180,6 +1180,7 @@ export interface AuthRequestSummary {
   id: string
   project_id: string
   worker_id: string
+  worker_name: string | null
   request_type: string
   operation: string | null
   target_resource_type: string | null
@@ -1189,6 +1190,7 @@ export interface AuthRequestSummary {
   prompt_choices: string[] | null
   status: string
   responded_by_worker_id: string | null
+  responded_by_worker_name: string | null
   responded_at: string | null
   response_note: string | null
   response_data: string | null

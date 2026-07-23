@@ -46,6 +46,14 @@ function formatExpiresIn(expiresAt: string): string {
   return `${Math.floor(hours / 24)}d`
 }
 
+/** Humanize operation codes — snake_case → Title Case. */
+function humanizeOperation(op: string | null): string {
+  if (!op) return '—'
+  return op
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export default function Approvals() {
   const { token, teamId } = useAuth()
   const { t } = useI18n()
@@ -202,7 +210,7 @@ export default function Approvals() {
                   <div className={styles.apiAuthDetails}>
                     <div className={styles.detailRow}>
                       <span className={styles.detailLabel}>{t('approvals.operation')}</span>
-                      <code className={styles.detailValue}>{item.operation || t('common.none')}</code>
+                      <span className={styles.detailValue}>{humanizeOperation(item.operation)}</span>
                     </div>
                     {item.target_resource_type && (
                       <div className={styles.detailRow}>
@@ -238,10 +246,10 @@ export default function Approvals() {
                   </div>
                 )}
 
-                {/* ── Worker ID ── */}
+                {/* ── Worker name ── */}
                 <div className={styles.workerRow}>
                   <span className={styles.detailLabel}>{t('approvals.workerLabel')}</span>
-                  <code className={styles.workerId}>{item.worker_id}</code>
+                  <span className={styles.workerName}>{item.worker_name || item.worker_id}</span>
                 </div>
               </div>
 

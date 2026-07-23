@@ -91,4 +91,8 @@ class AuthorizationRequestResponse(AuditFields):
     expires_at: datetime
     last_heartbeat_at: datetime
 
+    # 富化字段（非 ORM，由 endpoint 手动填充）
+    worker_name: str | None = None
+    responded_by_worker_name: str | None = None
+
     model_config = {"from_attributes": True}

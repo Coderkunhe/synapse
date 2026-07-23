@@ -185,6 +185,12 @@ code.detailValue {
   color: var(--gm-text-secondary, #94a3b8);
 }
 
+.workerName {
+  font-size: 13px;
+  color: var(--gm-text, #f1f5f9);
+  font-weight: 500;
+}
+
 /* ── Card footer: actions ────────────────────────────────────────────── */
 
 .cardFooter {
