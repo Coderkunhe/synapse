@@ -215,19 +215,20 @@ async def login(
     Verifies credentials, issues JWT + refresh token. The refresh token
     is set as an httpOnly cookie for browser clients.
     """
-    user, worker_id, access_token, refresh_token_value = await login_user(
+    user, worker_id, access_token, refresh_token_value, team_role = await login_user(
         db,
         email=body.email,
         password=body.password,
     )
+    team_id, role, member_id = team_role
     await db.commit()
 
     content = TokenResponse(
         access_token=access_token,
         actor_id=worker_id,
-        member_id="",
-        team_id="",
-        role="",
+        member_id=member_id,
+        team_id=team_id,
+        role=role,
         display_name=user.display_name,
         expires_in=settings.jwt_expire_minutes * 60,
         is_super_admin=user.is_super_admin,

@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B34 ✅ 授权硬门禁 + JSON 转义修复
-last_batch: P11-B34
-next_batch: P11-B35
-description: Synapse 主项目 — P11-B34 ✅ 硬门禁+FR3 · B35 🔜 Key 隔离 · 624 tests
+phase: P11-B35 ✅ Key 存储隔离 · P-045 闭环 · B32 狗粮 13/13 🎉
+last_batch: P11-B35
+next_batch: P11-B36
+description: Synapse 主项目 — B35 ✅ Key 隔离 · B36 🔜 双客户端拉通收尾 · 626 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P11-B34 ✅ 硬门禁+FR3 · B35 🔜 Key 隔
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B31 | **P11-B32** 🔜 | B1-B31 ✅ · B32 🔜 单 Task 全链路 |
+| **P11** | P11-B35 | **P11-B36** 🔜 | B1-B35 ✅ · B36 🔜 双客户端拉通收尾 |
 
 ## P11 路线图：多 Agent 接入战
 

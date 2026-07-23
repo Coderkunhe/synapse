@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-22（P11-B32 ✅ 狗粮 Run ① 闭环 · P11-B31 ✅ 狗粮 Prep）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B35 ✅ Key 隔离 · P-045 闭环 · B32 狗粮 13/13 🎉）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -7,7 +7,8 @@
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P11-B8→B19 全量拉通完成（2026-07-21）— 5 项 drift 修复 · B8-B10 措辞 · B11-B14 ADR-006 重拆叙事 · B15-B19 零 drift · 计数器复位
 > 🔄 L5 P11-B30→B31 拉通完成（2026-07-22）— 零 drift · B30 纯治理 · B31 狗粮 Prep · B32 狗粮 Run ① 闭环
-> 最后更新：2026-07-22（P11-B32 ✅ 狗粮 Run ① 闭环 · P11-B31 ✅ 狗粮 Prep · P11-B30 ✅ L5 B28→B29 拉通）
+> 🔄 L5 P11-B33→B34 拉通完成（2026-07-22）— 零 drift · B33 SKILL.md 模板全面升级 · B34 授权硬门禁+JSON 转义修复
+> 最后更新：2026-07-23（P11-B35 ✅ Key 隔离 · P-045 闭环 · B32 狗粮 13/13 🎉）
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -381,10 +382,11 @@ next_batch: P100-B15    # 下一个应执行的 Batch
 
 1. **逐文件验证** — 写完一个文件立刻验证，不等攒批
 2. **上下文预估** — commit 后主动检查是否需要 /clear，不等用户感觉卡了才反应
-3. **接头暗号（机械执行）** — /clear 前必须完成四步：
-   - ① 约定简短暗号（格式：`继续 Synapse <下一站方向>`）
-   - ② 写入 memory checkpoint 文件（`synapse-session-YYYY-MM-DD.md`），包含以下必填段：
-     - 本次做了什么 + 下一站方向 + 暗号
+3. **接头暗号（机械执行 · 多窗口隔离）** — /clear 前必须完成五步：
+   - ① 确定当前会话的 **topic**（`landing` / `p11` / `p100` 等短 slug）。多窗口同时工作时，每个窗口有独立 topic，暗号互不覆盖。
+   - ② 约定简短暗号（格式：`继续 <topic> — <下一站方向>`，如 `继续 p11 — B36 收尾`）
+   - ③ 写入 `memory/active/<topic>.md`（覆盖更新该 topic 的暗号和上下文），同时写入 session checkpoint 文件（`synapse-session-YYYY-MM-DD-<topic>.md`），包含以下必填段：
+     - 本次做了什么 + 下一站方向 + 暗号 + topic
      - 🧭 战略决策登记（按 §10 格式）
      - 🔒 角色边界自审（按当前角色选择对应模板）：
 
@@ -415,8 +417,8 @@ next_batch: P100-B15    # 下一个应执行的 Batch
 | CLAUDE.md 中是否有规则与 role_instructions 冲突？ | ✅/❌（如❌，附具体规则） |
 
 > ✅ = 行为符合角色边界，❌ = 出现越界
-   - ③ 更新 MEMORY.md 顶部索引（暗号作为第一行，确保下个会话首条命中）
-   - ④ 新会话首条说出暗号 → AI 读 memory → 秒级接上，免重新同步
+   - ④ 更新 `memory/MEMORY.md` 的「🟢 Active Sessions」表（该 topic 行指向 `active/<topic>.md`）—— 不覆盖其他 topic 的暗号
+   - ⑤ 新会话首条说出暗号 → AI 按关键词匹配 topic（"Landing"→`landing`，"P11"→`p11`）→ 读 `memory/active/<topic>.md` → 秒级接上，免重新同步
    - **机械防呆**：`tools/session-checkpoint.sh` 检查 checkpoint 是否存在、是否含暗号、是否今天更新
 4. **文档索引** — 新增 doc 文件必须更新 CLAUDE.md 项目结构段
 5. **窗口主动评估** — 每次回复末尾评估上下文窗口剩余空间。跨 3+ 话题或产出了大量文件/讨论后 → 主动提醒"窗口可能不足，建议 checkpoint + /clear"。不等用户感觉卡了才反应。评估方法：估算本轮对话已消耗的 token 量级（文件读写数×平均行数 + 讨论轮次×估算），判断是否接近缓存边界（~5 分钟窗口）
@@ -566,6 +568,9 @@ synapse/
 - **P11-B23 ✅**：WS 加固三板斧 — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB 配置 · ws.py 连接数/消息大小门禁 · main.py lifespan 关机钩子 · 🟡 标准 · 4 files
 - **P11-B24 ✅**：WS 去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store → broadcast_to_team 已覆盖）· expire/cancel 保留 · 🟢 微型 · 1 file
 - **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
+- **P11-B35 ✅**：Key 存储隔离 — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
+- **P11-B34 ✅**：授权硬门禁 + JSON 转义修复 — require_permission 统一守卫 · JSON 序列化双保险 · 🟢 微型 · 2 files · 624 tests
+- **P11-B33 ✅**：SKILL.md 模板全面升级 — Worker 行为契约 v2 · 10 项模板改进 · 🟡 标准 · 3 files
 - **P11-B32 ✅**：狗粮 Run ① — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events（created→assigned→submitted→completed）· 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B31 ✅**：狗粮 Prep — Task 定义 + 环境校验 — 双客户端连通性验证 · Task #1 (Orchestrator) + Task #2 (Builder) · Verification 条件 + 边界约束 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B30 ✅**：L5 B28→B29 拉通 — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
@@ -585,6 +590,9 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B35**：Key 存储隔离 ✅ — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
+- **P11-B34**：授权硬门禁 + JSON 转义 ✅ — require_permission 统一守卫 · 2 files · 🟢 微型
+- **P11-B33**：SKILL.md 模板全面升级 ✅ — Worker 行为契约 v2 · 10 项模板改进 · 3 files · 🟡 标准
 - **P11-B32**：狗粮 Run ① ✅ — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events · 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B31**：狗粮 Prep ✅ — 双客户端连通性验证（DB + API 双检）· Task #1/#2 定义 + Verification 条件 + 边界约束 + 失败模式 · 🟡 标准 · 1 plan + 治理制品
 - **P11-B30**：L5 B28→B29 拉通 ✅ — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)

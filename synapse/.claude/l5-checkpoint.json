@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B33→B34 L5 拉通 — 零 drift · 2批（B33 SKILL.md 模板全面升级 + B34 授权硬门禁+JSON转义修复）· 叙事：B32狗粮13摩擦点→B33模板10项闭环→B34服务端2项修复 · 📄 track+requirements-log+pitfalls+daily 已同步",
-  "lastL5Timestamp": "2026-07-22",
+  "lastL5Batch": "B29→B35 L5 拉通 — 零 drift · B33-B35 补登 CLAUDE.md 当前状态+最近批次 · track 指针更新 B35 · header 时间戳同步 2026-07-23 · pitfalls+session memories 全部对齐 · 叙事：B29 Scope→B30 L5→B31 Prep→B32 Run①(13摩擦点)→B33 模板10项→B34 门禁2项→B35 Key隔离(13/13🎉)",
+  "lastL5Timestamp": "2026-07-23",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B33→B34 L5 拉通 — 零 drift · 2批（B33 SKILL.md 模板全面升级 + B34 授权硬门禁+JSON转义修复）· 叙事：B32狗粮13摩擦点→B33模板10项闭环→B34服务端2项修复 · 📄 track+requirements-log+pitfalls+daily 已同步",
+  "lastL5Evidence": "B29→B35 L5 拉通 — 零 drift · B33-B35 补登 CLAUDE.md 当前状态+最近批次 · track 指针更新 B35 · header 时间戳同步 2026-07-23 · pitfalls+session memories 全部对齐 · 叙事：B29 Scope→B30 L5→B31 Prep→B32 Run①(13摩擦点)→B33 模板10项→B34 门禁2项→B35 Key隔离(13/13🎉)",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

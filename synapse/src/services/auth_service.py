@@ -339,7 +339,7 @@ async def login_user(
     *,
     email: str,
     password: str,
-) -> tuple[User, str, str, str]:
+) -> tuple[User, str, str, str, tuple[str, str, str]]:
     """Email/Password 登录。
 
     1. 通过 UserAuthMethod(provider="email") 查找 User
@@ -407,12 +407,22 @@ async def login_user(
         )
         db.add(worker)
 
+    # 查找 Member 记录以获取 team/role（email 用户可能已有 Member）
+    # P11-B36: email 登录需解析团队身份，否则前端因 team_id="" 拒绝渲染
+    member_result = await db.execute(
+        select(Member).where(
+            Member.team_id.isnot(None),
+            Member.email == user.email,
+        ).order_by(Member.created_at.asc()).limit(1)
+    )
+    member = member_result.scalar_one_or_none()
+
     # 发布 JWT access token
     access_token = create_access_token(
         user_id=user.id,
         actor_id=worker_id,
-        team_id="",
-        role="",
+        team_id=member.team_id if member else "",
+        role=member.role if member else "",
         actor_type=ActorType.HUMAN,
         is_super_admin=user.is_super_admin,  # P10-B17: DB 宽列首用
     )
@@ -422,7 +432,11 @@ async def login_user(
         db, user_id=user.id,
     )
 
-    return user, worker_id, access_token, refresh_token_value
+    return user, worker_id, access_token, refresh_token_value, (
+        member.team_id if member else "",
+        member.role if member else "",
+        member.id if member else "",
+    )
 
 
 # ── Refresh Token 操作 ─────────────────────────────────────────────────
