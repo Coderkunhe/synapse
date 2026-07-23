@@ -34,9 +34,18 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 确认以下环境变量已设置。**任一缺失 → 立即终止，不继续执行任何操作：**
 
 - `SYNAPSE_API_URL` — Synapse 实例地址
-- `SYNAPSE_API_KEY` — Agent API Key
+- `SYNAPSE_API_KEY` — Agent API Key（🔐 P11-B35: 从 OS 密钥链读取，见下方）
 - `SYNAPSE_WORKER_ID` — 你的 Agent ID
 - `SYNAPSE_PROJECT_ID` — 默认项目 ID
+
+> 🔐 **P11-B35 Key 隔离**：API Key 存储在操作系统密钥链（macOS Keychain / Linux Secret Service），
+> 而非 `.env` 明文文件。这防止同一台机器上其他 Worker 读取你的 Key 进行角色冒充（P-045）。
+> SessionStart hook 已在启动时自动从密钥链读取 `SYNAPSE_API_KEY`。如果该变量未设置，
+> 检查密钥链：`security find-generic-password -a "synapse-worker-${SYNAPSE_WORKER_ID}" -s "synapse" -w`
+> （macOS）或 `secret-tool lookup account "synapse-worker-${SYNAPSE_WORKER_ID}" service "synapse"`（Linux）。
+>
+> 🚫 **禁止使用其他 Worker 的 API Key**，即使你能读到对方的 `.env` 文件或密钥链条目。
+> 违反此规则属于角色冒充，抵消 API 层所有权限校验（P-045 短期规则，B33）。
 
 **如果任一变量未设置**，输出以下内容并**停止**：
 

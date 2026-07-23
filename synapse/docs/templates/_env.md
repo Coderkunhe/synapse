@@ -7,9 +7,39 @@
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | `SYNAPSE_API_URL` | Synapse 实例地址 | `{{SYNAPSE_API_URL}}` |
-| `SYNAPSE_API_KEY` | Agent API Key（仅生成时可见，妥善保管） | `{{SYNAPSE_API_KEY}}` |
+| `SYNAPSE_API_KEY` | Agent API Key（存入 OS 密钥链，不从 .env 读取） | `{{SYNAPSE_API_KEY}}` |
 | `SYNAPSE_WORKER_ID` | 你的 Agent ID | `{{SYNAPSE_WORKER_ID}}` |
 | `SYNAPSE_PROJECT_ID` | 默认项目 ID | `{{SYNAPSE_PROJECT_ID}}` |
+
+## 🔐 API Key 存储（P11-B35: Key 隔离）
+
+> **API Key 默认存入操作系统密钥链，不写入 .env 明文。**
+
+| 平台 | 存储位置 | 读取命令 |
+|------|---------|---------|
+| macOS | Keychain (`security`) | `security find-generic-password -a "synapse-worker-{worker_id}" -s "synapse" -w` |
+| Linux | Secret Service (`secret-tool`) | `secret-tool lookup account "synapse-worker-{worker_id}" service "synapse"` |
+| 回退 | `.env` 文件（chmod 600） | 从 `SYNAPSE_API_KEY=` 行读取 |
+
+**为什么**：同一台机器上多个 Worker 的 `.env` 文件互相可读，任何一个 Worker 会话
+可以读取其他 Worker 的 API Key 进行角色冒充（P-045）。密钥链存储将 Key 移出
+文件系统，从根本上消除这个攻击面。
+
+### 密钥链管理
+
+```bash
+# 存入密钥链
+synapse-key.sh store <worker_id> <api_key>
+
+# 读取
+synapse-key.sh get <worker_id>
+
+# 验证
+synapse-key.sh verify <worker_id> <api_url>
+
+# 删除
+synapse-key.sh delete <worker_id>
+```
 
 ## 可选变量
 
