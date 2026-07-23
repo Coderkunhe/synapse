@@ -9,6 +9,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { Zap, AlertCircle, Mail, Lock } from 'lucide-react'
+import { getEmailError, getPasswordError, mapAuthError } from '../utils/authHelpers'
 import authStyles from './Auth.module.css'
 import styles from './Login.module.css'
 
@@ -25,6 +26,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const error = searchParams.get('error')
 
@@ -45,6 +48,14 @@ export default function Login() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password) return
+
+    // Client-side validation
+    const emailErr = getEmailError(email, t)
+    const passwordErr = getPasswordError(password, t)
+    setEmailError(emailErr)
+    setPasswordError(passwordErr)
+    if (emailErr || passwordErr) return
+
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -56,7 +67,7 @@ export default function Login() {
       }
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Login failed')
+      setSubmitError(mapAuthError(err, t))
     } finally {
       setSubmitting(false)
     }
@@ -92,16 +103,17 @@ export default function Login() {
             <div className={authStyles.inputWrapper}>
               <Mail size={16} className={authStyles.inputIcon} />
               <input
-                className={authStyles.input}
+                className={`${authStyles.input}${emailError ? ` ${authStyles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null) }}
                 placeholder="you@example.com"
                 autoComplete="email"
                 disabled={submitting}
               />
             </div>
+            {emailError && <p className={authStyles.fieldError}>{emailError}</p>}
           </div>
 
           <div className={authStyles.fieldGroup}>
@@ -109,16 +121,17 @@ export default function Login() {
             <div className={authStyles.inputWrapper}>
               <Lock size={16} className={authStyles.inputIcon} />
               <input
-                className={authStyles.input}
+                className={`${authStyles.input}${passwordError ? ` ${authStyles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setPasswordError(null) }}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 disabled={submitting}
               />
             </div>
+            {passwordError && <p className={authStyles.fieldError}>{passwordError}</p>}
           </div>
 
           {/* Remember Me + Forgot Password — symmetric row */}

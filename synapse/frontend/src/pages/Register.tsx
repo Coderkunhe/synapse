@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { Zap, AlertCircle, Mail, User, Lock } from 'lucide-react'
+import { getEmailError, getPasswordError, getDisplayNameError, mapAuthError } from '../utils/authHelpers'
 import styles from './Auth.module.css'
 
 export default function Register() {
@@ -21,6 +22,9 @@ export default function Register() {
   const [displayName, setDisplayName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -32,13 +36,22 @@ export default function Register() {
     e.preventDefault()
     if (!email.trim() || !password || !displayName.trim()) return
 
+    // Client-side validation
+    const emailErr = getEmailError(email, t)
+    const passwordErr = getPasswordError(password, t)
+    const nameErr = getDisplayNameError(displayName, t)
+    setEmailError(emailErr)
+    setPasswordError(passwordErr)
+    setDisplayNameError(nameErr)
+    if (emailErr || passwordErr || nameErr) return
+
     setSubmitting(true)
     setSubmitError(null)
     try {
       await registerAndLogin(email, password, displayName)
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Registration failed')
+      setSubmitError(mapAuthError(err, t))
     } finally {
       setSubmitting(false)
     }
@@ -74,16 +87,17 @@ export default function Register() {
             <div className={styles.inputWrapper}>
               <Mail size={16} className={styles.inputIcon} />
               <input
-                className={styles.input}
+                className={`${styles.input}${emailError ? ` ${styles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); setSubmitError(null) }}
                 placeholder="you@example.com"
                 autoComplete="email"
                 disabled={submitting}
               />
             </div>
+            {emailError && <p className={styles.fieldError}>{emailError}</p>}
           </div>
 
           {/* Display Name */}
@@ -92,16 +106,17 @@ export default function Register() {
             <div className={styles.inputWrapper}>
               <User size={16} className={styles.inputIcon} />
               <input
-                className={styles.input}
+                className={`${styles.input}${displayNameError ? ` ${styles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="text"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => { setDisplayName(e.target.value); setDisplayNameError(null); setSubmitError(null) }}
                 placeholder={t('auth.displayNamePlaceholder')}
                 autoComplete="name"
                 disabled={submitting}
               />
             </div>
+            {displayNameError && <p className={styles.fieldError}>{displayNameError}</p>}
           </div>
 
           {/* Password */}
@@ -110,18 +125,19 @@ export default function Register() {
             <div className={styles.inputWrapper}>
               <Lock size={16} className={styles.inputIcon} />
               <input
-                className={styles.input}
+                className={`${styles.input}${passwordError ? ` ${styles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setPasswordError(null); setSubmitError(null) }}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 disabled={submitting}
                 minLength={8}
               />
             </div>
-            <p className={styles.fieldHint}>{t('auth.passwordHint')}</p>
+            {passwordError ? <p className={styles.fieldError}>{passwordError}</p>
+             : <p className={styles.fieldHint}>{t('auth.passwordHint')}</p>}
           </div>
 
           {submitError && (

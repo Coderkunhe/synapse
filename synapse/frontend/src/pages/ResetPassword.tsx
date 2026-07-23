@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { resetPassword } from '../api/client'
 import { Zap, CheckCircle, AlertCircle, Key, Lock } from 'lucide-react'
+import { getPasswordError, mapAuthError } from '../utils/authHelpers'
 import styles from './Auth.module.css'
 
 export default function ResetPassword() {
@@ -25,6 +26,8 @@ export default function ResetPassword() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [tokenError, setTokenError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   // Hide token field when URL already provides it
   const hasTokenFromUrl = tokenFromUrl.length > 0
@@ -39,13 +42,24 @@ export default function ResetPassword() {
     e.preventDefault()
     if (!token || !newPassword) return
 
+    // Client-side validation
+    let hasError = false
+    if (!token.trim()) {
+      setTokenError(t('auth.errorTokenRequired'))
+      hasError = true
+    }
+    const passwordErr = getPasswordError(newPassword, t)
+    setPasswordError(passwordErr)
+    if (passwordErr) hasError = true
+    if (hasError) return
+
     setSubmitting(true)
     setSubmitError(null)
     try {
       await resetPassword(token, newPassword)
       setSuccess(true)
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Reset failed')
+      setSubmitError(mapAuthError(err, t))
     } finally {
       setSubmitting(false)
     }
@@ -109,16 +123,17 @@ export default function ResetPassword() {
               <div className={styles.inputWrapper}>
                 <Key size={16} className={styles.inputIcon} />
                 <input
-                  className={styles.input}
+                  className={`${styles.input}${tokenError ? ` ${styles.inputError}` : ''}`}
                   style={{ paddingLeft: '40px' }}
                   type="text"
                   value={token}
-                  onChange={(e) => setToken(e.target.value)}
+                  onChange={(e) => { setToken(e.target.value); setTokenError(null); setSubmitError(null) }}
                   placeholder={t('auth.resetPasswordTokenLabel')}
                   autoComplete="off"
                   disabled={submitting}
                 />
               </div>
+              {tokenError && <p className={styles.fieldError}>{tokenError}</p>}
             </div>
           )}
 
@@ -128,18 +143,19 @@ export default function ResetPassword() {
             <div className={styles.inputWrapper}>
               <Lock size={16} className={styles.inputIcon} />
               <input
-                className={styles.input}
+                className={`${styles.input}${passwordError ? ` ${styles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => { setNewPassword(e.target.value); setPasswordError(null); setSubmitError(null) }}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 disabled={submitting}
                 minLength={8}
               />
             </div>
-            <p className={styles.fieldHint}>{t('auth.passwordHint')}</p>
+            {passwordError ? <p className={styles.fieldError}>{passwordError}</p>
+             : <p className={styles.fieldHint}>{t('auth.passwordHint')}</p>}
           </div>
 
           {submitError && (

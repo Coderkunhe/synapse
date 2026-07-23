@@ -138,6 +138,21 @@ const en: TranslationMap = {
     forgotPasswordLink: 'Forgot password?',
     rememberMe: 'Remember me',
     passwordHint: 'At least 8 characters',
+
+    // ── Error messages (B43) ──────────────────────────────────────────────
+    errorInvalidEmail: 'Please enter a valid email address.',
+    errorPasswordTooShort: 'Password must be at least 8 characters.',
+    errorDisplayNameRequired: 'Please enter your name.',
+    errorInvalidCredentials: 'Invalid email or password.',
+    errorEmailAlreadyExists: 'An account with this email already exists.',
+    errorWeakPassword: 'Password must be at least 8 characters.',
+    errorResetTokenExpired: 'Reset link has expired. Please request a new one.',
+    errorResetTokenUsed: 'Reset link has already been used. Please request a new one.',
+    errorInvalidResetToken: 'Invalid reset link. Please request a new one.',
+    errorNetwork: 'Network error. Please check your connection and try again.',
+    errorRateLimit: 'Too many attempts. Please try again later.',
+    errorDefault: 'Something went wrong. Please try again.',
+    errorTokenRequired: 'Please enter the reset token.',
   },
 
   // ── Dashboard ─────────────────────────────────────────────────────────
@@ -932,6 +947,21 @@ const zh: TranslationMap = {
     forgotPasswordLink: '忘记密码？',
     rememberMe: '记住账号',
     passwordHint: '至少 8 个字符',
+
+    // ── Error messages (B43) ──────────────────────────────────────────────
+    errorInvalidEmail: '请输入有效的邮箱地址。',
+    errorPasswordTooShort: '密码至少需要 8 个字符。',
+    errorDisplayNameRequired: '请输入你的名字。',
+    errorInvalidCredentials: '邮箱或密码不正确。',
+    errorEmailAlreadyExists: '该邮箱已被注册。',
+    errorWeakPassword: '密码至少需要 8 个字符。',
+    errorResetTokenExpired: '重置链接已过期，请重新申请。',
+    errorResetTokenUsed: '重置链接已被使用，请重新申请。',
+    errorInvalidResetToken: '无效的重置链接，请重新申请。',
+    errorNetwork: '网络错误，请检查网络连接后重试。',
+    errorRateLimit: '操作太频繁，请稍后再试。',
+    errorDefault: '出了点问题，请重试。',
+    errorTokenRequired: '请输入重置令牌。',
   },
 
   dashboard: {

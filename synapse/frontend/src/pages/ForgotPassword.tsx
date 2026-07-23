@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { forgotPassword } from '../api/client'
 import { Zap, Mail, AlertCircle } from 'lucide-react'
+import { getEmailError, mapAuthError } from '../utils/authHelpers'
 import styles from './Auth.module.css'
 
 export default function ForgotPassword() {
@@ -21,6 +22,7 @@ export default function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -32,6 +34,11 @@ export default function ForgotPassword() {
     e.preventDefault()
     if (!email.trim()) return
 
+    // Client-side validation
+    const emailErr = getEmailError(email, t)
+    setEmailError(emailErr)
+    if (emailErr) return
+
     setSubmitting(true)
     setSubmitError(null)
     setSubmitted(false)
@@ -39,7 +46,7 @@ export default function ForgotPassword() {
       await forgotPassword(email)
       setSubmitted(true)
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitError(mapAuthError(err, t))
     } finally {
       setSubmitting(false)
     }
@@ -101,16 +108,17 @@ export default function ForgotPassword() {
             <div className={styles.inputWrapper}>
               <Mail size={16} className={styles.inputIcon} />
               <input
-                className={styles.input}
+                className={`${styles.input}${emailError ? ` ${styles.inputError}` : ''}`}
                 style={{ paddingLeft: '40px' }}
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); setSubmitError(null) }}
                 placeholder="you@example.com"
                 autoComplete="email"
                 disabled={submitting}
               />
             </div>
+            {emailError && <p className={styles.fieldError}>{emailError}</p>}
           </div>
 
           {submitError && (
