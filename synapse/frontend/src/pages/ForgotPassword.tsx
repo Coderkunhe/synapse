@@ -10,12 +10,12 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { forgotPassword } from '../api/client'
 import { Zap } from 'lucide-react'
-import styles from './Login.module.css'
+import styles from './Auth.module.css'
 
 export default function ForgotPassword() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -24,6 +24,7 @@ export default function ForgotPassword() {
 
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetToken, setResetToken] = useState<string | null>(null)
 
@@ -40,11 +41,13 @@ export default function ForgotPassword() {
     setSubmitting(true)
     setSubmitError(null)
     setResetToken(null)
+    setSubmitted(false)
     try {
       const data = await forgotPassword(email)
       if (data.reset_token) {
         setResetToken(data.reset_token)
       }
+      setSubmitted(true)
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Request failed')
     } finally {
@@ -76,13 +79,13 @@ export default function ForgotPassword() {
           </div>
 
           <div className={styles.footerLink} style={{ marginTop: 'var(--gm-space-4)' }}>
-            <a
-              href={`/reset-password?token=${encodeURIComponent(resetToken)}`}
+            <Link
+              to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
               style={{ display: 'block', marginBottom: 'var(--gm-space-2)' }}
             >
               {t('auth.goToResetPassword')} →
-            </a>
-            <a href="/login">{t('auth.backToLogin')}</a>
+            </Link>
+            <Link to="/login">{t('auth.backToLogin')}</Link>
           </div>
         </div>
       </div>
@@ -90,7 +93,7 @@ export default function ForgotPassword() {
   }
 
   // Success state — no token (production mode: token sent via email)
-  if (!submitting && !submitError && email && resetToken === null) {
+  if (!submitting && !submitError && submitted && resetToken === null) {
     return (
       <div className={styles.shell}>
         <div className={styles.card}>
@@ -99,7 +102,7 @@ export default function ForgotPassword() {
           <p className={styles.subtitle}>{t('auth.forgotPasswordSuccess')}</p>
 
           <div className={styles.footerLink} style={{ marginTop: 'var(--gm-space-4)' }}>
-            <a href="/login">{t('auth.backToLogin')}</a>
+            <Link to="/login">{t('auth.backToLogin')}</Link>
           </div>
         </div>
       </div>
@@ -137,7 +140,7 @@ export default function ForgotPassword() {
         </form>
 
         <div className={styles.footerLink}>
-          <a href="/login">{t('auth.backToLogin')}</a>
+          <Link to="/login">{t('auth.backToLogin')}</Link>
         </div>
       </div>
     </div>

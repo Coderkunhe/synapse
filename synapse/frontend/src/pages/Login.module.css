@@ -1,65 +1,6 @@
-.shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  background: var(--gm-bg);
-}
+/* Login.module.css — Login 页面特有样式（共享样式见 Auth.module.css）*/
 
-.card {
-  background: var(--gm-surface);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  padding: var(--gm-space-8);
-  text-align: center;
-  max-width: 380px;
-  width: 100%;
-}
-
-.logo {
-  font-size: 40px;
-  margin-bottom: var(--gm-space-3);
-}
-
-.title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: var(--gm-space-1);
-}
-
-.subtitle {
-  color: var(--gm-text-secondary);
-  font-size: 13px;
-  margin-bottom: var(--gm-space-6);
-}
-
-.loading {
-  color: var(--gm-text-secondary);
-  font-size: 14px;
-}
-
-.error {
-  background: color-mix(in srgb, var(--gm-danger) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gm-danger) 30%, transparent);
-  border-radius: var(--gm-radius-sm);
-  color: var(--gm-danger);
-  font-size: 13px;
-  padding: var(--gm-space-3) var(--gm-space-4);
-  margin: var(--gm-space-4) 0;
-}
-
-.success {
-  background: color-mix(in srgb, var(--gm-success) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gm-success) 30%, transparent);
-  border-radius: var(--gm-radius-sm);
-  color: var(--gm-success);
-  font-size: 13px;
-  padding: var(--gm-space-3) var(--gm-space-4);
-  margin: var(--gm-space-4) 0;
-  word-break: break-all;
-  font-family: monospace;
-}
+/* ── GitHub OAuth ──────────────────────────────────────────────────────── */
 
 .githubBtn {
   display: inline-flex;
@@ -85,69 +26,6 @@
   height: 20px;
 }
 
-/* ── Email/Password form ────────────────────────────────────────────────── */
-
-.emailForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gm-space-3);
-  margin-bottom: var(--gm-space-2);
-}
-
-.field {
-  width: 100%;
-}
-
-.input {
-  width: 100%;
-  padding: var(--gm-space-3) var(--gm-space-4);
-  background: var(--gm-surface-raised);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius-sm);
-  color: var(--gm-text);
-  font-size: 14px;
-  font-family: system-ui, sans-serif;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--gm-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-primary) 25%, transparent);
-}
-
-.input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.input::placeholder {
-  color: var(--gm-text-secondary);
-}
-
-.submitBtn {
-  width: 100%;
-  padding: var(--gm-space-3) var(--gm-space-6);
-  background: var(--gm-primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--gm-radius-sm);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.submitBtn:hover {
-  background: var(--gm-primary-dim);
-}
-
-.submitBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* ── Remember Me ──────────────────────────────────────────────────────── */
 
 .rememberRow {
@@ -168,18 +46,4 @@
   color: var(--gm-text-secondary);
   cursor: pointer;
   user-select: none;
-}
-
-.footerLink {
-  margin-top: var(--gm-space-4);
-  font-size: 13px;
-}
-
-.footerLink a {
-  color: var(--gm-primary);
-  text-decoration: none;
-}
-
-.footerLink a:hover {
-  text-decoration: underline;
 }

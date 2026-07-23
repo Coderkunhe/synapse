@@ -7,11 +7,11 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { Zap } from 'lucide-react'
-import styles from './Login.module.css'
+import styles from './Auth.module.css'
 
 export default function Register() {
   const { registerAndLogin, isAuthenticated, isLoading } = useAuth()
@@ -112,7 +112,7 @@ export default function Register() {
         </form>
 
         <div className={styles.footerLink}>
-          <a href="/login">{t('auth.haveAccount')}</a>
+          <Link to="/login">{t('auth.haveAccount')}</Link>
         </div>
       </div>
     </div>

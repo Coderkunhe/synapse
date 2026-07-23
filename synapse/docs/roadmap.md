@@ -109,7 +109,7 @@
 | **P11-B37** | **L5 B30→B37 全量拉通 + 方向复盘** — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 · 🟢 微型 · L5 质量保障 | ✅ |
 | **P11-B38** | **登录页优化 — 删 Dev Login + Remember Me** — 移除 Dev Login 按钮 · email localStorage 持久化 · Remember Me checkbox · 🟡 标准 · 3 files | ✅ |
 | **P11-B39** | **种子数据修复 — Hunter email/password 账号** — seed-synapse-project.py 新增 Hunter User 创建 · SYNAPSE_HUNTER_PASSWORD 环境变量 · 🟢 微型 · 1 file | ✅ |
-| **P11-B40** | **🔜 Auth 页面 SPA 路由 + CSS 重构** — `<a>`→`<Link>` 全部替换 · Auth.module.css 提取共享样式 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files | ⬜ |
+| **P11-B40** | **Auth 页面 SPA 路由 + CSS 重构** — `<a>`→`<Link>` 全部替换 · Auth.module.css 提取共享样式 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files | ✅ |
 
 ---
 

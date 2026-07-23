@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B39 ✅ 种子数据修复 · L5 B38→B39 拉通 · B40 🔜 登录页优化）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B40 ✅ Auth SPA路由+CSS重构 · L5 B38→B39 拉通 ✅ · B41 🔜 待定）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -10,7 +10,7 @@
 > 🔄 L5 P11-B33→B34 拉通完成（2026-07-22）— 零 drift · B33 SKILL.md 模板全面升级 · B34 授权硬门禁+JSON 转义修复
 > 🔄 L5 P11-B35→B36 拉通完成（2026-07-23）— 零 drift · B35 Key 隔离 · B36 审批内容富化 · B29→B37 8 批收尾
 > 🔄 L5 P11-B38→B39 拉通完成（2026-07-23）— 零 drift · B38 删 Dev Login + Remember Me · B39 种子数据修复 · 计数器复位
-> 最后更新：2026-07-23（P11-B39 ✅ 种子数据修复 · L5 B38→B39 拉通 · B40 🔜 登录页优化）
+> 最后更新：2026-07-23（P11-B40 ✅ Auth SPA 路由+CSS重构 · B41 🔜 待定）
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -572,6 +572,7 @@ synapse/
 - **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
 - **P11-B37 ✅**：L5 B30→B37 全量拉通 + 方向复盘 — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 🎉 · 🟢 微型 · L5 质量保障
 - **P11-B38 ✅**：登录页优化 — 删 Dev Login + Remember Me · email localStorage 持久化 · 🟡 标准 · 3 files · commit 030c477
+- **P11-B40 ✅**：Auth 页面 SPA 路由 + CSS 重构 — <a>→<Link> 全部替换 · Auth.module.css 共享样式提取 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files
 - **P11-B39 ✅**：种子数据修复 — seed-synapse-project.py 新增 Hunter email/password User · SYNAPSE_HUNTER_PASSWORD 环境变量 · 🟢 微型 · 1 file
 - **P11-B36 ✅**：审批内容富化 — worker name lookup + 前端人性化展示 · 🟡 标准 · 5 files · 624 tests · B29→B37 8 批收尾
 - **P11-B35 ✅**：Key 存储隔离 — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
@@ -596,9 +597,8 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B40**：Auth 页面 SPA 路由 + CSS 重构 ✅ — <a>→<Link> · Auth.module.css 提取 · 🟡 标准 · 6 files
 - **P11-B39**：种子数据修复 ✅ — seed-synapse-project.py 新增 Hunter email/password User · 🟢 微型 · 1 file
-- **P11-B38**：登录页优化 ✅ — 删 Dev Login + Remember Me · 🟡 标准 · 3 files · commit 030c477
-- **P11-B37**：L5 B30→B37 全量拉通 ✅ — 叙事一致性验证 · 双客户端 8 批拆解闭环 🎉 · 🟢 微型
 - **P11-B35**：Key 存储隔离 ✅ — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
 - **P11-B34**：授权硬门禁 + JSON 转义 ✅ — require_permission 统一守卫 · 2 files · 🟢 微型
 - **P11-B33**：SKILL.md 模板全面升级 ✅ — Worker 行为契约 v2 · 10 项模板改进 · 3 files · 🟡 标准

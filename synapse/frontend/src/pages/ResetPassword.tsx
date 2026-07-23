@@ -10,12 +10,12 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { resetPassword } from '../api/client'
 import { Zap } from 'lucide-react'
-import styles from './Login.module.css'
+import styles from './Auth.module.css'
 
 export default function ResetPassword() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -72,7 +72,7 @@ export default function ResetPassword() {
           <p className={styles.subtitle}>{t('auth.resetPasswordSuccess')}</p>
 
           <div className={styles.footerLink} style={{ marginTop: 'var(--gm-space-4)' }}>
-            <a href="/login">{t('auth.backToLogin')}</a>
+            <Link to="/login">{t('auth.backToLogin')}</Link>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function ResetPassword() {
         </form>
 
         <div className={styles.footerLink}>
-          <a href="/login">{t('auth.backToLogin')}</a>
+          <Link to="/login">{t('auth.backToLogin')}</Link>
         </div>
       </div>
     </div>

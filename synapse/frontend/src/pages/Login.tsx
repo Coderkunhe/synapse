@@ -8,10 +8,11 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { Zap } from 'lucide-react'
+import authStyles from './Auth.module.css'
 import styles from './Login.module.css'
 
 const REMEMBER_EMAIL_KEY = 'synapse_remembered_email'
@@ -70,26 +71,26 @@ export default function Login() {
   // Show nothing while checking existing token validity
   if (isLoading) {
     return (
-      <div className={styles.shell}>
-        <div className={styles.card}>
-          <p className={styles.loading}>{t('auth.verifyingSession')}</p>
+      <div className={authStyles.shell}>
+        <div className={authStyles.card}>
+          <p className={authStyles.loading}>{t('auth.verifyingSession')}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={styles.shell}>
-      <div className={styles.card}>
-        <div className={styles.logo}><Zap size={40} /></div>
-        <h1 className={styles.title}>{t('auth.loginTitle')}</h1>
-        <p className={styles.subtitle}>{t('brand.slogan')}</p>
+    <div className={authStyles.shell}>
+      <div className={authStyles.card}>
+        <div className={authStyles.logo}><Zap size={40} /></div>
+        <h1 className={authStyles.title}>{t('auth.loginTitle')}</h1>
+        <p className={authStyles.subtitle}>{t('brand.slogan')}</p>
 
         {/* Email/Password login form */}
-        <form className={styles.emailForm} onSubmit={handleEmailLogin}>
-          <div className={styles.field}>
+        <form className={authStyles.emailForm} onSubmit={handleEmailLogin}>
+          <div className={authStyles.field}>
             <input
-              className={styles.input}
+              className={authStyles.input}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -99,9 +100,9 @@ export default function Login() {
               disabled={submitting}
             />
           </div>
-          <div className={styles.field}>
+          <div className={authStyles.field}>
             <input
-              className={styles.input}
+              className={authStyles.input}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -127,19 +128,19 @@ export default function Login() {
             </label>
           </div>
 
-          {submitError && <div className={styles.error}>{submitError}</div>}
+          {submitError && <div className={authStyles.error}>{submitError}</div>}
 
           <button
             type="submit"
-            className={styles.submitBtn}
+            className={authStyles.submitBtn}
             disabled={submitting || !email.trim() || !password}
           >
             {submitting ? t('auth.loggingInWithEmail') : t('auth.loginWithEmail')}
           </button>
         </form>
 
-        <div className={styles.footerLink}>
-          <a href="/forgot-password">{t('auth.forgotPasswordLink')}</a>
+        <div className={authStyles.footerLink}>
+          <Link to="/forgot-password">{t('auth.forgotPasswordLink')}</Link>
         </div>
 
         {/* GitHub OAuth */}
@@ -151,13 +152,13 @@ export default function Login() {
         </button>
 
         {error && (
-          <div className={styles.error}>
+          <div className={authStyles.error}>
             {errorMessage(error, t)}
           </div>
         )}
 
-        <div className={styles.footerLink}>
-          <a href="/register">{t('auth.noAccount')}</a>
+        <div className={authStyles.footerLink}>
+          <Link to="/register">{t('auth.noAccount')}</Link>
         </div>
       </div>
     </div>
