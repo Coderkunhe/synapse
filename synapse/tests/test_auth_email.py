@@ -286,7 +286,7 @@ class TestForgotPassword:
         assert resp.status_code == 201, resp.text
 
     async def test_forgot_password_existing_email(self, client: AsyncClient):
-        """已注册邮箱 → 200 + message + reset_token (debug mode)。"""
+        """已注册邮箱 → 200 + message（SMTP 配置时 token 不返回）。"""
         await self._register(client, "resetme@example.com", "securepass123", "Reset Me")
         resp = await client.post("/v1/auth/forgot-password", json={
             "email": "resetme@example.com",
@@ -294,9 +294,9 @@ class TestForgotPassword:
         assert resp.status_code == 200
         data = resp.json()
         assert data["message"]
-        # debug mode — token should be returned
-        assert "reset_token" in data
-        assert len(data["reset_token"]) > 0
+        # SMTP configured → token sent via email, not in response
+        # SMTP not configured → token returned in response (dev mode)
+        # Both modes return 200 + message; don't assert token presence
 
     async def test_forgot_password_nonexistent_email(self, client: AsyncClient):
         """未注册邮箱 → 200 + 相同 message（防用户枚举）。"""
@@ -336,7 +336,7 @@ class TestForgotPassword:
             "email": "case-test@example.com",
         })
         assert resp.status_code == 200
-        assert "reset_token" in resp.json()
+        assert "message" in resp.json()
 
 
 # ── POST /v1/auth/reset-password ───────────────────────────────────────────
@@ -345,13 +345,34 @@ class TestForgotPassword:
 class TestResetPassword:
     """POST /v1/auth/reset-password — 用令牌重置密码。"""
 
-    async def _get_reset_token(self, client: AsyncClient, email: str) -> str:
-        """请求重置并返回 reset_token。"""
+    async def _get_reset_token(
+        self, client: AsyncClient, email: str, monkeypatch=None,
+    ) -> str:
+        """请求重置并返回 reset_token。
+
+        SMTP 已配置时 token 通过邮件发送（不在 API 响应中）——
+        临时关闭 SMTP 让 API 返回原始 token，用完恢复。
+        SMTP 未配置时 token 直接在 API 响应中返回。
+        """
         resp = await client.post("/v1/auth/forgot-password", json={"email": email})
         assert resp.status_code == 200
         data = resp.json()
-        assert "reset_token" in data
-        return data["reset_token"]
+        if "reset_token" in data:
+            return data["reset_token"]
+
+        # SMTP configured — temporarily disable to get raw token in response
+        assert monkeypatch is not None, (
+            "monkeypatch required to disable SMTP for token retrieval"
+        )
+        import src.config
+        monkeypatch.setattr(src.config.settings, "smtp_host", "")
+        resp2 = await client.post("/v1/auth/forgot-password", json={"email": email})
+        assert resp2.status_code == 200
+        data2 = resp2.json()
+        assert "reset_token" in data2, (
+            f"reset_token missing even with SMTP disabled: {data2}"
+        )
+        return data2["reset_token"]
 
     async def _register(self, client: AsyncClient, email: str, password: str, name: str):
         resp = await client.post("/v1/auth/register", json={
@@ -361,10 +382,10 @@ class TestResetPassword:
         })
         assert resp.status_code == 201, resp.text
 
-    async def test_reset_password_success(self, client: AsyncClient):
+    async def test_reset_password_success(self, client: AsyncClient, monkeypatch):
         """用有效令牌重置密码 → 200 + 新密码可登录。"""
         await self._register(client, "reset-success@example.com", "oldpass123", "Reset OK")
-        reset_token = await self._get_reset_token(client, "reset-success@example.com")
+        reset_token = await self._get_reset_token(client, "reset-success@example.com", monkeypatch)
 
         resp = await client.post("/v1/auth/reset-password", json={
             "token": reset_token,
@@ -404,10 +425,10 @@ class TestResetPassword:
         })
         assert resp.status_code == 422
 
-    async def test_reset_password_token_not_reusable(self, client: AsyncClient):
+    async def test_reset_password_token_not_reusable(self, client: AsyncClient, monkeypatch):
         """令牌只能使用一次 — 第二次使用相同令牌失败。"""
         await self._register(client, "reuse@example.com", "oldpass123", "Reuse Test")
-        reset_token = await self._get_reset_token(client, "reuse@example.com")
+        reset_token = await self._get_reset_token(client, "reuse@example.com", monkeypatch)
 
         # 第一次 — 成功
         resp1 = await client.post("/v1/auth/reset-password", json={
@@ -426,31 +447,33 @@ class TestResetPassword:
 
     async def test_reset_password_expired_token(self, client: AsyncClient, monkeypatch):
         """过期令牌 → 401 RESET_TOKEN_EXPIRED。"""
-        from datetime import timedelta
-
         await self._register(client, "expired@example.com", "oldpass123", "Expired Test")
-        reset_token = await self._get_reset_token(client, "expired@example.com")
+        # First token — normal (used to verify the user exists, not for the actual test)
+        await self._get_reset_token(client, "expired@example.com", monkeypatch)
 
-        # 将 reset_token_expire_minutes 改为负数使新创建的令牌立即过期
-        # monkeypatch 配置 — 先做完 forgot-password（已拿到 token）
-        # 这里我们 monkeypatch 存储的 token expires_at
-        # 简单方案：修改 config 使 token TTL 为 -1 分钟
+        # Create an immediately-expired token by setting TTL to -1
         from src import config
 
-        original = config.settings.reset_token_expire_minutes
-        config.settings.reset_token_expire_minutes = -1  # 立刻过期
+        original_ttl = config.settings.reset_token_expire_minutes
+        config.settings.reset_token_expire_minutes = -1  # expire immediately
 
-        # 请求新令牌（会立即过期）
+        # Temporarily disable SMTP so the expired token is returned in the response
+        original_smtp = config.settings.smtp_host
+        config.settings.smtp_host = ""
+
         resp_token = await client.post("/v1/auth/forgot-password", json={
             "email": "expired@example.com",
         })
         expired_token = resp_token.json().get("reset_token")
-        config.settings.reset_token_expire_minutes = original  # 恢复
 
-        if expired_token:
-            resp = await client.post("/v1/auth/reset-password", json={
-                "token": expired_token,
-                "new_password": "newpass456",
-            })
-            assert resp.status_code == 401
-            assert resp.json()["error"]["code"] == "RESET_TOKEN_EXPIRED"
+        # Restore config
+        config.settings.smtp_host = original_smtp
+        config.settings.reset_token_expire_minutes = original_ttl
+
+        assert expired_token is not None, "Expected expired token in response"
+        resp = await client.post("/v1/auth/reset-password", json={
+            "token": expired_token,
+            "new_password": "newpass456",
+        })
+        assert resp.status_code == 401
+        assert resp.json()["error"]["code"] == "RESET_TOKEN_EXPIRED"

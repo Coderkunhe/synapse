@@ -3,8 +3,8 @@
  *
  * Renders a centered card with an email input. On submit, calls
  * POST /v1/auth/forgot-password. Always shows a success message
- * (prevents user enumeration). In debug mode, the reset token
- * is displayed for testing convenience.
+ * (prevents user enumeration). The reset token (if any) is
+ * never displayed — use browser devtools Network tab to inspect.
  *
  * If already authenticated, redirects to /dashboard.
  */
@@ -26,7 +26,6 @@ export default function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [resetToken, setResetToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -40,13 +39,9 @@ export default function ForgotPassword() {
 
     setSubmitting(true)
     setSubmitError(null)
-    setResetToken(null)
     setSubmitted(false)
     try {
-      const data = await forgotPassword(email)
-      if (data.reset_token) {
-        setResetToken(data.reset_token)
-      }
+      await forgotPassword(email)
       setSubmitted(true)
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Request failed')
@@ -65,41 +60,14 @@ export default function ForgotPassword() {
     )
   }
 
-  // Success state — token shown only in debug mode
-  if (!submitting && !submitError && resetToken !== null) {
+  // Success state — unified (always shows email-sent message)
+  if (!submitting && !submitError && submitted) {
     return (
       <div className={styles.shell}>
         <div className={styles.card}>
           <div className={styles.logo}><Zap size={40} /></div>
           <h1 className={styles.title}>{t('auth.forgotPasswordTitle')}</h1>
-          <p className={styles.subtitle}>{t('auth.forgotPasswordSuccess')}</p>
-
-          <div className={styles.success}>
-            {t('auth.forgotPasswordDebugToken', { token: resetToken })}
-          </div>
-
-          <div className={styles.footerLink} style={{ marginTop: 'var(--gm-space-4)' }}>
-            <Link
-              to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
-              style={{ display: 'block', marginBottom: 'var(--gm-space-2)' }}
-            >
-              {t('auth.goToResetPassword')} →
-            </Link>
-            <Link to="/login">{t('auth.backToLogin')}</Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Success state — no token (production mode: token sent via email)
-  if (!submitting && !submitError && submitted && resetToken === null) {
-    return (
-      <div className={styles.shell}>
-        <div className={styles.card}>
-          <div className={styles.logo}><Zap size={40} /></div>
-          <h1 className={styles.title}>{t('auth.forgotPasswordTitle')}</h1>
-          <p className={styles.subtitle}>{t('auth.forgotPasswordSuccess')}</p>
+          <p className={styles.subtitle}>{t('auth.forgotPasswordCheckEmail')}</p>
 
           <div className={styles.footerLink} style={{ marginTop: 'var(--gm-space-4)' }}>
             <Link to="/login">{t('auth.backToLogin')}</Link>

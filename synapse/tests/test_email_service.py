@@ -36,9 +36,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 class TestSendEmail:
     """send_email() — SMTP 发送核心。"""
 
-    async def test_send_email_no_smtp_host(self):
+    async def test_send_email_no_smtp_host(self, monkeypatch):
         """SMTP_HOST 为空 → 返回 False，不抛异常。"""
-        assert settings.smtp_host == ""  # 测试环境默认值
+        monkeypatch.setattr(settings, "smtp_host", "")
         result = await send_email(
             to_email="test@example.com",
             subject="Test",
@@ -47,8 +47,9 @@ class TestSendEmail:
         )
         assert result is False
 
-    async def test_send_email_empty_text_body_default(self):
+    async def test_send_email_empty_text_body_default(self, monkeypatch):
         """text_body 默认空字符串 → 仍能正常降级。"""
+        monkeypatch.setattr(settings, "smtp_host", "")
         result = await send_email(
             to_email="test@example.com",
             subject="Test",
@@ -60,16 +61,18 @@ class TestSendEmail:
 class TestSendPasswordResetEmail:
     """send_password_reset_email() — 密码重置邮件。"""
 
-    async def test_no_smtp_graceful_degradation(self):
+    async def test_no_smtp_graceful_degradation(self, monkeypatch):
         """未配置 SMTP → send_password_reset_email 降级返回 False。"""
+        monkeypatch.setattr(settings, "smtp_host", "")
         result = await send_password_reset_email(
             to_email="user@example.com",
             reset_token="some-token",
         )
         assert result is False
 
-    async def test_template_rendering_included(self):
+    async def test_template_rendering_included(self, monkeypatch):
         """模板加载成功（验证不抛异常）。"""
+        monkeypatch.setattr(settings, "smtp_host", "")
         # 模板渲染在 send_password_reset_email 内部执行，
         # 因为 SMTP 未配置，在 send_email 阶段返回 False。
         # 如果模板有问题，会在渲染阶段抛出异常。
@@ -124,9 +127,9 @@ class TestForgotPasswordNoSmtp:
         })
         assert resp.status_code == 201, resp.text
 
-    async def test_no_smtp_returns_token(self, client: AsyncClient):
+    async def test_no_smtp_returns_token(self, client: AsyncClient, monkeypatch):
         """smtp_host 为空 → forgot-password 响应包含 reset_token。"""
-        assert settings.smtp_host == ""  # 测试环境无 SMTP
+        monkeypatch.setattr(settings, "smtp_host", "")
 
         await self._register(client, "no-smtp@example.com", "securepass123", "NoSMTP")
         resp = await client.post("/v1/auth/forgot-password", json={
