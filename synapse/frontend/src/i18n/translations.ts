@@ -131,6 +131,7 @@ const en: TranslationMap = {
     resetPasswordResetting: 'Resetting…',
     resetPasswordSuccess: 'Password has been reset successfully.',
     forgotPasswordLink: 'Forgot password?',
+    rememberMe: 'Remember me',
   },
 
   // ── Dashboard ─────────────────────────────────────────────────────────
@@ -918,6 +919,7 @@ const zh: TranslationMap = {
     resetPasswordResetting: '重置中…',
     resetPasswordSuccess: '密码已成功重置。',
     forgotPasswordLink: '忘记密码？',
+    rememberMe: '记住账号',
   },
 
   dashboard: {

@@ -85,48 +85,6 @@
   height: 20px;
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--gm-space-3);
-  margin: var(--gm-space-5) 0;
-  color: var(--gm-text-secondary);
-  font-size: 12px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--gm-border);
-}
-
-.devBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gm-surface-raised);
-  color: var(--gm-text-secondary);
-  border: 1px dashed var(--gm-border);
-  border-radius: var(--gm-radius-sm);
-  padding: var(--gm-space-3) var(--gm-space-6);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.devBtn:hover {
-  border-color: var(--gm-primary-dim);
-  color: var(--gm-text);
-}
-
-.devBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* ── Email/Password form ────────────────────────────────────────────────── */
 
 .emailForm {
@@ -188,6 +146,28 @@
 .submitBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Remember Me ──────────────────────────────────────────────────────── */
+
+.rememberRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2);
+}
+
+.rememberCheckbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--gm-primary);
+  cursor: pointer;
+}
+
+.rememberLabel {
+  font-size: 13px;
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+  user-select: none;
 }
 
 .footerLink {
