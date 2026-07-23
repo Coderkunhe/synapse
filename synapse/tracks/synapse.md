@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B36 ✅ 审批内容富化 · worker name lookup + 前端人性化展示
-last_batch: P11-B36
-next_batch: P11-B37
-description: Synapse 主项目 — B36 ✅ 审批富化 · B37 🔜 待定 · 624 tests
+phase: P11-B37 ✅ L5 B30→B37 全量拉通 · 双客户端 8 批拆解全量闭环
+last_batch: P11-B37
+next_batch: P11-B38
+description: Synapse 主项目 — B37 ✅ L5 拉通 · B38 🔜 待定 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B36 ✅ 审批富化 · B37 🔜 待定 · 62
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B36 | **P11-B37** 🔜 | B1-B36 ✅ · B37 🔜 待定 |
+| **P11** | P11-B37 | **P11-B38** 🔜 | B1-B37 ✅ · B37 L5 拉通 ✅ · B38 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -213,6 +213,12 @@ description: Synapse 主项目 — B36 ✅ 审批富化 · B37 🔜 待定 · 62
 │   — 前端 worker_name 替代裸 worker_id · operation 人性化   │
 │   — B29 8 批拆解收尾                                       │
 │   — 🟡 标准 · 5 files · 624 tests 零回归                   │
+│                                                    │
+│ P11-B37 ✅ L5 B30→B37 全量拉通 + 方向复盘 🎉               │
+│   — 叙事一致性验证（B29→B36 零 drift）                     │
+│   — 文档全量刷新（CLAUDE.md + roadmap + track + reqlog）    │
+│   — 双客户端 8 批拆解全量闭环                               │
+│   — 🟢 微型 · L5 质量保障 · 纯文档                          │
 └────────────────────────────────────────────────────┘
 ```
 

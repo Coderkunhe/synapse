@@ -106,6 +106,7 @@
 | **P11-B34** | **授权硬门禁 + JSON 转义修复** — PFL-046 require_permission 统一守卫（9+1 处 mutation gate）· FR3 JSON 转义双保险 · 🟢 微型 · 2 files · 624 tests | ✅ |
 | **P11-B35** | **Key 存储隔离** — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests | ✅ |
 | **P11-B36** | **审批内容富化** — worker name lookup（_to_response async + Worker 表 join）· 前端 worker name 替代裸 ID · operation 人性化展示 · 🟡 标准 · 5 files · 624 tests 零回归 | ✅ |
+| **P11-B37** | **L5 B30→B37 全量拉通 + 方向复盘** — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 · 🟢 微型 · L5 质量保障 | ✅ |
 
 ---
 
