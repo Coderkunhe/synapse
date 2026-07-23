@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B42 ✅ Auth 认证页美化 · L5 B40→B42 拉通 ✅ · B43 🔜 待定）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B43 ✅ Auth Error Handling · L5 B40→B43 拉通 ✅ · B44 🔜 待定）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -10,7 +10,7 @@
 > 🔄 L5 P11-B33→B34 拉通完成（2026-07-22）— 零 drift · B33 SKILL.md 模板全面升级 · B34 授权硬门禁+JSON 转义修复
 > 🔄 L5 P11-B35→B36 拉通完成（2026-07-23）— 零 drift · B35 Key 隔离 · B36 审批内容富化 · B29→B37 8 批收尾
 > 🔄 L5 P11-B38→B39 拉通完成（2026-07-23）— 零 drift · B38 删 Dev Login + Remember Me · B39 种子数据修复 · 计数器复位
-> 🔄 L5 P11-B40→B42 拉通完成（2026-07-23）— 零 drift · B40 Auth SPA路由+CSS重构 · B41 SMTP 生产模式+忘记密码邮件 · B42 Auth 认证页美化 · 计数器复位
+> 🔄 L5 P11-B40→B43 拉通完成（2026-07-23）— 零 drift · B40 Auth SPA路由+CSS重构 · B41 SMTP 生产模式+忘记密码邮件 · B42 Auth 认证页美化 · B43 Auth Error Handling · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -574,6 +574,7 @@ synapse/
 - **L5 B40→B41 ✅**：L5 B40→B41 拉通 — 零 drift · 📄 requirements-log B40+B41 · 📄 roadmap B41 · 📄 tracks B40+B41 · 📄 CLAUDE.md header/状态 · 📄 daily 追加 · 计数器复位
 - **P11-B38 ✅**：登录页优化 — 删 Dev Login + Remember Me · email localStorage 持久化 · 🟡 标准 · 3 files · commit 030c477
 - **P11-B41 ✅**：SMTP 生产模式 + 忘记密码邮件流程 — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink 本地测试 · 🟡 标准 · 6 files · 624 tests
+- **P11-B43 ✅**：Auth Error Handling & Edge Cases — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
 - **P11-B42 ✅**：Auth 认证页美化 — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files · tsc+vite ✅
 - **P11-B40 ✅**：Auth 页面 SPA 路由 + CSS 重构 — <a>→<Link> 全部替换 · Auth.module.css 共享样式提取 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files
 - **P11-B39 ✅**：种子数据修复 — seed-synapse-project.py 新增 Hunter email/password User · SYNAPSE_HUNTER_PASSWORD 环境变量 · 🟢 微型 · 1 file
@@ -600,6 +601,7 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B43**：Auth Error Handling & Edge Cases ✅ — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
 - **P11-B42**：Auth 认证页美化 ✅ — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files
 - **P11-B41**：SMTP 生产模式 + 忘记密码邮件流程 ✅ — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink · 🟡 标准 · 6 files · 624 tests
 - **P11-B40**：Auth 页面 SPA 路由 + CSS 重构 ✅ — <a>→<Link> · Auth.module.css 提取 · 🟡 标准 · 6 files

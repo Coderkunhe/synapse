@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-23（P11-B42 ✅ Auth 认证页美化 · L5 B40→B42 拉通 · B43 🔜 待定）
+> 最后更新：2026-07-23（P11-B43 ✅ Auth Error Handling · L5 B40→B43 拉通 · B44 🔜 待定）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -112,6 +112,7 @@
 | **P11-B40** | **Auth 页面 SPA 路由 + CSS 重构** — `<a>`→`<Link>` 全部替换 · Auth.module.css 提取共享样式 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files | ✅ |
 | **P11-B41** | **SMTP 生产模式 + 忘记密码邮件流程** — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink 本地测试工具 · 🟡 标准 · 6 files · 624 tests 零回归 | ✅ |
 | **P11-B42** | **Auth 认证页美化** — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files · tsc+vite ✅ | ✅ |
+| **P11-B43** | **Auth Error Handling & Edge Cases** — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅ | ✅ |
 
 ---
 
