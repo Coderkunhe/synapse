@@ -72,6 +72,7 @@ class AuthorizationRequestResponse(AuditFields):
     operation: str | None = None
     target_resource_type: str | None = None
     target_resource_id: str | None = None
+    target_resource_name: str | None = None
 
     # interactive_prompt 字段组
     prompt_type: str | None = None

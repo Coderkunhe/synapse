@@ -1185,6 +1185,7 @@ export interface AuthRequestSummary {
   operation: string | null
   target_resource_type: string | null
   target_resource_id: string | null
+  target_resource_name: string | null
   prompt_type: string | null
   prompt_message: string | null
   prompt_choices: string[] | null

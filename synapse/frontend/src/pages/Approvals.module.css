@@ -6,7 +6,6 @@
  */
 
 .shell {
-  max-width: 960px;
 }
 
 .loading {
@@ -264,6 +263,184 @@ code.detailValue {
 
 .approveBtn:hover:not(:disabled) {
   background: rgba(34, 197, 94, 0.25);
+}
+
+/* ── Tab bar（参考 Tasks.module.css .viewTabBar ── P11-B44）────────────── */
+
+.viewTabBar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--gm-space-4, 16px);
+  border-bottom: 2px solid var(--gm-border, #334155);
+  padding-bottom: 0;
+}
+
+.viewTab {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gm-text-secondary, #94a3b8);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewTab:hover {
+  color: var(--gm-text, #f1f5f9);
+}
+
+.viewTabActive {
+  color: var(--gm-primary, #5b7ef5);
+  border-bottom-color: var(--gm-primary, #5b7ef5);
+}
+
+.tabBadge {
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(91, 126, 245, 0.15);
+  color: #5b7ef5;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── Status badge（P11-B44）────────────────────────────────────────── */
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: var(--gm-radius-sm, 4px);
+}
+
+.statusApproved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.statusDenied {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.statusExpired {
+  background: rgba(251, 191, 36, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.statusCancelled {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* ── Status filter chips（P11-B44）─────────────────────────────────── */
+
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--gm-space-3, 12px);
+}
+
+.filterChip {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gm-text-secondary, #94a3b8);
+  background: var(--gm-surface-raised, #1a2332);
+  border: 1px solid var(--gm-border, #334155);
+  padding: 4px 12px;
+  border-radius: var(--gm-radius-sm, 4px);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+
+.filterChip:hover {
+  color: var(--gm-text, #f1f5f9);
+  border-color: var(--gm-border-hover, #475569);
+}
+
+.filterChipActive {
+  color: #5b7ef5;
+  background: rgba(91, 126, 245, 0.12);
+  border-color: rgba(91, 126, 245, 0.35);
+}
+
+/* ── Card content（P11-B44）─────────────────────────────────────────── */
+
+.contentTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gm-text, #f1f5f9);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.contentMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gm-text-secondary, #94a3b8);
+}
+
+.metaDivider {
+  color: var(--gm-border, #334155);
+}
+
+.metaMuted {
+  color: var(--gm-text-secondary, #94a3b8);
+}
+
+/* ── Responder info（P11-B44）──────────────────────────────────────── */
+
+.responderFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--gm-space-3, 12px) var(--gm-space-4, 16px);
+  border-top: 1px solid var(--gm-border, #334155);
+  background: var(--gm-surface-raised, #1a2332);
+}
+
+.responderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.responderName {
+  font-size: 13px;
+  color: var(--gm-text, #f1f5f9);
+  font-weight: 500;
+}
+
+.responseTime {
+  font-size: 12px;
+  color: var(--gm-text-secondary, #94a3b8);
+}
+
+.responseNote {
+  font-size: 13px;
+  color: var(--gm-text-secondary, #94a3b8);
+  font-style: italic;
+  width: 100%;
+  margin-top: 4px;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */

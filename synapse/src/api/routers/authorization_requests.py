@@ -107,7 +107,7 @@ async def create_auth_request(
 )
 async def list_auth_requests(
     project_id: str,
-    status: str = Query("pending", pattern=r"^(pending|approved|denied|expired|cancelled)$"),
+    status: str = Query("pending", pattern=r"^(pending|approved|denied|expired|cancelled|all)$"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     actor: ActorInfo = Depends(require_project_role("admin", "lead")),
@@ -116,15 +116,20 @@ async def list_auth_requests(
     """列出项目下的授权请求，默认返回 pending 状态。
 
     支持分页（limit/offset）和状态筛选。
+    status=all 返回所有非 pending 状态（P11-B44: 审批历史）。
     """
     project = await get_project_or_404(db, project_id)
 
+    conditions = [AuthorizationRequest.project_id == project_id]
+    if status != "all":
+        conditions.append(AuthorizationRequest.status == status)
+    else:
+        # history tab: exclude pending
+        conditions.append(AuthorizationRequest.status != "pending")
+
     result = await db.execute(
         select(AuthorizationRequest)
-        .where(
-            AuthorizationRequest.project_id == project_id,
-            AuthorizationRequest.status == status,
-        )
+        .where(*conditions)
         .order_by(AuthorizationRequest.created_at.desc())
         .offset(offset)
         .limit(limit)
@@ -354,5 +359,14 @@ async def _to_response(record: AuthorizationRequest, db: AsyncSession) -> Author
             select(Worker.name).where(Worker.id == record.responded_by_worker_id)
         )
         response.responded_by_worker_name = responder_result.scalar_one_or_none()
+
+    # ── 富化: resolve target resource name（P11-B44）──
+    if record.target_resource_type and record.target_resource_id:
+        if record.target_resource_type == "task":
+            from src.models.task import Task
+            task_result = await db.execute(
+                select(Task.title).where(Task.id == record.target_resource_id)
+            )
+            response.target_resource_name = task_result.scalar_one_or_none()
 
     return response
