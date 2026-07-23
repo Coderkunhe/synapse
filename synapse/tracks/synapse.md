@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B43 ✅ Auth Error Handling · L5 B40→B43 拉通
-last_batch: P11-B43
-next_batch: P11-B44
-description: Synapse 主项目 — B43 ✅ Auth Error Handling · B44 🔜 待定 · 624 tests
+phase: P11-B44 ✅ Approval History + 质量三板斧 · L5 B44 拉通
+last_batch: P11-B44
+next_batch: P11-B45
+description: Synapse 主项目 — B44 ✅ Approval History · B45 🔜 待定 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B43 ✅ Auth Error Handling · B44 🔜 待�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B43 | **P11-B44** 🔜 | B1-B43 ✅ · B43 Auth Error Handling ✅ · B44 🔜 待定 |
+| **P11** | P11-B44 | **P11-B45** 🔜 | B1-B44 ✅ · B44 Approval History ✅ · B45 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -243,6 +243,15 @@ description: Synapse 主项目 — B43 ✅ Auth Error Handling · B44 🔜 待�
 │   — tools/smtp-sink.py 本地 SMTP 接收器 ⭐ 新建              │
 │   — E2E: Forgot→SMTP→Reset→Login→防重用 全链路闭环           │
 │   — 🟡 标准 · 6 files · 624 tests 零回归                     │
+│                                                    │
+│ P11-B44 ✅ Approval History + 质量三板斧 🎉                  │
+│   — Approvals 页 Pending/History 双 Tab 拆分                │
+│   — status=all + target_resource_name（Task 标题）富化        │
+│   — History 卡片：Task 标题 + 操作描述 + 元信息一行            │
+│   — 状态筛选（全部/已批准/已拒绝/已过期/已取消）              │
+│   — 25 条 EN+ZH i18n · .shell max-width 一致性修复           │
+│   — CLAUDE.md §7.1 三板斧（Scout+自检+≤3批Checkpoint）       │
+│   — 🟡 标准 · 7 files · 624 tests 零回归                     │
 └────────────────────────────────────────────────────┘
 ```
 

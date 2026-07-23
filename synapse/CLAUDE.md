@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B44 ✅ Approval History · B45 🔜 待定）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B44 ✅ Approval History · L5 B44 拉通 · B45 🔜 待定）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -12,6 +12,7 @@
 > 🔄 L5 P11-B38→B39 拉通完成（2026-07-23）— 零 drift · B38 删 Dev Login + Remember Me · B39 种子数据修复 · 计数器复位
 > 🔄 L5 P11-B40→B43 拉通完成（2026-07-23）— 零 drift · B40 Auth SPA路由+CSS重构 · B41 SMTP 生产模式+忘记密码邮件 · B42 Auth 认证页美化 · B43 Auth Error Handling · 计数器复位
 > ⚠️ B44 质量三板斧（2026-07-23）— B35-B44 连续返工复盘 · §7.1 编码前 Scout + 编码后自检 + ≤3 批 Checkpoint
+> 🔄 L5 P11-B44 拉通完成（2026-07-23）— 零 drift · B44 Approval History + 质量三板斧 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -612,6 +613,8 @@ synapse/
 - **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
 - **P11-B37 ✅**：L5 B30→B37 全量拉通 + 方向复盘 — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 🎉 · 🟢 微型 · L5 质量保障
 - **L5 B40→B41 ✅**：L5 B40→B41 拉通 — 零 drift · 📄 requirements-log B40+B41 · 📄 roadmap B41 · 📄 tracks B40+B41 · 📄 CLAUDE.md header/状态 · 📄 daily 追加 · 计数器复位
+- 🔄 **L5 P11-B44 拉通 ✅** — 零 drift · 📄 requirements-log B44 · 📄 roadmap B44 · 📄 tracks B44 · 📄 CLAUDE.md · 📄 daily B44+L5 · 计数器复位
+- **P11-B44 ✅**：Approval History + 质量三板斧 — Pending/History 双 Tab · status=all · target_resource_name 富化 · 25 i18n · CLAUDE.md §7.1 三板斧 · 🟡 标准 · 7 files · 624 tests
 - **P11-B38 ✅**：登录页优化 — 删 Dev Login + Remember Me · email localStorage 持久化 · 🟡 标准 · 3 files · commit 030c477
 - **P11-B41 ✅**：SMTP 生产模式 + 忘记密码邮件流程 — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink 本地测试 · 🟡 标准 · 6 files · 624 tests
 - **P11-B43 ✅**：Auth Error Handling & Edge Cases — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
@@ -641,6 +644,7 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B44**：Approval History + 质量三板斧 ✅ — Pending/History 双 Tab · status=all · target_resource_name 富化 · CLAUDE.md §7.1 三板斧 · 7 files · 624 tests
 - **P11-B43**：Auth Error Handling & Edge Cases ✅ — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
 - **P11-B42**：Auth 认证页美化 ✅ — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files
 - **P11-B41**：SMTP 生产模式 + 忘记密码邮件流程 ✅ — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink · 🟡 标准 · 6 files · 624 tests
