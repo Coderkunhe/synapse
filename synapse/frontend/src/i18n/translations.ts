@@ -75,13 +75,16 @@ const en: TranslationMap = {
     name: 'Synapse',
     slogan: 'Human—AI coordination, at scale.',
     motto: 'Ship with discipline, not drama.',
+    copyright: '© 2026 Lattice Lab',
   },
 
   // ── Auth / Login ──────────────────────────────────────────────────────
   auth: {
-    loginTitle: 'Synapse',
+    loginTitle: 'Sign In',
     loginSubtitle: 'Agent Coordination Platform',
-    loginWithGithub: 'Login with GitHub',
+    loginGreeting: 'Welcome back',
+    loginPrompt: 'Sign in to continue',
+    loginWithGithub: 'Continue with GitHub',
     loginFailed: 'Login Failed',
     loginSuccessful: 'Login Successful',
     verifyingSession: 'Verifying session…',
@@ -107,6 +110,7 @@ const en: TranslationMap = {
     loginWithEmail: 'Sign in with Email',
     loggingInWithEmail: 'Signing in…',
     registerTitle: 'Create Account',
+    registerGreeting: 'Create your account',
     registerSubtitle: 'Sign up with your email address',
     registerButton: 'Create Account',
     registering: 'Creating account…',
@@ -116,7 +120,7 @@ const en: TranslationMap = {
     passwordTooShort: 'Password must be at least 8 characters.',
 
     // ── Password Reset ──────────────────────────────────────────────────
-    forgotPasswordTitle: 'Forgot Password',
+    forgotPasswordTitle: 'Forgot your password?',
     forgotPasswordSubtitle: 'Enter your email to receive a reset link',
     forgotPasswordButton: 'Send Reset Link',
     forgotPasswordSending: 'Sending…',
@@ -124,7 +128,7 @@ const en: TranslationMap = {
     forgotPasswordDebugToken: 'Debug token: {token}',
     forgotPasswordCheckEmail: 'If the email is registered, a reset link has been sent. Check your inbox.',
     goToResetPassword: 'Go to Reset Password',
-    resetPasswordTitle: 'Reset Password',
+    resetPasswordTitle: 'Set a new password',
     resetPasswordSubtitle: 'Enter your reset token and new password',
     resetPasswordTokenLabel: 'Reset Token',
     resetPasswordNewPasswordLabel: 'New Password',
@@ -133,6 +137,7 @@ const en: TranslationMap = {
     resetPasswordSuccess: 'Password has been reset successfully.',
     forgotPasswordLink: 'Forgot password?',
     rememberMe: 'Remember me',
+    passwordHint: 'At least 8 characters',
   },
 
   // ── Dashboard ─────────────────────────────────────────────────────────
@@ -865,12 +870,15 @@ const zh: TranslationMap = {
     name: 'Synapse',
     slogan: '人机协同，规模化赋能。',
     motto: '规范交付，不折腾。',
+    copyright: '© 2026 晶格实验室',
   },
 
   auth: {
-    loginTitle: 'Synapse',
+    loginTitle: '登录',
     loginSubtitle: '智能体协调平台',
-    loginWithGithub: '通过 GitHub 登录',
+    loginGreeting: '欢迎回来',
+    loginPrompt: '登录以继续',
+    loginWithGithub: '使用 GitHub 继续',
     loginFailed: '登录失败',
     loginSuccessful: '登录成功',
     verifyingSession: '正在验证会话…',
@@ -896,6 +904,7 @@ const zh: TranslationMap = {
     loginWithEmail: '邮箱登录',
     loggingInWithEmail: '登录中…',
     registerTitle: '创建账号',
+    registerGreeting: '创建你的账号',
     registerSubtitle: '使用邮箱地址注册',
     registerButton: '创建账号',
     registering: '创建中…',
@@ -905,7 +914,7 @@ const zh: TranslationMap = {
     passwordTooShort: '密码至少需要 8 个字符。',
 
     // ── Password Reset ──────────────────────────────────────────────────
-    forgotPasswordTitle: '忘记密码',
+    forgotPasswordTitle: '忘记密码了？',
     forgotPasswordSubtitle: '输入邮箱以接收重置链接',
     forgotPasswordButton: '发送重置链接',
     forgotPasswordSending: '发送中…',
@@ -913,7 +922,7 @@ const zh: TranslationMap = {
     forgotPasswordDebugToken: '调试令牌：{token}',
     forgotPasswordCheckEmail: '如果该邮箱已注册，重置链接已发送。请查看收件箱。',
     goToResetPassword: '前往重置密码',
-    resetPasswordTitle: '重置密码',
+    resetPasswordTitle: '设置新密码',
     resetPasswordSubtitle: '输入重置令牌和新密码',
     resetPasswordTokenLabel: '重置令牌',
     resetPasswordNewPasswordLabel: '新密码',
@@ -922,6 +931,7 @@ const zh: TranslationMap = {
     resetPasswordSuccess: '密码已成功重置。',
     forgotPasswordLink: '忘记密码？',
     rememberMe: '记住账号',
+    passwordHint: '至少 8 个字符',
   },
 
   dashboard: {

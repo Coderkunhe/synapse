@@ -1,49 +1,78 @@
-/* Login.module.css — Login 页面特有样式（共享样式见 Auth.module.css）*/
+/* Login.module.css — Login page-specific styles
+ *
+ * B42 R5: refined secondary button · clean link states
+ */
 
 /* ── GitHub OAuth ──────────────────────────────────────────────────────── */
 
 .githubBtn {
   display: inline-flex;
   align-items: center;
-  gap: var(--gm-space-3);
-  background: #24292e;
-  color: #fff;
-  border: none;
-  border-radius: var(--gm-radius-sm);
-  padding: var(--gm-space-3) var(--gm-space-6);
-  font-size: 15px;
-  font-weight: 600;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  background: #0d1017;
+  color: var(--gm-text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--gm-font);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .githubBtn:hover {
-  background: #1a1e22;
+  background: #131722;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.githubBtn:active {
+  transform: scale(0.985);
 }
 
 .githubIcon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
-/* ── Remember Me ──────────────────────────────────────────────────────── */
+/* ── Remember Me + Forgot Password ──────────────────────────────────── */
 
 .rememberRow {
   display: flex;
   align-items: center;
-  gap: var(--gm-space-2);
-}
-
-.rememberCheckbox {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--gm-primary);
-  cursor: pointer;
+  justify-content: space-between;
 }
 
 .rememberLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   color: var(--gm-text-secondary);
   cursor: pointer;
   user-select: none;
+}
+
+.rememberCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gm-primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+.forgotLink {
+  font-size: 13px;
+  color: var(--gm-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.forgotLink:hover {
+  color: var(--gm-text);
 }

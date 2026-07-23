@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B40 ✅ Auth SPA 路由+CSS重构 · <a>→<Link> · 6 files
-last_batch: P11-B40
-next_batch: P11-B41
-description: Synapse 主项目 — B40 ✅ Auth SPA路由+CSS · B41 🔜 待定 · 624 tests
+phase: P11-B42 ✅ Auth 认证页美化 · L5 B40→B42 拉通
+last_batch: P11-B42
+next_batch: P11-B43
+description: Synapse 主项目 — B42 ✅ Auth 认证页美化 · B43 🔜 待定 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B40 ✅ Auth SPA路由+CSS · B41 🔜 待定
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B40 | **P11-B41** 🔜 | B1-B40 ✅ · B40 Auth SPA 路由+CSS ✅ · B41 🔜 待定 |
+| **P11** | P11-B42 | **P11-B43** 🔜 | B1-B42 ✅ · B42 Auth 认证页美化 ✅ · B43 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -236,6 +236,13 @@ description: Synapse 主项目 — B40 ✅ Auth SPA路由+CSS · B41 🔜 待定
 │   — Auth.module.css 共享样式提取                            │
 │   — ForgotPassword 成功状态判断修复                          │
 │   — 🟡 标准 · 6 files                                       │
+│                                                    │
+│ P11-B41 ✅ SMTP 生产模式 + 忘记密码邮件流程 🎉                │
+│   — email_service 双引擎（aiosmtplib→stdlib 降级）           │
+│   — ForgotPassword debug token 移除 · 统一生产 UI            │
+│   — tools/smtp-sink.py 本地 SMTP 接收器 ⭐ 新建              │
+│   — E2E: Forgot→SMTP→Reset→Login→防重用 全链路闭环           │
+│   — 🟡 标准 · 6 files · 624 tests 零回归                     │
 └────────────────────────────────────────────────────┘
 ```
 

@@ -1,16 +1,14 @@
 /**
  * Register page — Email/Password account creation.
  *
- * Renders a centered card with email, password, and display name fields.
- * On success, auto-logs in via httpOnly cookie and redirects to /dashboard.
- * If already authenticated, redirects to /dashboard.
+ * B42: 品牌区重构 · 字段标签化 · 密码 hint · 错误图标化 · 按钮 spinner
  */
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
-import { Zap } from 'lucide-react'
+import { Zap, AlertCircle, Mail, User, Lock } from 'lucide-react'
 import styles from './Auth.module.css'
 
 export default function Register() {
@@ -59,54 +57,86 @@ export default function Register() {
   return (
     <div className={styles.shell}>
       <div className={styles.card}>
-        <div className={styles.logo}><Zap size={40} /></div>
-        <h1 className={styles.title}>{t('auth.registerTitle')}</h1>
+
+        {/* ── Brand ──────────────────────────────────────────── */}
+        <div className={styles.brand}>
+          <div className={styles.brandIcon}><Zap size={20} /></div>
+          <div className={styles.brandName}>Synapse</div>
+        </div>
+
+        <h1 className={styles.title}>{t('auth.registerGreeting')}</h1>
         <p className={styles.subtitle}>{t('auth.registerSubtitle')}</p>
 
         <form className={styles.emailForm} onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <input
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth.emailPlaceholder')}
-              aria-label={t('auth.emailLabel')}
-              autoComplete="email"
-              disabled={submitting}
-            />
+          {/* Email */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('auth.emailLabel')}</label>
+            <div className={styles.inputWrapper}>
+              <Mail size={16} className={styles.inputIcon} />
+              <input
+                className={styles.input}
+                style={{ paddingLeft: '40px' }}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                disabled={submitting}
+              />
+            </div>
           </div>
-          <div className={styles.field}>
-            <input
-              className={styles.input}
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t('auth.displayNamePlaceholder')}
-              aria-label={t('auth.displayNameLabel')}
-              autoComplete="name"
-              disabled={submitting}
-            />
+
+          {/* Display Name */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('auth.displayNameLabel')}</label>
+            <div className={styles.inputWrapper}>
+              <User size={16} className={styles.inputIcon} />
+              <input
+                className={styles.input}
+                style={{ paddingLeft: '40px' }}
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t('auth.displayNamePlaceholder')}
+                autoComplete="name"
+                disabled={submitting}
+              />
+            </div>
           </div>
-          <div className={styles.field}>
-            <input
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('auth.passwordPlaceholder')}
-              aria-label={t('auth.passwordLabel')}
-              autoComplete="new-password"
-              disabled={submitting}
-              minLength={8}
-            />
+
+          {/* Password */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('auth.passwordLabel')}</label>
+            <div className={styles.inputWrapper}>
+              <Lock size={16} className={styles.inputIcon} />
+              <input
+                className={styles.input}
+                style={{ paddingLeft: '40px' }}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                disabled={submitting}
+                minLength={8}
+              />
+            </div>
+            <p className={styles.fieldHint}>{t('auth.passwordHint')}</p>
           </div>
-          {submitError && <div className={styles.error}>{submitError}</div>}
+
+          {submitError && (
+            <div className={styles.error}>
+              <AlertCircle size={16} className={styles.errorIcon} />
+              <span>{submitError}</span>
+            </div>
+          )}
+
           <button
             type="submit"
             className={styles.submitBtn}
             disabled={submitting || !email.trim() || !password || !displayName.trim()}
           >
+            {submitting && <span className={styles.spinner} />}
             {submitting ? t('auth.registering') : t('auth.registerButton')}
           </button>
         </form>
@@ -115,6 +145,8 @@ export default function Register() {
           <Link to="/login">{t('auth.haveAccount')}</Link>
         </div>
       </div>
+
+      <p className={styles.copyright}>{t('brand.copyright')}</p>
     </div>
   )
 }

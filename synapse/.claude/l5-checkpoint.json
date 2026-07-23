@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B38→B39 L5 拉通 — 零 drift · 📄 requirements-log.md B38+B39条目新增 · 📄 roadmap.md B38+B39+B40⬜表格行 · 📄 tracks/synapse.md B38+B39路线图+指针B37→B39 · 📄 CLAUDE.md header/最近批次/当前状态 B38+B39补登 · 📄 daily/2026-07-23.md B38+B39追加 · 计数器复位",
+  "lastL5Batch": "L5 B40→B42 拉通 — 零 drift · 📄 requirements-log B42 · 📄 roadmap B42 · 📄 tracks B42 · 📄 CLAUDE.md header/状态 · 📄 daily B42+L5 · 计数器复位",
   "lastL5Timestamp": "2026-07-23",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B38→B39 L5 拉通 — 零 drift · 📄 requirements-log.md B38+B39条目新增 · 📄 roadmap.md B38+B39+B40⬜表格行 · 📄 tracks/synapse.md B38+B39路线图+指针B37→B39 · 📄 CLAUDE.md header/最近批次/当前状态 B38+B39补登 · 📄 daily/2026-07-23.md B38+B39追加 · 计数器复位",
+  "lastL5Evidence": "L5 B40→B42 拉通 — 零 drift · 📄 requirements-log B42 · 📄 roadmap B42 · 📄 tracks B42 · 📄 CLAUDE.md header/状态 · 📄 daily B42+L5 · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
