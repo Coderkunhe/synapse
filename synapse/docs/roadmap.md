@@ -92,6 +92,20 @@
 | **P11-B20** | **hooks 补测 + 裸奔期防御验证** — check-hooks.sh 三场景(正常/缺失/截断)验证 · L5 gate 阻塞确认 · 裸奔期 12 commits 审计无违规 · 5 层防御充足 · PFL-041 WS 推送剩余 2/3 登记 · L5 拉通复位 | ✅ |
 | **P11-B21** | **PFL-041 WS 推送 3/3 步全量闭环** — task_service.py 9 函数 + verification_service.py COMPLETED/REJECTED → ws_manager.broadcast_to_actor() · ws.py auto-subscribe task.* (Workers + Humans) · Worker SKILL.md 模板 WS push 文档化 · dogfood Task tsk_019f82022c10741b 创建 · 624 tests 零回归 · PFL-041 🟡→🟢 | ✅ |
 | **P11-B22** | **授权审批 WS 实时化** — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx useWebSocket 实时刷新 · event_store → broadcast_to_team 闭环 · 2 files · 624 tests 零回归 | ✅ |
+| **P11-B23** | **WS 加固三板斧** — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB · main.py lifespan 关机钩子 · 4 files · 624 tests 零回归 | ✅ |
+| **P11-B24** | **WS 去重** — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store→broadcast_to_team 已覆盖）· expire/cancel 保留 · 1 file · 624 tests 零回归 | ✅ |
+| **P11-B25** | **CLI 授权体验** — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳等待提示 + 行为规则 + ⏰超时降级 · 1 file (纯文档) | ✅ |
+| **P11-B26** | **Worker WS 长连接方案** — 方案 A/B/C 三选一 · 选 C：HTTP Poll 永久模式 · WS→持久客户端 · 1 file (纯设计) | ✅ |
+| **P11-B27** | **SKILL.md 启动流重构** — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files (纯文档) | ✅ |
+| **P11-B28** | **架构文档更新** — worker-admin-interaction-flow.md 双通道重新定位 · 时序图更新 · 持久 vs 短生命周期客户端分工 · 1 file (纯文档) | ✅ |
+| **P11-B29** | **双客户端拉通 Scope 定义** — 8 批拆解（B29→B37）· 现状评估 · 风险识别 · 1 file (纯设计) | ✅ |
+| **P11-B30** | **L5 B28→B29 拉通** — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障) | ✅ |
+| **P11-B31** | **狗粮 Prep — Task 定义 + 环境校验** — 双客户端连通性验证（DB + API 双检 200 ✅）· Task #1/#2 定义 + Verification 条件 + 边界约束 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
+| **P11-B32** | **狗粮 Run ①** — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events · 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
+| **P11-B33** | **SKILL.md 模板全面升级 — Worker 行为契约 v2** — 10 项模板改进 · _protocol.md 6 处增强 + role-orchestrator 4 条 + role-builder 3 条 + role-steward 跟修 · 🟡 标准 · 3 files | ✅ |
+| **P11-B34** | **授权硬门禁 + JSON 转义修复** — PFL-046 require_permission 统一守卫（9+1 处 mutation gate）· FR3 JSON 转义双保险 · 🟢 微型 · 2 files · 624 tests | ✅ |
+| **P11-B35** | **Key 存储隔离** — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests | ✅ |
+| **P11-B36** | **审批内容富化** — worker name lookup（_to_response async + Worker 表 join）· 前端 worker name 替代裸 ID · operation 人性化展示 · 🟡 标准 · 5 files · 624 tests 零回归 | ✅ |
 
 ---
 

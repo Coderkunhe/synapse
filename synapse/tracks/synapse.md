@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B35 ✅ Key 存储隔离 · P-045 闭环 · B32 狗粮 13/13 🎉
-last_batch: P11-B35
-next_batch: P11-B36
-description: Synapse 主项目 — B35 ✅ Key 隔离 · B36 🔜 双客户端拉通收尾 · 626 tests
+phase: P11-B36 ✅ 审批内容富化 · worker name lookup + 前端人性化展示
+last_batch: P11-B36
+next_batch: P11-B37
+description: Synapse 主项目 — B36 ✅ 审批富化 · B37 🔜 待定 · 624 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B35 ✅ Key 隔离 · B36 🔜 双客户端�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B86 | — ✅ | 重开→闭环 · B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢 · 26/27 已闭环 · 活跃清零 🎉）· B82→B84 L5 拉通 ✅ |
-| **P11** | P11-B35 | **P11-B36** 🔜 | B1-B35 ✅ · B36 🔜 双客户端拉通收尾 |
+| **P11** | P11-B36 | **P11-B37** 🔜 | B1-B36 ✅ · B37 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -178,6 +178,41 @@ description: Synapse 主项目 — B35 ✅ Key 隔离 · B36 🔜 双客户端�
 │   — Task #2 定义（Builder 视角）                         │
 │   — Verification 条件 + 边界约束 + 失败模式              │
 │   — 🟡 标准 · 1 file (plan) + 治理制品                   │
+│                                                    │
+│ P11-B32 ✅ 狗粮 Run ① — 单 Task 全链路闭环               │
+│   — Orchestrator + Builder 双终端独立协作                 │
+│   — 14min · 4 events（created→assigned→submitted→completed）│
+│   — 6 摩擦点（首轮）+ 7 摩擦点（Redo）→ PFL-039→P-045   │
+│   — 🟡 标准 · 1 plan + 治理制品                          │
+│                                                    │
+│ P11-B33 ✅ SKILL.md 模板全面升级 — v2 🎉                  │
+│   — Worker 行为契约 v2 · 10 项模板改进                    │
+│   — _protocol.md 6 处 + role-orchestrator 4 条 +         │
+│     role-builder 3 条 + role-steward 跟修                │
+│   — B32 13 摩擦点 10/13 消化                              │
+│   — 🟡 标准 · 3 files                                    │
+│                                                    │
+│ P11-B34 ✅ 授权硬门禁 + JSON 转义 🎉                       │
+│   — PFL-046 授权硬门禁：task_service 9 处 +                │
+│     verification_service 1 处 → _check_no_pending_auth()  │
+│   — JSON 转义修复：@field_validator 双保险                 │
+│   — B32 摩擦点 2/13 消化 + PFL-046 登记                   │
+│   — 🟢 微型 · 2 files · 624 tests 零回归                  │
+│                                                    │
+│ P11-B35 ✅ Key 存储隔离 — P-045 长期方案 🎉🎉              │
+│   — OS 密钥链三级架构（Tier1 macOS/Tier2 Linux/Tier3 fallback）│
+│   — tools/synapse-key.sh ⭐ 新建                          │
+│   — tools/check-key-isolation.sh ⭐ 新建（审计）           │
+│   — bootstrap_service.py 密钥链感知化                     │
+│   — 双 Worker .env 明文 Key → macOS Keychain              │
+│   — B32 狗粮 13/13 全量闭环 🎉                             │
+│   — 🟡 标准 · 11 files · 626 tests                        │
+│                                                    │
+│ P11-B36 ✅ 审批内容富化 🎉                                  │
+│   — _to_response async 化 · 2× Worker name lookup         │
+│   — 前端 worker_name 替代裸 worker_id · operation 人性化   │
+│   — B29 8 批拆解收尾                                       │
+│   — 🟡 标准 · 5 files · 624 tests 零回归                   │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -188,7 +223,7 @@ description: Synapse 主项目 — B35 ✅ Key 隔离 · B36 🔜 双客户端�
 | 方向 | 目标 | 关键交付 |
 |------|------|------|
 | **授权审批实时化** ✅ | 审批人无需盯终端，在 Synapse 网站实时看到授权申请并处理 | ws.py humans 订阅 `authorization_request.*` · Approvals 页面 WS 实时刷新 · P11-B22 |
-| **双客户端拉通** 🔄 | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 ✅ B30 → Prep ✅ B31 → 狗粮 B32-B33 🔜 → 修复 B34-B36 · 8 批拆解 |
+| **双客户端拉通** ✅ | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 ✅ B30 → Prep ✅ B31 → 狗粮 B32 ✅ → 消化 B33-B35 ✅ → 收尾 B36 ✅ · B37 待定 |
 | **三客户端实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实协作 | 多角色并发 · WS 推送贯穿 VDD 循环 |
 | **看板可视化** | 任务状态实时看板，拖拽/状态流转可视化 | Dashboard Kanban · 实时 WS 更新 · 拖拽改变状态 |
 
