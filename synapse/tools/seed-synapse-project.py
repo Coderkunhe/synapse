@@ -7,18 +7,27 @@ Team、Project 和开发 Batch，使 Synapse 成为其自身的第一个用户�
 当前阶段：一式两份（DB + docs），DB 是权威源。
 安全要求：运行前自动备份（make db-backup），所有写入通过 service 层。
 
+P11-B39: 种子数据修复 — 新增 Hunter email/password User 创建，
+使 Hunter 可直接从浏览器登录→审批→验证。密码通过环境变量
+SYNAPSE_HUNTER_PASSWORD 配置（dev 默认: __REDACTED_PASSWORD__）。
+
 用法:
     cd /path/to/synapse
     make db-backup                           # 先备份
     .venv/bin/python tools/seed-synapse-project.py          # 创建初始数据
     .venv/bin/python tools/seed-synapse-project.py --dry-run # 预览将要创建的内容
     .venv/bin/python tools/seed-synapse-project.py --sync    # 同步: DB → docs/batch-status.md
+
+环境变量:
+    SYNAPSE_HUNTER_EMAIL     Hunter 登录邮箱（默认: dev@example.com）
+    SYNAPSE_HUNTER_PASSWORD  Hunter 登录密码（默认: __REDACTED_PASSWORD__）
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,8 +44,13 @@ from src.models.member import Member
 from src.models.project import Project
 from src.models.batch import Batch
 from src.models.task import Task
+from src.models.user import User
+from src.models.user_auth_method import UserAuthMethod
+from src.models.worker import Worker
+from src.models.project_actor_role import ProjectActorRole
 from src.services import project_service, batch_service, task_service
-from src.utils.id_gen import generate_id
+from src.utils.id_gen import derive_id, generate_id
+from src.utils.security import hash_password
 
 # ── 常量 ──────────────────────────────────────────────────
 
@@ -333,16 +347,22 @@ async def main(dry_run: bool = False, sync: bool = False, check: bool = False) -
         # ── Step 1: Ensure Team exists ─────────────────
         team = await _ensure_team(db, dry_run)
 
-        # ── Step 2: Ensure Dev Member exists ───────────
-        member = await _ensure_member(db, team, dry_run)
+        # ── Step 2: Ensure Hunter User exists (P11-B39) ──
+        user = await _ensure_hunter_user(db, team, dry_run)
 
-        # ── Step 3: Ensure Synapse Project exists ──────
+        # ── Step 3: Ensure Dev Member exists ───────────
+        member = await _ensure_member(db, team, user, dry_run)
+
+        # ── Step 4: Ensure Synapse Project exists ──────
         project = await _ensure_project(db, team, member, dry_run)
 
-        # ── Step 4: Ensure Batches exist ───────────────
+        # ── Step 5: Ensure Project Actor Role ──────────
+        await _ensure_actor_role(db, project, user, dry_run)
+
+        # ── Step 6: Ensure Batches exist ───────────────
         batches = await _ensure_batches(db, project, member, dry_run)
 
-        # ── Step 5: Ensure Tasks exist ────────────────
+        # ── Step 7: Ensure Tasks exist ────────────────
         tasks = await _ensure_tasks(db, project, member, batches, dry_run)
 
         if dry_run:
@@ -352,6 +372,7 @@ async def main(dry_run: bool = False, sync: bool = False, check: bool = False) -
             task_count = len(tasks)
             print(f"\n✅ Synapse 项目数据已创建")
             print(f"   Team:    {team.id}  ({team.name})")
+            print(f"   User:    {user.id}  ({user.email})")
             print(f"   Member:  {member.id}  ({member.display_name})")
             print(f"   Project: {project.id}  ({project.name})")
             print(f"   Batches: {len(P9_BATCHES)} 个")
@@ -389,35 +410,170 @@ async def _ensure_team(db: AsyncSession, dry_run: bool) -> Team:
 
 
 async def _ensure_member(
-    db: AsyncSession, team: Team, dry_run: bool
+    db: AsyncSession, team: Team, user: User, dry_run: bool
 ) -> Member:
-    """Get or create the dev member.
+    """Get or create the dev member linked to Hunter's User record.
 
-    Uses invite_member service when writing (records event).
+    P11-B39: Member.user_id now references the actual User.id
+    (usr_xxx) instead of the legacy "github_hunter" string.
+    Handles backward migration of legacy members.
     """
+    # Try new-style lookup first (user_id = User.id)
+    result = await db.execute(
+        select(Member).where(
+            Member.team_id == team.id,
+            Member.user_id == user.id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        print(f"⏭️  Member 已存在: {existing.id} ({existing.display_name})")
+        if existing.email != user.email and not dry_run:
+            existing.email = user.email
+        return existing
+
+    # P11-B39 backward compat: migrate legacy member with user_id="github_hunter"
     result = await db.execute(
         select(Member).where(
             Member.team_id == team.id,
             Member.user_id == "github_hunter",
         )
     )
-    existing = result.scalar_one_or_none()
-    if existing:
-        print(f"⏭️  Member 已存在: {existing.id} ({existing.display_name})")
-        return existing
+    legacy = result.scalar_one_or_none()
+    if legacy:
+        print(f"🔄 迁移 legacy Member: user_id github_hunter → {user.id}")
+        if not dry_run:
+            legacy.user_id = user.id
+            if not legacy.email:
+                legacy.email = user.email
+        return legacy
 
     print(f"➕ 创建 Member: hunter (admin)")
     member = Member(
         id=generate_id("member"),
         team_id=team.id,
-        user_id="github_hunter",
+        user_id=user.id,
         display_name="Hunter",
         role="admin",
+        email=user.email,
     )
     if not dry_run:
         db.add(member)
         await db.flush()
     return member
+
+
+async def _ensure_hunter_user(
+    db: AsyncSession, team: Team, dry_run: bool
+) -> User:
+    """Ensure Hunter has an email/password User account (P11-B39).
+
+    Reads credentials from env vars with dev defaults.
+    Idempotent — checks UserAuthMethod(provider="email") by subject.
+    Also creates the derived human Worker.
+    """
+    email = os.environ.get("SYNAPSE_HUNTER_EMAIL", "dev@example.com")
+    password = os.environ.get("SYNAPSE_HUNTER_PASSWORD", "__REDACTED_PASSWORD__")
+
+    # Check existing by email UserAuthMethod
+    result = await db.execute(
+        select(UserAuthMethod).where(
+            UserAuthMethod.provider == "email",
+            UserAuthMethod.subject == email,
+        )
+    )
+    existing_auth = result.scalar_one_or_none()
+    if existing_auth:
+        user = await db.get(User, existing_auth.user_id)
+        if user:
+            print(f"⏭️  Hunter User 已存在: {user.id} ({user.email})")
+            # Ensure derived Worker exists
+            await _ensure_derived_worker(db, user, team, dry_run)
+            return user
+
+    if dry_run:
+        print(f"➕ 创建 Hunter User: {email}")
+        return User(id="usr_will_be_generated", email=email, display_name="Hunter")
+
+    # Create User
+    user = User(
+        id=generate_id("user"),
+        email=email,
+        password_hash=hash_password(password),
+        display_name="Hunter",
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    print(f"✅ 创建 Hunter User: {user.id} ({email})")
+
+    # Create UserAuthMethod(provider="email")
+    auth_method = UserAuthMethod(
+        id=generate_id("user_auth_method"),
+        user_id=user.id,
+        provider="email",
+        subject=email,
+    )
+    db.add(auth_method)
+
+    # Create derived human Worker
+    await _ensure_derived_worker(db, user, team, dry_run)
+
+    return user
+
+
+async def _ensure_derived_worker(
+    db: AsyncSession, user: User, team: Team, dry_run: bool
+) -> Worker:
+    """Create the derived human Worker for a User if it doesn't exist."""
+    worker_id = derive_id(user.id, "worker")
+    existing = await db.get(Worker, worker_id)
+    if existing:
+        # Update team if not set
+        if existing.team_id is None and not dry_run:
+            existing.team_id = team.id
+        return existing
+
+    if dry_run:
+        return Worker(id=worker_id, name=user.display_name)
+
+    worker = Worker(
+        id=worker_id,
+        name=user.display_name,
+        user_id=user.id,
+        team_id=team.id,
+        actor_type="human",
+        status="active",
+        api_key_hash=None,
+    )
+    db.add(worker)
+    await db.flush()
+    return worker
+
+
+async def _ensure_actor_role(
+    db: AsyncSession, project: Project, user: User, dry_run: bool
+) -> None:
+    """Grant Hunter's Worker admin role on the Synapse project (P11-B39)."""
+    worker_id = derive_id(user.id, "worker")
+    par_id = derive_id(f"{project.id}:{worker_id}", "project_actor_role")
+
+    existing = await db.get(ProjectActorRole, par_id)
+    if existing:
+        if existing.role != "admin" and not dry_run:
+            existing.role = "admin"
+        return
+
+    if dry_run:
+        return
+
+    par = ProjectActorRole(
+        id=par_id,
+        project_id=project.id,
+        worker_id=worker_id,
+        role="admin",
+    )
+    db.add(par)
 
 
 async def _ensure_project(

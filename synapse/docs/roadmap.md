@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-21（P11-B22 ✅ 授权审批 WS 实时化 · P11-B21 ✅ PFL-041 WS 推送 · P100-B86 ✅ 违纪全量清零 · 10/10 PFLs 闭环 🎉）
+> 最后更新：2026-07-23（P11-B39 ✅ 种子数据修复 · B40 🔜 Auth 页面 SPA 路由 + CSS 重构）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -107,6 +107,9 @@
 | **P11-B35** | **Key 存储隔离** — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests | ✅ |
 | **P11-B36** | **审批内容富化** — worker name lookup（_to_response async + Worker 表 join）· 前端 worker name 替代裸 ID · operation 人性化展示 · 🟡 标准 · 5 files · 624 tests 零回归 | ✅ |
 | **P11-B37** | **L5 B30→B37 全量拉通 + 方向复盘** — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 · 🟢 微型 · L5 质量保障 | ✅ |
+| **P11-B38** | **登录页优化 — 删 Dev Login + Remember Me** — 移除 Dev Login 按钮 · email localStorage 持久化 · Remember Me checkbox · 🟡 标准 · 3 files | ✅ |
+| **P11-B39** | **种子数据修复 — Hunter email/password 账号** — seed-synapse-project.py 新增 Hunter User 创建 · SYNAPSE_HUNTER_PASSWORD 环境变量 · 🟢 微型 · 1 file | ✅ |
+| **P11-B40** | **🔜 Auth 页面 SPA 路由 + CSS 重构** — `<a>`→`<Link>` 全部替换 · Auth.module.css 提取共享样式 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files | ⬜ |
 
 ---
 
