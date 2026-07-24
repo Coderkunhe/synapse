@@ -17,15 +17,18 @@ from src.schemas.capabilities import CapabilityResponse
 router = APIRouter()
 
 # 能力定义文件路径（相对于 synapse/ 目录）
-_CAPABILITIES_PATH = Path(__file__).parent.parent.parent / "config" / "capabilities.yaml"
+_CAPABILITIES_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config" / "capabilities.yaml"
 
 
 def _load_capabilities() -> list[dict]:
     """从 YAML 文件加载能力定义。"""
     if not _CAPABILITIES_PATH.exists():
         return []
-    with open(_CAPABILITIES_PATH) as f:
-        data = yaml.safe_load(f)
+    try:
+        with open(_CAPABILITIES_PATH) as f:
+            data = yaml.safe_load(f)
+    except yaml.YAMLError:
+        return []
     return data.get("capabilities", []) if data else []
 
 
