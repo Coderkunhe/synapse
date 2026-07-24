@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-23（P11-B44 ✅ Approval History + 质量三板斧 · L5 B44 拉通 · B45 🔜 待定）
+> 最后更新：2026-07-24（P11-B45 ✅ 环境就绪 · L5 B44→B45 拉通 · B46 🔜 狗粮 Run ②）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -114,6 +114,7 @@
 | **P11-B42** | **Auth 认证页美化** — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files · tsc+vite ✅ | ✅ |
 | **P11-B43** | **Auth Error Handling & Edge Cases** — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅ | ✅ |
 | **P11-B44** | **Approval History + 质量三板斧** — Pending/History 双 Tab · status=all · target_resource_name 富化 · 状态筛选 · 25 i18n · CLAUDE.md §7.1 三板斧 · 7 files · 624 tests | ✅ |
+| **P11-B45** | **环境就绪** — 双 Worker SKILL.md API 渲染刷新 · V-026#1 owner_name 闭环 · generate-skill.sh hook 检测修复 · 🟡 标准 · 8 files · 626 tests | ✅ |
 
 ---
 

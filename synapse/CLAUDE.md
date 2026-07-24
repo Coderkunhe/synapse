@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-23（P11-B44 ✅ Approval History · L5 B44 拉通 · B45 🔜 待定）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-24（P11-B45 ✅ 环境就绪 · L5 B44→B45 拉通 · B46 🔜 狗粮 Run ②）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -13,6 +13,7 @@
 > 🔄 L5 P11-B40→B43 拉通完成（2026-07-23）— 零 drift · B40 Auth SPA路由+CSS重构 · B41 SMTP 生产模式+忘记密码邮件 · B42 Auth 认证页美化 · B43 Auth Error Handling · 计数器复位
 > ⚠️ B44 质量三板斧（2026-07-23）— B35-B44 连续返工复盘 · §7.1 编码前 Scout + 编码后自检 + ≤3 批 Checkpoint
 > 🔄 L5 P11-B44 拉通完成（2026-07-23）— 零 drift · B44 Approval History + 质量三板斧 · 计数器复位
+> 🔄 L5 P11-B44→B45 拉通完成（2026-07-24）— 零 drift · B45 环境就绪 · 双 Worker SKILL.md 刷新 · V-026#1 闭环 · generate-skill.sh hook 检测修复 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 

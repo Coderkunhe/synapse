@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B44 ✅ Approval History + 质量三板斧 · L5 B44 拉通
-last_batch: P11-B44
-next_batch: P11-B45
-description: Synapse 主项目 — B44 ✅ Approval History · B45 🔜 待定 · 624 tests
+phase: P11-B45 ✅ 环境就绪 · L5 B44→B45 拉通
+last_batch: P11-B45
+next_batch: P11-B46
+description: Synapse 主项目 — B45 ✅ 环境就绪 · B46 🔜 狗粮 Run ② · 626 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B44 ✅ Approval History · B45 🔜 待定 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B87 | **P100-B88** 🔜 | B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢）· B87 ✅ 治理清理（违纪回顾 39→0 + 3doc 日期刷新 Jul 19→23 + D-P11-015 LL18 登记） |
-| **P11** | P11-B44 | **P11-B45** 🔜 | B1-B44 ✅ · B44 Approval History ✅ · B45 🔜 待定 |
+| **P11** | P11-B45 | **P11-B46** 🔜 | B1-B45 ✅ · B45 环境就绪 ✅ · B46 狗粮 Run ② 🔜 |
 
 ## P11 路线图：多 Agent 接入战
 
