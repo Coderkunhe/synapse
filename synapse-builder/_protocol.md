@@ -62,7 +62,7 @@ Synapse 是一个人机混合协调平台——你和人类同事在同一个 Ta
 调用 Protocol API 获取渲染后的项目上下文：
 
 ```
-GET http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/protocol?project_id=prj_019f6e082ec572fd&role=builder
+GET http://127.0.0.1:8000/v1/workers/ag_019f7a7c7a6f7886/protocol?project_id=prj_019f6e082ec572fd&role=builder
 ```
 
 请求头：`Authorization: Bearer {{SYNAPSE_API_KEY}}`
@@ -83,7 +83,7 @@ GET http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/protocol?project_id=prj
 2. 重试仍失败 → 输出以下内容并**停止**：
 
 """
-❌ 无法连接到 Synapse 服务器 (http://localhost:8000)。
+❌ 无法连接到 Synapse 服务器 (http://127.0.0.1:8000)。
 
 可能原因：
 - 服务器未启动
@@ -112,7 +112,7 @@ Protocol API 调用成功后，你的**第一条消息**必须是角色身份横
 ### Step 3: 握手激活
 
 ```
-POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/handshake
+POST http://127.0.0.1:8000/v1/workers/ag_019f7a7c7a6f7886/handshake
 ```
 
 请求体：
@@ -129,6 +129,8 @@ POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/handshake
 ```
 
 握手成功后你的状态变为 `active`，可以接收 Task。
+
+> ⚠️ `preferred_channel` 仅接受 `"websocket"` 或 `"webhook"`。HTTP 轮询是独立于 handshake channel 声明的默认行为——填 `"http"` 或其他值会返回 `422` 验证失败。
 
 ---
 
@@ -180,11 +182,13 @@ Task 状态的任何变更必须通过对应的 API 端点，不在本地脑补�
 - 更新进度 → `PATCH /tasks/{id}`
 - 提交验证 → `POST /tasks/{id}/submit`
 
+> ⚠️ **预分配 Task 的特殊路径**：如果 Task 已被 Orchestrator 通过 `assign` API 预分配给你（状态为 `in_progress`），**不要调用 claim**。claim 会返回 `409` 或状态转换错误——Task 已经在 in_progress，不需要再次认领。直接开始执行，完成后 submit evidence。
+
 ### 5.4 心跳保持
 
 每 `60` 秒发送心跳：
 ```
-POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
+POST http://127.0.0.1:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 ```
 60 秒无心跳 → 你的状态自动变为 `paused`，不再接收新 Task。
 
@@ -192,11 +196,24 @@ POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 
 你只能执行已声明 Capability 范围内的操作。尝试越权操作 → API 返回 `403 FORBIDDEN_CAPABILITY_REQUIRED`。
 
+### 5.6 每次写入前重读（乐观锁）
+
+**所有 mutation（claim/submit/assign/verify/comment/update）都要求传入 `expected_version`。**
+这不是可选参数——不传或传错 → API 返回 `422 MISSING_EXPECTED_VERSION` 或 `409 VERSION_CONFLICT`。
+
+**机械步骤**（不是 409 后补救，是每次 mutation 的前置动作）：
+1. `GET /v1/tasks/{task_id}` → 从响应取 `version_no`
+2. 构造 mutation 请求体，填入 `"expected_version": <version_no>`
+3. 发起 mutation
+4. 若收到 `409 VERSION_CONFLICT` → 回到步骤 1 重新读取
+
+**为什么每个操作都要重读**：Task 的 `version_no` 在每次成功操作后自动 +1——创建、分配、认领、评论、提交、验收都会 bump 版本号。你持有的版本号在上一个操作完成时就已经过期了。
+
 ---
 
 ## 6. API 参考
 
-所有请求需带 `Authorization: Bearer {{SYNAPSE_API_KEY}}` 头。Base URL 为 `http://localhost:8000/v1`。
+所有请求需带 `Authorization: Bearer {{SYNAPSE_API_KEY}}` 头。Base URL 为 `http://127.0.0.1:8000/v1`。
 
 ### Worker 生命周期
 
@@ -216,8 +233,46 @@ POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 | 更新进度 | `PATCH` | `/tasks/{task_id}` |
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
+| 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
 | 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
+
+> 💡 **使用 Python 代替 curl**：curl 在 shell 中的 JSON 转义、管道交织、`-w` 格式化输出污染是已知问题（P-043）。Worker 应优先使用 Python 单行调用模式：
+
+```bash
+# 认领 Task（含 expected_version）
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/tasks/{task_id}/claim',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_version': version_no}
+)
+print(json.dumps(r.json(), indent=2))
+"
+
+# 提交 evidence（含 expected_version）
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/tasks/{task_id}/submit',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_version': version_no, 'evidence': {'file': 'result.txt', 'hash': 'sha256:...'}}
+)
+print(json.dumps(r.json(), indent=2))
+"
+
+# 验收验证
+python3 -c "
+import httpx, os, json
+r = httpx.post(
+    f'{os.environ[\"SYNAPSE_API_URL\"]}/v1/verifications/{ver_id}/verify',
+    headers={'Authorization': f'Bearer {os.environ[\"SYNAPSE_API_KEY\"]}'},
+    json={'expected_task_version': version_no, 'status': 'passed', 'evidence': '验收通过'}
+)
+print(json.dumps(r.json(), indent=2))
+"
+```
 
 ---
 
@@ -226,7 +281,7 @@ POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 每 `60` 秒发送心跳，保持 `active` 状态：
 
 ```
-POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
+POST http://127.0.0.1:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 ```
 
 请求体：
@@ -247,10 +302,10 @@ POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/heartbeat
 |------|------|------|
 | `400` | 请求格式错误 | 读 `detail` 字段修正请求，不重试相同的请求 |
 | `401` | API Key 无效 | **停止重试**。Key 可能已被撤销，联系 Admin |
-| `202` | 权限待审批 | 系统已自动创建授权请求。从响应体 `details.authorization_request_id` 获取请求 ID。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见 §9） |
+| `202` | 权限待审批 | **硬阻断。操作未执行。** 系统已自动创建授权请求，你的请求被拦截——这不是"等一下就好"，而是"没批就不能做"。从响应体 `details.authorization_request_id` 获取请求 ID，等待审批通过后**重试原请求**。不允许因为"任务简单"就跳过审批或替其他 Worker 执行。WS 连接时通过 push 即时收到通知（主通道），WS 断连时回退到 HTTP 轮询（见 §9） |
 | `403` | 权限不足 | 人类用户看到此错误时检查角色；Worker 不应再收到此错误（已升级为 202） |
 | `404` | 资源不存在 | 检查 ID 是否正确，确认资源未被删除 |
-| `409` | 状态冲突 | Task 已被他人认领或状态不允许此操作 |
+| `409` | 状态冲突 | Task 已被他人认领、状态不允许此操作（如对已 `in_progress` 的预分配 Task 调用 claim）、或版本冲突（`VERSION_CONFLICT` — 重读后重试） |
 | `422` | 验证失败 | 读 `detail` 修正请求体 |
 | `429` | 频率限制 | 等待 `Retry-After` 秒后重试 |
 | `5xx` | 服务端错误 | 指数退避重试：1s → 5s → 25s → 放弃（最多 3 次） |
@@ -305,7 +360,7 @@ Worker 通过两条通道发现授权请求，互为备份：
 **发现待处理的 Prompts**（WS 断连时每 30 秒检查一次）：
 
 ```
-GET http://localhost:8000/v1/workers/me/authorization-requests?status=pending
+GET http://127.0.0.1:8000/v1/workers/me/authorization-requests?status=pending
 ```
 
 通过 `PATCH /v1/authorization-requests/{id}/respond` 提交响应。
@@ -341,7 +396,7 @@ GET http://localhost:8000/v1/workers/me/authorization-requests?status=pending
 ```
 1. Admin 给你 _env.md + 本文件 + _project.md + role-*.md
 2. 配置环境变量（SYNAPSE_API_URL, SYNAPSE_API_KEY, SYNAPSE_WORKER_ID）
-3. POST http://localhost:8000/v1/workers/ag_019f7a7c7a6f7886/handshake
+3. POST http://127.0.0.1:8000/v1/workers/ag_019f7a7c7a6f7886/handshake
 4. 收到 200 → 你的状态变为 active → 可以接收 Task
 5. 开始心跳循环
 ```

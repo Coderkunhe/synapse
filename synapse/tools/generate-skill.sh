@@ -390,8 +390,8 @@ with open('$SETTINGS_FILE') as f:
     cfg = json.load(f)
 cfg.setdefault('hooks', {})
 hooks = cfg['hooks'].setdefault('SessionStart', [])
-# 检查是否已有同名 hook
-if not any('source .env' in h.get('command','') for h in hooks):
+# 检查是否已有 source .env 的 hook（兼容 source .env 和 source "$CLAUDEDIR/.env"）
+if not any('source ' in h.get('command','') and '.env' in h.get('command','') for h in hooks):
     hooks.append({'matcher': '', 'command': 'set -a; source \"\$CLAUDEDIR/.env\"; set +a'})
 with open('$SETTINGS_FILE', 'w') as f:
     json.dump(cfg, f, indent=2)
