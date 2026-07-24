@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B46 ✅ Capability MVP 基础设施 · L5 0→1
-last_batch: P11-B46
-next_batch: P11-B47
-description: Synapse 主项目 — B46 ✅ Capability Model+API+DB · B47 🔜 Report+Worker权限 · 626 tests
+phase: P11-B47 ✅ Worker 自请求权限 · L5 1/2
+last_batch: P11-B47
+next_batch: P11-B48
+description: Synapse 主项目 — B47 ✅ Worker capability_exec 自请求旁路 · B48 🔜 synapse-exec CLI · 630 tests
 ---
 
 # Synapse 轨道
