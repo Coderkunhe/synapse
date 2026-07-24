@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-24（P11-B45 ✅ 环境就绪 · L5 B44→B45 拉通 · B46 🔜 狗粮 Run ②）
+> 最后更新：2026-07-24（P11-B47 ✅ Worker 自请求权限 · L5 B46→B47 拉通 · B48 🔜 synapse-exec CLI）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -115,6 +115,8 @@
 | **P11-B43** | **Auth Error Handling & Edge Cases** — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅ | ✅ |
 | **P11-B44** | **Approval History + 质量三板斧** — Pending/History 双 Tab · status=all · target_resource_name 富化 · 状态筛选 · 25 i18n · CLAUDE.md §7.1 三板斧 · 7 files · 624 tests | ✅ |
 | **P11-B45** | **环境就绪** — 双 Worker SKILL.md API 渲染刷新 · V-026#1 owner_name 闭环 · generate-skill.sh hook 检测修复 · 🟡 标准 · 8 files · 626 tests | ✅ |
+| **P11-B46** | **Capability MVP 基础设施** — capabilities.yaml · GET /capabilities 端点 · AuthorizationRequest +4 字段 · capability_exec request_type · POST /report 端点 · report_execution service · Alembic migration · 🔴 大型 · 11 files · +333/-3 · 626 tests | ✅ |
+| **P11-B47** | **Worker 自请求 capability_exec 权限旁路** — require_project_role→get_current_actor + inline 条件 · capability_exec+self→放行 · 其他→admin/lead · 🟢 微型 · 2 files · +179/-4 · 630 tests | ✅ |
 
 ---
 
