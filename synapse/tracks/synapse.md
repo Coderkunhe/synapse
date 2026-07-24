@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B48 ✅ synapse-exec CLI · 0 drift
-last_batch: P11-B48
-next_batch: P11-B49
-description: Synapse 主项目 — B48 ✅ synapse-exec CLI 全链路 · B49 🔜 git pre-push hook · 630 tests
+phase: P11-B49 ✅ git pre-push hook · 0 drift
+last_batch: P11-B49
+next_batch: P11-B50
+description: Synapse 主项目 — B49 ✅ git pre-push hook + synapse-exec --install-hook · B50 🔜 Skill 模板更新 · 630 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B48 ✅ synapse-exec CLI 全链路 · B49 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B87 | **P100-B88** 🔜 | B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢）· B87 ✅ 治理清理（违纪回顾 39→0 + 3doc 日期刷新 Jul 19→23 + D-P11-015 LL18 登记） |
-| **P11** | P11-B48 | **P11-B49** 🔜 | B1-B48 ✅ · B46 Capability MVP 基础设施 ✅ · B47 Worker自请求 ✅ · B48 synapse-exec CLI ✅ · B49 pre-push hook 🔜 |
+| **P11** | P11-B49 | **P11-B50** 🔜 | B1-B49 ✅ · B46 Capability MVP 基础设施 ✅ · B47 Worker自请求 ✅ · B48 synapse-exec CLI ✅ · B49 pre-push hook ✅ · B50 Skill 模板更新 🔜 |
 
 ## P11 路线图：多 Agent 接入战
 

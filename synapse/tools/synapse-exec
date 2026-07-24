@@ -36,12 +36,15 @@ ${BOLD}选项:${NC}
   --reason  "..."          操作原因（审批时展示）
   --timeout N              审批等待超时秒数（默认 120）
   --task-id  id            关联的 Synapse Task ID
+  --install-hook [path]    安装 git pre-push hook（默认当前目录）
   --help                   显示此帮助
 
 ${BOLD}示例:${NC}
   synapse-exec git_push_main --reason "完成 P11-B46 狗粮验证"
   synapse-exec git_push_branch --params BRANCH=feature/b47 --reason "新功能分支"
   synapse-exec git_push_main --timeout 300 --reason "紧急 hotfix"
+  synapse-exec --install-hook           # 在当前仓库安装 git pre-push hook
+  synapse-exec --install-hook /path/to/repo  # 指定仓库路径
 
 ${BOLD}环境变量:${NC}
   SYNAPSE_API_URL        Synapse API 地址（必需）
@@ -173,6 +176,14 @@ parse_args() {
         usage
     fi
 
+    # --install-hook 是一个独立模式，不依赖其他参数
+    if [[ "$CAP_ID" == "--install-hook" ]]; then
+        INSTALL_HOOK=1
+        INSTALL_HOOK_PATH="${1:-$PWD}"
+        return 0
+    fi
+
+    INSTALL_HOOK=0
     REASON=""
     TIMEOUT=120
     TASK_ID=""
@@ -212,6 +223,11 @@ parse_args() {
                 ;;
             --task-id)
                 TASK_ID="${2:-}"
+                shift 2
+                ;;
+            --install-hook)
+                INSTALL_HOOK=1
+                INSTALL_HOOK_PATH="${2:-$PWD}"
                 shift 2
                 ;;
             --help|-h)
@@ -458,6 +474,72 @@ report_evidence() {
     echo -e "${icon} 结果已上报 (${outcome} · exit=${EXIT_CODE} · ${DURATION_MS}ms)"
 }
 
+# ── Hook 安装 ──
+# 将 pre-push hook 模板安装到目标 git 仓库的 .git/hooks/pre-push
+
+install_hook() {
+    local target_dir="$1"
+
+    # 找到 git 仓库根目录
+    local git_root
+    git_root=$(cd "$target_dir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null) || {
+        echo -e "${RED}❌ 不是 git 仓库: ${target_dir}${NC}" >&2
+        echo "   请在 git 仓库内运行此命令" >&2
+        exit 1
+    }
+
+    local hooks_dir="${git_root}/.git/hooks"
+    local hook_path="${hooks_dir}/pre-push"
+
+    # 确保 hooks 目录存在
+    mkdir -p "$hooks_dir"
+
+    # 如果 hook 已存在，备份
+    if [[ -f "$hook_path" ]]; then
+        local backup="${hook_path}.bak.$(date +%Y%m%d-%H%M%S)"
+        cp "$hook_path" "$backup"
+        echo -e "${YELLOW}⚠️  已有 pre-push hook，已备份至: ${backup}${NC}"
+    fi
+
+    # 查找 hook 模板路径
+    # 优先: 相对于脚本所在目录的 git-hooks/pre-push
+    # 回退: 当前工作目录下的 tools/git-hooks/pre-push
+    local script_dir template_path
+    script_dir=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
+    template_path="${script_dir}/git-hooks/pre-push"
+
+    if [[ ! -f "$template_path" ]]; then
+        # 回退：从当前目录查找（可能在 synapse 项目根目录运行）
+        template_path="${PWD}/tools/git-hooks/pre-push"
+    fi
+
+    if [[ ! -f "$template_path" ]]; then
+        echo -e "${RED}❌ 找不到 hook 模板${NC}" >&2
+        echo "   期望路径: ${script_dir}/git-hooks/pre-push" >&2
+        exit 1
+    fi
+
+    cp "$template_path" "$hook_path"
+    chmod +x "$hook_path"
+
+    echo -e "${GREEN}✅ git pre-push hook 已安装${NC}"
+    echo "   仓库: ${git_root}"
+    echo "   Hook: ${hook_path}"
+    echo "   分支: $(cd "$git_root" && git branch --show-current 2>/dev/null || echo "unknown")"
+    echo ""
+    echo "   推送到 main/master 时将自动走 Synapse 审批。"
+    echo "   feature 分支直接放行，不触发审批。"
+
+    # 验证 hook 可执行
+    if [[ -x "$hook_path" ]]; then
+        echo ""
+        echo -e "${GREEN}✅ Hook 验证通过 — 可执行${NC}"
+    else
+        echo -e "${RED}❌ Hook 安装失败 — 不可执行${NC}" >&2
+        exit 1
+    fi
+}
+
 # ═══════════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════════
@@ -465,6 +547,13 @@ report_evidence() {
 main() {
     check_deps
     parse_args "$@"
+
+    # --install-hook 是独立模式
+    if [[ "${INSTALL_HOOK:-0}" -eq 1 ]]; then
+        install_hook "${INSTALL_HOOK_PATH:-$PWD}"
+        exit 0
+    fi
+
     resolve_identity
 
     # ── Step 2: 能力匹配 ──

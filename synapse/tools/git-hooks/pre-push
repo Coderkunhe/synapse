@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# pre-push — Synapse Capability Gateway Hook
+#
+# 由 `synapse-exec --install-hook` 安装到 .git/hooks/pre-push。
+# 推送到 main/master 时强制走 Synapse 审批链路。
+#
+# git pre-push hook 参数: <remote_name> <remote_url>
+# hook 的 exit code: 0 = 放行, 非 0 = 阻断 push
+
+set -euo pipefail
+
+REMOTE="${1:-}"
+URL="${2:-}"
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+# ── 只拦截 main/master ──
+if [[ "$BRANCH" != "main" ]] && [[ "$BRANCH" != "master" ]]; then
+    exit 0
+fi
+
+# ── 宽松模式：未配置 Synapse 时不阻断 ──
+if [[ -z "${SYNAPSE_API_URL:-}" ]] || ! command -v synapse-exec &>/dev/null; then
+    echo "⚠️  Synapse 未配置或 synapse-exec 不可用。跳过授权检查。"
+    echo "   安装: cd synapse && synapse-exec --install-hook"
+    exit 0
+fi
+
+echo "🛡️  Synapse: 推送到 ${BRANCH} 需要审批"
+echo ""
+
+# 调用 synapse-exec — 内部完成 请求→审批→执行→上报
+# synapse-exec 返回非零 → git push 被阻断
+synapse-exec git_push_main --reason "git push ${BRANCH} → ${URL}"
