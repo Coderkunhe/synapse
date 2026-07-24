@@ -1,0 +1,494 @@
+#!/usr/bin/env bash
+# synapse-exec — Synapse Capability Executor
+#
+# 用法: synapse-exec <capability_id> [--params k=v] [--reason "..."] [--timeout N] [--task-id id]
+#
+# P11-B48: Capability MVP CLI — 请求→审批→执行→上报，全链路闭环。
+#
+# 前置依赖:
+#   - curl (HTTP 客户端)
+#   - jq   (JSON 解析)
+#   - 环境变量: SYNAPSE_API_URL, SYNAPSE_WORKER_ID, SYNAPSE_PROJECT_ID
+#   - API Key: SYNAPSE_API_KEY 环境变量 或 macOS/Linux 密钥链
+
+set -euo pipefail
+
+# ── 颜色 ──
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ── 版本 ──
+VERSION="0.1.0"
+
+usage() {
+    cat <<EOF
+${BOLD}synapse-exec${NC} v${VERSION} — Synapse Capability Executor
+
+${BOLD}用法:${NC}
+  synapse-exec <capability_id> [选项]
+
+${BOLD}选项:${NC}
+  --params  k=v[,k=v...]  能力参数（如 BRANCH=feature/xxx）
+  --reason  "..."          操作原因（审批时展示）
+  --timeout N              审批等待超时秒数（默认 120）
+  --task-id  id            关联的 Synapse Task ID
+  --help                   显示此帮助
+
+${BOLD}示例:${NC}
+  synapse-exec git_push_main --reason "完成 P11-B46 狗粮验证"
+  synapse-exec git_push_branch --params BRANCH=feature/b47 --reason "新功能分支"
+  synapse-exec git_push_main --timeout 300 --reason "紧急 hotfix"
+
+${BOLD}环境变量:${NC}
+  SYNAPSE_API_URL        Synapse API 地址（必需）
+  SYNAPSE_WORKER_ID      Worker ID（必需）
+  SYNAPSE_PROJECT_ID     Project ID（必需）
+  SYNAPSE_API_KEY        Worker API Key（必需；也可存于 OS 密钥链）
+  SYNAPSE_WORKSPACE      工作目录（可选，用于 \${SYNAPSE_WORKSPACE} 变量替换）
+
+${BOLD}文档:${NC}
+  docs/capability-mvp.md §2 synapse-exec CLI
+EOF
+    exit 0
+}
+
+# ── 依赖检查 ──
+check_deps() {
+    local missing=()
+    for cmd in curl jq; do
+        if ! command -v "$cmd" &>/dev/null; then
+            missing+=("$cmd")
+        fi
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ 缺少依赖: ${missing[*]}${NC}" >&2
+        echo "   安装: brew install ${missing[*]}" >&2
+        exit 1
+    fi
+}
+
+# ── 身份解析 ──
+resolve_identity() {
+    # 环境变量（SessionStart hook 已注入）
+    SYNAPSE_API_URL="${SYNAPSE_API_URL:-}"
+    SYNAPSE_WORKER_ID="${SYNAPSE_WORKER_ID:-}"
+    SYNAPSE_PROJECT_ID="${SYNAPSE_PROJECT_ID:-}"
+    SYNAPSE_API_KEY="${SYNAPSE_API_KEY:-}"
+
+    # API Key 回退链: 环境变量 → macOS Keychain → Linux Secret Service → 报错
+    if [[ -z "$SYNAPSE_API_KEY" ]]; then
+        if [[ "$(uname -s)" == "Darwin" ]] && command -v security &>/dev/null; then
+            SYNAPSE_API_KEY=$(security find-generic-password \
+                -a "synapse-worker-${SYNAPSE_WORKER_ID}" \
+                -s "synapse" \
+                -w 2>/dev/null || true)
+        elif command -v secret-tool &>/dev/null; then
+            SYNAPSE_API_KEY=$(secret-tool lookup \
+                account "synapse-worker-${SYNAPSE_WORKER_ID}" \
+                service "synapse" 2>/dev/null || true)
+        fi
+    fi
+
+    # 验证
+    local errs=()
+    [[ -z "$SYNAPSE_API_URL" ]]     && errs+=("SYNAPSE_API_URL")
+    [[ -z "$SYNAPSE_WORKER_ID" ]]   && errs+=("SYNAPSE_WORKER_ID")
+    [[ -z "$SYNAPSE_PROJECT_ID" ]]  && errs+=("SYNAPSE_PROJECT_ID")
+    [[ -z "$SYNAPSE_API_KEY" ]]     && errs+=("SYNAPSE_API_KEY")
+
+    if [[ ${#errs[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ 身份配置缺失:${NC}" >&2
+        for e in "${errs[@]}"; do
+            case "$e" in
+                SYNAPSE_API_KEY)
+                    echo "   ${BOLD}$e${NC} — 请设置环境变量或存入 OS 密钥链" >&2
+                    echo "      存入: synapse-key.sh store \$SYNAPSE_WORKER_ID <your-api-key>" >&2
+                    ;;
+                *)
+                    echo "   ${BOLD}$e${NC} — 请设置环境变量（通常由 SessionStart hook 注入）" >&2
+                    ;;
+            esac
+        done
+        exit 1
+    fi
+
+    # 剥离 URL 尾部斜杠
+    SYNAPSE_API_URL="${SYNAPSE_API_URL%/}"
+}
+
+# ── HTTP 辅助函数 ──
+# 统一 Authorization header 和错误处理
+
+api_get() {
+    local url="$1"
+    local desc="${2:-API}"
+    curl -sS --fail-with-body \
+        -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+        -H "Accept: application/json" \
+        "${SYNAPSE_API_URL}${url}" 2>&1
+}
+
+api_post() {
+    local url="$1"
+    local body="$2"
+    local desc="${3:-API}"
+    curl -sS --fail-with-body \
+        -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        -d "$body" \
+        "${SYNAPSE_API_URL}${url}" 2>&1
+}
+
+# ── 变量替换 ──
+# 将 ${VAR} 模式替换为实际值
+
+substitute_vars() {
+    local input="$1"
+    # 替换 ${SYNAPSE_WORKSPACE}
+    input="${input//\$\{SYNAPSE_WORKSPACE\}/${SYNAPSE_WORKSPACE:-$PWD}}"
+    # 替换 ${BRANCH}（来自 --params 或 git 当前分支）
+    if [[ -n "${PARAM_BRANCH:-}" ]]; then
+        input="${input//\$\{BRANCH\}/${PARAM_BRANCH}}"
+    elif [[ "$input" == *'${BRANCH}'* ]]; then
+        local branch
+        branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+        input="${input//\$\{BRANCH\}/${branch}}"
+    fi
+    echo "$input"
+}
+
+# ── 参数解析 ──
+
+parse_args() {
+    CAP_ID="${1:-}"
+    shift || true
+
+    if [[ -z "$CAP_ID" || "$CAP_ID" == "--help" || "$CAP_ID" == "-h" ]]; then
+        usage
+    fi
+
+    REASON=""
+    TIMEOUT=120
+    TASK_ID=""
+    declare -gA PARAM_MAP=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --params)
+                if [[ -z "${2:-}" ]]; then
+                    echo -e "${RED}❌ --params 需要参数${NC}" >&2
+                    exit 1
+                fi
+                # 解析 k=v[,k=v...]
+                IFS=',' read -ra PAIRS <<< "$2"
+                for pair in "${PAIRS[@]}"; do
+                    key="${pair%%=*}"
+                    val="${pair#*=}"
+                    PARAM_MAP["$key"]="$val"
+                done
+                # 向后兼容: 提取 BRANCH 到 PARAM_BRANCH
+                PARAM_BRANCH="${PARAM_MAP[BRANCH]:-}"
+                shift 2
+                ;;
+            --reason)
+                REASON="${2:-}"
+                shift 2
+                ;;
+            --timeout)
+                TIMEOUT="${2:-120}"
+                if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [[ "$TIMEOUT" -lt 1 ]]; then
+                    echo -e "${RED}❌ --timeout 必须是正整数${NC}" >&2
+                    exit 1
+                fi
+                shift 2
+                ;;
+            --task-id)
+                TASK_ID="${2:-}"
+                shift 2
+                ;;
+            --help|-h)
+                usage
+                ;;
+            *)
+                echo -e "${YELLOW}⚠️  未知参数: $1${NC}" >&2
+                shift
+                ;;
+        esac
+    done
+}
+
+# ── 能力匹配 ──
+# 从 API 拉取能力定义，匹配 capability_id
+
+fetch_and_match_capability() {
+    local caps_json
+    caps_json=$(api_get "/v1/workers/${SYNAPSE_WORKER_ID}/capabilities" "获取能力列表") || {
+        echo -e "${RED}❌ 无法获取能力列表 — API 不可达或认证失败${NC}" >&2
+        echo "   API: ${SYNAPSE_API_URL}/v1/workers/${SYNAPSE_WORKER_ID}/capabilities" >&2
+        exit 1
+    }
+
+    # 检查是否为空数组
+    if [[ "$(echo "$caps_json" | jq 'length')" -eq 0 ]]; then
+        echo -e "${RED}❌ 没有可用的能力定义${NC}" >&2
+        exit 1
+    fi
+
+    # 匹配指定 capability_id
+    local matched
+    matched=$(echo "$caps_json" | jq --arg cid "$CAP_ID" '.[] | select(.id == $cid)')
+
+    if [[ -z "$matched" ]]; then
+        echo -e "${RED}❌ 未知能力: ${BOLD}${CAP_ID}${NC}" >&2
+        echo "" >&2
+        echo "可用能力:" >&2
+        echo "$caps_json" | jq -r '.[] | "  \(.id) — \(.name) [\(.risk)]"' >&2
+        exit 1
+    fi
+
+    # 提取字段
+    CAP_NAME=$(echo "$matched" | jq -r '.name')
+    CAP_DESC=$(echo "$matched" | jq -r '.description')
+    CAP_RISK=$(echo "$matched" | jq -r '.risk')
+    CAP_POLICY=$(echo "$matched" | jq -r '.approval_policy')
+    CAP_COMMAND=$(echo "$matched" | jq -r '.command')
+    CAP_CWD=$(echo "$matched" | jq -r '.cwd // empty')
+    CAP_TIMEOUT=$(echo "$matched" | jq -r '.timeout')
+    CAP_EVIDENCE=$(echo "$matched" | jq -r '.evidence_required')
+
+    # 变量替换
+    CAP_COMMAND=$(substitute_vars "$CAP_COMMAND")
+    if [[ -n "$CAP_CWD" ]]; then
+        CAP_CWD=$(substitute_vars "$CAP_CWD")
+    fi
+}
+
+# ── 授权请求创建 ──
+# 对 approval_policy != "never" 的能力创建 authorization request
+
+create_auth_request() {
+    if [[ "$CAP_POLICY" == "never" ]]; then
+        AUTH_ID=""
+        return 0
+    fi
+
+    local req_body
+    req_body=$(jq -n \
+        --arg project_id "$SYNAPSE_PROJECT_ID" \
+        --arg worker_id "$SYNAPSE_WORKER_ID" \
+        --arg request_type "capability_exec" \
+        --arg capability_id "$CAP_ID" \
+        --arg operation "$CAP_NAME" \
+        --arg target_resource_type "capability" \
+        --arg target_resource_id "$CAP_ID" \
+        --argjson ttl "$TIMEOUT" \
+        '{
+            project_id: $project_id,
+            worker_id: $worker_id,
+            request_type: $request_type,
+            capability_id: $capability_id,
+            operation: $operation,
+            target_resource_type: $target_resource_type,
+            target_resource_id: $target_resource_id,
+            ttl_seconds: $ttl
+        }')
+
+    local resp
+    resp=$(api_post "/v1/projects/${SYNAPSE_PROJECT_ID}/authorization-requests" "$req_body" "创建授权请求") || {
+        echo -e "${RED}❌ 创建授权请求失败${NC}" >&2
+        exit 1
+    }
+
+    AUTH_ID=$(echo "$resp" | jq -r '.id')
+
+    echo -e "${CYAN}📋 授权请求已创建: ${BOLD}${AUTH_ID}${NC}"
+    echo "   ${CAP_NAME} · ${CAP_RISK} · 需审批"
+    if [[ -n "$REASON" ]]; then
+        echo "   原因: ${REASON}"
+    fi
+    echo ""
+
+    # 如果 body 支持 reason/description，但当前 API schema 无此字段
+    # 主要原因通过 stdout 展示给审批人即可
+}
+
+# ── 审批等待 ──
+# 轮询 GET /v1/authorization-requests/{id}，直到 approved/denied/expired
+
+wait_approval() {
+    if [[ -z "$AUTH_ID" ]]; then
+        return 0
+    fi
+
+    local elapsed=0
+    local interval=2
+
+    while [[ $elapsed -lt $TIMEOUT ]]; do
+        local resp status
+        resp=$(api_get "/v1/authorization-requests/${AUTH_ID}" "轮询审批状态") || {
+            echo -e "${YELLOW}⚠️  轮询失败，${interval}s 后重试...${NC}" >&2
+            sleep "$interval"
+            elapsed=$((elapsed + interval))
+            continue
+        }
+
+        status=$(echo "$resp" | jq -r '.status // empty')
+
+        case "$status" in
+            approved)
+                local approver
+                approver=$(echo "$resp" | jq -r '.responded_by_worker_name // "admin"')
+                echo -e "${GREEN}✅ 已批准 — ${approver} · 耗时 ${elapsed}s${NC}"
+                return 0
+                ;;
+            denied|rejected)
+                local deny_reason
+                deny_reason=$(echo "$resp" | jq -r '.response_note // "无理由"')
+                echo -e "${RED}❌ 已拒绝 — ${deny_reason}${NC}"
+                return 1
+                ;;
+            expired)
+                echo -e "${YELLOW}⏰ 审批超时 — 请求已过期${NC}"
+                return 2
+                ;;
+            cancelled)
+                echo -e "${YELLOW}⚠️  授权请求已被取消${NC}"
+                return 3
+                ;;
+            *)
+                # pending 或其他 → 继续等待
+                sleep "$interval"
+                elapsed=$((elapsed + interval))
+                # 每 10s 输出一次进度
+                if [[ $((elapsed % 10)) -eq 0 ]]; then
+                    echo -e "⏳ 等待审批... (已等待 ${elapsed}s)"
+                fi
+                ;;
+        esac
+    done
+
+    echo -e "${YELLOW}⏰ 等待超时 (${TIMEOUT}s)${NC}"
+    return 2
+}
+
+# ── 能力执行 ──
+# 使用 bash 执行 command，捕获 stdout/stderr/exit_code 和耗时
+
+execute_capability() {
+    local cmd="$1"
+    local cwd="${2:-$PWD}"
+
+    echo -e "${CYAN}▸ 执行: ${BOLD}${cmd}${NC}"
+    if [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+        echo -e "  工作目录: ${cwd}"
+    fi
+    echo ""
+
+    START_TIME=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || \
+                 perl -MTime::HiRes=time -e 'print int(time() * 1000)' 2>/dev/null || \
+                 echo $(( $(date +%s) * 1000 )))
+
+    # 执行命令并捕获输出
+    local tmp_stdout tmp_stderr
+    tmp_stdout=$(mktemp)
+    tmp_stderr=$(mktemp)
+    trap "rm -f '$tmp_stdout' '$tmp_stderr'" EXIT
+
+    local exit_code=0
+    (
+        cd "${cwd}" 2>/dev/null || true
+        eval "$cmd"
+    ) >"$tmp_stdout" 2>"$tmp_stderr" || exit_code=$?
+
+    END_TIME=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || \
+               perl -MTime::HiRes=time -e 'print int(time() * 1000)' 2>/dev/null || \
+               echo $(( $(date +%s) * 1000 )))
+
+    DURATION_MS=$((END_TIME - START_TIME))
+    EXIT_CODE=$exit_code
+
+    # 输出 stdout（原样透传）
+    cat "$tmp_stdout"
+
+    # stderr 如果有内容，输出到 stderr
+    if [[ -s "$tmp_stderr" ]]; then
+        cat "$tmp_stderr" >&2
+    fi
+}
+
+# ── 证据上报 ──
+# POST /v1/authorization-requests/{id}/report
+
+report_evidence() {
+    if [[ -z "$AUTH_ID" ]]; then
+        return 0
+    fi
+
+    local outcome="success"
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        outcome="failure"
+    fi
+
+    local report_body
+    report_body=$(jq -n \
+        --arg outcome "$outcome" \
+        --argjson exit_code "$EXIT_CODE" \
+        --argjson duration_ms "$DURATION_MS" \
+        '{
+            outcome: $outcome,
+            exit_code: $exit_code,
+            duration_ms: $duration_ms
+        }')
+
+    api_post "/v1/authorization-requests/${AUTH_ID}/report" "$report_body" "上报执行结果" > /dev/null || {
+        echo -e "${YELLOW}⚠️  结果上报失败（exit=${EXIT_CODE} · ${DURATION_MS}ms）${NC}" >&2
+        return 1
+    }
+
+    local icon="✅"
+    [[ "$outcome" == "failure" ]] && icon="⚠️"
+    echo -e "${icon} 结果已上报 (${outcome} · exit=${EXIT_CODE} · ${DURATION_MS}ms)"
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+# Main
+# ═══════════════════════════════════════════════════════════════════════
+
+main() {
+    check_deps
+    parse_args "$@"
+    resolve_identity
+
+    # ── Step 2: 能力匹配 ──
+    fetch_and_match_capability
+
+    # 显示能力信息
+    echo -e "${BOLD}${CAP_NAME}${NC} — ${CAP_DESC}"
+    echo -e "  风险: ${CAP_RISK} · 策略: ${CAP_POLICY} · 执行超时: ${CAP_TIMEOUT}s"
+    echo ""
+
+    # ── Step 3: 创建授权请求 ──
+    create_auth_request
+
+    # ── Step 4: 等待审批 ──
+    wait_approval || {
+        local wait_rc=$?
+        exit $wait_rc
+    }
+
+    # ── Step 5: 执行能力 ──
+    execute_capability "$CAP_COMMAND" "${CAP_CWD:-$PWD}"
+
+    # ── Step 6: 上报证据 ──
+    report_evidence
+
+    echo ""
+    exit $EXIT_CODE
+}
+
+main "$@"
