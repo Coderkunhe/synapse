@@ -80,6 +80,8 @@ async def create_authorization_request(
     prompt_type: str | None = None,
     prompt_message: str | None = None,
     prompt_choices: list[str] | None = None,
+    # capability_exec 字段组（P11-B46）
+    capability_id: str | None = None,
     # 配置
     ttl_seconds: int = 3600,
     # 事件元数据
@@ -92,6 +94,7 @@ async def create_authorization_request(
     业务校验：
     - api_auth: operation 必填
     - interactive_prompt: prompt_type + prompt_message 必填
+    - capability_exec: operation 必填（映射为 capability_id）
     - 流控：同一个 Worker 最多 MAX_PENDING_AUTH_REQUESTS 个 pending 请求
 
     Raises:
@@ -111,6 +114,13 @@ async def create_authorization_request(
                 code="MISSING_REQUIRED_FIELD",
                 message="interactive_prompt 类型的授权请求必须提供 prompt_type 和 prompt_message",
                 details={"request_type": request_type, "missing_field": "prompt_type or prompt_message"},
+            )
+    elif request_type == "capability_exec":
+        if not operation:
+            raise ForbiddenError(
+                code="MISSING_REQUIRED_FIELD",
+                message="capability_exec 类型的授权请求必须提供 operation（capability_id）",
+                details={"request_type": request_type, "missing_field": "operation"},
             )
 
     # ── 流控 ──
@@ -138,6 +148,7 @@ async def create_authorization_request(
         prompt_type=prompt_type,
         prompt_message=prompt_message,
         prompt_choices_json=_serialize_choices(prompt_choices),
+        capability_id=capability_id,
         status="pending",
         expires_at=now + timedelta(seconds=ttl_seconds),
         last_heartbeat_at=now,
@@ -318,6 +329,74 @@ async def heartbeat(
     record.last_heartbeat_at = datetime.now(timezone.utc)
     await db.flush()
 
+    return record
+
+
+async def report_execution(
+    db: AsyncSession,
+    *,
+    request_id: str,
+    worker_id: str,
+    outcome: str,
+    exit_code: int,
+    duration_ms: int,
+    team_id: str,
+    actor_type: str,
+    actor_id: str,
+) -> AuthorizationRequest:
+    """上报 capability 执行结果 — P11-B46。
+
+    业务校验：
+    - 请求必须是 capability_exec 类型
+    - 请求状态必须是 approved
+    - 只有请求拥有者可以上报
+    - outcome 必须是 success 或 failure
+    """
+    record = await get_request(db, request_id)
+    if record is None:
+        raise NotFoundError("AuthorizationRequest", request_id)
+
+    if record.request_type != "capability_exec":
+        raise ForbiddenError(
+            code="FORBIDDEN_NOT_CAPABILITY_EXEC",
+            message=f"只有 capability_exec 类型的请求才能上报执行结果，当前类型: {record.request_type}",
+        )
+
+    if record.status != "approved":
+        raise InvalidStateTransition(
+            request_id=request_id,
+            from_status=record.status,
+            to_status="reported",
+            message="只有已批准的请求才能上报执行结果",
+        )
+
+    if record.worker_id != worker_id:
+        raise ForbiddenError(
+            code="FORBIDDEN_NOT_REQUEST_OWNER",
+            message="只有请求的拥有者才能上报执行结果",
+        )
+
+    record.outcome = outcome
+    record.exit_code = exit_code
+    record.duration_ms = duration_ms
+
+    await event_store.record(
+        db,
+        event_type=EventType.AUTHORIZATION_REQUEST_EXECUTED,
+        team_id=team_id,
+        actor_type=actor_type,
+        actor_id=actor_id,
+        target_type="authorization_request",
+        target_id=request_id,
+        payload={
+            "capability_id": record.capability_id,
+            "outcome": outcome,
+            "exit_code": exit_code,
+            "duration_ms": duration_ms,
+        },
+    )
+
+    await db.flush()
     return record
 
 

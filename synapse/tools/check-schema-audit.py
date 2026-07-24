@@ -41,6 +41,7 @@ EXEMPT_CLASSES = frozenset({
     "ProtocolResponse",  # P9-B21: rendered template content, not a persisted entity
     "DecisionAuditResponse",  # P10-B35: immutable audit record (append-only, no updated_at/is_disabled)
     "WorkerProjectResponse",  # P11-B9: lightweight project summary projection, not a persisted entity
+    "CapabilityResponse",  # P11-B46: read from YAML config file, not a DB entity
 })
 
 AUDIT_FIELDS_CLASS = "AuditFields"

@@ -1,0 +1,26 @@
+# Synapse Capability Gateway — 能力定义
+# MVP: 两个能力，验证 high/low 两种授权策略
+# P11-B46: Capability MVP 基础设施
+
+capabilities:
+  - id: "git_push_main"
+    name: "Push to main branch"
+    description: "git push origin main — 推送到生产分支"
+    category: "git"
+    risk: "critical"
+    approval_policy: "always"          # always | once_per_session | never
+    command: "git push origin main"
+    cwd: "${SYNAPSE_WORKSPACE}"        # 从环境变量注入
+    timeout: 60
+    evidence_required: true            # 执行后必须上报结果
+
+  - id: "git_push_branch"
+    name: "Push to feature branch"
+    description: "git push origin ${BRANCH} — 推送到特性分支"
+    category: "git"
+    risk: "low"
+    approval_policy: "never"           # 不需要审批，但会记录
+    command: "git push origin ${BRANCH}"
+    cwd: "${SYNAPSE_WORKSPACE}"
+    timeout: 30
+    evidence_required: false

@@ -24,12 +24,15 @@ class AuthorizationRequestCreate(BaseModel):
 
     project_id: str
     worker_id: str
-    request_type: str = Field(..., pattern=r"^(api_auth|interactive_prompt)$")
+    request_type: str = Field(..., pattern=r"^(api_auth|interactive_prompt|capability_exec)$")
 
     # api_auth 字段组
     operation: str | None = Field(None, max_length=100)
     target_resource_type: str | None = Field(None, max_length=50)
     target_resource_id: str | None = Field(None, max_length=40)
+
+    # capability_exec 字段组（P11-B46）
+    capability_id: str | None = Field(None, max_length=100)
 
     # interactive_prompt 字段组
     prompt_type: str | None = Field(None, pattern=r"^(confirm|choice|input)$")
@@ -92,8 +95,27 @@ class AuthorizationRequestResponse(AuditFields):
     expires_at: datetime
     last_heartbeat_at: datetime
 
+    # capability_exec 字段组（P11-B46）
+    capability_id: str | None = None
+    outcome: str | None = None
+    exit_code: int | None = None
+    duration_ms: int | None = None
+
     # 富化字段（非 ORM，由 endpoint 手动填充）
     worker_name: str | None = None
     responded_by_worker_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Capability Execution Report（P11-B46）
+# ═════════════════════════════════════════════════════════════════════════
+
+
+class AuthorizationRequestReport(BaseModel):
+    """执行结果上报 — Worker 在 capability 执行后调用。"""
+
+    outcome: str = Field(..., pattern=r"^(success|failure)$")
+    exit_code: int
+    duration_ms: int = Field(..., ge=0)

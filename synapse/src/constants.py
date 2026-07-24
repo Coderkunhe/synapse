@@ -213,6 +213,7 @@ class EventType(StrEnum):
     AUTHORIZATION_REQUEST_EXPIRED = "authorization_request.expired"
     AUTHORIZATION_REQUEST_CANCELLED = "authorization_request.cancelled"
     AUTHORIZATION_REQUEST_HEARTBEAT = "authorization_request.heartbeat"
+    AUTHORIZATION_REQUEST_EXECUTED = "authorization_request.executed"  # P11-B46: capability execution reported
 
     # Workflow lifecycle (P10-B24)
     WORKFLOW_CREATED = "workflow.created"

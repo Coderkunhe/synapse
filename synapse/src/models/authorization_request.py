@@ -1,9 +1,10 @@
 """AuthorizationRequest 模型 — 异步授权请求。
 
-议题 3（异步授权管道）数据基础层。双类型单表设计：
+议题 3（异步授权管道）数据基础层。三种类型单表设计：
 
 - **api_auth**: Worker 操作被 403 → 系统自动创建 → 人类审批 → 系统代执行（方案 B）
 - **interactive_prompt**: 系统需人类输入 → 创建 confirm/choice/input 提示 → 人类响应
+- **capability_exec**: Worker 主动请求执行能力 → 人类审批 → Worker 执行 → Worker 上报（P11-B46）
 
 TTL + 心跳确保存活保证。过期/Worker 离线 → 自动 expired/cancelled。
 """
@@ -89,6 +90,24 @@ class AuthorizationRequest(Base, AuditMixin):
     response_data_json: Mapped[str | None] = mapped_column(
         String(2000), nullable=True,
         comment="JSON — choice 选择结果 / input 文本输入 / confirm 时为 null",
+    )
+
+    # ── capability_exec 字段组（request_type=capability_exec 时使用 · P11-B46）──
+    capability_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True,
+        comment="能力 ID — 如 git_push_main",
+    )
+    outcome: Mapped[str | None] = mapped_column(
+        String(20), nullable=True,
+        comment="执行结果 — success | failure",
+    )
+    exit_code: Mapped[int | None] = mapped_column(
+        nullable=True,
+        comment="进程退出码",
+    )
+    duration_ms: Mapped[int | None] = mapped_column(
+        nullable=True,
+        comment="执行耗时（毫秒）",
     )
 
     # ── 存活保证 ──

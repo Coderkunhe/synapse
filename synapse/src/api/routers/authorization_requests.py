@@ -23,6 +23,7 @@ from src.constants import ActorType
 from src.schemas.authorization_request import (
     AuthorizationRequestCreate,
     AuthorizationRequestHeartbeat,
+    AuthorizationRequestReport,
     AuthorizationRequestRespond,
     AuthorizationRequestResponse,
 )
@@ -30,6 +31,7 @@ from src.services.authorization_service import (
     create_authorization_request,
     get_request,
     heartbeat as heartbeat_service,
+    report_execution,
     respond_to_request,
 )
 
@@ -86,6 +88,7 @@ async def create_auth_request(
         prompt_type=body.prompt_type,
         prompt_message=body.prompt_message,
         prompt_choices=body.prompt_choices,
+        capability_id=body.capability_id,
         ttl_seconds=body.ttl_seconds,
         team_id=actor.team_id,
         actor_type=actor.actor_type,
@@ -228,6 +231,42 @@ async def heartbeat_auth_request(
     await db.commit()
 
     return await _to_response(updated, db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# POST /authorization-requests/{request_id}/report
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/authorization-requests/{request_id}/report",
+    response_model=AuthorizationRequestResponse,
+)
+async def report_execution_result(
+    request_id: str,
+    body: AuthorizationRequestReport,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """上报 capability 执行结果 — P11-B46。
+
+    Worker 在 capability 批准并执行后调用此端点。
+    只有请求的拥有者（worker_id == actor.actor_id）可以上报。
+    """
+    record = await report_execution(
+        db,
+        request_id=request_id,
+        worker_id=actor.actor_id,
+        outcome=body.outcome,
+        exit_code=body.exit_code,
+        duration_ms=body.duration_ms,
+        team_id=actor.team_id,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+    )
+    await db.commit()
+
+    return await _to_response(record, db)
 
 
 # ═══════════════════════════════════════════════════════════════════
