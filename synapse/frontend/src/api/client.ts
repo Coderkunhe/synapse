@@ -1199,6 +1199,11 @@ export interface AuthRequestSummary {
   last_heartbeat_at: string
   created_at: string
   updated_at: string
+  // capability_exec 字段组（P11-B49 前端适配）
+  capability_id: string | null
+  outcome: string | null
+  exit_code: number | null
+  duration_ms: number | null
 }
 
 export function fetchAuthRequests(

@@ -369,6 +369,19 @@ export default function Approvals() {
                           </div>
                         )}
                       </div>
+                    ) : item.request_type === 'capability_exec' ? (
+                      <div className={styles.apiAuthDetails}>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>{t('approvals.operation')}</span>
+                          <span className={styles.detailValue}>{humanizeOperation(item.operation)}</span>
+                        </div>
+                        {item.capability_id && (
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>{t('approvals.capability')}</span>
+                            <span className={styles.detailValue}>{item.capability_id}</span>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className={styles.promptDetails}>
                         <p className={styles.promptMessage}>
@@ -527,6 +540,31 @@ export default function Approvals() {
                           )}
                           {item.target_resource_type && (
                             <span className={styles.metaMuted}>{item.target_resource_type}</span>
+                          )}
+                          <span className={styles.metaDivider}>·</span>
+                          <span className={styles.metaMuted}>{item.worker_name || item.worker_id}</span>
+                        </div>
+                      </>
+                    ) : item.request_type === 'capability_exec' ? (
+                      <>
+                        {/* Primary: operation name — the actual action */}
+                        <p className={styles.contentTitle}>
+                          {item.operation || item.capability_id || t('common.noDescription')}
+                        </p>
+                        {/* Secondary: capability_id + outcome + duration */}
+                        <div className={styles.contentMeta}>
+                          {item.capability_id && (
+                            <span className={styles.metaMuted}>{item.capability_id}</span>
+                          )}
+                          {item.outcome && (
+                            <>
+                              <span className={styles.metaDivider}>·</span>
+                              <span className={styles.metaMuted}>
+                                {item.outcome === 'success' ? '✅' : '❌'} {item.outcome}
+                                {item.exit_code != null && ` (exit ${item.exit_code})`}
+                                {item.duration_ms != null && ` · ${item.duration_ms}ms`}
+                              </span>
+                            </>
                           )}
                           <span className={styles.metaDivider}>·</span>
                           <span className={styles.metaMuted}>{item.worker_name || item.worker_id}</span>
