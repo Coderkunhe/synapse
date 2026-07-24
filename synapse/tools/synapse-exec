@@ -152,8 +152,9 @@ substitute_vars() {
     # 替换 ${SYNAPSE_WORKSPACE}
     input="${input//\$\{SYNAPSE_WORKSPACE\}/${SYNAPSE_WORKSPACE:-$PWD}}"
     # 替换 ${BRANCH}（来自 --params 或 git 当前分支）
-    if [[ -n "${PARAM_BRANCH:-}" ]]; then
-        input="${input//\$\{BRANCH\}/${PARAM_BRANCH}}"
+    local branch_val="${SYNAPSE_PARAM_BRANCH:-}"
+    if [[ -n "$branch_val" ]]; then
+        input="${input//\$\{BRANCH\}/${branch_val}}"
     elif [[ "$input" == *'${BRANCH}'* ]]; then
         local branch
         branch=$(git branch --show-current 2>/dev/null || echo "unknown")
@@ -175,7 +176,8 @@ parse_args() {
     REASON=""
     TIMEOUT=120
     TASK_ID=""
-    declare -gA PARAM_MAP=()
+    # 清理上一轮遗留的参数环境变量
+    unset "${!SYNAPSE_PARAM_@}" 2>/dev/null || true
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -184,15 +186,16 @@ parse_args() {
                     echo -e "${RED}❌ --params 需要参数${NC}" >&2
                     exit 1
                 fi
-                # 解析 k=v[,k=v...]
-                IFS=',' read -ra PAIRS <<< "$2"
-                for pair in "${PAIRS[@]}"; do
-                    key="${pair%%=*}"
-                    val="${pair#*=}"
-                    PARAM_MAP["$key"]="$val"
+                # 解析 k=v[,k=v...] → export SYNAPSE_PARAM_<KEY>
+                # 使用 POSIX 兼容方式（避免 bash 4+ associative array）
+                local saved_ifs="$IFS"
+                IFS=','
+                for pair in $2; do
+                    local key="${pair%%=*}"
+                    local val="${pair#*=}"
+                    export "SYNAPSE_PARAM_${key}=${val}"
                 done
-                # 向后兼容: 提取 BRANCH 到 PARAM_BRANCH
-                PARAM_BRANCH="${PARAM_MAP[BRANCH]:-}"
+                IFS="$saved_ifs"
                 shift 2
                 ;;
             --reason)
