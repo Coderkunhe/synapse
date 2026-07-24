@@ -2,7 +2,7 @@
 
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
-> 最后更新：2026-07-19（P10-B47 — P10 全量闭环 · 日期同步）
+> 最后更新：2026-07-23（P100-B87 治理清理 · D-P11-015 登记 · 日期同步）
 
 ---
 
@@ -318,3 +318,25 @@
 - `--yes` 应保留为 UX 层（阻止终端盲打），但合规验证必须在 hook 层做机械检查
 
 **关联经验**: [[V-023 L5 机械复位]]（三次复发 · `--yes` 防呆证明不足 · 🔴 待 P1 升级）
+
+---
+
+## LL18: 授权管道双类型单表设计 — 用 type 字段代替两张表
+
+**背景**: P10-B20~B23 实现了 Authorization Request 管道——Worker 请求 API Key 或角色升级时，需经 Human 审批。设计阶段面临选择：API Key 请求和角色升级请求是否各建一张表？
+
+**决策**: 单表 `authorization_requests` + `request_type` 枚举（`api_key` / `role_escalation`）。两种请求共享相同的生命周期（pending→approved/denied/expired）、相同的心跳机制、相同的审批流程。差异仅在 `requested_role` vs `requested_scopes` 字段——用可选字段 + 类型判别即可。
+
+**核心洞察**:
+- **共享生命周期 > 数据差异**: 当两张表的 CRUD 流程 90% 相同时，单表比双表少一半 Service 代码、少一半 API 端点、少一半测试
+- **心跳作为活性机制**: `last_heartbeat_at` + 定时过期扫描（cron/background task）替代 WebSocket 断线检测——简单、可靠、无状态
+- **级联失效**: 同一 Worker 的新请求自动 expire 旧请求——防止审批队列堆积
+
+**操作原则**:
+- 设计阶段先画状态机，再决定表结构——状态相同的实体大概率可以单表
+- 枚举 `type` 比继承/多态更适合关系型数据库——不需要 ORM 的 polymorphism 支持
+- 可选字段的数量 ≤3 → 单表；≥5 → 考虑拆分
+
+**在 Synapse 中的应用**: AuthorizationRequest 模型（P10-B20）· 心跳/expire/cancel Service（P10-B21）· 审批 API 端点（P10-B22）· 前端审批 UI（P10-B23）
+
+**关联经验**: [[LL16 Batch 拆分在 Plan 阶段]]（P10-B20~B23 四批按数据→Service→API→UI 线性推进）

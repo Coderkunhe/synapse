@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100-B86 违纪回顾 — V-027/V-028 🔴→🟢 闭环 · 26/27 🟢 · 活跃 0",
-  "lastReviewTimestamp": "2026-07-21",
-  "totalViolations": 27,
+  "lastReviewBatch": "P100-B87 违纪回顾 — V-029 状态确认 🟡 · 28/29 🟢 · 39→0 复位",
+  "lastReviewTimestamp": "2026-07-23",
+  "totalViolations": 29,
   "recurringCount": 0,
-  "unguardedCount": 0,
-  "batchesSinceLastReview": 25,
-  "notes": "P100-B86 违纪回顾 — V-027 防呆：B19 幽灵清理 + §13 scope 门禁 · V-028 防呆：G-028 check-hooks.sh · 26/27 🟢 已闭环 · 活跃清零"
+  "unguardedCount": 1,
+  "batchesSinceLastReview": 0,
+  "notes": "P100-B87 违纪回顾 — V-029 唯一活跃项 (🟡 L5 门禁静默绕过 · 已防呆 ✅ pre-commit l5-gate.sh + V-024 启动自检) · 28/29 🟢 已闭环 · 总计 29"
 }
