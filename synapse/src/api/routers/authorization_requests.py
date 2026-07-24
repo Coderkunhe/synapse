@@ -60,13 +60,14 @@ router = APIRouter()
 async def create_auth_request(
     project_id: str,
     body: AuthorizationRequestCreate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(get_current_actor),
     db: AsyncSession = Depends(get_db),
 ):
     """创建授权请求。
 
     人类管理员/组长可以手动创建授权请求。
     系统创建的授权请求（Worker 403 触发）也通过此端点。
+    Worker 可以通过 API key 为自己创建 capability_exec 请求（P11-B47）。
     """
     # 验证 body 中的 project_id 与 URL 一致
     if body.project_id and body.project_id != project_id:
@@ -76,6 +77,16 @@ async def create_auth_request(
         )
 
     project = await get_project_or_404(db, project_id)
+
+    # P11-B47: Worker 自请求 capability_exec → 旁路 role 检查
+    # 其他请求类型（api_auth, interactive_prompt）→ 仍需 admin/lead
+    is_self_capability = (
+        body.request_type == "capability_exec"
+        and body.worker_id
+        and body.worker_id == actor.actor_id
+    )
+    if not is_self_capability:
+        await check_project_role(db, project_id, actor, "admin", "lead")
 
     record = await create_authorization_request(
         db,

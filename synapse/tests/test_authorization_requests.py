@@ -217,10 +217,174 @@ class TestCreateAuthRequest:
         assert resp.status_code == 409
         assert "TOO_MANY_PENDING_REQUESTS" in resp.json()["error"]["code"]
 
+    # ── P11-B47: Worker 自请求 capability_exec ──────────────────
 
-# ═══════════════════════════════════════════════════════════════════
-# GET /projects/{project_id}/authorization-requests
-# ═══════════════════════════════════════════════════════════════════
+    async def test_create_capability_exec_self_request(
+        self, client: AsyncClient, seed, test_project
+    ):
+        """Worker 通过 API key 创建自己的 capability_exec 请求 → 201。
+
+        P11-B47: capability_exec + worker_id==actor.actor_id → 旁路 admin/lead role 检查。
+        这是 Capability MVP 的核心权限模型——Worker 自请求执行能力，不需要人类管理员代为创建。
+        """
+        import hashlib
+        import secrets
+
+        from src.constants import WorkerActorType, WorkerStatus
+        from src.models.worker import Worker
+        from src.utils.id_gen import generate_id
+
+        # 创建带 API key 的 Worker
+        worker_id = generate_id("worker")
+        raw_key = f"sk-syn-{secrets.token_hex(32)}.{worker_id.replace('wor_', '')[-8:]}"
+        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+
+        async with async_session_factory() as db:
+            worker = Worker(
+                id=worker_id,
+                name="B47 Test Agent",
+                team_id=seed.team_id,
+                actor_type=WorkerActorType.AGENT,
+                status=WorkerStatus.ACTIVE,
+                api_key_hash=key_hash,
+            )
+            db.add(worker)
+            await db.commit()
+
+        # Worker 用 API key 为自己创建 capability_exec 请求
+        resp = await client.post(
+            f"/v1/projects/{test_project}/authorization-requests",
+            json={
+                "project_id": test_project,
+                "worker_id": worker_id,
+                "request_type": "capability_exec",
+                "capability_id": "git_push_main",
+                "operation": "git.push",
+                "prompt_message": "P11-B47 狗粮验证完成",
+            },
+            headers=auth_header(raw_key),
+        )
+        assert resp.status_code == 201, resp.text
+        data = resp.json()
+        assert data["request_type"] == "capability_exec"
+        assert data["worker_id"] == worker_id
+        assert data["capability_id"] == "git_push_main"
+        assert data["status"] == "pending"
+
+    async def test_create_capability_exec_for_other_worker_forbidden(
+        self, client: AsyncClient, seed, test_project, test_worker
+    ):
+        """Worker 为其他 Worker 创建 capability_exec → 403。
+
+        P11-B47: 只有 worker_id==actor.actor_id 才旁路 role 检查。
+        为其他 Worker 创建 capability_exec 仍需 admin/lead。
+        """
+        import hashlib
+        import secrets
+
+        from src.constants import WorkerActorType, WorkerStatus
+        from src.models.worker import Worker
+        from src.utils.id_gen import generate_id
+
+        worker_id = generate_id("worker")
+        raw_key = f"sk-syn-{secrets.token_hex(32)}.{worker_id.replace('wor_', '')[-8:]}"
+        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+
+        async with async_session_factory() as db:
+            worker = Worker(
+                id=worker_id,
+                name="B47 Other Agent",
+                team_id=seed.team_id,
+                actor_type=WorkerActorType.AGENT,
+                status=WorkerStatus.ACTIVE,
+                api_key_hash=key_hash,
+            )
+            db.add(worker)
+            await db.commit()
+
+        # Worker 尝试为 test_worker（另一个 Worker）创建 capability_exec
+        resp = await client.post(
+            f"/v1/projects/{test_project}/authorization-requests",
+            json={
+                "project_id": test_project,
+                "worker_id": test_worker,  # ← 不是自己
+                "request_type": "capability_exec",
+                "capability_id": "git_push_main",
+                "operation": "git.push",
+            },
+            headers=auth_header(raw_key),
+        )
+        assert resp.status_code == 403, resp.text
+
+    async def test_create_api_auth_as_worker_forbidden(
+        self, client: AsyncClient, seed, test_project
+    ):
+        """Worker 创建 api_auth 请求 → 403。
+
+        P11-B47: 非 capability_exec 类型不享受自请求旁路。
+        Worker 仍需 admin/lead role 才能创建 api_auth 请求。
+        （api_auth 由系统的 _trigger_authorization_flow 自动创建，Worker 不应手动创建）
+        """
+        import hashlib
+        import secrets
+
+        from src.constants import WorkerActorType, WorkerStatus
+        from src.models.worker import Worker
+        from src.utils.id_gen import generate_id
+
+        worker_id = generate_id("worker")
+        raw_key = f"sk-syn-{secrets.token_hex(32)}.{worker_id.replace('wor_', '')[-8:]}"
+        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+
+        async with async_session_factory() as db:
+            worker = Worker(
+                id=worker_id,
+                name="B47 No Role Agent",
+                team_id=seed.team_id,
+                actor_type=WorkerActorType.AGENT,
+                status=WorkerStatus.ACTIVE,
+                api_key_hash=key_hash,
+            )
+            db.add(worker)
+            await db.commit()
+
+        resp = await client.post(
+            f"/v1/projects/{test_project}/authorization-requests",
+            json={
+                "project_id": test_project,
+                "worker_id": worker_id,
+                "request_type": "api_auth",
+                "operation": "test.no_role",
+            },
+            headers=auth_header(raw_key),
+        )
+        assert resp.status_code == 403, resp.text
+
+    async def test_create_capability_exec_as_admin_for_worker(
+        self, client: AsyncClient, seed, test_project, test_worker
+    ):
+        """人类 admin 为 Worker 创建 capability_exec → 201。
+
+        P11-B47: admin/lead 角色不受影响——仍可创建任何类型的授权请求，
+        包括为 Worker 创建 capability_exec。
+        """
+        resp = await client.post(
+            f"/v1/projects/{test_project}/authorization-requests",
+            json={
+                "project_id": test_project,
+                "worker_id": test_worker,
+                "request_type": "capability_exec",
+                "capability_id": "git_push_main",
+                "operation": "git.push",
+                "prompt_message": "Admin 为 Worker 创建的能力执行请求",
+            },
+            headers=auth_header(seed.token),
+        )
+        assert resp.status_code == 201, resp.text
+        data = resp.json()
+        assert data["request_type"] == "capability_exec"
+        assert data["worker_id"] == test_worker
+        assert data["capability_id"] == "git_push_main"
 
 
 class TestListAuthRequests:
