@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B55 ✅ Worker 角色围栏服务端强制 — GAP-7 · 3 files · 630 tests
-last_batch: P11-B55
-next_batch: P11-B56
-description: Synapse 主项目 — B55 ✅ 角色围栏 · require_permission 5端点 · PERMISSION_MAP +2 key · 630 tests
+phase: P11-B56 ✅ Tier 2 端点 require_permission 迁移 — GAP-7 · 9 files · 630 tests
+last_batch: P11-B56
+next_batch: P11-B57
+description: Synapse 主项目 — B56 ✅ Tier 2 迁移 · 9 端点 require_permission · 3 resolver patterns · 630 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B55 ✅ 角色围栏 · require_permission 5�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B87 | **P100-B88** 🔜 | B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢）· B87 ✅ 治理清理（违纪回顾 39→0 + 3doc 日期刷新 Jul 19→23 + D-P11-015 LL18 登记） |
-| **P11** | P11-B55 | **P11-B56** 🔜 | B1-B55 ✅ · B55 Worker 角色围栏 (GAP-7) · require_permission 5端点 · 630 tests |
+| **P11** | P11-B56 | **P11-B57** 🔜 | B1-B56 ✅ · B56 Tier 2 迁移 (GAP-7) · 9 端点 require_permission · 630 tests |
 
 ## P11 路线图：多 Agent 接入战
 
