@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# commit-msg wrapper — chains commit message validation gates
+# Framework: .git/hooks/commit-msg → ../../synapse/tools/commit-msg (symlink)
+#
+# Stage pipeline:
+#   1. Commit prefix check — feat(synapse): / feat(glasscortex): 前缀门禁
+#   2. Batch sequence check (GAP-4 · P100-B92) — 批次顺序机械校验
+#
+# Install: ln -sf ../../synapse/tools/commit-msg .git/hooks/commit-msg
+
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+COMMIT_MSG_FILE="${1:-}"
+
+if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "❌ commit-msg: 缺少 commit message 文件参数"
+  exit 1
+fi
+
+# ── Stage 1: Commit prefix check ──────────────────────────
+PREFIX_CHECK="$HOOK_DIR/check-commit-prefix.sh"
+if [ -x "$PREFIX_CHECK" ]; then
+  "$PREFIX_CHECK" "$COMMIT_MSG_FILE" || exit 1
+fi
+
+# ── Stage 2: Batch sequence check (GAP-4 · P100-B92) ──────
+# 检测 commit message 中的 Batch 编号是否匹配 next_batch
+BATCH_SEQ="$HOOK_DIR/check-batch-sequence.sh"
+if [ -x "$BATCH_SEQ" ]; then
+  "$BATCH_SEQ" "$COMMIT_MSG_FILE" || exit 1
+fi
+
+exit 0
