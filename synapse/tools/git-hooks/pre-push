@@ -29,20 +29,25 @@ echo "🛡️  Synapse: 推送到 ${BRANCH} 需要审批"
 echo ""
 
 # ── 收集即将 push 的 commit 信息 ──
-# 尝试两种策略: (1) rebase 场景: @{u}..HEAD (2) 无 upstream: 最近 5 个 commit
+# 格式化为 Bullet 列表，审批卡片直接可读
 COMMIT_INFO=""
 if git rev-parse "@{u}" &>/dev/null 2>&1; then
-    COMMIT_INFO=$(git log --oneline "@{u}..HEAD" 2>/dev/null | head -5)
+    COMMIT_LIST=$(git log --oneline "@{u}..HEAD" 2>/dev/null | head -10)
+else
+    COMMIT_LIST=$(git log --oneline -5 2>/dev/null)
 fi
-if [[ -z "$COMMIT_INFO" ]]; then
-    COMMIT_INFO=$(git log --oneline -5 2>/dev/null)
+if [[ -n "$COMMIT_LIST" ]]; then
+    # 每行前加 "• "，变成可读列表
+    while IFS= read -r line; do
+        COMMIT_INFO="${COMMIT_INFO}  • ${line}\n"
+    done <<< "$COMMIT_LIST"
+    COMMIT_INFO="${COMMIT_INFO%\\n}"  # 去尾部换行
 fi
 
-# 拼接成 reason: 分行显示 commits
-REASON="git push ${BRANCH} → ${URL}"
+# 拼接完整 prompt
+REASON="Push to ${BRANCH}\nRemote: ${URL}"
 if [[ -n "$COMMIT_INFO" ]]; then
-    # 用 \n 分隔，让审批卡片更可读
-    REASON="${REASON}\n\n${COMMIT_INFO}"
+    REASON="${REASON}\n\nCommits:\n${COMMIT_INFO}"
 fi
 
 # 调用 synapse-exec — 内部完成 请求→审批→执行→上报

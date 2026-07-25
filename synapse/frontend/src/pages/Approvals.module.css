@@ -140,6 +140,8 @@ code.detailValue {
   color: var(--gm-text, #f1f5f9);
   line-height: 1.5;
   margin: 0;
+  white-space: pre-wrap;
+  font-family: var(--gm-font-mono, 'SF Mono', 'Fira Code', monospace);
 }
 
 .promptTypeTag {
