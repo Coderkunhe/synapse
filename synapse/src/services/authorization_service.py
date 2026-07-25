@@ -33,6 +33,28 @@ from src.utils.id_gen import generate_id
 # ── 查询辅助 ──────────────────────────────────────────────────────
 
 
+async def find_pending_duplicate(
+    db: AsyncSession,
+    worker_id: str,
+    capability_id: str,
+) -> AuthorizationRequest | None:
+    """查找同 worker + capability 是否已有 pending 请求（P11-B50 去重）。
+
+    用于 capability_exec 类型创建前的幂等检查。
+    """
+    result = await db.execute(
+        select(AuthorizationRequest).where(
+            AuthorizationRequest.worker_id == worker_id,
+            AuthorizationRequest.capability_id == capability_id,
+            AuthorizationRequest.status == "pending",
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+# ── 查询辅助 ──────────────────────────────────────────────────────
+
+
 async def get_pending_count(
     db: AsyncSession,
     worker_id: str,

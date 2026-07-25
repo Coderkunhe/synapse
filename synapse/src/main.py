@@ -10,7 +10,9 @@ from fastapi.openapi.utils import get_openapi
 from src.api.router import api_router
 from src.api.routers.ws import websocket_endpoint
 from src.config import settings
+from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
+from src.services.authorization_service import expire_stale_requests
 from src.services.ws_manager import ws_manager
 
 
@@ -27,14 +29,40 @@ async def _ws_reaper() -> None:
             pass
 
 
+# ── Background task: expire stale authorization requests (P11-B50) ──────────
+
+
+async def _auth_expiry_reaper() -> None:
+    """Periodically expire stale authorization requests.
+
+    Calls expire_stale_requests() on its own DB session.
+    Runs every auth_expiry_interval_seconds (default 30s).
+    """
+    interval = settings.auth_expiry_interval_seconds
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            async with async_session_factory() as db:
+                count = await expire_stale_requests(db)
+                await db.commit()
+                if count > 0:
+                    import logging
+                    logger = logging.getLogger("synapse")
+                    logger.info("Expired %d stale authorization request(s)", count)
+        except Exception:
+            pass
+
+
 _reaper_task: asyncio.Task | None = None
+_expiry_reaper_task: asyncio.Task | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
-    global _reaper_task
+    global _reaper_task, _expiry_reaper_task
     _reaper_task = asyncio.create_task(_ws_reaper())
+    _expiry_reaper_task = asyncio.create_task(_auth_expiry_reaper())
     yield
     # P11-B23: 优雅关闭 — 通知所有 WS 客户端后断开
     await ws_manager.graceful_shutdown()
@@ -42,6 +70,12 @@ async def lifespan(app: FastAPI):
         _reaper_task.cancel()
         try:
             await _reaper_task
+        except asyncio.CancelledError:
+            pass
+    if _expiry_reaper_task:
+        _expiry_reaper_task.cancel()
+        try:
+            await _expiry_reaper_task
         except asyncio.CancelledError:
             pass
 

@@ -12,6 +12,7 @@ P10-B22: 议题 3 授权管道 API 层首次落地。
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,7 @@ from src.schemas.authorization_request import (
 )
 from src.services.authorization_service import (
     create_authorization_request,
+    find_pending_duplicate,
     get_request,
     heartbeat as heartbeat_service,
     report_execution,
@@ -87,6 +89,15 @@ async def create_auth_request(
     )
     if not is_self_capability:
         await check_project_role(db, project_id, actor, "admin", "lead")
+
+    # P11-B50: capability_exec 去重 — 同 worker + capability 已有 pending 则返回已有
+    if body.request_type == "capability_exec" and body.capability_id:
+        existing = await find_pending_duplicate(
+            db, body.worker_id or actor.actor_id, body.capability_id
+        )
+        if existing:
+            data = await _to_response(existing, db)
+            return JSONResponse(content=data.model_dump(mode="json"), status_code=200)
 
     record = await create_authorization_request(
         db,

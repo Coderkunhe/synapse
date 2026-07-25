@@ -95,6 +95,9 @@ class Settings(BaseSettings):
     # Feature flags (S-015 极简模式)
     features: FeaturesConfig = FeaturesConfig()
 
+    # Authorization request expiry scheduler (P11-B50)
+    auth_expiry_interval_seconds: int = 30
+
     # WebSocket (P11-B23: 生产加固)
     ws_max_connections: int = 200
     ws_max_message_size: int = 65536  # 64 KB
