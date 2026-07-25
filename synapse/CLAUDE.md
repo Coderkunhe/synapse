@@ -1,11 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B52 ✅ Skill 模板更新 · B53 🔜 L5 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B52 ✅ Skill 模板更新 · L5 B51→B52 拉通完成）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P11-B50→B51 拉通完成（2026-07-25）— 零 drift · B50 auth expiry + dedup · B51 shell_dangerous + force_push · 计数器复位
+> 🔄 L5 P11-B51→B52 拉通完成（2026-07-25）— 零 drift · B51 shell+force_push · B52 Skill 模板 Capability Authorization · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 

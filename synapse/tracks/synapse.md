@@ -3,7 +3,7 @@ project: synapse
 phase: P11-B52 ✅ Skill 模板更新 — Capability Authorization · 0 drift
 last_batch: P11-B52
 next_batch: P11-B53
-description: Synapse 主项目 — B52 ✅ Skill 模板 Capability Authorization 章节 · B53 🔜 L5 拉通 · 630 tests
+description: Synapse 主项目 — B52 ✅ Skill 模板 Capability Authorization · L5 B51→B52 ✅ · 630 tests
 ---
 
 # Synapse 轨道
