@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-25（P11-B49 ✅ git pre-push hook · L5 B46→B49 拉通 · B50 🔜 Skill 模板更新）
+> 最后更新：2026-07-25（P11-B51 ✅ shell_dangerous + force_push · L5 B50→B51 拉通 · B52 🔜 Skill 模板更新）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -119,6 +119,8 @@
 | **P11-B47** | **Worker 自请求 capability_exec 权限旁路** — require_project_role→get_current_actor + inline 条件 · capability_exec+self→放行 · 其他→admin/lead · 🟢 微型 · 2 files · +179/-4 · 630 tests | ✅ |
 | **P11-B48** | **synapse-exec CLI** — 497 行 bash · 请求→审批→执行→上报全链路 · env+keychain 身份解析 · 轮询等待 · subprocess 执行 · 证据上报 · 🟡 标准 · 2 files · +499/-5 | ✅ |
 | **P11-B49** | **git pre-push hook** — hook 模板 + synapse-exec --install-hook · Approval 前端 capability_exec 渲染适配 · 🟢 微型 · 3 files · +172/-5 | ✅ |
+| **P11-B50** | **Auth expiry scheduler + capability_exec 去重** — _auth_expiry_reaper 后台任务 · find_pending_duplicate 幂等 · 🟢 微型 · 4 files · +71/-1 | ✅ |
+| **P11-B51** | **shell_dangerous + git_force_push 能力定义** — 19 黑名单 + 11 保护路径 · check_shell_blacklist() 客户端匹配 · 🟡 标准 · 4 files · +933/-9 | ✅ |
 
 ---
 
