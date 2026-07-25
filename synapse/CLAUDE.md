@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P100-B90 ✅ GAP-6 pre-push硬化 + GAP-10 依赖门禁 · L5 B89→B90 拉通完成 · 4/7 GAP 闭环）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P100-B91 ✅ GAP-2 质量三板斧机械门禁 + GAP-3 checkpoint新鲜度门禁 · 5/7 GAP 闭环）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B89→B90 拉通完成（2026-07-25）— 零 drift · B90 GAP-6 pre-push硬化 ✅ · GAP-10 依赖门禁 ✅ · 4/7 GAP 闭环 · 计数器复位
+> 🔄 L5 P100-B89→B90 拉通完成（2026-07-25）— 零 drift · B90 GAP-6 pre-push硬化 ✅ · GAP-10 依赖门禁 ✅ · B91 GAP-2+GAP-3 ✅ · 5/7 GAP 闭环 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -645,9 +645,10 @@ synapse/
 - P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
 - P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
 - P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B89 ✅ · 🎉 GAP-1+GAP-5 双项闭环
+- P100：治理段 B1-B91 ✅ · 🎉 GAP-1/2/3/5/6/10 闭环 · 5/7 GAP
 
 **最近批次**：
+- **P100-B91**：GAP-2+GAP-3 质量三板斧+checkpoint门禁 ✅ — check-quality-gate.sh + check-checkpoint-freshness.sh · pre-commit Stage 6+7 · 6 files · 5/7 GAP 闭环
 - **P100-B90**：GAP-6+GAP-10 双 GAP 闭环 ✅ — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
 - **P100-B89**：GAP-5 日报缺失阻断 ✅ — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
 - **P100-B88**：GAP-1 ≤8文件硬阻断 ✅ — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
