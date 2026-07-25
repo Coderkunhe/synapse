@@ -39,15 +39,15 @@ fi
 if [[ -n "$COMMIT_LIST" ]]; then
     # 每行前加 "• "，变成可读列表
     while IFS= read -r line; do
-        COMMIT_INFO="${COMMIT_INFO}  • ${line}\n"
+        COMMIT_INFO="${COMMIT_INFO}  • ${line}"$'\n'
     done <<< "$COMMIT_LIST"
-    COMMIT_INFO="${COMMIT_INFO%\\n}"  # 去尾部换行
+    COMMIT_INFO="${COMMIT_INFO%$'\n'}"  # 去尾部换行
 fi
 
 # 拼接完整 prompt
-REASON="Push to ${BRANCH}\nRemote: ${URL}"
+REASON="Push to ${BRANCH}"$'\n'"Remote: ${URL}"
 if [[ -n "$COMMIT_INFO" ]]; then
-    REASON="${REASON}\n\nCommits:\n${COMMIT_INFO}"
+    REASON="${REASON}"$'\n\n'"Commits:"$'\n'"${COMMIT_INFO}"
 fi
 
 # 调用 synapse-exec — 内部完成 请求→审批→执行→上报

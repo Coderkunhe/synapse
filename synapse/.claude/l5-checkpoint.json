@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B46→B49 L5 拉通 — 📄 requirements-log.md +B49 · 📄 roadmap.md +B49 · 📄 daily 新建 · 📄 CLAUDE.md header+L5+状态+最近批次 更新 · 零 drift · 计数器复位",
+  "lastL5Batch": "B46→B49 收尾 L5 — P-047 bash \n 修复 · pitfalls.md ✅ · pre-push ANSI-C · 零 drift",
   "lastL5Timestamp": "2026-07-25",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B46→B49 L5 拉通 — B49 git pre-push hook + frontend capability_exec 适配 + branch name fix · 全链路测试通过",
-  "notes": "L5 拉通完成，计数器复位"
+  "lastL5Evidence": "B46→B49 收尾 L5 — 📄 pitfalls.md P-047 ✅ · 📄 tools/git-hooks/pre-push 4处 ANSI-C · 📄 CLAUDE.md header+状态 更新 · 零 drift · 计数器复位",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
