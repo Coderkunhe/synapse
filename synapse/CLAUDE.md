@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B52 ✅ Skill 模板更新 · L5 B49→B52 拉通完成）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B55 ✅ Worker 角色围栏 · L5 B53→B55 拉通完成）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B49→B52 拉通完成（2026-07-25）— 零 drift · B49 pre-push hook · B50 auth expiry+dedup · B51 shell+force_push · B52 Skill 模板 · 计数器复位
+> 🔄 L5 P11-B53→B55 拉通完成（2026-07-25）— 零 drift · B53 狗粮验证 (PFL-047/048/049) · B54 缺口修复 · B55 Worker 角色围栏 (GAP-7) · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -598,6 +598,9 @@ synapse/
 - **P11-B50 ✅**：Auth expiry scheduler + capability_exec 去重 — _auth_expiry_reaper 后台任务 · find_pending_duplicate 幂等检查 · 🟢 微型 · 4 files · commit `a8be584`
 - **P11-B52 ✅**：Skill 模板更新 — Capability Authorization 章节 — _protocol.md §13 + 3 SKILL.md 刷新 · 🟡 标准 · 4 files · 纯文档
 - **P11-B51 ✅**：shell_dangerous + git_force_push 能力定义 — 19 黑名单 + 11 保护路径 · check_shell_blacklist() 客户端匹配 · 🟡 标准 · 4 files · commit `0b0e78b`
+- **P11-B53 ✅**：狗粮验证 — Capability MVP 全链路 · 双 Worker 协作 · PFL-047/048/049 发现 · 🟢 微型 · 0 code files
+- **P11-B54 ✅**：缺口修复 — PFL-047/048 L1+L2 · _protocol.md §13.4.1 审批角色表 · synapse-exec Human提示+审计 · 🟡 标准 · 3 files · commit `79b0715`
+- **P11-B55 ✅**：Worker 角色围栏服务端强制 (GAP-7) — require_permission 5端点 · task:update+task:terminate PERMISSION_MAP · ensure_project_role · 🟡 标准 · 9 files · 630 tests · commit `2ecd30c`
 - **P11-B48 ✅**：synapse-exec CLI — 497 行 bash · 请求→审批→执行→上报全链路 · 🟡 标准 · 2 files · commits `1b4a7d3` + `e9fa479`
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
@@ -642,6 +645,9 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B55**：Worker 角色围栏 (GAP-7) ✅ — require_permission 5端点 · task:update+task:terminate PERMISSION_MAP · 9 files · 630 tests
+- **P11-B54**：缺口修复 ✅ — PFL-047/048 L1+L2 · _protocol.md §13.4.1 审批角色表 · 3 files
+- **P11-B53**：狗粮验证 ✅ — Capability MVP 全链路 · PFL-047/048/049 发现 · 0 code files
 - **P11-B52**：Skill 模板更新 ✅ — Capability Authorization 章节 · _protocol.md §13 + 3 SKILL.md · 🟡 标准 · 4 files
 - **P11-B51**：shell_dangerous + git_force_push ✅ — 19 黑名单 + 11 保护路径 · check_shell_blacklist() · 🟡 标准 · 4 files
 - **P11-B50**：Auth expiry scheduler + capability_exec 去重 ✅ — _auth_expiry_reaper + find_pending_duplicate · 🟢 微型 · 4 files
