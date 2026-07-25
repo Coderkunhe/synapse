@@ -36,6 +36,8 @@ help: ## 显示所有可用 target
 	@echo "    make check-db-consistency  DB ↔ docs 一致性检查（警告级）"
 	@echo "    make check-role-isolation  角色隔离观测门禁（ADR-006 S1-S3/S7，警告级）"
 	@echo "    make check-hooks         Git hooks 完整性检测（V-028 防呆 — 新 clone 后必检）"
+	@echo "    make check-quality-gate  质量三板斧机械门禁（GAP-2 — 代码变更需自检文件）"
+	@echo "    make check-checkpoint-freshness  Checkpoint 新鲜度门禁（GAP-3 — 今日更新检查）"
 	@echo "    make check-tests         测试门禁（pytest）"
 	@echo "    make check-types         Python 类型检查（mypy — V-004 防呆）"
 	@echo "    make check-frontend      前端门禁（oxlint + tsc typecheck）"
@@ -47,7 +49,7 @@ help: ## 显示所有可用 target
 	@echo "    make db-sync     从 DB 导出 Batch 状态到 docs/batch-status.md"
 	@echo ""
 
-check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-types check-tests ## 完整门禁
+check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-quality-gate check-checkpoint-freshness check-types check-tests ## 完整门禁
 	@echo ""
 	@echo "✅ 门禁全部通过"
 
@@ -154,6 +156,12 @@ check-role-isolation: ## 角色隔离观测门禁（ADR-006 S1-S3/S7，警告级
 
 check-hooks: ## Git hooks 完整性检测（V-028 防呆 — 新 clone/迁库后首次 make check 即可发现）
 	@bash tools/check-hooks.sh
+
+check-quality-gate: ## 质量三板斧机械门禁（GAP-2 · G-030 — 代码变更需自检文件）
+	@bash tools/check-quality-gate.sh
+
+check-checkpoint-freshness: ## Checkpoint 新鲜度门禁（GAP-3 · G-031 — memory/active 今日更新检查）
+	@bash tools/check-checkpoint-freshness.sh
 
 contracts-baseline: ## 生成/更新 API 契约基线快照
 	@PYTHONPATH=. .venv/bin/python tools/_gen_contracts_baseline.py
