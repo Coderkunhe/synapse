@@ -163,6 +163,11 @@ substitute_vars() {
         branch=$(git branch --show-current 2>/dev/null || echo "unknown")
         input="${input//\$\{BRANCH\}/${branch}}"
     fi
+    # B51: 替换 ${SHELL_COMMAND}（来自 --params SHELL_COMMAND=...）
+    local shell_cmd="${SYNAPSE_PARAM_SHELL_COMMAND:-}"
+    if [[ -n "$shell_cmd" ]]; then
+        input="${input//\$\{SHELL_COMMAND\}/${shell_cmd}}"
+    fi
     echo "$input"
 }
 
@@ -279,6 +284,9 @@ fetch_and_match_capability() {
     CAP_CWD=$(echo "$matched" | jq -r '.cwd // empty')
     CAP_TIMEOUT=$(echo "$matched" | jq -r '.timeout')
     CAP_EVIDENCE=$(echo "$matched" | jq -r '.evidence_required')
+    # B51: shell_dangerous 黑名单（JSON array → bash 变量）
+    CAP_DANGEROUS_PATTERNS=$(echo "$matched" | jq -r '.dangerous_patterns // empty | join("\n")')
+    CAP_PROTECTED_PATHS=$(echo "$matched" | jq -r '.protected_paths // empty | join("\n")')
 
     # 变量替换
     CAP_COMMAND=$(substitute_vars "$CAP_COMMAND")
@@ -485,6 +493,47 @@ report_evidence() {
     echo -e "${icon} 结果已上报 (${outcome} · exit=${EXIT_CODE} · ${DURATION_MS}ms)"
 }
 
+# ── Shell 黑名单检查（B51）──
+# 对 shell_dangerous 能力，检查 SHELL_COMMAND 是否匹配危险模式
+# 返回: 0 = 危险（需要审批）· 1 = 安全（直接执行）
+# 算法: 逐行子串匹配 — dangerous_patterns 任一命中 → 危险
+#       protected_paths 任一命中 → 危险
+
+check_shell_blacklist() {
+    local shell_cmd="${SYNAPSE_PARAM_SHELL_COMMAND:-}"
+
+    if [[ -z "$shell_cmd" ]]; then
+        echo -e "${RED}❌ shell_dangerous 需要 --params SHELL_COMMAND=\"...\"${NC}" >&2
+        exit 1
+    fi
+
+    # 检查 dangerous_patterns（子串匹配）
+    if [[ -n "$CAP_DANGEROUS_PATTERNS" ]]; then
+        while IFS= read -r pattern; do
+            [[ -z "$pattern" ]] && continue
+            # 子串匹配（case-insensitive 前缀）
+            if [[ "$shell_cmd" == *"$pattern"* ]]; then
+                echo -e "${YELLOW}⚠️  命中危险模式: ${BOLD}${pattern}${NC}" >&2
+                return 0  # 危险 → 需要审批
+            fi
+        done <<< "$CAP_DANGEROUS_PATTERNS"
+    fi
+
+    # 检查 protected_paths（子串匹配）
+    if [[ -n "$CAP_PROTECTED_PATHS" ]]; then
+        while IFS= read -r pattern; do
+            [[ -z "$pattern" ]] && continue
+            if [[ "$shell_cmd" == *"$pattern"* ]]; then
+                echo -e "${YELLOW}⚠️  命中保护路径: ${BOLD}${pattern}${NC}" >&2
+                return 0  # 危险 → 需要审批
+            fi
+        done <<< "$CAP_PROTECTED_PATHS"
+    fi
+
+    # 安全命令
+    return 1
+}
+
 # ── Hook 安装 ──
 # 将 pre-push hook 模板安装到目标 git 仓库的 .git/hooks/pre-push
 
@@ -575,19 +624,38 @@ main() {
     echo -e "  风险: ${CAP_RISK} · 策略: ${CAP_POLICY} · 执行超时: ${CAP_TIMEOUT}s"
     echo ""
 
-    # ── Step 3: 创建授权请求 ──
-    create_auth_request
+    # ── Step 3: Shell 黑名单检查（仅 shell_dangerous）──
+    SHELL_SAFE=0
+    if [[ "$CAP_ID" == "shell_dangerous" ]]; then
+        if check_shell_blacklist; then
+            echo -e "${YELLOW}🛡️  命令需审批 — 已命中黑名单${NC}"
+            echo ""
+        else
+            echo -e "${GREEN}✅ 命令安全 — 直接执行${NC}"
+            echo ""
+            SHELL_SAFE=1
+        fi
+    fi
 
-    # ── Step 4: 等待审批 ──
-    wait_approval || {
-        local wait_rc=$?
-        exit $wait_rc
-    }
+    # ── Step 4: 创建授权请求 ──
+    if [[ "$SHELL_SAFE" -eq 1 ]]; then
+        AUTH_ID=""  # 安全命令不创建授权请求
+    else
+        create_auth_request
+    fi
 
-    # ── Step 5: 执行能力 ──
+    # ── Step 5: 等待审批 ──
+    if [[ "$SHELL_SAFE" -eq 0 ]]; then
+        wait_approval || {
+            local wait_rc=$?
+            exit $wait_rc
+        }
+    fi
+
+    # ── Step 6: 执行能力 ──
     execute_capability "$CAP_COMMAND" "${CAP_CWD:-$PWD}"
 
-    # ── Step 6: 上报证据 ──
+    # ── Step 7: 上报证据 ──
     report_evidence
 
     echo ""

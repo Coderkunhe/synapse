@@ -24,3 +24,69 @@ capabilities:
     cwd: "${SYNAPSE_WORKSPACE}"
     timeout: 30
     evidence_required: false
+
+  # ── B51: shell_dangerous + git_force_push ──
+
+  - id: "shell_dangerous"
+    name: "Dangerous Shell Command"
+    description: "Execute a potentially dangerous shell command — matched against blacklist, requires approval"
+    category: "shell"
+    risk: "critical"
+    approval_policy: "always"          # 危险命令每次需要审批，安全命令直接放行
+    command: "${SHELL_COMMAND}"        # 实际命令由 --params SHELL_COMMAND=... 传入
+    cwd: "${SYNAPSE_WORKSPACE}"
+    timeout: 120
+    evidence_required: true
+    dangerous_patterns:
+      # 破坏性删除 / 系统破坏
+      - "rm -rf /"
+      - "rm -rf ~"
+      - "rm -fr /"
+      - "sudo rm"
+      # 权限提升 / 权限放宽
+      - "chmod 777"
+      - "chmod -R 777"
+      - "chown -R /"
+      # 远程代码执行（curl/wget pipe shell）
+      - "curl | bash"
+      - "curl | sh"
+      - "wget | bash"
+      - "wget | sh"
+      - "eval curl"
+      - "eval wget"
+      # 磁盘 / 文件系统破坏
+      - "> /dev/sd"
+      - "dd if="
+      - "mkfs."
+      - "> /etc/"
+      - ">> /etc/"
+      # fork bomb
+      - ":(){ :|:& };:"
+    protected_paths:
+      # SSH / 密钥文件
+      - "~/.ssh/"
+      - "id_rsa"
+      - "id_ed25519"
+      - "*.pem"
+      - "*.key"
+      # 云凭证
+      - "~/.aws/"
+      - "~/.gnupg/"
+      # 环境配置
+      - ".env"
+      # 系统敏感文件
+      - "/etc/passwd"
+      - "/etc/shadow"
+      # Git 配置
+      - "~/.gitconfig"
+
+  - id: "git_force_push"
+    name: "Force Push to Branch"
+    description: "git push --force origin ${BRANCH} — 强制推送覆盖远程历史"
+    category: "git"
+    risk: "critical"
+    approval_policy: "always"          # force push 每次需要审批
+    command: "git push --force origin ${BRANCH}"
+    cwd: "${SYNAPSE_WORKSPACE}"
+    timeout: 60
+    evidence_required: true

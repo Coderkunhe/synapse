@@ -21,5 +21,7 @@ class CapabilityResponse(BaseModel):
     cwd: str | None = None
     timeout: int = 60
     evidence_required: bool = False
+    dangerous_patterns: list[str] | None = None  # B51: shell_dangerous 黑名单
+    protected_paths: list[str] | None = None     # B51: shell_dangerous 保护路径
 
     model_config = {"from_attributes": False}
