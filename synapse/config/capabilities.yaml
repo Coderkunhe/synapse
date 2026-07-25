@@ -9,7 +9,7 @@ capabilities:
     category: "git"
     risk: "critical"
     approval_policy: "always"          # always | once_per_session | never
-    command: "git push origin main"
+    command: "git push origin ${BRANCH}"
     cwd: "${SYNAPSE_WORKSPACE}"        # 从环境变量注入
     timeout: 60
     evidence_required: true            # 执行后必须上报结果

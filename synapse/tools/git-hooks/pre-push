@@ -30,4 +30,4 @@ echo ""
 
 # 调用 synapse-exec — 内部完成 请求→审批→执行→上报
 # synapse-exec 返回非零 → git push 被阻断
-synapse-exec git_push_main --reason "git push ${BRANCH} → ${URL}"
+synapse-exec git_push_main --params BRANCH="${BRANCH}" --reason "git push ${BRANCH} → ${URL}"

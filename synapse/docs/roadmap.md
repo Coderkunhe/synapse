@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-24（P11-B48 ✅ synapse-exec CLI · L5 B46→B48 拉通 · B49 🔜 git pre-push hook）
+> 最后更新：2026-07-25（P11-B49 ✅ git pre-push hook · L5 B46→B49 拉通 · B50 🔜 Skill 模板更新）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -118,6 +118,7 @@
 | **P11-B46** | **Capability MVP 基础设施** — capabilities.yaml · GET /capabilities 端点 · AuthorizationRequest +4 字段 · capability_exec request_type · POST /report 端点 · report_execution service · Alembic migration · 🔴 大型 · 11 files · +333/-3 · 626 tests | ✅ |
 | **P11-B47** | **Worker 自请求 capability_exec 权限旁路** — require_project_role→get_current_actor + inline 条件 · capability_exec+self→放行 · 其他→admin/lead · 🟢 微型 · 2 files · +179/-4 · 630 tests | ✅ |
 | **P11-B48** | **synapse-exec CLI** — 497 行 bash · 请求→审批→执行→上报全链路 · env+keychain 身份解析 · 轮询等待 · subprocess 执行 · 证据上报 · 🟡 标准 · 2 files · +499/-5 | ✅ |
+| **P11-B49** | **git pre-push hook** — hook 模板 + synapse-exec --install-hook · Approval 前端 capability_exec 渲染适配 · 🟢 微型 · 3 files · +172/-5 | ✅ |
 
 ---
 

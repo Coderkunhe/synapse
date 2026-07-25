@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-24（P11-B48 ✅ synapse-exec CLI · L5 B46→B48 拉通 · B49 🔜 git pre-push hook）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B49 ✅ git pre-push hook · L5 B46→B49 拉通 · B50 🔜 Skill 模板更新）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -16,6 +16,7 @@
 > 🔄 L5 P11-B44→B45 拉通完成（2026-07-24）— 零 drift · B45 环境就绪 · 双 Worker SKILL.md 刷新 · V-026#1 闭环 · generate-skill.sh hook 检测修复 · 计数器复位
 > 🔄 L5 P11-B46→B47 拉通完成（2026-07-24）— 零 drift · B46 Capability MVP 基础设施 · B47 Worker 自请求权限旁路 · 文档补齐 · 计数器复位
 > 🔄 L5 P11-B46→B48 拉通完成（2026-07-24）— 零 drift · B48 synapse-exec CLI · 文档补齐 · 计数器复位
+> 🔄 L5 P11-B46→B49 拉通完成（2026-07-25）— 零 drift · B49 git pre-push hook + 前端适配 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -604,6 +605,7 @@ synapse/
 - P11-B19 ✅：Bootstrap router 接线 — B14 遗留缺陷（bootstrap router 随 B14 提交但从未挂载到 api_router）· 2 行修复 · 18 个测试 0→18 · 1 file · V-027 登记
 - **P100-B85 ✅**：**G-028 治理基础设施独立批** — check-hooks.sh 防呆（V-028 修复） + make check 管道接线 + CLAUDE.md 启动自检增强 · 从 B19 L5 commit（`6c1fdbb`）拆出独立 P100 编号 · 3 files · 🟢 微型（纯文档）
 
+- **P11-B49 ✅**：git pre-push hook — hook 模板 + synapse-exec --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files · commits `0cb76ff` + `5b80bca`
 - **P11-B48 ✅**：synapse-exec CLI — 497 行 bash · 请求→审批→执行→上报全链路 · 🟡 标准 · 2 files · commits `1b4a7d3` + `e9fa479`
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
 - P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
@@ -648,7 +650,7 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
-- **P11-B48**：synapse-exec CLI ✅ — 497 行 bash · 请求→审批→执行→上报全链路 · env+keychain 身份解析 · 🟡 标准 · 2 files
+- **P11-B49**：git pre-push hook ✅ — hook 模板 + --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files
 - **P11-B48**：synapse-exec CLI ✅ — 497 行 bash · 请求→审批→执行→上报全链路 · env+keychain 身份解析 · 🟡 标准 · 2 files
 - **P11-B47**：Worker 自请求 capability_exec 权限旁路 ✅ — require_project_role→get_current_actor + inline · 🟢 微型 · 2 files · 630 tests
 - **P11-B46**：Capability MVP 基础设施 ✅ — capabilities.yaml · GET /capabilities · +4 model 字段 · capability_exec · POST /report · 🔴 大型 · 11 files · 626 tests
