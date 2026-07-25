@@ -464,8 +464,24 @@ synapse-exec shell_dangerous --params SHELL_COMMAND="echo hello"
 ```
 ⏳ 等待审批... [ath_xxx] Push to main branch
 ⏳ 等待审批... (已等待 10s)
-✅ 已批准 — Hunter · 耗时 23s
+✅ 已批准 — Hunter (Human · Web UI) · 耗时 23s
 ```
+
+#### 13.4.1 审批角色边界
+
+> ⚠️ **关键区分**：Orchestrator 管理 Task 生命周期，但**不审批 Capability 执行**。审批者是 **Human（人类管理员）**，通过 Synapse Web UI 审批。
+
+| 角色 | 审批权限 | 在审批流程中的职责 |
+|:---|:---:|:---|
+| **Human（人类管理员）** | ✅ 审批/拒绝 | 通过 Synapse Web UI 查看请求、审批或拒绝。**唯一审批者** |
+| **Orchestrator** | ❌ 无权 | 管理 Task 分配和验收，不参与 Capability 审批。不要 @Orchestrator 问审批状态 |
+| **Builder / Worker** | ❌ 无权 | 执行者 — 调用 `synapse-exec`，阻塞等待 Human 审批。审批未通过前不得执行 |
+| **Steward** | ❌ 无权 | 代码审查者，不参与审批流程 |
+
+**Builder 收到 202 等待审批时**：
+- ✅ 正确：等待 Human 在 Web UI 审批（WS push 或 HTTP 轮询 §8-§9）
+- ❌ 错误：在 Task 评论区 @Orchestrator 催审批（Orchestrator 批不了）
+- ❌ 错误：因为"任务简单"就跳过 `synapse-exec` 直接执行裸命令
 
 ### 13.5 审批被拒
 

@@ -342,7 +342,7 @@ create_auth_request() {
     AUTH_ID=$(echo "$resp" | jq -r '.id')
 
     echo -e "${CYAN}📋 授权请求已创建: ${BOLD}${AUTH_ID}${NC}"
-    echo "   ${CAP_NAME} · ${CAP_RISK} · 需审批"
+    echo "   ${CAP_NAME} · ${CAP_RISK} · 需 Human 审批 (Synapse Web UI)"
     if [[ -n "$REASON" ]]; then
         echo "   原因: $(echo "$REASON" | head -1)"
         # 显示 commit 列表（如果有）
@@ -380,14 +380,15 @@ wait_approval() {
         case "$status" in
             approved)
                 local approver
-                approver=$(echo "$resp" | jq -r '.responded_by_worker_name // "admin"')
-                echo -e "${GREEN}✅ 已批准 — ${approver} · 耗时 ${elapsed}s${NC}"
+                approver=$(echo "$resp" | jq -r '.responded_by_worker_name // "Human (Web UI)"')
+                echo -e "${GREEN}✅ 已批准 — ${approver} (Human · Web UI) · 耗时 ${elapsed}s${NC}"
                 return 0
                 ;;
             denied|rejected)
                 local deny_reason
                 deny_reason=$(echo "$resp" | jq -r '.response_note // "无理由"')
-                echo -e "${RED}❌ 已拒绝 — ${deny_reason}${NC}"
+                echo -e "${RED}❌ 审批被拒 — ${deny_reason}${NC}"
+                echo -e "${YELLOW}💡 与审批人（Human）沟通后调整操作重试。审批人是 Human，不是 Orchestrator。${NC}" >&2
                 return 1
                 ;;
             expired)
@@ -402,6 +403,11 @@ wait_approval() {
                 # pending 或其他 → 继续等待
                 sleep "$interval"
                 elapsed=$((elapsed + interval))
+                # 首次等待时提示审批人身份
+                if [[ $elapsed -eq 2 ]]; then
+                    echo -e "⏳ 等待 Human 审批 (Synapse Web UI)... [${AUTH_ID}]"
+                    echo -e "   ${YELLOW}💡 审批人是 Human，不是 Orchestrator。请在 Web UI 操作。${NC}"
+                fi
                 # 每 10s 输出一次进度
                 if [[ $((elapsed % 10)) -eq 0 ]]; then
                     echo -e "⏳ 等待审批... (已等待 ${elapsed}s)"
@@ -464,6 +470,14 @@ execute_capability() {
 
 report_evidence() {
     if [[ -z "$AUTH_ID" ]]; then
+        # 安全命令直接执行 — 无授权请求但仍有审计记录
+        local outcome="success"
+        if [[ $EXIT_CODE -ne 0 ]]; then
+            outcome="failure"
+        fi
+        local icon="✅"
+        [[ "$outcome" == "failure" ]] && icon="⚠️"
+        echo -e "${icon} 审计: ${CAP_NAME} · safe (无需审批) · exit=${EXIT_CODE} · ${DURATION_MS}ms"
         return 0
     fi
 
@@ -631,7 +645,7 @@ main() {
             echo -e "${YELLOW}🛡️  命令需审批 — 已命中黑名单${NC}"
             echo ""
         else
-            echo -e "${GREEN}✅ 命令安全 — 直接执行${NC}"
+            echo -e "${GREEN}✅ 命令安全 — 直接执行（免审批 · 执行后记录审计）${NC}"
             echo ""
             SHELL_SAFE=1
         fi

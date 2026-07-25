@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B49→B52 拉通 — 📄 requirements-log B49+B50+B51+B52 · 📄 roadmap B49-B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B49-B52 · 📄 tracks B52 · 叙事一致性: Capability MVP 从「能用」到「会用」完整闭环 · 零 drift · 计数器复位",
+  "lastL5Batch": "B53→B54 缺口修复拉通 — 📄 _protocol.md §13.4.1 审批角色表 · 📄 synapse-exec Human审批+审计 · PFL-047/048/049 L1+L2 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-25",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B49→B52 拉通 — 📄 requirements-log B49+B50+B51+B52 · 📄 roadmap B49-B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B49-B52 · 📄 tracks B52 · 叙事一致性: Capability MVP 从「能用」到「会用」完整闭环 · 零 drift · 计数器复位",
+  "lastL5Evidence": "B53→B54 缺口修复拉通 — 📄 _protocol.md §13.4.1 审批角色表 · 📄 synapse-exec Human审批+审计 · PFL-047/048/049 L1+L2 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

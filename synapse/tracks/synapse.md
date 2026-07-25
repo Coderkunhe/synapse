@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B52 ✅ Skill 模板更新 — Capability Authorization · 0 drift
-last_batch: P11-B52
-next_batch: P11-B53
-description: Synapse 主项目 — B52 ✅ Skill 模板 Capability Authorization · L5 B49→B52 ✅ · 630 tests
+phase: P11-B54 ✅ 缺口修复 — PFL-047/048/049 L1+L2 · 0 drift
+last_batch: P11-B54
+next_batch: P11-B55
+description: Synapse 主项目 — B54 ✅ 缺口修复 · _protocol.md §13.4.1 审批角色表 · synapse-exec Human审批+审计 · L5 B53→B54 ✅ · 630 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B52 ✅ Skill 模板 Capability Authorization
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B87 | **P100-B88** 🔜 | B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢）· B87 ✅ 治理清理（违纪回顾 39→0 + 3doc 日期刷新 Jul 19→23 + D-P11-015 LL18 登记） |
-| **P11** | P11-B52 | **P11-B53** 🔜 | B1-B52 ✅ · B46 Capability MVP 基础设施 ✅ · B47 Worker自请求 ✅ · B48 synapse-exec CLI ✅ · B49 pre-push hook ✅ · B50 过期去重 ✅ · B51 shell_dangerous+force_push ✅ · B52 Skill 模板 Capability Authorization ✅ · L5 B49→B52 ✅ |
+| **P11** | P11-B54 | **P11-B55** 🔜 | B1-B54 ✅ · B53 狗粮验证 ✅ · B54 缺口修复 ✅ · _protocol.md §13.4.1 · synapse-exec · L5 B53→B54 ✅ |
 
 ## P11 路线图：多 Agent 接入战
 
