@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B89→B90 L5 拉通 — 📄 requirements-log.md B90 补登记(双GAP闭环+四场景验证) · 📄 roadmap.md B87-B90 段补齐(B87跳号标记) · 📄 CLAUDE.md header+L5 banner+当前状态+最近批次 全面刷新 · 📄 daily/2026-07-25.md B90+L5 追加 · Hook Gap 4/7闭环 · 计数器复位",
-  "lastL5Timestamp": "2026-07-25",
+  "lastL5Batch": "P100-B90→B91 拉通 — 📄 requirements-log.md B91 补登记(GAP-2+GAP-3 双GAP闭环+六场景验证) · 📄 roadmap.md B91 段补齐 · 📄 CLAUDE.md header+L5 banner+当前状态+最近批次 全面刷新 · 📄 daily/2026-07-25.md B91 追加 · 📄 tracks/synapse.md B90→B91 指针更新 · 📄 memory/active/p100.md + MEMORY.md 暗号更新 · Hook Gap 5/7 闭环 · 计数器复位",
+  "lastL5Timestamp": "2026-07-26",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B89→B90 L5 拉通 — 📄 requirements-log.md B90 补登记(双GAP闭环+四场景验证) · 📄 roadmap.md B87-B90 段补齐(B87跳号标记) · 📄 CLAUDE.md header+L5 banner+当前状态+最近批次 全面刷新 · 📄 daily/2026-07-25.md B90+L5 追加 · Hook Gap 4/7闭环 · 计数器复位",
+  "lastL5Evidence": "P100-B90→B91 拉通 — 📄 requirements-log.md B91 补登记(GAP-2+GAP-3 双GAP闭环+六场景验证) · 📄 roadmap.md B91 段补齐 · 📄 CLAUDE.md header+L5 banner+当前状态+最近批次 全面刷新 · 📄 daily/2026-07-25.md B91 追加 · 📄 tracks/synapse.md B90→B91 指针更新 · 📄 memory/active/p100.md + MEMORY.md 暗号更新 · Hook Gap 5/7 闭环 · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
