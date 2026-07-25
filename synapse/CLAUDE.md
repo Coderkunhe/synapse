@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B55 ✅ Worker 角色围栏 · L5 B53→B55 拉通完成）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P100-B88 ✅ GAP-1 ≤8文件硬阻断 · P100-B89 ✅ GAP-5 日报缺失阻断 · L5 B88→B89 拉通完成）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B57→B58 拉通完成（2026-07-25）— 零 drift · B57 GAP-8 Capability 审计 ✅ · B58 GAP-9 Worker 自主驱动 ✅ · GAP-7/8/9 三件套全量闭环 🎉 · 计数器复位
+> 🔄 L5 P100-B88→B89 拉通完成（2026-07-25）— 零 drift · B88 GAP-1 ≤8文件硬阻断 ✅ · B89 GAP-5 日报缺失阻断 ✅ · GAP-1+GAP-5 双项闭环 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -634,6 +634,8 @@ synapse/
 - **P11-B27 ✅**：SKILL.md 启动流重构 — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files · 🟢 微型 (纯文档)
 - **P11-B26 ✅**：Worker WS 长连接方案 — 选 C（HTTP Poll 永久模式 · WS→持久客户端）· 🟢 微型 (纯设计)
 - **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
+- **P100-B88 ✅**：GAP-1 ≤8文件硬阻断 — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
+- **P100-B89 ✅**：GAP-5 日报缺失阻断 — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
 - P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
 - P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files
 - P11-B4 ✅：L2b 约定层+生成管线适配 · L5 P11-B1→B4 全量拉通 🎉 — Skill 模块化前置 4 批全量闭环
@@ -642,9 +644,12 @@ synapse/
 - P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
 - P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
 - P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B84 ✅ · 🎉 暂告段落
+- P100：治理段 B1-B89 ✅ · 🎉 GAP-1+GAP-5 双项闭环
 
 **最近批次**：
+- **P100-B89**：GAP-5 日报缺失阻断 ✅ — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
+- **P100-B88**：GAP-1 ≤8文件硬阻断 ✅ — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
+- **L5 P100-B88→B89 拉通** ✅ — requirements-log + roadmap + CLAUDE.md + daily + memory 全面刷新 · 零 drift · 计数器复位
 - **P11-B58**：GAP-9 Worker 自主驱动 ✅ — _protocol.md §4.1 自主驱动循环 + role-builder 工作流 + SKILL.md 五条铁律 + _task-current.md next_action · 7 files · 纯协议层（零服务端代码）
 - **P11-B57**：GAP-8 Capability 安全审计持久化 ✅ — CapabilityAudit 模型 + service + GET /projects/{pid}/capability-audits · 10 files · 628 tests
 - **P11-B56**：Tier 2 端点 require_permission 迁移 (GAP-7 续) ✅ — 9 endpoints · 4 routers · 3 new resolvers · 9 files · 630 tests
