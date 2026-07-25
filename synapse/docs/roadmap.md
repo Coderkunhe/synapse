@@ -361,6 +361,10 @@
 | **P100-B84** | **依赖锁定 + 违纪计数器修复** — S-071 requirements-lock.txt 生成 · S-072 post-commit.sh violations checkpoint 递增 | ✅ |
 | **P100-B85** | **G-028 治理基础设施独立批** — check-hooks.sh V-028 防呆 + make check 管道 + CLAUDE.md 启动自检 · 3 files · 🟢 微型 | ✅ |
 | **P100-B86** | **违纪回顾 + 全量清零** — V-027/V-028 🔴→🟢 闭环 · violations-review 复位(batchesSinceLastReview 11→0) · 26/27 🟢 已闭环 · 活跃 0 🎉 · 3 files · 🟢 微型 | ✅ |
+| **P100-B87** | — | ⏭️ 跳号 |
+| **P100-B88** | **GAP-1 ≤8文件硬阻断** — check-plan-mode.sh CODE_FILES≥9 → exit 1 · 2 files · 🟢 微型 · G-029 ✅ | ✅ |
+| **P100-B89** | **GAP-5 日报缺失阻断** — check-docs.sh 日报缺失+代码变更 → exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型 · G-033 ✅ | ✅ |
+| **P100-B90** | **GAP-6+GAP-10 双 GAP 闭环** — pre-push 逃逸通道硬化 + 依赖升级强制门禁 · 2 files · 70 insertions · 🟢 微型 · G-034+G-035 ✅ | ✅ |
 
 ### P5 交付总结
 

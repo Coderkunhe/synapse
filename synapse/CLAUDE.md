@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P100-B88 ✅ GAP-1 ≤8文件硬阻断 · P100-B89 ✅ GAP-5 日报缺失阻断 · L5 B88→B89 拉通完成）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P100-B90 ✅ GAP-6 pre-push硬化 + GAP-10 依赖门禁 · L5 B89→B90 拉通完成 · 4/7 GAP 闭环）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B88→B89 拉通完成（2026-07-25）— 零 drift · B88 GAP-1 ≤8文件硬阻断 ✅ · B89 GAP-5 日报缺失阻断 ✅ · GAP-1+GAP-5 双项闭环 · 计数器复位
+> 🔄 L5 P100-B89→B90 拉通完成（2026-07-25）— 零 drift · B90 GAP-6 pre-push硬化 ✅ · GAP-10 依赖门禁 ✅ · 4/7 GAP 闭环 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -636,6 +636,7 @@ synapse/
 - **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
 - **P100-B88 ✅**：GAP-1 ≤8文件硬阻断 — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
 - **P100-B89 ✅**：GAP-5 日报缺失阻断 — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
+- **P100-B90 ✅**：GAP-6+GAP-10 双 GAP 闭环 — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
 - P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
 - P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files
 - P11-B4 ✅：L2b 约定层+生成管线适配 · L5 P11-B1→B4 全量拉通 🎉 — Skill 模块化前置 4 批全量闭环
@@ -647,6 +648,7 @@ synapse/
 - P100：治理段 B1-B89 ✅ · 🎉 GAP-1+GAP-5 双项闭环
 
 **最近批次**：
+- **P100-B90**：GAP-6+GAP-10 双 GAP 闭环 ✅ — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
 - **P100-B89**：GAP-5 日报缺失阻断 ✅ — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
 - **P100-B88**：GAP-1 ≤8文件硬阻断 ✅ — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
 - **L5 P100-B88→B89 拉通** ✅ — requirements-log + roadmap + CLAUDE.md + daily + memory 全面刷新 · 零 drift · 计数器复位
