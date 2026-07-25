@@ -37,4 +37,35 @@ if [ -x "$PLAN_MODE" ]; then
   "$PLAN_MODE" || exit 1
 fi
 
+# ── Stage 5: Dependency change gate (GAP-10 · P100-B90) ──
+# 依赖文件变更 → 强制 make check 全量门禁，不可跳过
+STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || echo "")
+DEP_FILES=$(echo "$STAGED_FILES" | grep -E '(^|/)requirements\.txt$|(^|/)package\.json$' || true)
+if [[ -n "$DEP_FILES" ]]; then
+  echo ""
+  echo "📦 检测到依赖文件变更："
+  echo "$DEP_FILES" | while read -r f; do echo "   • $f"; done
+  echo ""
+  echo "🔧 强制运行 make check（依赖升级门禁 · GAP-10）..."
+  SYNAPSE_DIR="$REPO_ROOT/synapse"
+  if [ -f "$SYNAPSE_DIR/Makefile" ]; then
+    (cd "$SYNAPSE_DIR" && make check) || {
+      echo ""
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "🔴  依赖变更门禁失败（GAP-10）"
+      echo "🔴"
+      echo "🔴  依赖文件变更后必须通过 make check 全量门禁。"
+      echo "🔴  请修复以上失败项后重新提交。"
+      echo "🔴"
+      echo "🔴  变更的依赖文件："
+      echo "$DEP_FILES" | while read -r f; do echo "🔴    • $f"; done
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      exit 1
+    }
+    echo "✅ 依赖变更门禁通过"
+  else
+    echo "⚠️  Makefile 未找到，跳过依赖门禁"
+  fi
+fi
+
 exit 0

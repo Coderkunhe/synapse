@@ -18,11 +18,46 @@ if [[ "$BRANCH" != "main" ]] && [[ "$BRANCH" != "master" ]]; then
     exit 0
 fi
 
-# ── 宽松模式：未配置 Synapse 时不阻断 ──
+# ── 逃逸通道检测（GAP-6 硬化 · P100-B90）─────────────────
+# git push -o skip-synapse-check → GIT_PUSH_OPTION_0=skip-synapse-check
+# 未配置 Synapse 且未显式声明跳过 → 硬阻断，不再静默放行
+SKIP_FLAG=""
+for opt in ${!GIT_PUSH_OPTION_*}; do
+    if [[ "${!opt}" == "skip-synapse-check" ]]; then
+        SKIP_FLAG="1"
+        break
+    fi
+done
+
 if [[ -z "${SYNAPSE_API_URL:-}" ]] || ! command -v synapse-exec &>/dev/null; then
-    echo "⚠️  Synapse 未配置或 synapse-exec 不可用。跳过授权检查。"
-    echo "   安装: cd synapse && synapse-exec --install-hook"
-    exit 0
+    if [[ -n "$SKIP_FLAG" ]]; then
+        # 显式跳过 — 记录到本地审计 log
+        LOG_FILE="$(git rev-parse --show-toplevel 2>/dev/null || echo ".")/synapse/.claude/pre-push-bypass.log"
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] bypass: branch=${BRANCH} remote=${URL} skip_flag=yes" >> "$LOG_FILE"
+        exit 0
+    fi
+
+    echo ""
+    echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔴  Synapse 未配置 — push 授权检查不可用"
+    echo "🔴"
+    echo "🔴  SYNAPSE_API_URL 未设置或 synapse-exec 未安装。"
+    echo "🔴  推送到 ${BRANCH} 需要经过 Synapse 审批链路。"
+    echo "🔴"
+    echo "🔴  非 Worker 环境（God's-eye / 非 Synapse 项目）："
+    echo "🔴    git push -o skip-synapse-check"
+    echo "🔴"
+    echo "🔴  Worker 环境："
+    echo "🔴    cd synapse && synapse-exec --install-hook"
+    echo "🔴    确保 .env 中 SYNAPSE_API_URL 已配置"
+    echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    # 记录到本地审计 log
+    LOG_FILE="$(git rev-parse --show-toplevel 2>/dev/null || echo ".")/synapse/.claude/pre-push-bypass.log"
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] BLOCKED: branch=${BRANCH} remote=${URL} reason=no_synapse_no_skip_flag" >> "$LOG_FILE"
+
+    exit 1
 fi
 
 echo "🛡️  Synapse: 推送到 ${BRANCH} 需要审批"
