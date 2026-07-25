@@ -597,5 +597,6 @@
 ## P100 治理批
 
 - **P100-B91**：GAP-2 质量三板斧机械门禁 + GAP-3 checkpoint新鲜度门禁 ✅ — check-quality-gate.sh (G-030) + check-checkpoint-freshness.sh (G-031) · pre-commit Stage 6+7 · Makefile 接线 · 5/7 GAP 闭环 · 6 files · 298 insertions · commit `0c694b5`
+- **P100-B92**：GAP-4 批次顺序机械校验 ✅ — check-batch-sequence.sh (G-032) · commit-msg wrapper 双 stage · .git/hooks/commit-msg copy→symlink · track 文件 next_batch 三源校验 · 6/7 GAP 闭环 · 8 files · 305 insertions · commit `337647b`
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
