@@ -538,4 +538,43 @@ await client.patch(`/v1/authorization-requests/${prompt.id}/respond`, {
 
 ---
 
+## 🔐 Capability Authorization（能力授权）
+
+涉及 git 推送或危险 shell 命令时，**必须**使用 `synapse-exec`，不能直接运行裸命令。`synapse-exec` 自动完成授权请求 → 审批等待 → 命令执行 → 结果上报的完整闭环。
+
+### 可用能力
+
+| 能力 | 用途 | 授权策略 |
+|------|------|:---:|
+| `git_push_main` | 推送到 main/master 分支 | 每次审批 |
+| `git_push_branch` | 推送到特性分支 | 自动放行 |
+| `shell_dangerous` | 执行 shell 命令（黑名单匹配） | 危险→审批 · 安全→放行 |
+| `git_force_push` | 强制推送覆盖远程历史 | 每次审批 |
+
+### 使用方式
+
+```bash
+# git 操作
+synapse-exec git_push_main --reason "完成功能开发"
+synapse-exec git_push_branch --params BRANCH=feature/xxx
+synapse-exec git_force_push --params BRANCH=main --reason "rebase 后同步"
+
+# shell 命令（安全命令直接执行，危险命令触发审批）
+synapse-exec shell_dangerous --params SHELL_COMMAND="rm -rf /tmp/build" --reason "清理构建产物"
+synapse-exec shell_dangerous --params SHELL_COMMAND="echo hello"
+```
+
+### shell_dangerous 黑名单
+
+客户端（synapse-exec）对 `SHELL_COMMAND` 做子串匹配：
+- 命中 `dangerous_patterns`（`rm -rf /`、`curl | bash`、`chmod 777`…）→ 审批
+- 命中 `protected_paths`（`~/.ssh/`、`.env`、`/etc/passwd`…）→ 审批
+- 都不命中 → 直接执行，不走审批
+
+### 审批流程
+
+`synapse-exec` 阻塞等待，审批通过后自动执行并返回结果。被拒时返回非零退出码 → 查看原因 → 沟通 → 调整后重试。
+
+---
+
 > 这份 Skill 是你的"操作系统"——它教你怎么在 Synapse 上工作。项目特定的"应用程序"（技术栈、团队、约定）在 Step 2 的 Protocol API 响应中。每次会话开始时，先拉取最新上下文，再开始工作。

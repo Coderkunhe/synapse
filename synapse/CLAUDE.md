@@ -1,22 +1,10 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B51 ✅ shell_dangerous + force_push · B52 🔜 Skill 模板更新 · L5 B50→B51 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-25（P11-B52 ✅ Skill 模板更新 · B53 🔜 L5 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B8→B19 全量拉通完成（2026-07-21）— 5 项 drift 修复 · B8-B10 措辞 · B11-B14 ADR-006 重拆叙事 · B15-B19 零 drift · 计数器复位
-> 🔄 L5 P11-B30→B31 拉通完成（2026-07-22）— 零 drift · B30 纯治理 · B31 狗粮 Prep · B32 狗粮 Run ① 闭环
-> 🔄 L5 P11-B33→B34 拉通完成（2026-07-22）— 零 drift · B33 SKILL.md 模板全面升级 · B34 授权硬门禁+JSON 转义修复
-> 🔄 L5 P11-B35→B36 拉通完成（2026-07-23）— 零 drift · B35 Key 隔离 · B36 审批内容富化 · B29→B37 8 批收尾
-> 🔄 L5 P11-B38→B39 拉通完成（2026-07-23）— 零 drift · B38 删 Dev Login + Remember Me · B39 种子数据修复 · 计数器复位
-> 🔄 L5 P11-B40→B43 拉通完成（2026-07-23）— 零 drift · B40 Auth SPA路由+CSS重构 · B41 SMTP 生产模式+忘记密码邮件 · B42 Auth 认证页美化 · B43 Auth Error Handling · 计数器复位
-> ⚠️ B44 质量三板斧（2026-07-23）— B35-B44 连续返工复盘 · §7.1 编码前 Scout + 编码后自检 + ≤3 批 Checkpoint
-> 🔄 L5 P11-B44 拉通完成（2026-07-23）— 零 drift · B44 Approval History + 质量三板斧 · 计数器复位
-> 🔄 L5 P11-B44→B45 拉通完成（2026-07-24）— 零 drift · B45 环境就绪 · 双 Worker SKILL.md 刷新 · V-026#1 闭环 · generate-skill.sh hook 检测修复 · 计数器复位
-> 🔄 L5 P11-B46→B47 拉通完成（2026-07-24）— 零 drift · B46 Capability MVP 基础设施 · B47 Worker 自请求权限旁路 · 文档补齐 · 计数器复位
-> 🔄 L5 P11-B46→B48 拉通完成（2026-07-24）— 零 drift · B48 synapse-exec CLI · 文档补齐 · 计数器复位
-> 🔄 L5 P11-B46→B49 拉通完成（2026-07-25）— 零 drift · B49 git pre-push hook + 前端适配 · 计数器复位
 > 🔄 L5 P11-B50→B51 拉通完成（2026-07-25）— 零 drift · B50 auth expiry + dedup · B51 shell_dangerous + force_push · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
@@ -608,6 +596,7 @@ synapse/
 
 - **P11-B49 ✅**：git pre-push hook — hook 模板 + synapse-exec --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files · commits `0cb76ff` + `5b80bca`
 - **P11-B50 ✅**：Auth expiry scheduler + capability_exec 去重 — _auth_expiry_reaper 后台任务 · find_pending_duplicate 幂等检查 · 🟢 微型 · 4 files · commit `a8be584`
+- **P11-B52 ✅**：Skill 模板更新 — Capability Authorization 章节 — _protocol.md §13 + 3 SKILL.md 刷新 · 🟡 标准 · 4 files · 纯文档
 - **P11-B51 ✅**：shell_dangerous + git_force_push 能力定义 — 19 黑名单 + 11 保护路径 · check_shell_blacklist() 客户端匹配 · 🟡 标准 · 4 files · commit `0b0e78b`
 - **P11-B48 ✅**：synapse-exec CLI — 497 行 bash · 请求→审批→执行→上报全链路 · 🟡 标准 · 2 files · commits `1b4a7d3` + `e9fa479`
 - P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
@@ -653,6 +642,7 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B52**：Skill 模板更新 ✅ — Capability Authorization 章节 · _protocol.md §13 + 3 SKILL.md · 🟡 标准 · 4 files
 - **P11-B51**：shell_dangerous + git_force_push ✅ — 19 黑名单 + 11 保护路径 · check_shell_blacklist() · 🟡 标准 · 4 files
 - **P11-B50**：Auth expiry scheduler + capability_exec 去重 ✅ — _auth_expiry_reaper + find_pending_duplicate · 🟢 微型 · 4 files
 - **P11-B49**：git pre-push hook ✅ — hook 模板 + --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files

@@ -406,3 +406,70 @@ GET {{SYNAPSE_API_URL}}/v1/workers/me/authorization-requests?status=pending
 > 这份协议是你的"操作系统"——它教你怎么在 Synapse 上工作。项目特定的"应用程序"（技术栈、团队、约定）在 Protocol API 响应的 `project_context` 和 `role_instructions` 字段中。每次会话开始时，先拉取最新上下文，再开始工作。
 >
 > 这些规则不是忠告。`5.1`（无 evidence 不提交）和 `5.3`（状态变更走 API）在 Synapse 服务端有硬约束——你绕不过去。其他规则是软约束——遵守它们能让你在团队中获得信任，违反它们会让你被打回返工。
+
+---
+
+## 13. 🔐 Capability Authorization
+
+Synapse 将关键操作定义为**命名能力（Capability）**。涉及 git 推送、危险 shell 命令等操作时，**必须**通过 `synapse-exec` 执行，而非直接运行裸命令。`synapse-exec` 自动完成授权请求 → 审批等待 → 命令执行 → 结果上报的完整闭环。
+
+### 13.1 可用能力
+
+| 能力 ID | 说明 | 风险 | 授权策略 |
+|------|------|:---:|:---:|
+| `git_push_main` | 推送到 main/master 分支 | critical | 每次需要审批 |
+| `git_push_branch` | 推送到特性分支 | low | 无需审批（但会记录） |
+| `shell_dangerous` | 执行可能危险的 shell 命令 | critical | 黑名单匹配：危险→审批，安全→直接执行 |
+| `git_force_push` | 强制推送覆盖远程历史 | critical | 每次需要审批 |
+
+### 13.2 如何使用
+
+```bash
+# git 操作 — 替代裸 git push
+synapse-exec git_push_main --reason "完成功能开发"
+synapse-exec git_push_branch --params BRANCH=feature/xxx
+synapse-exec git_force_push --params BRANCH=main --reason "rebase 后同步"
+
+# 危险 shell 命令 — 替代裸 shell 命令
+synapse-exec shell_dangerous --params SHELL_COMMAND="rm -rf /tmp/build" --reason "清理构建产物"
+
+# 安全命令直接执行，不触发审批（零阻力）
+synapse-exec shell_dangerous --params SHELL_COMMAND="echo hello"
+```
+
+> 🚫 **不要直接使用 `git push` 或裸 shell 危险命令。** `synapse-exec` 处理授权全链路——绕过它就是绕过审计。
+
+### 13.3 shell_dangerous 黑名单机制
+
+`shell_dangerous` 在客户端（synapse-exec）对命令做黑名单匹配：
+
+- **命中黑名单**（如 `rm -rf /`、`curl | bash`、`chmod 777`、`> /etc/`、`dd if=`、fork 炸弹）→ 创建授权请求，等待审批
+- **触碰保护路径**（如 `~/.ssh/`、`.env`、`/etc/passwd`、`*.pem`、`id_rsa`）→ 创建授权请求，等待审批
+- **都不命中** → 直接执行，不触发审批
+
+这确保安全命令零阻力，危险命令零遗漏。
+
+### 13.4 授权流程
+
+```
+你调用 synapse-exec
+  → synapse-exec 检查黑名单（仅 shell_dangerous）
+  → 需要授权 → 创建授权请求 → 人类管理员在 Synapse Web 审批
+  → 批准后自动执行命令
+  → 结果返回（含 stdout/stderr/exit_code）
+  → 你继续后续步骤
+```
+
+在等待审批期间，`synapse-exec` 会阻塞并显示等待提示：
+```
+⏳ 等待审批... [ath_xxx] Push to main branch
+⏳ 等待审批... (已等待 10s)
+✅ 已批准 — Hunter · 耗时 23s
+```
+
+### 13.5 审批被拒
+
+`synapse-exec` 返回非零退出码。你应该：
+1. 查看拒绝原因（`synapse-exec` 会输出）
+2. 与审批人沟通（通过 Task 评论区 `POST /tasks/{id}/comments`）
+3. 调整操作后重新请求
