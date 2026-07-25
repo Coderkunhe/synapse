@@ -18,6 +18,18 @@
 | 标题 | `{{TASK_TITLE}}` |
 | 优先级 | `{{TASK_PRIORITY}}` |
 | 预估 effort | `{{TASK_EFFORT}}` |
+| 下一步行动 | `{{NEXT_ACTION}}` |
+
+> 🆕 **GAP-9 `next_action`**：每一步完成后，Agent 应知道下一步做什么，而非靠猜测。此字段由 Orchestrator 在分配 Task 时填写，Builder 执行时作为行动指南。
+>
+> 示例值：
+> - `claim` — Task 已分配，立即认领
+> - `execute` — 认领完成，开始执行 VDD 循环
+> - `submit` — 执行完成，收集 evidence 并提交验证
+> - `poll_verification` — 已提交，轮询等待验收结果
+> - `claim_next` — 验收通过，拉取下一个 ready Task
+> - `wait` — 无 ready Task / 等待依赖 / 等待授权审批
+> - `retry` — 验收被拒，根据反馈修正后重新提交 |
 
 ## Verification 条件（合同）
 

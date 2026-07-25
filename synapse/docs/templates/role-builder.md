@@ -49,6 +49,8 @@
 
 ## 工作流
 
+### 单 Task 执行（VDD 内层循环）
+
 ```
 收到 Task（含 Verification 条件）
   │
@@ -69,9 +71,33 @@ POST /tasks/{id}/submit（附 evidence）
   │
   ├─→ 评论区 @Orchestrator 通知"已提交，请验收"
   │
-  ├─→ passed → 完成 ✅
+  ├─→ passed → 完成 ✅ → 进入自主驱动循环（见下方）
   └─→ failed → 读 Orchestrator 反馈 → 修正 → 重新 submit
 ```
+
+### 自主驱动循环（GAP-9 · 外层 — 跨 Task）
+
+> ⚠️ **你的工作不是"做完一个 Task 就停下来汇报"。** 完成当前 Task 后，主动检查是否有下一个 ready Task 并继续工作。详细协议见 `_protocol.md` §4.1。
+
+```
+当前 Task passed
+  │
+  ▼
+GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator 分配
+  │
+  ├─→ 有 ready Task → claim → 执行 → submit → 回到这里
+  │
+  └─→ 无 ready Task → 报告"工作队列为空，等待新 Task"
+```
+
+**循环规则**：
+
+| 规则 | 说明 |
+|------|------|
+| **API submit = 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成 |
+| **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
+| **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
+| **终止条件**：无 ready Task / 202 超时 ≥15min / 同一 Task 被拒 ≥2 次 / 显式 stop |
 
 ---
 
@@ -109,10 +135,20 @@ PATCH /tasks/{id}
 
 进度更新让 Orchestrator 不需要来问"做到哪了"。
 
-### 5. 提交即 @上游
+### 5. 提交即 @上游 + 自主轮询
 
-**提交 evidence 后 → 发评论 @Orchestrator 告知"Task #{id} 已提交，请验收"。**
-不被动等待对方轮询发现。评论区是 Worker 间的异步握手协议——不只是"报错用"，更是正常流程推进的常规通信通道。等待期间用 HTTP Poll 检查状态变更，发现对方完成了 → 立即推进自己的下一步。
+**提交 evidence 后 → 发评论 @Orchestrator 告知"Task #{id} 已提交，请验收" → 然后主动轮询验收结果。**
+
+不被动等待对方发现，也不依赖人类转发消息。评论区是 Worker 间的异步握手协议——不只是"报错用"，更是正常流程推进的常规通信通道。
+
+**自主轮询协议**（提交后立即启动）：
+1. `POST /tasks/{id}/submit` 成功后 → 发评论 @Orchestrator
+2. 每 15 秒 `GET /tasks/{id}/verifications` 检查验收状态
+3. `passed` → 验收通过 ✅ → 进入自主驱动循环，检查下一个 ready Task
+4. `failed` → 读反馈 → 修正 → 重新 submit
+5. 等待超过 5 分钟无结果 → 评论追加提醒 @Orchestrator
+
+**为什么不能等人类转发**：人类不在 Worker-to-Worker 通信路径上。Orchestrator Worker 验收完成后，如果你不主动轮询，你永远不会知道——除非人类手动告诉你。自主轮询消除人类 Message Bus 瓶颈（PFL-050 断点 3）。
 
 ### 6. 身份隔离
 

@@ -201,10 +201,14 @@ GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verific
 检查是否有 Builder 提交后等待验收的任务。
 
 > ⚠️ 如果上述任一请求返回 `202`（权限不足），说明你尚未获得项目角色。系统已自动创建授权请求，按「202 CLI 用户体验」节等待审批。
+> 
+> 🔄 **GAP-9 自主驱动**：以上状态同步不是"启动时做一次就好"。进入自主驱动循环后，每次判断"下一步做什么"前必须重新运行相关查询（尤其是 ② in_progress 和 ③ ready）。静态配置（project_context、role_instructions）可缓存；动态状态（Task status、Verification、授权请求）**每次判断前重新读取**。不依赖 handshake 缓存的状态快照。
 
 ---
 
-## 核心工作循环（VDD：验证驱动开发）
+## 核心工作循环
+
+### VDD 内层循环（单 Task）
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -214,11 +218,43 @@ GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verific
 │  4. 执行 Task                                         │
 │  5. 收集 evidence（对照 Verification 逐条）            │
 │  6. 提交验证（POST /tasks/{id}/submit）               │
-│  7. 等待判定：passed → 完成 / failed → 返工           │
+│  7. 主动轮询验收结果（GET /tasks/{id}/verifications）  │
+│  8. passed → 进入自主驱动外层循环 / failed → 返工     │
 └─────────────────────────────────────────────────────┘
 ```
 
 **核心原则**：Verification 条件是合同，不是建议。Task 创建时就已经定义了"什么叫做完"——你的工作是满足合同，不是"做完后让人类判断"。
+
+### 自主驱动外层循环（GAP-9 · PFL-050）
+
+> ⚠️ **你不是"每步等人推"的被动执行器。** 完成一个 Task 后，主动寻找下一个。详细协议见 `_protocol.md` §4.1。
+
+```
+当前 Task passed
+  │
+  ▼
+GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator 分配
+  │
+  ├─→ 有 ready Task → claim → 执行 VDD 内层循环 → submit → 回到这里
+  │
+  └─→ 无 ready Task → 报告"工作队列为空，等待新 Task"
+```
+
+**循环铁律**（违反任何一条 = PFL-050 断点重演）：
+
+| # | 铁律 | 为什么 |
+|:--|------|------|
+| **1** | **API submit = Task 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。对话是人类看的——系统只看 `POST /tasks/{id}/submit` |
+| **2** | **每轮迭代前 re-fetch 状态** | Step 3.5 的状态同步不是"启动时做一次就好"。每次判断"下一步做什么"前重新调 API。Handshake 缓存静态配置（技术栈、角色围栏）——动态状态（Task status、Verification、授权请求）每次重新读 |
+| **3** | **主动轮询，不等人类转发** | submit 后每 15s `GET /tasks/{id}/verifications`。Orchestrator 验收完成后你不会自动知道——除非你主动查。人类不是 Worker 间的 Message Bus |
+| **4** | **完成后不停，立即找下一个** | Task passed → 不等人类说"继续" → 直接检查 ready 队列 → 有就 claim。没有才报告"队列空" |
+| **5** | **中断可恢复** | 会话可能因 `/clear` 中断。下次启动时 Step 3.5 自动发现 `in_progress` Task → 从中断点恢复，不依赖人类记住进度 |
+
+**循环终止条件**（满足任一即停止，报告给用户）：
+- 无 ready Task 可认领
+- 202 授权等待超时 ≥15 分钟
+- 同一 Task 被拒 ≥2 次（需人工讨论 Verification 条件是否合理）
+- Task 被 cancel / Orchestrator 显式指令停止
 
 ---
 

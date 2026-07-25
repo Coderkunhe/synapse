@@ -149,6 +149,76 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 **核心原则**：验证条件是合同，不是建议。你在接 Task 时就已经知道"什么叫做完"——因为 Verification 条件在 Task 创建时就写好了。你的工作是**满足合同**，不是"做完后让人类判断"。
 
+### 4.1 自主驱动循环（GAP-9 · PFL-050）
+
+> ⚠️ **这是 P11-B58 新增的核心行为契约。** Worker 不是"每步等人推"的被动执行器——完成一个 Task 后应主动寻找下一个 Task，形成自主工作循环。
+
+**为什么需要自主驱动**：B53 狗粮验证暴露了被动模型的三个系统性断点：
+- Builder 完成工作后在对话里汇报结果表格，但**没有调 API 提交 evidence**——Agent 将"对话汇报"误解为"任务完成"
+- Worker 状态是一次性快照——`handshake` 拉一次后不再更新，api_auth 已批准也不知道
+- 两个 Worker 之间的通信依赖人类做 Message Bus——平台有 WS push + Task comments，Worker 不主动 poll
+
+**根本原因**：Worker 运行模型是 `wait-for-prompt → execute-one-step → report → wait-for-next-prompt`，不是 `claim → loop(execute → submit → verify → next)`。
+
+**自主驱动循环（外层 — 跨 Task）**：
+
+```
+会话启动 → Handshake + State Sync（Step 1-3.5）
+  │
+  ▼
+┌─────────────────────────────────────────────────┐
+│  🔄 自主驱动循环（在一个 session 内持续运行）      │
+│                                                 │
+│  1. 检查当前状态                                  │
+│     ├─ 有 in_progress Task（上次中断）→ 继续执行   │
+│     └─ 无活跃 Task → 拉取 ready 列表              │
+│                                                 │
+│  2. 认领 Task（POST /tasks/{id}/claim）           │
+│                                                 │
+│  3. 执行 VDD 内层循环（§4）                       │
+│     ├─ 读 Verification → 执行 → 收集 evidence     │
+│     └─ POST /tasks/{id}/submit 提交验证           │
+│                                                 │
+│  4. 等待验收结果（主动轮询，不等人类转发）           │
+│     ├─ GET /tasks/{id}/verifications              │
+│     ├─ passed → 回到步骤 1 找下一个 Task           │
+│     └─ failed → 读反馈 → 修正 → 重新 submit       │
+│                                                 │
+│  5. 终止条件（满足任一 → 退出循环）：               │
+│     ├─ 无 ready Task 可认领                       │
+│     ├─ 202 授权等待超时（≥15 分钟）                │
+│     ├─ Verification 被拒 ≥2 次（需人工讨论）       │
+│     └─ 显式 stop 信号（Task 被 cancel/ Orch 指令） │
+└─────────────────────────────────────────────────┘
+```
+
+**循环规则**：
+
+| 规则 | 说明 |
+|------|------|
+| **API submit = Task 完成** | 在对话里汇报结果表格 **不是** 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成。对话汇报是给人看的进度提示——API 提交是给系统的状态变更 |
+| **每轮迭代前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新状态。不依赖 handshake 缓存的状态快照。Handshake 返回的静态配置（技术栈、角色围栏）可以缓存；动态状态（Task status、Verification 结果、授权请求状态）**每次判断前重新读取** |
+| **被动等待 → 主动轮询** | 提交 evidence 后不停止等待——主动 `GET /tasks/{id}/verifications` 检查验收结果。授权请求 pending 时主动 `GET /authorization-requests/{id}` 检查审批状态。间隔建议：verification 每 15s，authorization 每 10s |
+| **完成后不停止** | 当前 Task passed → 立即检查是否有下一个 ready Task → 有就 claim 继续，没有才报告"工作队列为空" |
+| **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步自动发现 `in_progress` Task → 恢复执行。不依赖人类记住"做到哪了" |
+
+**API submit vs 对话汇报 — 明确区分**：
+
+```
+✅ 正确：提交 evidence 后简单告知进度，然后继续检查验收结果
+   "✅ Task tsk_xxx 已提交 evidence（23/23 tests passed）。
+    正在等待 Orchestrator 验收..."
+
+❌ 错误：在对话中列详细结果表格但不调 submit API
+   "📊 执行结果：
+    | 命令 | 状态 |
+    | git push | ✅ |
+    | pytest | ✅ |
+    ...然后停下来等人问'验收通过了吗'"
+```
+
+**如果对话汇报了但忘记调 API** → 这是最常见的断点（PFL-050 断点 1）。记住：**你调了 `POST /tasks/{id}/submit`，系统才有记录。对话里的表格只有人类能看到——Orchestrator Worker 看不到，Synapse 平台也看不到。**
+
 ---
 
 ## 5. 关键规则
