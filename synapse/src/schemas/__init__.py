@@ -32,7 +32,13 @@ from src.schemas.authorization_request import (
     AuthorizationRequestCreate,
     AuthorizationRequestRespond,
     AuthorizationRequestHeartbeat,
+    AuthorizationRequestReport,
     AuthorizationRequestResponse,
+)
+from src.schemas.capability_audit import (
+    CapabilityAuditListParams,
+    CapabilityAuditPage,
+    CapabilityAuditResponse,
 )
 from src.schemas.workflow import (
     WorkflowCreate,
@@ -109,7 +115,12 @@ __all__ = [
     "AuthorizationRequestCreate",
     "AuthorizationRequestRespond",
     "AuthorizationRequestHeartbeat",
+    "AuthorizationRequestReport",
     "AuthorizationRequestResponse",
+    # CapabilityAudit (P11-B57)
+    "CapabilityAuditListParams",
+    "CapabilityAuditPage",
+    "CapabilityAuditResponse",
     # Workflow + WorkflowRole
     "WorkflowCreate",
     "WorkflowUpdate",

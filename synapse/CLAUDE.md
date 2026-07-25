@@ -5,7 +5,7 @@
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B53→B55 拉通完成（2026-07-25）— 零 drift · B53 狗粮验证 (PFL-047/048/049) · B54 缺口修复 · B55 Worker 角色围栏 (GAP-7) · 计数器复位
+> 🔄 L5 P11-B56→B57 拉通完成（2026-07-25）— 零 drift · B56 Tier 2 端点迁移 · B57 GAP-8 Capability 安全审计持久化 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -645,6 +645,8 @@ synapse/
 - P100：治理段 B1-B84 ✅ · 🎉 暂告段落
 
 **最近批次**：
+- **P11-B57**：GAP-8 Capability 安全审计持久化 ✅ — CapabilityAudit 模型 + service + GET /projects/{pid}/capability-audits · 10 files · 628 tests
+- **P11-B56**：Tier 2 端点 require_permission 迁移 (GAP-7 续) ✅ — 9 endpoints · 4 routers · 3 new resolvers · 9 files · 630 tests
 - **P11-B55**：Worker 角色围栏 (GAP-7) ✅ — require_permission 5端点 · task:update+task:terminate PERMISSION_MAP · 9 files · 630 tests
 - **P11-B54**：缺口修复 ✅ — PFL-047/048 L1+L2 · _protocol.md §13.4.1 审批角色表 · 3 files
 - **P11-B53**：狗粮验证 ✅ — Capability MVP 全链路 · PFL-047/048/049 发现 · 0 code files

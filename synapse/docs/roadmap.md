@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-25（P11-B55 ✅ Worker 角色围栏 · L5 B53→B55 拉通完成）
+> 最后更新：2026-07-25（P11-B57 ✅ GAP-8 Capability 安全审计 · L5 B56→B57 拉通完成）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -125,6 +125,8 @@
 | **P11-B53** | **狗粮验证 — Capability MVP 全链路** — 双 Worker 协作验证 · PFL-047/048/049 发现 · 🟢 微型 · 0 code files（纯狗粮） | ✅ |
 | **P11-B54** | **缺口修复 — PFL-047/048 L1+L2** — 审批角色表 _protocol.md §13.4.1 · synapse-exec Human提示+安全命令审计 · 🟡 标准 · 3 files | ✅ |
 | **P11-B55** | **Worker 角色围栏服务端强制 (GAP-7)** — require_permission 5端点迁移 · task:update+task:terminate PERMISSION_MAP · ensure_project_role helper · 🟡 标准 · 9 files · 630 tests | ✅ |
+| **P11-B56** | **Tier 2 端点 require_permission 迁移 (GAP-7 续)** — 9 endpoints · 4 routers · 3 new project_id resolvers · 🟡 标准 · 9 files · 630 tests | ✅ |
+| **P11-B57** | **GAP-8 Capability 安全审计持久化** — CapabilityAudit 不可变模型 · audit service 非阻塞 · GET /projects/{pid}/capability-audits cursor 分页 · 🟡 标准 · 10 files · 628 tests | ✅ |
 
 ---
 

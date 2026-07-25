@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from .routers import admin, authorization_requests, bootstrap, capabilities, circuit_breakers, conversation, decision_audits, protection_reports, webpush, workers, workflow, analyses, auth, batches, docs, events, features, projects, scans, skills, tasks, teams, token_usage
+from .routers import admin, authorization_requests, bootstrap, capabilities, capability_audits, circuit_breakers, conversation, decision_audits, protection_reports, webpush, workers, workflow, analyses, auth, batches, docs, events, features, projects, scans, skills, tasks, teams, token_usage
 from . import dashboard
 
 api_router = APIRouter(prefix="/v1")
@@ -34,6 +34,7 @@ api_router.include_router(capabilities.router)
 api_router.include_router(admin.router, prefix="/admin")
 api_router.include_router(workflow.router, prefix="/admin/projects/{project_id}/workflows")
 api_router.include_router(protection_reports.router)
+api_router.include_router(capability_audits.router)
 api_router.include_router(circuit_breakers.router)
 api_router.include_router(decision_audits.router)
 api_router.include_router(webpush.router)

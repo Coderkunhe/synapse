@@ -402,6 +402,35 @@ async def report_execution(
     record.exit_code = exit_code
     record.duration_ms = duration_ms
 
+    await db.flush()
+
+    # P11-B57 (GAP-8): write capability audit — non-blocking
+    try:
+        from src.services.capability_audit_service import write_capability_audit
+        await write_capability_audit(
+            db,
+            project_id=record.project_id,
+            worker_id=worker_id,
+            capability_id=record.capability_id or "unknown",
+            authorization_request_id=request_id,
+            exit_code=exit_code,
+            duration_ms=duration_ms,
+            outcome=outcome,
+            actor_type=actor_type,
+            actor_id=actor_id,
+        )
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning(
+            "capability_audit_write_failed",
+            extra={
+                "request_id": request_id,
+                "worker_id": worker_id,
+                "capability_id": record.capability_id,
+                "outcome": outcome,
+            },
+        )
+
     await event_store.record(
         db,
         event_type=EventType.AUTHORIZATION_REQUEST_EXECUTED,

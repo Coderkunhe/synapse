@@ -29,6 +29,7 @@ from src.models.workflow import Workflow, WorkflowRole
 from src.models.task_worker_conversation import TaskWorkerConversation
 from src.models.protection_report import ProtectionReport
 from src.models.circuit_breaker import CircuitBreaker
+from src.models.capability_audit import CapabilityAudit
 from src.models.decision_audit import DecisionAudit
 from src.models.user_push_subscription import UserPushSubscription
 
@@ -62,6 +63,7 @@ __all__ = [
     "TaskWorkerConversation",
     "ProtectionReport",
     "CircuitBreaker",
+    "CapabilityAudit",
     "DecisionAudit",
     "UserPushSubscription",
 ]

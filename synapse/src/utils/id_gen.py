@@ -33,6 +33,7 @@ PREFIXES: dict[str, str] = {
     "task_worker_conversation": "twc",  # P10-B28
     "protection_report": "prpt",  # P10-B35
     "circuit_breaker": "cb",  # P10-B35
+    "capability_audit": "ca",  # P11-B57
     "decision_audit": "da",  # P10-B35
     "user_push_subscription": "ups",  # P10-B44
 }
