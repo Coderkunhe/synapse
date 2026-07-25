@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B51→B52 拉通 — 📄 requirements-log B51+B52 · 📄 roadmap B51+B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B51+B52 · 📄 tracks B52 · 零 drift · 计数器复位",
+  "lastL5Batch": "B49→B52 拉通 — 📄 requirements-log B49+B50+B51+B52 · 📄 roadmap B49-B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B49-B52 · 📄 tracks B52 · 叙事一致性: Capability MVP 从「能用」到「会用」完整闭环 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-25",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B51→B52 拉通 — 📄 requirements-log B51+B52 · 📄 roadmap B51+B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B51+B52 · 📄 tracks B52 · 零 drift · 计数器复位",
+  "lastL5Evidence": "B49→B52 拉通 — 📄 requirements-log B49+B50+B51+B52 · 📄 roadmap B49-B52 · 📄 CLAUDE.md header+L5+状态 · 📄 daily B49-B52 · 📄 tracks B52 · 叙事一致性: Capability MVP 从「能用」到「会用」完整闭环 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
