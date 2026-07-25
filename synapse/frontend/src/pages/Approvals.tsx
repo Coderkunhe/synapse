@@ -381,6 +381,13 @@ export default function Approvals() {
                             <span className={styles.detailValue}>{item.capability_id}</span>
                           </div>
                         )}
+                        {item.prompt_message && (
+                          <div className={styles.promptDetails}>
+                            <p className={styles.promptMessage}>
+                              {item.prompt_message}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className={styles.promptDetails}>

@@ -28,6 +28,23 @@ fi
 echo "🛡️  Synapse: 推送到 ${BRANCH} 需要审批"
 echo ""
 
+# ── 收集即将 push 的 commit 信息 ──
+# 尝试两种策略: (1) rebase 场景: @{u}..HEAD (2) 无 upstream: 最近 5 个 commit
+COMMIT_INFO=""
+if git rev-parse "@{u}" &>/dev/null 2>&1; then
+    COMMIT_INFO=$(git log --oneline "@{u}..HEAD" 2>/dev/null | head -5)
+fi
+if [[ -z "$COMMIT_INFO" ]]; then
+    COMMIT_INFO=$(git log --oneline -5 2>/dev/null)
+fi
+
+# 拼接成 reason: 分行显示 commits
+REASON="git push ${BRANCH} → ${URL}"
+if [[ -n "$COMMIT_INFO" ]]; then
+    # 用 \n 分隔，让审批卡片更可读
+    REASON="${REASON}\n\n${COMMIT_INFO}"
+fi
+
 # 调用 synapse-exec — 内部完成 请求→审批→执行→上报
 # synapse-exec 返回非零 → git push 被阻断
-synapse-exec git_push_main --params BRANCH="${BRANCH}" --reason "git push ${BRANCH} → ${URL}"
+synapse-exec git_push_main --params BRANCH="${BRANCH}" --reason "${REASON}"

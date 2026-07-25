@@ -297,6 +297,12 @@ create_auth_request() {
     fi
 
     local req_body
+    # 将 reason 作为 prompt_message 传入（2000 字符上限，截断）
+    local prompt_msg=""
+    if [[ -n "$REASON" ]]; then
+        prompt_msg=$(echo "$REASON" | head -c 1900)
+    fi
+
     req_body=$(jq -n \
         --arg project_id "$SYNAPSE_PROJECT_ID" \
         --arg worker_id "$SYNAPSE_WORKER_ID" \
@@ -305,6 +311,7 @@ create_auth_request() {
         --arg operation "$CAP_NAME" \
         --arg target_resource_type "capability" \
         --arg target_resource_id "$CAP_ID" \
+        --arg prompt_message "$prompt_msg" \
         --argjson ttl "$TIMEOUT" \
         '{
             project_id: $project_id,
@@ -314,6 +321,7 @@ create_auth_request() {
             operation: $operation,
             target_resource_type: $target_resource_type,
             target_resource_id: $target_resource_id,
+            prompt_message: $prompt_message,
             ttl_seconds: $ttl
         }')
 
@@ -328,12 +336,15 @@ create_auth_request() {
     echo -e "${CYAN}📋 授权请求已创建: ${BOLD}${AUTH_ID}${NC}"
     echo "   ${CAP_NAME} · ${CAP_RISK} · 需审批"
     if [[ -n "$REASON" ]]; then
-        echo "   原因: ${REASON}"
+        echo "   原因: $(echo "$REASON" | head -1)"
+        # 显示 commit 列表（如果有）
+        local commit_count
+        commit_count=$(echo "$REASON" | grep -c '^[a-f0-9]\{7\}' 2>/dev/null || true)
+        if [[ "$commit_count" -gt 0 ]]; then
+            echo "   包含 ${commit_count} 个 commit"
+        fi
     fi
     echo ""
-
-    # 如果 body 支持 reason/description，但当前 API schema 无此字段
-    # 主要原因通过 stdout 展示给审批人即可
 }
 
 # ── 审批等待 ──
