@@ -48,9 +48,11 @@ PERMISSION_MAP: dict[str, set[str]] = {
     # ── Task operations — orchestrator domain ──
     "task:create":  {"super_admin", "admin", "orchestrator"},
     "task:ready":   {"super_admin", "admin", "orchestrator"},
+    "task:update":  {"super_admin", "admin", "orchestrator"},
     "task:assign":  {"super_admin", "admin", "orchestrator"},
-    "task:cancel":  {"super_admin", "admin", "orchestrator"},
-    "task:verify":  {"super_admin", "admin", "orchestrator"},
+    "task:cancel":    {"super_admin", "admin", "orchestrator"},
+    "task:terminate": {"super_admin", "admin", "orchestrator"},
+    "task:verify":    {"super_admin", "admin", "orchestrator"},
 
     # ── Task operations — builder domain ──
     "task:claim":   {"super_admin", "admin", "builder"},

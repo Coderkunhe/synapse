@@ -24,7 +24,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -272,6 +272,20 @@ class TestHappyPathFullChain:
 
         # ── 第 2 步: Project + Batch + 3 个 Task ──
         project = await _create_project(client, seed, "B10 快乐路径")
+
+        # B55 (GAP-7): Workers need project role for submit (builder domain)
+        headers = auth_header(seed.token)
+        await client.post(
+            f"/v1/admin/projects/{project['id']}/roles",
+            json={"worker_id": agent_a["id"], "role": "admin"},
+            headers=headers,
+        )
+        await client.post(
+            f"/v1/admin/projects/{project['id']}/roles",
+            json={"worker_id": agent_b["id"], "role": "admin"},
+            headers=headers,
+        )
+
         batch = await _create_batch(client, seed, project["id"], "B10 快乐批次")
 
         task1 = await _create_task_api(client, seed, project["id"], "E2E 任务 1", batch["id"], "p1")
@@ -386,6 +400,9 @@ class TestFailureRecovery:
         await _worker_heartbeat(client, agent_b["id"], key_b)
 
         project = await _create_project(client, seed, "B10 故障恢复")
+        # B55 (GAP-7): Workers need project role for submit
+        admin_headers = auth_header(seed.token)
+        await ensure_project_role(client, project["id"], agent_b["id"], "builder", admin_headers)
         batch = await _create_batch(client, seed, project["id"])
 
         task_a = await _create_task_api(client, seed, project["id"], "恢复任务 1", batch["id"])
@@ -505,6 +522,8 @@ class TestReviewTimeout:
         await _worker_heartbeat(client, agent_a["id"], key_a)
 
         project = await _create_project(client, seed, "B10 审查超时")
+        # B55 (GAP-7): Workers need project role for submit
+        await ensure_project_role(client, project["id"], agent_a["id"], "builder", auth_header(seed.token))
         batch = await _create_batch(client, seed, project["id"])
         task_data = await _create_task_api(
             client, seed, project["id"], "审查超时任务", batch["id"])
@@ -589,6 +608,10 @@ class TestMultiWorkerCollaboration:
         await _worker_heartbeat(client, agent_b["id"], key_b)
 
         project = await _create_project(client, seed, "B10 协作")
+        # B55 (GAP-7): Workers need project role for submit
+        admin_headers = auth_header(seed.token)
+        await ensure_project_role(client, project["id"], agent_a["id"], "builder", admin_headers)
+        await ensure_project_role(client, project["id"], agent_b["id"], "builder", admin_headers)
         batch = await _create_batch(client, seed, project["id"])
 
         task_a = await _create_task_api(client, seed, project["id"], "协作任务 A", batch["id"])
@@ -661,6 +684,10 @@ class TestBlockerReport:
         await _worker_heartbeat(client, agent_b["id"], key_b)
 
         project = await _create_project(client, seed, "B10 阻塞")
+        # B55 (GAP-7): Workers need project role for submit
+        admin_headers = auth_header(seed.token)
+        await ensure_project_role(client, project["id"], agent_a["id"], "builder", admin_headers)
+        await ensure_project_role(client, project["id"], agent_b["id"], "builder", admin_headers)
         batch = await _create_batch(client, seed, project["id"])
         task_data = await _create_task_api(
             client, seed, project["id"], "阻塞任务", batch["id"])
@@ -738,6 +765,8 @@ class TestEventStoreCompleteness:
         await _worker_handshake(client, agent_a["id"], key_a)
         await _worker_heartbeat(client, agent_a["id"], key_a)
         project = await _create_project(client, seed, f"B10 {label}")
+        # B55 (GAP-7): Workers need project role for submit
+        await ensure_project_role(client, project["id"], agent_a["id"], "builder", auth_header(seed.token))
         batch = await _create_batch(client, seed, project["id"])
         task = await _create_task_api(client, seed, project["id"], f"{label} 任务", batch["id"])
         task = await _assign_task(client, seed, task["id"], "worker", agent_a["id"], task["version_no"])

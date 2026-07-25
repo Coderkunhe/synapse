@@ -49,6 +49,13 @@ class TestTaskHappyPath:
             headers=auth_header(api_key),
         )
 
+        # ── 赋予 Worker builder 项目角色（B55 GAP-7: submit 需要 builder 权限）──
+        await client.post(
+            f"/v1/admin/projects/{project_id}/roles",
+            json={"worker_id": agent_id, "role": "builder"},
+            headers=headers,
+        )
+
         # ── 创建任务（backlog）──
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
@@ -313,6 +320,13 @@ class TestTaskCancelFlow:
             headers=auth_header(api_key),
         )
 
+        # B55 (GAP-7): submit requires builder project role
+        await client.post(
+            f"/v1/admin/projects/{project_id}/roles",
+            json={"worker_id": agent_id, "role": "builder"},
+            headers=headers,
+        )
+
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
             json={
@@ -401,6 +415,13 @@ class TestVerificationRework:
             headers=auth_header(api_key),
         )
 
+        # B55 (GAP-7): submit requires builder project role
+        await client.post(
+            f"/v1/admin/projects/{project_id}/roles",
+            json={"worker_id": agent_id, "role": "builder"},
+            headers=headers,
+        )
+
         # 创建任务
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
@@ -487,17 +508,20 @@ class TestVerificationRework:
         assert task["redo_count"] == 1  # redo_count 从第一次拒绝保留
 
 
-class TestOrchestratorWorkerAuth:
-    """P11-B15: Orchestrator Worker 应能通过 API key 执行 assign 和 verify。
+class TestAdminWorkerAuth:
+    """P11-B15 + B55 (GAP-7): Admin Worker 应能通过 API key 执行全角色操作。
 
     验证 require_permission 守卫正确支持 Worker actor（PFL-034 + PFL-039）。
+    Admin 角色通过 ROLE_HIERARCHY 继承 orchestrator + builder + steward，
+    因此单个 admin Worker 可以完成 assign + submit + verify 全链路。
+    B55 之前此测试用 orchestrator 角色也能 submit，仅因 submit_task 当时无 guard。
     """
 
     @pytest.mark.asyncio
-    async def test_orchestrator_worker_can_assign_and_verify(
+    async def test_admin_worker_can_assign_submit_and_verify(
         self, client: AsyncClient, seed: SeedData
     ):
-        """Orchestrator Worker (API key auth) 执行 assign + verify 全链路。"""
+        """Admin Worker (API key auth) 执行 assign + submit + verify 全链路。"""
         admin_headers = auth_header(seed.token)
 
         # ── 1. 创建 Project ──
@@ -529,10 +553,11 @@ class TestOrchestratorWorkerAuth:
         )
         assert hs_resp.status_code == 200, hs_resp.text
 
-        # ── 3. 赋予 Orchestrator 项目角色 ──
+        # ── 3. 赋予 Admin 项目角色 ──
+        # B55 (GAP-7): admin inherits orchestrator + builder + steward via ROLE_HIERARCHY
         role_resp = await client.post(
             f"/v1/admin/projects/{project_id}/roles",
-            json={"worker_id": orch_id, "role": "orchestrator"},
+            json={"worker_id": orch_id, "role": "admin"},
             headers=admin_headers,
         )
         assert role_resp.status_code == 201, role_resp.text
@@ -574,7 +599,7 @@ class TestOrchestratorWorkerAuth:
         )
         task_version = assign_resp.json()["version_no"]
 
-        # ── 6. Orchestrator Worker 提交（模拟 Builder 完成工作）──
+        # ── 6. Worker 提交（Admin 角色通过 ROLE_HIERARCHY 继承 builder 权限）──
         ver_id = task_resp.json().get("verifications", [{}])[0].get("id")
         if not ver_id:
             ver_list = await client.get(f"/v1/tasks/{task_id}/verifications", headers=admin_headers)

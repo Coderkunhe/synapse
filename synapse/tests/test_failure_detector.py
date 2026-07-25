@@ -68,6 +68,13 @@ async def _setup_agent_with_task(
             headers=auth_header(api_key),
         )
 
+    # B55 (GAP-7): assign builder role so Worker can submit tasks
+    await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": agent_id, "role": "builder"},
+        headers=headers,
+    )
+
     task_resp = await client.post(
         f"/v1/projects/{project_id}/tasks",
         json={"title": f"Task-{slug}", "description": "test", "priority": "p2",

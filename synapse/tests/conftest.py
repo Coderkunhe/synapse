@@ -155,6 +155,26 @@ def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def ensure_project_role(
+    client,
+    project_id: str,
+    worker_id: str,
+    role: str,
+    admin_headers: dict,
+) -> None:
+    """B55 (GAP-7): 为 Worker 分配项目角色，用于 submit/ready/cancel 等守卫端点。
+
+    在 Worker handshake 后调用，确保 Worker 有权限调用 require_permission
+    守卫的端点（如 submit 需要 builder 角色）。
+    """
+    resp = await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": worker_id, "role": role},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 201, f"Role assignment failed: {resp.text}"
+
+
 # ── P100-B15 C3: 测试隔离 — 防止跨测试 Worker 状态泄漏 ──────────
 # 故障检测器 (detect_heartbeat_failures) 全局扫描所有 active Worker，
 # 不按 team_id 过滤。E2E 测试中若前一个测试遗留心跳过期的 Worker，

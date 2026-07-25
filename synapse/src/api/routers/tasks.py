@@ -156,12 +156,13 @@ async def ready_task(
     task_id: str,
     body: TaskReadyRequest | None = None,
     expected_version: int = Query(None, ge=1, description="Deprecated: use request body"),
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:ready", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     """Promote a task from BACKLOG to READY — makes it available for claiming (P100-B15 C2).
 
-    Guards: task must have a non-empty description and at least one verification.
+    Requires orchestrator role or above. Task must have a non-empty description
+    and at least one verification.
     """
     version = body.expected_version if body else expected_version
     if version is None:
@@ -299,7 +300,7 @@ async def get_task(
 async def update_task(
     task_id: str,
     body: TaskUpdate,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:update", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     task = await _get_task(db, task_id)
@@ -464,7 +465,7 @@ async def assign_task(
 async def submit_task(
     task_id: str,
     body: TaskSubmitRequest,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:submit", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     verification_results = [
@@ -499,7 +500,7 @@ async def cancel_task(
     task_id: str,
     body: TaskCancelRequest | None = None,
     expected_version: int = Query(None, ge=1, description="Deprecated: use request body"),
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:cancel", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     version = body.expected_version if body else expected_version
@@ -524,7 +525,7 @@ async def cancel_task(
 async def terminate_task(
     task_id: str,
     body: TaskTerminateRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:terminate", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     """Permanently terminate a task — cancel + release worker back to pool (P8-B9, I2).

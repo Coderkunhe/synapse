@@ -13,7 +13,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -51,6 +51,9 @@ async def _setup_agent_with_task(
               "supported_events": [], "preferred_channel": "websocket"},
         headers=auth_header(api_key),
     )
+
+    # B55 (GAP-7): assign builder role for submit permission
+    await ensure_project_role(client, project_id, agent_id, "builder", headers)
 
     if verifications is None:
         verifications = [{"type": "manual", "description": "检查"}]

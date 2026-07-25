@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B54 ✅ 缺口修复 — PFL-047/048/049 L1+L2 · 0 drift
-last_batch: P11-B54
-next_batch: P11-B55
-description: Synapse 主项目 — B54 ✅ 缺口修复 · _protocol.md §13.4.1 审批角色表 · synapse-exec Human审批+审计 · L5 B53→B54 ✅ · 630 tests
+phase: P11-B55 ✅ Worker 角色围栏服务端强制 — GAP-7 · 3 files · 630 tests
+last_batch: P11-B55
+next_batch: P11-B56
+description: Synapse 主项目 — B55 ✅ 角色围栏 · require_permission 5端点 · PERMISSION_MAP +2 key · 630 tests
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B54 ✅ 缺口修复 · _protocol.md §13.4.1
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B87 | **P100-B88** 🔜 | B86 ✅ 违纪回顾（V-027/V-028 🔴→🟢）· B87 ✅ 治理清理（违纪回顾 39→0 + 3doc 日期刷新 Jul 19→23 + D-P11-015 LL18 登记） |
-| **P11** | P11-B54 | **P11-B55** 🔜 | B1-B54 ✅ · B53 狗粮验证 ✅ · B54 缺口修复 ✅ · _protocol.md §13.4.1 · synapse-exec · L5 B53→B54 ✅ |
+| **P11** | P11-B55 | **P11-B56** 🔜 | B1-B55 ✅ · B55 Worker 角色围栏 (GAP-7) · require_permission 5端点 · 630 tests |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -266,6 +266,16 @@ description: Synapse 主项目 — B54 ✅ 缺口修复 · _protocol.md §13.4.1
 | **三客户端实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实协作 | 多角色并发 · WS 推送贯穿 VDD 循环 |
 | **看板可视化** | 任务状态实时看板，拖拽/状态流转可视化 | Dashboard Kanban · 实时 WS 更新 · 拖拽改变状态 |
 
+### P11 Hook Gap 审计项（2026-07-25 · P11-008~P11-010）
+
+> 来源：B54 Hook Gap 审计（`docs/hook-gap-audit.md`）。3 项触及 `src/` 的产品变更。
+
+| ID | 内容 | 复杂度 |
+|:---|------|:---:|
+| P11-008 | **🔴 Worker 角色围栏服务端强制** (GAP-7) — Builder API key 调 `POST /tasks` → 403 "Builders cannot create tasks" · Orchestrator 调 write → 403 · `dependencies.py` + routers | 🔴 高 |
+| P11-009 | **🟡 Capability 安全命令审计持久化** (GAP-8) — 新增 `POST /v1/capability-executions` 端点 · 安全命令执行后服务端持久化 | 中 |
+| P11-010 | **🟢 Worker 自主驱动循环** (GAP-9 · PFL-050) — 完成 Task → 自动 `GET /tasks?status=ready` → claim → execute → submit 循环 | 🔴 高 |
+
 ## 路线图（2026-07-21 更新 · P100/P9 双轨分治）
 
 ### P100 治理轨道（B35→B45）
@@ -397,6 +407,20 @@ P100-B87 ✅ 治理清理 — 违纪回顾（39→0 复位 · V-029 状态确认
 | G26 | 议题编号与状态自洽校验 — B32 将议题 ⑦ 通知通道误标为议题 ⑥ 且误标完成 · 需机械校验：议题编号↔track 定义↔CLAUDE.md 状态三方对齐 | CLAUDE.md + tracks | 🟠 → ✅ P100-B72 |
 | G27 | pitfalls 前缀从 P- 改为 PFL- — 与 Phase-Batch P{N}- 彻底区分。新条目直接使用 PFL- 前缀，旧 35 条 P- 逐步迁移 | docs/pitfalls.md | 🟡 待排期 |
 | G28 | **Git hooks 完整性防呆** — V-028：迁库后 hooks 静默丢失，L5 三层防线全部失效。check-hooks.sh 三线防御（make check 首位门禁 + CLAUDE.md 启动自检 + `make hooks` 一键安装） | tools/check-hooks.sh + Makefile + CLAUDE.md | 🟢 P100-B85 |
+
+### P100 治理 backlog（Hook Gap 审计 · 2026-07-25 · G-029~G-035）
+
+> 来源：B54 Hook Gap 审计（`docs/hook-gap-audit.md`）。7 项——将 prompt/skill 软约束升级为 hook/脚本硬门禁。
+
+| # | 内容 | 涉及文件 | 严重度 |
+|:--:|------|------|:--:|
+| G-029 | **🔴 ≤8 文件硬阻断** (GAP-1) — `check-plan-mode.sh` CODE_FILES ≥ 9 → exit 1（当前 exit 0 WARNING）· 验证期 20+ 批已过 | tools/check-plan-mode.sh | 🔴 |
+| G-030 | **🔴 质量三板斧 mechanical 门禁** (GAP-2) — 新建 `check-quality-gate.sh` · staged 含 src/ → 要求 `.claude/self-check-<batch>.md` 存在 · Scout三问+自检四问 | tools/check-quality-gate.sh (新) + pre-commit | 🔴 |
+| G-031 | **🔴 Checkpoint 新鲜度门禁** (GAP-3) — pre-commit 检测 `memory/active/<topic>.md` 今日更新 · 方案A（WARNING）先行 | tools/session-checkpoint.sh → pre-commit 集成 | 🟠 |
+| G-032 | **🟡 批次顺序机械校验** (GAP-4) — 新建 `check-batch-sequence.sh` · commit msg 提取 Batch 编号 vs tracks next_batch | tools/check-batch-sequence.sh (新) + pre-commit | 🟡 |
+| G-033 | **🟡 日报缺失阻断** (GAP-5) — `check-docs.sh` 升级 · 昨天日报缺失+今天代码变更 → exit 1（`--allow-missing-daily` 逃逸）| tools/check-docs.sh | 🟡 |
+| G-034 | **🟡 pre-push hook 硬化** (GAP-6) — 宽松模式保留 · 输出 🔴 + 本地 log · `--skip-synapse-check` 显式 flag | tools/git-hooks/pre-push | 🟡 |
+| G-035 | **🟢 依赖升级强制门禁** (GAP-10) — pre-commit 检测 requirements.txt/package.json staged → 强制 make check | tools/pre-commit | 🟢 |
 
 ### P10 架构升级（B1→B47 · 议题 ①-⑧ 全部闭环 🎉）
 
