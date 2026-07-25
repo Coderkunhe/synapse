@@ -9,6 +9,14 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 ERRORS=0
 WARNINGS=0
 
+# ── Flag parsing ──────────────────────────────────────
+ALLOW_MISSING_DAILY=false
+for arg in "$@"; do
+  case "$arg" in
+    --allow-missing-daily) ALLOW_MISSING_DAILY=true ;;
+  esac
+done
+
 red()   { echo -e "\033[31m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow(){ echo -e "\033[33m$1\033[0m"; }
@@ -94,14 +102,46 @@ echo ""
 
 # ── 日报存在性检查 ──────────────────────────────────
 echo "--- 日报 ---"
+
+# Detect staged code files (same logic as check-plan-mode.sh)
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || echo "")
+if [ -z "$STAGED" ]; then
+  STAGED=$(git diff --name-only --diff-filter=ACMR 2>/dev/null || echo "")
+fi
+
+HAS_CODE_CHANGES=false
+for f in $STAGED; do
+  case "$f" in
+    */docs/*|*/*.md|*.md|*/tools/*|*/Makefile|Makefile|.gitignore|*.txt|*.json|*.yml|*.yaml|*.ini|*.example|*.toml|*.cfg|*/tracks/*|*.pyc|*/__pycache__/*)
+      continue ;;
+  esac
+  HAS_CODE_CHANGES=true
+  break
+done
+
 YESTERDAY=$(date -v-1d +%Y-%m-%d 2>/dev/null || date -d "yesterday" +%Y-%m-%d 2>/dev/null || echo "")
 if [ -n "$YESTERDAY" ]; then
   DAILY_FILE="$PROJECT_DIR/docs/daily/${YESTERDAY}.md"
   if [ -f "$DAILY_FILE" ]; then
     green "  ✅ 昨日日报存在 (${YESTERDAY}.md)"
   else
-    yellow "  ⚠️  昨日日报缺失 (${YESTERDAY}.md) — 从 git log 补写（不阻断 commit）"
-    WARNINGS=$((WARNINGS + 1))
+    if [ "$HAS_CODE_CHANGES" = true ] && [ "$ALLOW_MISSING_DAILY" != true ]; then
+      red "  ┌──────────────────────────────────────────────────────────────┐"
+      red "  │  🔴 GAP-5 硬阻断：昨日日报缺失 + 今日有代码变更                 │"
+      red "  ├──────────────────────────────────────────────────────────────┤"
+      printf "  │  缺失日报: docs/daily/%s.md                           │\n" "$YESTERDAY"
+      red "  │                                                              │"
+      red "  │  CLAUDE.md §6: 日报铁律 — 每天必须写日报                      │"
+      red "  │                                                              │"
+      red "  │  Action: 从 git log 反推补写日报                              │"
+      red "  │  逃逸: --allow-missing-daily（需在 commit message 注明原因）  │"
+      red "  └──────────────────────────────────────────────────────────────┘"
+      echo ""
+      ERRORS=$((ERRORS + 1))
+    else
+      yellow "  ⚠️  昨日日报缺失 (${YESTERDAY}.md) — 从 git log 补写（不阻断 commit）"
+      WARNINGS=$((WARNINGS + 1))
+    fi
   fi
 else
   yellow "  ⚠️  无法计算昨天日期 — 跳过日报检查"
