@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, VerificationStatus
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role, require_role
-from src.exceptions import NotFoundError
+from src.dependencies import ActorInfo, get_current_actor, require_project_role
+from src.exceptions import ForbiddenError, NotFoundError
 from src.permissions import require_permission
 from src.schemas.batch import BatchAssignRequest, BatchCreate, BatchResponse
 from src.schemas.verification import (
@@ -56,6 +56,18 @@ async def _resolve_project_from_verification(request: Request, db: AsyncSession)
         raise NotFoundError("verification", verification_id)
     task = await db.get(Task, ver.task_id)
     return task.project_id
+
+
+async def _resolve_project_from_batch(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from batch_id in URL path parameters.
+
+    Used by ``require_permission`` for the assign_batch endpoint
+    (``POST /batches/{batch_id}/assign``) which doesn't have
+    ``project_id`` in its URL path.
+    """
+    batch_id = request.path_params["batch_id"]
+    batch = await _get_batch(db, batch_id)
+    return batch.project_id
 
 
 router = APIRouter()
@@ -148,7 +160,7 @@ async def list_batches(
 async def assign_batch(
     batch_id: str,
     body: BatchAssignRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:assign", resolve_project_id=_resolve_project_from_batch)),
     db: AsyncSession = Depends(get_db),
 ):
     """将 Batch 分配给一个 Worker（P7-007 分配原子）。
@@ -210,7 +222,7 @@ async def verify(
 )
 async def batch_verify(
     body: VerificationBatchRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(get_current_actor),
     db: AsyncSession = Depends(get_db),
 ):
     """Execute multiple verifications in a single batch.
@@ -220,7 +232,36 @@ async def batch_verify(
     - Set review_flag=True on individual items for boundary cases
       that need human judgment.  Flagged items keep their parent
       task in IN_VERIFICATION until the human resolves them.
+
+    Permission is checked inline (not via require_permission guard)
+    because the project_id must be resolved from the first item
+    in the request body AFTER Pydantic validation.
     """
+    # Resolve project_id from first verification and check permission
+    from src.models.task import Task
+    from src.models.verification import Verification
+    from src.permissions import PERMISSION_MAP, _expand_roles
+    from src.services.project_role_service import get_project_role
+
+    if body.items:
+        vid = body.items[0].verification_id
+        ver = await db.get(Verification, vid)
+        if ver is not None:
+            task = await db.get(Task, ver.task_id)
+            if task is not None:
+                pid = task.project_id
+                # Inline permission check (batch_verify is not Worker-facing,
+                # so 403 is correct for unauthorized humans)
+                allowed = PERMISSION_MAP.get("task:verify", set())
+                expanded = _expand_roles(allowed)
+                if not actor.is_super_admin:
+                    role = await get_project_role(db, pid, actor.actor_id)
+                    if not role or role not in expanded:
+                        raise ForbiddenError(
+                            "FORBIDDEN_INSUFFICIENT_PERMISSION",
+                            f"Permission 'task:verify' requires one of: {', '.join(sorted(expanded))}. "
+                            f"Your project role: {role or '(none)'}.",
+                        )
     items = [
         {
             "verification_id": it.verification_id,

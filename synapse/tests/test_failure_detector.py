@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 def _uniq(prefix: str) -> str:
@@ -94,7 +94,7 @@ async def _setup_agent_with_task(
 
     return {
         "agent_id": agent_id, "api_key": api_key, "task_id": task_id,
-        "version": version, "headers": headers,
+        "version": version, "headers": headers, "project_id": project_id,
     }
 
 
@@ -304,6 +304,11 @@ class TestBlockerReport:
             json={"worker_version": "1.0", "capabilities": [],
                   "supported_events": [], "preferred_channel": "websocket"},
             headers=auth_header(api_key2),
+        )
+
+        # B56: report_blocker requires builder project role
+        await ensure_project_role(
+            client, data["project_id"], agent2_id, "builder", data["headers"],
         )
 
         task_resp = await client.get(

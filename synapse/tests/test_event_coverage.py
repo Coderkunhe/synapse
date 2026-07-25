@@ -9,7 +9,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 # ── 辅助函数 ────────────────────────────────────────────────────────────
@@ -193,6 +193,11 @@ class TestTaskEventCoverage:
         # 注册并握手 agent
         agent_data, api_key = await _register_worker(client, seed)
         await _worker_handshake(client, agent_data["id"], api_key)
+
+        # B56: claim requires builder project role
+        await ensure_project_role(
+            client, project["id"], agent_data["id"], "builder", auth_header(seed.token),
+        )
 
         # Worker 认领任务
         resp = await client.post(

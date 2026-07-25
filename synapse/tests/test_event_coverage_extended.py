@@ -9,7 +9,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 # ── 辅助函数 ────────────────────────────────────────────────────────────
@@ -281,6 +281,11 @@ class TestFailureEventCoverage:
         agent_data, api_key = await _register_worker(client, seed)
         await _worker_handshake(client, agent_data["id"], api_key)
 
+        # B56: claim + report_blocker requires builder project role
+        await ensure_project_role(
+            client, project["id"], agent_data["id"], "builder", auth_header(seed.token),
+        )
+
         # READY 然后 claim
         from src.db import async_session_factory
         from src.services.task_service import get_task as svc_get_task, ready_task
@@ -338,6 +343,11 @@ class TestFailureEventCoverage:
         # 注册、握手、READY、claim
         agent_data, api_key = await _register_worker(client, seed)
         await _worker_handshake(client, agent_data["id"], api_key)
+
+        # B56: claim requires builder project role
+        await ensure_project_role(
+            client, project["id"], agent_data["id"], "builder", auth_header(seed.token),
+        )
 
         from src.services.task_service import get_task as svc_get_task, ready_task
 
@@ -403,6 +413,11 @@ class TestWorkerSchedulerEvents:
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
 
+        # B56: claim requires builder project role
+        await ensure_project_role(
+            client, project["id"], agent_data["id"], "builder", auth_header(seed.token),
+        )
+
         from src.services.task_service import get_task as svc_get_task, ready_task
 
         async with async_session_factory() as db:
@@ -452,6 +467,11 @@ class TestWorkerSchedulerEvents:
 
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # B56: claim requires builder project role
+        await ensure_project_role(
+            client, project["id"], agent_data["id"], "builder", auth_header(seed.token),
+        )
 
         from src.services.task_service import get_task as svc_get_task, ready_task
 

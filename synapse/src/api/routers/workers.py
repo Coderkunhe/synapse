@@ -503,7 +503,7 @@ async def agent_heartbeat(
 async def start_task_endpoint(
     worker_id: str,
     task_id: str = Query(..., description="Task ID to start working on"),
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:start", resolve_project_id=_resolve_project_from_task_query)),
     db: AsyncSession = Depends(get_db),
 ):
     """Begin work on a task. Transitions REJECTED → IN_PROGRESS (P8-B5)."""

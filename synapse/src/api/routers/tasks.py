@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
 from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, VerificationStatus
-from src.dependencies import ActorInfo, get_current_actor, require_role
+from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, SynapseError
 from src.models import ProjectActorRole
 from src.permissions import require_permission
@@ -85,6 +85,45 @@ async def _resolve_project_from_task(request: Request, db: AsyncSession) -> str:
     task_id = request.path_params["task_id"]
     task = await _get_task(db, task_id)
     return task.project_id
+
+
+async def _resolve_project_from_batch(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from batch_id in URL path parameters.
+
+    Used by ``require_permission`` for batch_id-based routes (claim_batch)
+    that don't have ``project_id`` in their URL path.
+    """
+    from src.services.batch_service import get_batch as _get_batch
+
+    batch_id = request.path_params["batch_id"]
+    batch = await _get_batch(db, batch_id)
+    return batch.project_id
+
+
+async def _resolve_project_from_task_ids_body(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from task_ids in the request body.
+
+    Used by batch endpoints (batch-ready, batch-update, assign-batch) that
+    receive ``task_ids`` in the request body rather than a single ID in the URL.
+
+    Validates that all tasks belong to the same project.
+    Starlette caches ``request.body()`` after the first read, so FastAPI's
+    Pydantic body parsing still works after this resolver consumes the body.
+    """
+    body = await request.json()
+    task_ids: list[str] = body.get("task_ids", [])
+    if not task_ids:
+        raise HTTPException(status_code=400, detail="task_ids is required")
+    first = await _get_task(db, task_ids[0])
+    pid = first.project_id
+    for tid in task_ids[1:]:
+        t = await _get_task(db, tid)
+        if t.project_id != pid:
+            raise HTTPException(
+                status_code=400,
+                detail="All tasks in batch must belong to the same project",
+            )
+    return pid
 
 
 router = APIRouter()
@@ -358,7 +397,7 @@ async def claim_task(
     task_id: str,
     body: TaskClaimRequest | None = None,
     expected_version: int = Query(None, ge=1, description="Deprecated: use request body"),
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:claim", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     version = body.expected_version if body else expected_version
@@ -370,11 +409,6 @@ async def claim_task(
             f"Use GET /v1/projects/<project_id>/tasks or GET /v1/tasks/available "
             f"to obtain the current version from the task list, "
             f"then include it in your request body.",
-        )
-    if actor.actor_type not in (ActorType.WORKER, ActorType.HUMAN):
-        raise ForbiddenError(
-            "FORBIDDEN_ONLY_WORKERS_CAN_CLAIM_TASKS",
-            "Only workers and humans can claim tasks",
         )
 
     task = await _claim_task(
@@ -392,16 +426,10 @@ async def claim_task(
 )
 async def claim_batch(
     batch_id: str,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:claim", resolve_project_id=_resolve_project_from_batch)),
     db: AsyncSession = Depends(get_db),
 ):
     """Claim all READY tasks in a batch (P8-B3 pull mode)."""
-    if actor.actor_type not in (ActorType.WORKER, ActorType.HUMAN):
-        raise ForbiddenError(
-            "FORBIDDEN_ONLY_WORKERS_CAN_CLAIM_TASKS",
-            "Only workers and humans can claim tasks",
-        )
-
     result = await _claim_batch(
         db, batch_id, worker_id=actor.actor_id, worker_team_id=actor.team_id,
         actor_type=actor.actor_type,
@@ -417,7 +445,7 @@ async def claim_batch(
 )
 async def assign_batch(
     body: BatchAssignRequest,
-    actor: ActorInfo = Depends(require_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("task:assign", resolve_project_id=_resolve_project_from_task_ids_body)),
     db: AsyncSession = Depends(get_db),
 ):
     """Assign multiple tasks to an owner at once (P8-B3 push mode, D-P7-023)."""
@@ -556,7 +584,7 @@ async def terminate_task(
 async def report_blocker(
     task_id: str,
     body: BlockerReportRequest,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:report_blocker", resolve_project_id=_resolve_project_from_task)),
     db: AsyncSession = Depends(get_db),
 ):
     """Worker reports a blocker on a task — task is released back to READY (P8-B7).
@@ -596,7 +624,7 @@ async def report_blocker(
 )
 async def batch_ready(
     body: BatchReadyRequest,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:ready", resolve_project_id=_resolve_project_from_task_ids_body)),
     db: AsyncSession = Depends(get_db),
 ):
     """批量将 Task 从 BACKLOG 提升为 READY（P9-B72, S-033）。
@@ -646,7 +674,7 @@ async def batch_ready(
 )
 async def batch_update(
     body: BatchUpdateRequest,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(require_permission("task:update", resolve_project_id=_resolve_project_from_task_ids_body)),
     db: AsyncSession = Depends(get_db),
 ):
     """批量更新 Task 字段 — priority, effort, tags, deadline（P9-B72, S-033）。

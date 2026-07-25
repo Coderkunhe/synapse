@@ -58,6 +58,7 @@ PERMISSION_MAP: dict[str, set[str]] = {
     "task:claim":   {"super_admin", "admin", "builder"},
     "task:submit":  {"super_admin", "admin", "builder"},
     "task:start":   {"super_admin", "admin", "builder"},
+    "task:report_blocker": {"super_admin", "admin", "builder"},
 
     # ── Task operations — steward domain (backend-supported, frontend-hidden) ──
     "task:review":  {"super_admin", "admin", "steward"},

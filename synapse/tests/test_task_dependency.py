@@ -8,7 +8,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ensure_project_role
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -58,6 +58,11 @@ class TestTaskDependencyCheck:
                 "preferred_channel": "websocket",
             },
             headers=auth_header(api_key),
+        )
+
+        # B56: claim requires builder project role
+        await ensure_project_role(
+            client, project_id, agent_id, "builder", headers,
         )
 
         task_body: dict = {
