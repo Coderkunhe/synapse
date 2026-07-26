@@ -10,6 +10,7 @@
 #   5. Dependency change gate (GAP-10 · P100-B90)
 #   6. Quality triple-axe gate (GAP-2 · P100-B91) — requires self-check file
 #   7. Checkpoint freshness gate (GAP-3 · P100-B91) — requires today's checkpoint
+#   8. Dogfood active gate — blocks src/ changes when dogfood-active flag exists
 #
 # Install: ln -sf ../../synapse/tools/pre-commit .git/hooks/pre-commit
 
@@ -88,6 +89,13 @@ fi
 CHECKPOINT_GATE="$REPO_ROOT/synapse/tools/check-checkpoint-freshness.sh"
 if [ -x "$CHECKPOINT_GATE" ]; then
   "$CHECKPOINT_GATE" || exit 1
+fi
+
+# ── Stage 8: Dogfood active gate ─────────────────────────
+# 狗粮期间 God's-eye 禁止直接修改 src/
+DOGFOOD_GATE="$REPO_ROOT/synapse/tools/check-dogfood-gate.sh"
+if [ -x "$DOGFOOD_GATE" ]; then
+  "$DOGFOOD_GATE" || exit 1
 fi
 
 exit 0

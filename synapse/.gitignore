@@ -23,6 +23,9 @@ data/*.db-shm
 *.swp
 *.swo
 
+# .claude local flags (not tracked)
+.claude/dogfood-active
+
 # OS
 .DS_Store
 Thumbs.db

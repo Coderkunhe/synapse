@@ -95,6 +95,21 @@ Read/Grep/Glob ✅ — Write/Edit/Bash 修改 ❌
   God's-eye 发现 bug → 直接编辑 src/ 修掉 → 提交
 ```
 
+### 机械门禁：Dogfood Active Gate
+
+**仅用于多 Worker 协作狗粮期。** 由人类 owner 手动激活——普通狗粮/单 Worker 测试不需要。
+
+```
+激活: touch synapse/.claude/dogfood-active
+关闭: rm synapse/.claude/dogfood-active
+```
+
+激活后，pre-commit hook (Stage 8) 检测 dogfood-active 存在 + staged 文件含 `src/` 或 `frontend/src/` → **硬阻断**。
+
+绕行（仅人类 owner）：`rm synapse/.claude/dogfood-active` 后 commit。绕过前自己确认——本次改代码是否真的是合理例外。
+
+> 因为信任所以简单：角色隔离的信任不靠 AI 自觉，靠机械门禁。但门禁由你手动开关——你决定什么时候需要它。
+
 ### 例外：治理制品直接修改
 
 以下文件是 God's-eye 的直接职责，**不需要**走 VDD 循环：

@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend setup hooks db-init db-sync contracts-baseline
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -221,3 +221,13 @@ db-init: ## 初始化数据库
 
 db-sync: ## 从 DB 导出 Batch 状态到 docs/batch-status.md
 	@PYTHONPATH=. python3 tools/seed-synapse-project.py --sync
+
+dogfood-on: ## 多 Worker 协作狗粮期：激活 God's-eye src/ 写入门禁
+	@mkdir -p .claude
+	@touch .claude/dogfood-active
+	@echo "🐕 狗粮门禁已激活 — God's-eye 禁止直接修改 src/"
+	@echo "   关闭: make dogfood-off"
+
+dogfood-off: ## 关闭狗粮门禁，恢复 God's-eye 写代码能力
+	@rm -f .claude/dogfood-active
+	@echo "✅ 狗粮门禁已关闭 — God's-eye 可正常修改 src/"
