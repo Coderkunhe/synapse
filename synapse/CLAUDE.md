@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B65 ✅ 双角色自主循环 · B65-1 ✅ conversation.py 权限迁移 · B66 🔜 模板部署+Task执行）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B67 ✅ safe_loads JSON 防御 · B66 ✅ 模板部署+Task执行 · B65 ✅ 双角色自主循环）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B60→B65 拉通完成（2026-07-26）— 零 drift · B60/B61/B62/B63/B64/B65/B65-1 七批文档全量刷新 · 计数器复位
+> 🔄 L5 P11-B66→B68 拉通完成（2026-07-26）— 零 drift · B66 模板部署+执行 · B67 safe_loads 防御 · B68 文档追补 · 三批文档全量刷新 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -648,6 +648,14 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B67**：safe_loads JSON 防御 ✅ — safe_loads() try/except JSONDecodeError · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归
+- **P11-B66**：模板部署 + Builder Task 执行 ✅ — 双 Worker 模板重新部署 · Builder 全链路走通 · 发现 conversation.py 权限阻断 + tags 500 · 🟢 微型 · 纯执行/发现
+- **P11-B65-1**：conversation.py 权限迁移 ✅ — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 闭环 · 🟢 微型 · 1 file · 628 tests 零回归
+- **P11-B65**：服务端修复 ✅ — 双角色自主循环（_protocol.md §4.1.1）· 前端 WS URL 配置 · 🟡 标准 · 3 files
+- **P11-B64**：模板修复 + 双 Worker 部署 ✅ — 11 处 comments→messages + generate-skill.sh 重新部署 · 🟡 标准 · 5 files
+- **P11-B63**：第三轮扫描 ✅ — 运行时行为·配置一致性·端到端 · 7 项新 GAP · 🟡 标准 · 1 plan + 治理制品
+- **P11-B62**：三维架构审计 ✅ — 文档对照+代码级验证+live API 探测 · 8 项结构性 GAP · 🟡 标准 · 1 plan + 治理制品
+- **P11-B61**：第三轮双节点狗粮 ✅ — depends_on 依赖链端到端验证 · PFL-051~054 发现 · 🟢 微型 · 纯狗粮
 - **P11-B60**：depends_on P0 缺口修复 ✅ — G1 batch create 传 depends_on · G3 claim_batch 依赖检查 · G6 Worker 模板依赖等待 §4.2 · 🟡 标准 · 4 files · 628 tests 零回归
 - **P11-B59**：Scout 跨 Agent 协作 ✅ — depends_on 现状审计 · 6 GAP 识别 · B60 提案 · 🟢 微型 · 纯调研 · 1 plan file
 - 🔄 **L5 P11-B57→B59 拉通** ✅ — roadmap B59 补登记 + CLAUDE.md L5 banner 刷新 · 零 drift · 计数器复位

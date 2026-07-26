@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-26（P11-B60 ✅ depends_on P0 缺口修复 · G1/G3/G6 闭环）
+> 最后更新：2026-07-26（P11-B67 ✅ safe_loads JSON 防御 · B66 ✅ 模板部署+执行 · B65-1 ✅ 权限迁移）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -136,6 +136,8 @@
 | **P11-B64** | **模板修复 + 双 Worker 部署** — 11 处 comments→messages + generate-skill.sh 重新部署 · GAP-B62-8 ✅ · GAP-B63-2 ✅ · L1+L2+L3 全绿 · 🟡 标准 · 5 files | ✅ |
 | **P11-B65** | **服务端修复** — 双角色自主循环（Orchestrator 监工循环 + _protocol.md §4.1.1）· 前端 VITE_WS_URL 配置 · GlassCortex port 8001 冲突解决 · 🟡 标准 · 3 files | ✅ |
 | **P11-B65-1** | **conversation.py 权限迁移** — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 + B62-6 闭环 · 🟢 微型 · 1 file · 628 tests 零回归 | ✅ |
+| **P11-B66** | **模板部署 + Builder Task 执行** — 双 Worker 模板重新部署（generate-skill.sh --client × 2）· Builder Task 执行验证 · 发现 conversation.py 权限阻断 + tags 500 错误 · 🟢 微型 · 纯执行/发现（修复见 B65-1+B67） | ✅ |
+| **P11-B67** | **safe_loads JSON 防御门禁** — safe_loads() 捕获 JSONDecodeError → 返回 None · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归 | ✅ |
 
 ---
 
