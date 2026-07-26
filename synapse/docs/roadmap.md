@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-26（P11-B67 ✅ safe_loads JSON 防御 · B66 ✅ 模板部署+执行 · B65-1 ✅ 权限迁移）
+> 最后更新：2026-07-26（P11-B69 ✅ O 自主监工循环可执行化 · B68 ✅ 文档追补 · B67 ✅ safe_loads JSON 防御）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -138,6 +138,8 @@
 | **P11-B65-1** | **conversation.py 权限迁移** — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 + B62-6 闭环 · 🟢 微型 · 1 file · 628 tests 零回归 | ✅ |
 | **P11-B66** | **模板部署 + Builder Task 执行** — 双 Worker 模板重新部署（generate-skill.sh --client × 2）· Builder Task 执行验证 · 发现 conversation.py 权限阻断 + tags 500 错误 · 🟢 微型 · 纯执行/发现（修复见 B65-1+B67） | ✅ |
 | **P11-B67** | **safe_loads JSON 防御门禁** — safe_loads() 捕获 JSONDecodeError → 返回 None · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归 | ✅ |
+| **P11-B68** | **文档追补** — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 | ✅ |
+| **P11-B69** | **O 自主监工循环可执行化** — _protocol.md §4.1 双角色对称重构（通用规则 + §4.1.1 Builder + §4.1.2 Orchestrator）· role-orchestrator.md 补强（反模式+中断恢复+API verify=验收完成）· 模板→部署零漂移 3 文件 · 🟡 标准 · 纯协议层 | ✅ |
 
 ---
 

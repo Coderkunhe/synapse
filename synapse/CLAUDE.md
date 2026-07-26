@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B67 ✅ safe_loads JSON 防御 · B66 ✅ 模板部署+Task执行 · B65 ✅ 双角色自主循环）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B69 ✅ O 自主监工循环可执行化 · B68 ✅ 文档追补 · B67 ✅ safe_loads JSON 防御）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B66→B68 拉通完成（2026-07-26）— 零 drift · B66 模板部署+执行 · B67 safe_loads 防御 · B68 文档追补 · 三批文档全量刷新 · 计数器复位
+> 🔄 L5 P11-B68→B69 拉通完成（2026-07-26）— 零 drift · B68 文档追补 · B69 O 自主监工循环可执行化 · 模板+部署 5 文件全量对齐 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -663,6 +663,8 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B69**：O 自主监工循环可执行化 ✅ — _protocol.md §4.1 双角色对称重构（§4.1.2 O 循环新增）· role-orchestrator 反模式+中断恢复 · 模板→部署零漂移 · 🟡 标准 · 纯协议层 · 5 files
+- **P11-B68**：文档追补 ✅ — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 · 5 files
 - **P11-B67**：safe_loads JSON 防御 ✅ — safe_loads() try/except JSONDecodeError · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归
 - **P11-B66**：模板部署 + Builder Task 执行 ✅ — 双 Worker 模板重新部署 · Builder 全链路走通 · 发现 conversation.py 权限阻断 + tags 500 · 🟢 微型 · 纯执行/发现
 - **P11-B65-1**：conversation.py 权限迁移 ✅ — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 闭环 · 🟢 微型 · 1 file · 628 tests 零回归
