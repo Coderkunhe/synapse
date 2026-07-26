@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（L5 P100-B88→B92 全量拉通 — 零 drift · 6/7 GAP 闭环 · Hook Gap 治理弧完整闭环 🎉）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（L5 P100-B93→B94 拉通 — 零 drift · make check 归零 · B93/B94 双批闭环 🎉）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B88→B92 全量拉通完成（2026-07-26）— 零 drift · Hook Gap 治理弧 B88-B92 五连批 · GAP-1/2/3/4/5/6/10 全部闭环 🎉 · 计数器复位
+> 🔄 L5 P100-B93→B94 拉通完成（2026-07-26）— 零 drift · B93 文档新鲜度修复 make check 归零 · B94 文档闭环 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -645,9 +645,11 @@ synapse/
 - P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
 - P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
 - P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B92 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · Hook Gap 治理弧完整闭环
+- P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P100-B94**：B93 文档闭环 ✅ — roadmap + requirements-log + daily + track 同步 · 4 files · 🟢 微型
+- **P100-B93**：文档新鲜度修复 · make check 归零 ✅ — 3 文档日期同步 + check-line-count 阈值 + violations-review bugfix + pytest E2E 跳过 + 违纪回顾复位 · Scout 盲区 14 隐藏错误全量清零 · 7 files · 🟢 微型
 - **P100-B92**：GAP-4 批次顺序机械校验 ✅ — check-batch-sequence.sh · commit-msg wrapper · track 文件 next_batch 指针一致性 · 8 files · 6/7 GAP 闭环
 - **P100-B91**：GAP-2+GAP-3 质量三板斧+checkpoint门禁 ✅ — check-quality-gate.sh + check-checkpoint-freshness.sh · pre-commit Stage 6+7 · 6 files · 5/7 GAP 闭环
 - **P100-B90**：GAP-6+GAP-10 双 GAP 闭环 ✅ — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
