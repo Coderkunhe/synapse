@@ -134,6 +134,8 @@
 | **P11-B62** | **三维架构审计** — Round 1 文档对照+Round 2 代码级验证+live API 探测 · 8 项结构性 GAP · PFL-051~054 根因重诊断 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
 | **P11-B63** | **第三轮扫描** — 运行时行为·配置一致性·端到端·补充维度 · 7 项新 GAP · B62 5 项确认/扩展 · B62 关键假设修正 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
 | **P11-B64** | **模板修复 + 双 Worker 部署** — 11 处 comments→messages + generate-skill.sh 重新部署 · GAP-B62-8 ✅ · GAP-B63-2 ✅ · L1+L2+L3 全绿 · 🟡 标准 · 5 files | ✅ |
+| **P11-B65** | **服务端修复** — 双角色自主循环（Orchestrator 监工循环 + _protocol.md §4.1.1）· 前端 VITE_WS_URL 配置 · GlassCortex port 8001 冲突解决 · 🟡 标准 · 3 files | ✅ |
+| **P11-B65-1** | **conversation.py 权限迁移** — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 + B62-6 闭环 · 🟢 微型 · 1 file · 628 tests 零回归 | ✅ |
 
 ---
 

@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B60→B64 拉通 — 📄 roadmap B61-B64 补登记 · 📄 requirements-log B61-B64 补 · 📄 CLAUDE.md L5 banner+header 刷新 · 📄 daily B63+B64 · 零 drift · 计数器复位",
+  "lastL5Batch": "P11-B60→B65 拉通 — 📄 roadmap B65+B65-1 补登记 · 📄 requirements-log B65+B65-1 补 · 📄 CLAUDE.md L5 banner+header 刷新 · 📄 daily B65+B65-1 追加 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-26",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B60→B64 拉通 — 📄 roadmap B61-B64 补登记 · 📄 requirements-log B61-B64 补 · 📄 CLAUDE.md L5 banner+header 刷新 · 📄 daily B63+B64 · 零 drift · 计数器复位",
+  "lastL5Evidence": "P11-B60→B65 拉通 — 📄 roadmap B65+B65-1 补登记 · 📄 requirements-log B65+B65-1 补 · 📄 CLAUDE.md L5 banner+header 刷新 · 📄 daily B65+B65-1 追加 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
