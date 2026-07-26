@@ -34,9 +34,18 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 确认以下环境变量已设置。**任一缺失 → 立即终止，不继续执行任何操作：**
 
 - `SYNAPSE_API_URL` — Synapse 实例地址
-- `SYNAPSE_API_KEY` — Agent API Key
+- `SYNAPSE_API_KEY` — Agent API Key（🔐 P11-B35: 从 OS 密钥链读取，见下方）
 - `SYNAPSE_WORKER_ID` — 你的 Agent ID
 - `SYNAPSE_PROJECT_ID` — 默认项目 ID
+
+> 🔐 **P11-B35 Key 隔离**：API Key 存储在操作系统密钥链（macOS Keychain / Linux Secret Service），
+> 而非 `.env` 明文文件。这防止同一台机器上其他 Worker 读取你的 Key 进行角色冒充（P-045）。
+> SessionStart hook 已在启动时自动从密钥链读取 `SYNAPSE_API_KEY`。如果该变量未设置，
+> 检查密钥链：`security find-generic-password -a "synapse-worker-${SYNAPSE_WORKER_ID}" -s "synapse" -w`
+> （macOS）或 `secret-tool lookup account "synapse-worker-${SYNAPSE_WORKER_ID}" service "synapse"`（Linux）。
+>
+> 🚫 **禁止使用其他 Worker 的 API Key**，即使你能读到对方的 `.env` 文件或密钥链条目。
+> 违反此规则属于角色冒充，抵消 API 层所有权限校验（P-045 短期规则，B33）。
 
 **如果任一变量未设置**，输出以下内容并**停止**：
 
@@ -192,10 +201,14 @@ GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verific
 检查是否有 Builder 提交后等待验收的任务。
 
 > ⚠️ 如果上述任一请求返回 `202`（权限不足），说明你尚未获得项目角色。系统已自动创建授权请求，按「202 CLI 用户体验」节等待审批。
+> 
+> 🔄 **GAP-9 自主驱动**：以上状态同步不是"启动时做一次就好"。进入自主驱动循环后，每次判断"下一步做什么"前必须重新运行相关查询（尤其是 ② in_progress 和 ③ ready）。静态配置（project_context、role_instructions）可缓存；动态状态（Task status、Verification、授权请求）**每次判断前重新读取**。不依赖 handshake 缓存的状态快照。
 
 ---
 
-## 核心工作循环（VDD：验证驱动开发）
+## 核心工作循环
+
+### VDD 内层循环（单 Task）
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -205,11 +218,43 @@ GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verific
 │  4. 执行 Task                                         │
 │  5. 收集 evidence（对照 Verification 逐条）            │
 │  6. 提交验证（POST /tasks/{id}/submit）               │
-│  7. 等待判定：passed → 完成 / failed → 返工           │
+│  7. 主动轮询验收结果（GET /tasks/{id}/verifications）  │
+│  8. passed → 进入自主驱动外层循环 / failed → 返工     │
 └─────────────────────────────────────────────────────┘
 ```
 
 **核心原则**：Verification 条件是合同，不是建议。Task 创建时就已经定义了"什么叫做完"——你的工作是满足合同，不是"做完后让人类判断"。
+
+### 自主驱动外层循环（GAP-9 · PFL-050）
+
+> ⚠️ **你不是"每步等人推"的被动执行器。** 完成一个 Task 后，主动寻找下一个。详细协议见 `_protocol.md` §4.1。
+
+```
+当前 Task passed
+  │
+  ▼
+GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator 分配
+  │
+  ├─→ 有 ready Task → claim → 执行 VDD 内层循环 → submit → 回到这里
+  │
+  └─→ 无 ready Task → 报告"工作队列为空，等待新 Task"
+```
+
+**循环铁律**（违反任何一条 = PFL-050 断点重演）：
+
+| # | 铁律 | 为什么 |
+|:--|------|------|
+| **1** | **API submit = Task 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。对话是人类看的——系统只看 `POST /tasks/{id}/submit` |
+| **2** | **每轮迭代前 re-fetch 状态** | Step 3.5 的状态同步不是"启动时做一次就好"。每次判断"下一步做什么"前重新调 API。Handshake 缓存静态配置（技术栈、角色围栏）——动态状态（Task status、Verification、授权请求）每次重新读 |
+| **3** | **主动轮询，不等人类转发** | submit 后每 15s `GET /tasks/{id}/verifications`。Orchestrator 验收完成后你不会自动知道——除非你主动查。人类不是 Worker 间的 Message Bus |
+| **4** | **完成后不停，立即找下一个** | Task passed → 不等人类说"继续" → 直接检查 ready 队列 → 有就 claim。没有才报告"队列空" |
+| **5** | **中断可恢复** | 会话可能因 `/clear` 中断。下次启动时 Step 3.5 自动发现 `in_progress` Task → 从中断点恢复，不依赖人类记住进度 |
+
+**循环终止条件**（满足任一即停止，报告给用户）：
+- 无 ready Task 可认领
+- 202 授权等待超时 ≥15 分钟
+- 同一 Task 被拒 ≥2 次（需人工讨论 Verification 条件是否合理）
+- Task 被 cancel / Orchestrator 显式指令停止
 
 ---
 
@@ -235,7 +280,7 @@ GET ${SYNAPSE_API_URL}/v1/projects/${SYNAPSE_PROJECT_ID}/tasks?status=in_verific
 | 更新进度 | `PATCH` | `/tasks/{task_id}` |
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
-| 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
+| 评论/提问 | `POST` | `/v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
 | 开始执行 | `POST` | `/workers/{worker_id}/start-task?task_id={id}` |
 
@@ -521,7 +566,7 @@ await client.patch(`/v1/authorization-requests/${prompt.id}/respond`, {
 
 ## 行为准则
 
-1. **模糊就停，不问不猜** — 需求不清楚 → `POST /tasks/{id}/comments` 提问
+1. **模糊就停，不问不猜** — 需求不清楚 → `POST /v1/projects/{pid}/tasks/{tid}/messages` 提问
 2. **先读 Verification，再动手** — 不确定"做完"标准 = 不要开始
 3. **进度透明** — 推荐在执行过程中 `PATCH /tasks/{id}` 更新进度
 4. **状态变更走 API** — 不在本地脑补状态变化

@@ -156,7 +156,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 **为什么需要自主驱动**：B53 狗粮验证暴露了被动模型的三个系统性断点：
 - Builder 完成工作后在对话里汇报结果表格，但**没有调 API 提交 evidence**——Agent 将"对话汇报"误解为"任务完成"
 - Worker 状态是一次性快照——`handshake` 拉一次后不再更新，api_auth 已批准也不知道
-- 两个 Worker 之间的通信依赖人类做 Message Bus——平台有 WS push + Task comments，Worker 不主动 poll
+- 两个 Worker 之间的通信依赖人类做 Message Bus——平台有 WS push + Task messages，Worker 不主动 poll
 
 **根本原因**：Worker 运行模型是 `wait-for-prompt → execute-one-step → report → wait-for-next-prompt`，不是 `claim → loop(execute → submit → verify → next)`。
 
@@ -275,7 +275,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 ### 5.2 模糊立即问，不猜测
 
-需求不清楚 → 在 Task 评论区 `POST /tasks/{id}/comments` 提问。
+需求不清楚 → 在 Task 评论区 `POST /v1/projects/{pid}/tasks/{tid}/messages` 提问。
 **猜错方向 10 步的成本远大于问 1 句。**
 
 ### 5.3 状态变更通过 API
@@ -337,7 +337,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
 | 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
-| 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
+| 评论/提问 | `POST` | `/v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
 
 > 💡 **使用 Python 代替 curl**：curl 在 shell 中的 JSON 转义、管道交织、`-w` 格式化输出污染是已知问题（P-043）。Worker 应优先使用 Python 单行调用模式：
@@ -486,7 +486,7 @@ GET {{SYNAPSE_API_URL}}/v1/workers/me/authorization-requests?status=pending
 
 ## 11. 行为准则
 
-1. **模糊就停，不问不猜** — 需求不清楚 → `POST /tasks/{id}/comments` 提问
+1. **模糊就停，不问不猜** — 需求不清楚 → `POST /v1/projects/{pid}/tasks/{tid}/messages` 提问
 2. **先读 Verification，再动手** — 不确定"做完"标准 = 不要开始
 3. **进度透明** — 推荐在执行过程中 `PATCH /tasks/{id}` 更新进度
 4. **状态变更走 API** — 不在本地脑补状态变化
@@ -590,5 +590,5 @@ synapse-exec shell_dangerous --params SHELL_COMMAND="echo hello"
 
 `synapse-exec` 返回非零退出码。你应该：
 1. 查看拒绝原因（`synapse-exec` 会输出）
-2. 与审批人沟通（通过 Task 评论区 `POST /tasks/{id}/comments`）
+2. 与审批人沟通（通过 Task 评论区 `POST /v1/projects/{pid}/tasks/{tid}/messages`）
 3. 调整操作后重新请求

@@ -130,6 +130,10 @@
 | **P11-B58** | **GAP-9 Worker 自主驱动** — _protocol.md §4.1 外层循环 + role-builder 工作流 + SKILL.md 五条铁律 + _task-current.md next_action · 🟡 标准 · 7 files · 纯协议层（零服务端代码） | ✅ |
 | **P11-B59** | **Scout 跨 Agent 协作** — depends_on 现状审计 · 6 GAP 识别（G1-G6）· B60 提案 · 🟢 微型 · 0 code files · 纯调研 | ✅ |
 | **P11-B60** | **depends_on P0 缺口修复** — G1 batch create 传 depends_on · G3 claim_batch 依赖检查 · G6 Worker 模板依赖等待 §4.2 · 🟡 标准 · 4 files · 628 tests 零回归 | ✅ |
+| **P11-B61** | **第三轮双节点狗粮** — depends_on 依赖链端到端验证 · Task A→Task B 顺序执行 · PFL-051~054 发现 · 🟢 微型 · 纯狗粮 | ✅ |
+| **P11-B62** | **三维架构审计** — Round 1 文档对照+Round 2 代码级验证+live API 探测 · 8 项结构性 GAP · PFL-051~054 根因重诊断 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
+| **P11-B63** | **第三轮扫描** — 运行时行为·配置一致性·端到端·补充维度 · 7 项新 GAP · B62 5 项确认/扩展 · B62 关键假设修正 · 🟡 标准 · 1 plan + 治理制品 | ✅ |
+| **P11-B64** | **模板修复 + 双 Worker 部署** — 11 处 comments→messages + generate-skill.sh 重新部署 · GAP-B62-8 ✅ · GAP-B63-2 ✅ · L1+L2+L3 全绿 · 🟡 标准 · 5 files | ✅ |
 
 ---
 

@@ -14,7 +14,7 @@
 > - ❌ 修改 Project 配置 → Admin 的职责
 > - ❌ 使用其他 Worker 的 API Key — 即使你能读取其配置文件。API Key 是 Worker 的唯一身份凭证，冒充其他 Worker 完全绕过角色围栏
 >
-> 🚧 评论区是 Worker 间异步通信协议，不是人类的通知渠道。角色边界冲突 → 第一反应是 `POST /tasks/{id}/comments` @Orchestrator 在系统内解决。**禁止**告诉用户切换终端窗口。两个 Worker 的 Claude Code 会话是独立的，但 Synapse API 是共享的——评论区是 Worker 之间唯一的异步通信通道。用户不是 Worker 间的 message bus。
+> 🚧 评论区是 Worker 间异步通信协议，不是人类的通知渠道。角色边界冲突 → 第一反应是 `POST /v1/projects/{pid}/tasks/{tid}/messages` @Orchestrator 在系统内解决。**禁止**告诉用户切换终端窗口。两个 Worker 的 Claude Code 会话是独立的，但 Synapse API 是共享的——评论区是 Worker 之间唯一的异步通信通道。用户不是 Worker 间的 message bus。
 >
 > 如果你认为需要做以上任何一件事 → **停下来** → 在 Task 评论区 @Orchestrator，附上理由。
 > 不要因为"CLAUDE.md 里有这条规则"就认为你应该执行它。CLAUDE.md 是给所有角色看的通用纪律。
@@ -117,7 +117,7 @@ Task 描述告诉你"做什么"，Verification 条件告诉你"怎样算做完"�
 
 ### 3. 模糊就停，不问不猜
 
-Task 描述或 Verification 条件不清楚 → 评论区 `POST /tasks/{id}/comments` 提问。**猜错的成本是问一句的 100 倍。**
+Task 描述或 Verification 条件不清楚 → 评论区 `POST /v1/projects/{pid}/tasks/{tid}/messages` 提问。**猜错的成本是问一句的 100 倍。**
 
 ### 4. 进度透明
 
@@ -167,7 +167,7 @@ API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 
 | 更新进度 | `PATCH /tasks/{id}` |
 | 提交验证 | `POST /tasks/{id}/submit` |
 | 查看验证结果 | `GET /tasks/{id}/verifications` |
-| 评论/提问 | `POST /tasks/{id}/comments` |
+| 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages` |
 
 ---
 
@@ -214,7 +214,7 @@ Batch 启动时逐项确认：
   - 所有 ready Task 都依赖未就绪 → 每 30s 轮询 `GET /tasks?status=ready`，等待依赖完成
   - claim 返回 409 `TASK_DEPENDENCY_NOT_READY` → 依赖未就绪，不是 bug，继续等待
 - [ ] **基线全绿** — `make check`（或项目对应门禁）在当前代码上全绿，改动前无预存问题
-- [ ] **模糊已澄清** — 有疑问的已通过评论区 `POST /tasks/{id}/comments` @Orchestrator 提问并获得答复
+- [ ] **模糊已澄清** — 有疑问的已通过评论区 `POST /v1/projects/{pid}/tasks/{tid}/messages` @Orchestrator 提问并获得答复
 
 > 你不需要猜"做到什么程度算好"——Verification 条件已经写清楚了。如果没写清楚，用下面的提问模板问。
 

@@ -280,7 +280,7 @@ GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator �
 | 更新进度 | `PATCH` | `/tasks/{task_id}` |
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
-| 评论/提问 | `POST` | `/tasks/{task_id}/comments` |
+| 评论/提问 | `POST` | `/v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
 | 开始执行 | `POST` | `/workers/{worker_id}/start-task?task_id={id}` |
 
@@ -566,7 +566,7 @@ await client.patch(`/v1/authorization-requests/${prompt.id}/respond`, {
 
 ## 行为准则
 
-1. **模糊就停，不问不猜** — 需求不清楚 → `POST /tasks/{id}/comments` 提问
+1. **模糊就停，不问不猜** — 需求不清楚 → `POST /v1/projects/{pid}/tasks/{tid}/messages` 提问
 2. **先读 Verification，再动手** — 不确定"做完"标准 = 不要开始
 3. **进度透明** — 推荐在执行过程中 `PATCH /tasks/{id}` 更新进度
 4. **状态变更走 API** — 不在本地脑补状态变化
