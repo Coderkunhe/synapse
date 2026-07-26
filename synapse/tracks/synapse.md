@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B67 ✅ safe_loads JSON 防御 · B66 ✅ 模板部署+执行 · B65-1 ✅ 权限迁移
-last_batch: P11-B67
-next_batch: P11-B68
-description: Synapse 主项目 — B67 safe_loads 读端防御闭环 · PFL-055 登记 · B68 🔜 文档追补
+phase: P11-B69 ✅ O 自主监工循环可执行化 · B68 ✅ 文档追补
+last_batch: P11-B69
+next_batch: P11-B70
+description: Synapse 主项目 — B69 _protocol.md §4.1 双角色对称重构 · role-orchestrator.md 反模式+中断恢复 · 模板→部署零漂移 · B70 🔜
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B67 safe_loads 读端防御闭环 · PFL-055 
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B93 | **P100-B94** 🔜 | B93 ✅ 文档新鲜度修复 · make check 归零 · 7 files · Scout 盲区 14 隐藏错误全量清零 |
-| **P11** | P11-B67 | **P11-B68** 🔜 | B1-B67 ✅ · B65 双角色自主循环 · B65-1 权限迁移 · B66 模板部署+执行 · B67 safe_loads 防御 |
+| **P11** | P11-B69 | **P11-B70** 🔜 | B1-B69 ✅ · B69 O 自主监工循环可执行化 · 模板+部署 5 文件 · 零漂移 |
 
 ## P11 路线图：多 Agent 接入战
 

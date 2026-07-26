@@ -118,12 +118,49 @@ Task 完成 / 打回返工
 
 | 规则 | 说明 |
 |------|------|
-| **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新 Task 列表。不依赖 handshake 缓存的状态快照。Builder 可能在你验收上一个 Task 时提交了新的——缓存数据会让你漏掉 |
+| **API verify = 验收完成** | 在对话里说"验收通过"不是验收。只有 `POST /verifications/{id}/verify`（含 passed/failed 判定 + 评论区 @Builder）才算完成。对话里的判定只有人类能看到——Builder Worker 在 poll 验收结果，你的 API 调用是唯一的信号源 |
+| **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新 Task 列表。不依赖 handshake 缓存的状态快照。Builder 可能在你验收上一个 Task 时提交了新的——缓存数据会让你漏掉 submitted Task |
 | **优先级刚性执行** | submitted > ready 分配 > 监工。验收是最高优先级——Builder 在等你的判定，每延迟一秒 Builder 就多等一秒 |
 | **验收不等积累** | 有 1 个 submitted Task → 立即验收，不等"攒够 3 个一起验"。验收是阻断性步骤，积压 = 阻塞 Builder 的下一个循环 |
 | **监工不 micromanage** | 检查状态和更新时间的目的是发现异常（阻塞、逾期），不是考核 Builder 的每步操作。正常进展中的 Task 不需要干预 |
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
-| **空队列 = 收工** | 无活跃 Task + 无 ready Task + 无待拆需求 → 项目当前无工作。报告状态后退出循环，不需要无限空转 |
+| **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求需创建新 Task。只有 backlog 也为空时才报告"项目工作队列为空"。不无限空转 |
+| **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步 → 拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
+
+**验收 vs 对话汇报 — 明确区分**：
+
+```
+✅ 正确：验收后调 API + 发评论，然后立即检查下一个待处理项
+   "✅ Task tsk_xxx 验收通过（3/3 Verification passed）。
+    已通知 @Builder。检查是否有其他 submitted Task..."
+
+❌ 错误：在对话里说"验收完了"但不调 verify API
+   "✅ Task tsk_xxx 验收通过，Verification 都满足了"
+   ...然后停下来等人问"下一个做什么"
+```
+
+**如果对话里判定了但忘记调 API** → 这是 Builder "忘记调 submit"（PFL-050 断点1）的 O 侧镜像。**你调了 `POST /verifications/{id}/verify`，系统才有记录。对话里的判定只有人类能看到——Builder Worker 看不到。** Builder 在 poll 验收结果，你的 API 调用是唯一的信号源。
+
+**中断恢复场景**：
+
+```
+场景：上次会话验收到一半，会话被 /clear 打断
+
+新会话启动 → Handshake + State Sync
+  │
+  ├─ GET /projects/{id}/tasks → 发现 tsk_xxx 状态为 submitted
+  │   上次会话你已看到这个 Task 但还没来得及 verify
+  │
+  ├─ 重新拉取全景 → 重新评估优先级
+  │   └─ tsk_xxx submitted → 🔴 最高优先级 → 立即验收
+  │
+  ├─ 验收完成后检查是否有其他状态变化
+  │   └─ Builder 可能在你中断期间又提交了新 Task
+  │
+  └─ 恢复自主监工循环的正常节奏
+```
+
+> **关键认知**：中断恢复不依赖人类告诉你"做到哪了"。API 是共享状态源——拉取全景就能重建上下文。你不需要记住上次做到哪，只需问 API "现在什么状态"。
 
 **HTTP Poll 间隔建议**：
 

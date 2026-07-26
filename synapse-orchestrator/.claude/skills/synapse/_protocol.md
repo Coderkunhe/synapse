@@ -149,25 +149,39 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 **核心原则**：验证条件是合同，不是建议。你在接 Task 时就已经知道"什么叫做完"——因为 Verification 条件在 Task 创建时就写好了。你的工作是**满足合同**，不是"做完后让人类判断"。
 
-### 4.1 自主驱动循环（GAP-9 · PFL-050）
+### 4.1 自主驱动循环（GAP-9 · PFL-050 · GAP-B62-3 · P11-B65 · P11-B69）
 
-> ⚠️ **这是 P11-B58 新增的核心行为契约。** Worker 不是"每步等人推"的被动执行器——完成一个 Task 后应主动寻找下一个 Task，形成自主工作循环。
+> ⚠️ **双角色通用契约。** Builder 自主驱动（claim→execute→submit→next），Orchestrator 自主监工（assign→poll→verify→next）。两个角色都需要自主循环——被动等人推 = 协作断链。
 
-**为什么需要自主驱动**：B53 狗粮验证暴露了被动模型的三个系统性断点：
-- Builder 完成工作后在对话里汇报结果表格，但**没有调 API 提交 evidence**——Agent 将"对话汇报"误解为"任务完成"
-- Worker 状态是一次性快照——`handshake` 拉一次后不再更新，api_auth 已批准也不知道
-- 两个 Worker 之间的通信依赖人类做 Message Bus——平台有 WS push + Task messages，Worker 不主动 poll
+**为什么需要双角色自主驱动**：
 
-**根本原因**：Worker 运行模型是 `wait-for-prompt → execute-one-step → report → wait-for-next-prompt`，不是 `claim → loop(execute → submit → verify → next)`。
+- **Builder 被动模型断点**（B53 狗粮 · PFL-050）：完成工作后在对话汇报但不调 API submit（断点1），状态缓存不刷新（断点2），通信依赖人类 Message Bus（断点3）
+- **Orchestrator 被动模型断点**（B61 狗粮 · PFL-051）：分配完就等 Builder 汇报，不知道 Builder 已提交——直到人类催促才重新查询
+- **根本原因相同**：Worker 运行模型是 `wait-for-prompt → execute-one-step → report → wait-for-next-prompt`，不是 `loop(perceive → decide → act → poll → next)`
 
-**自主驱动循环（外层 — 跨 Task）**：
+**双角色通用规则**（两个角色共同遵守）：
+
+| 规则 | 说明 |
+|------|------|
+| **API 调用 = 完成** | Builder: `POST /tasks/{id}/submit` = 提交。Orchestrator: `POST /verifications/{id}/verify` = 验收。在对话里说"完成了"不算——只有 API 调用改变系统状态，另一侧的 Worker 才能通过 poll 感知到 |
+| **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，重新调用 API 获取最新状态。不依赖 handshake 缓存的快照。静态配置（技术栈、角色围栏）可缓存；动态状态（Task status、Verification 结果、授权请求、评论区新消息）**每次决策前重新读取** |
+| **被动等待 → 主动轮询** | 不等人通知。Builder submit 后主动 poll 验收结果。Orchestrator assign 后主动 poll Task 状态。间隔建议：verification 15s，authorization 10s，监工 30s，空闲 60s |
+| **完成后不停止** | 当前工作完成后立即检查是否有下一个待处理项——有就继续，没有才报告"队列为空"。不问人类"还要继续吗" |
+| **中断可恢复** | 会话中断后，下次启动时 Step 3.5 状态同步自动发现未完成工作→恢复执行。不依赖人类记住"做到哪了" |
+| **评论区异步握手** | 两个 Worker 的 Claude Code 会话是独立的——评论区是唯一的状态传递通道。submit 后 @Orch，verify 后 @Builder，assign 后 @Builder。不假设对方"应该知道" |
+
+#### 4.1.1 Builder 自主驱动循环（GAP-9 · P11-B58）
+
+> 本节是 Builder 角色的可执行循环——claim → execute → submit → poll验收 → next。与 §4.1 通用规则叠加使用。Orchestrator 循环见 §4.1.2。
+
+**Builder 循环（外层 — 跨 Task）**：
 
 ```
 会话启动 → Handshake + State Sync（Step 1-3.5）
   │
   ▼
 ┌─────────────────────────────────────────────────┐
-│  🔄 自主驱动循环（在一个 session 内持续运行）      │
+│  🔄 Builder 自主驱动循环                         │
 │                                                 │
 │  1. 检查当前状态                                  │
 │     ├─ 有 in_progress Task（上次中断）→ 继续执行   │
@@ -192,15 +206,15 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 └─────────────────────────────────────────────────┘
 ```
 
-**循环规则**：
+**Builder 循环规则**：
 
 | 规则 | 说明 |
 |------|------|
 | **API submit = Task 完成** | 在对话里汇报结果表格 **不是** 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成。对话汇报是给人看的进度提示——API 提交是给系统的状态变更 |
-| **每轮迭代前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新状态。不依赖 handshake 缓存的状态快照。Handshake 返回的静态配置（技术栈、角色围栏）可以缓存；动态状态（Task status、Verification 结果、授权请求状态）**每次判断前重新读取** |
-| **被动等待 → 主动轮询** | 提交 evidence 后不停止等待——主动 `GET /tasks/{id}/verifications` 检查验收结果。授权请求 pending 时主动 `GET /authorization-requests/{id}` 检查审批状态。间隔建议：verification 每 15s，authorization 每 10s |
+| **每轮迭代前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新状态。不依赖 handshake 缓存的状态快照 |
+| **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
 | **完成后不停止** | 当前 Task passed → 立即检查是否有下一个 ready Task → 有就 claim 继续，没有才报告"工作队列为空" |
-| **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步自动发现 `in_progress` Task → 恢复执行。不依赖人类记住"做到哪了" |
+| **中断可恢复** | 会话中断后，下次启动时 Step 3.5 状态同步自动发现 `in_progress` Task → 恢复执行 |
 
 **API submit vs 对话汇报 — 明确区分**：
 
@@ -218,6 +232,92 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 ```
 
 **如果对话汇报了但忘记调 API** → 这是最常见的断点（PFL-050 断点 1）。记住：**你调了 `POST /tasks/{id}/submit`，系统才有记录。对话里的表格只有人类能看到——Orchestrator Worker 看不到，Synapse 平台也看不到。**
+
+#### 4.1.2 Orchestrator 自主监工循环（GAP-B62-3 · P11-B65 · P11-B69）
+
+> ⚠️ **这是 P11-B69 新增的可执行行为契约。** Orchestrator 不是"分配完就等 Builder 汇报"的被动角色。你必须主动监控、验收、推进——与 Builder 循环（§4.1.1）对称。
+
+**为什么需要自主监工**：B61 狗粮暴露了被动监工的系统性断点：
+- Orchestrator 分配完 Task 就停止——Builder 提交了 O 不知道（PFL-051）
+- 验收是最高优先级操作——Builder 在等你的判定，每延迟一秒 Builder 就多等一秒
+- 没有 poll 协议 = 必然退化为人肉 Message Bus
+
+**Orchestrator 循环（外层 — 跨 Task）**：
+
+```
+会话启动 → Handshake + State Sync
+  │
+  ▼
+┌─────────────────────────────────────────────────┐
+│  🔄 Orchestrator 自主监工循环                     │
+│                                                 │
+│  1. 拉取项目全景状态                               │
+│     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
+│     ├─ GET /projects/{id}/batches（Batch 进度）    │
+│     └─ 恢复中断状态（上次会话验收到一半 → 继续）     │
+│                                                 │
+│  2. 优先级分拣（按严重度降序 — 刚性执行）            │
+│     ├─ 🔴 有 submitted Task → 立即验收（最高优先级） │
+│     ├─ 🟡 有 ready 未分配 Task → 匹配 Cap 后分配    │
+│     ├─ 🟡 有 pending_auth Task → 检查审批状态       │
+│     └─ 🔵 全部 in_progress → 监工模式（步骤 3）     │
+│                                                 │
+│  3. 监工模式（无紧急项时执行）                       │
+│     ├─ 逐项检查 in_progress Task 的更新时间和状态    │
+│     ├─ 发现阻塞 >30min 无更新 → 评论区 @Builder     │
+│     ├─ 发现逾期（超预计 effort）→ 评估是否需重分配   │
+│     └─ 无异常 → 进入等待轮询                        │
+│                                                 │
+│  4. 验收（触发条件：任一 Task submitted）            │
+│     ├─ 逐条对照 Verification 条件                   │
+│     ├─ 全部 passed → POST /verifications/{id}/verify│
+│     │   └─ 发评论 @Builder 告知结果 + 下一步建议     │
+│     └─ 任一 failed → 评论区写清楚哪条没满足          │
+│                                                 │
+│  5. 推进（验收完成后的连续动作 — 不等人问）           │
+│     ├─ 验收通过 → 立即检查后续 Task 是否解锁          │
+│     │   └─ depends_on 依赖解除 → 分配/激活下一 Task  │
+│     ├─ 检查是否有 ready 可分配                      │
+│     ├─ 检查是否有 backlog 需求需拆解为新 Task        │
+│     └─ 无待处理项 → 报告"项目工作队列为空"           │
+│                                                 │
+│  6. 终止条件（满足任一 → 退出循环）：               │
+│     ├─ 项目无活跃 Task + 无待拆解 backlog 需求       │
+│     ├─ 连续 3 轮轮询无状态变化（≥90s 空闲）          │
+│     ├─ 202 授权等待超时（≥15 分钟）                  │
+│     └─ 显式 stop 信号（人类指令 / Task 全部完成）    │
+└─────────────────────────────────────────────────┘
+```
+
+**监工规则**：
+
+| 规则 | 说明 |
+|------|------|
+| **API verify = 验收完成** | 在对话里说"验收通过"不是验收。只有 `POST /verifications/{id}/verify`（含 passed/failed 判定 + 评论）才算完成。对话里的判定只有人类能看到——Builder Worker 看不到，Synapse 平台也看不到 |
+| **优先级刚性执行** | submitted > ready 分配 > 监工。验收是最高优先级——Builder 在等你的判定，每延迟一秒 Builder 就多等一秒 |
+| **验收不等积累** | 有 1 个 submitted Task → 立即验收，不等"攒够 3 个一起验"。验收是阻断性步骤——积压 = 阻塞 Builder 的下一个循环 |
+| **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，重新调用 API 获取最新 Task 列表。Builder 可能在你验收上一个 Task 时提交了新的——缓存让你漏掉 submitted Task |
+| **监工不 micromanage** | 检查状态和更新时间的目的是发现异常（阻塞、逾期），不是考核 Builder 的每步操作。正常进展中的 Task 不需要干预 |
+| **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求**需创建新 Task**。只有 backlog 也为空时才报告"项目工作队列为空" |
+| **中断可恢复** | 会话中断后，下次启动时自动拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
+| **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
+
+**验收 vs 对话汇报 — 明确区分**：
+
+```
+✅ 正确：验收后发评论告知结果，然后立即检查下一个待处理项
+   "✅ Task tsk_xxx 验收通过（3/3 Verification passed）。
+    Task tsk_yyy 依赖已解除，已分配给 @Builder。
+    检查是否有其他 submitted Task..."
+
+❌ 错误：在对话里说"验收完了"但不调 verify API
+   "✅ Task tsk_xxx 验收通过，Verification 都满足了"
+   ...然后停下来等人问"下一个做什么"
+```
+
+**如果对话里判定了但忘记调 API** → 这与 Builder 忘记调 submit 是同一模式（PFL-050 断点 1 的 O 侧镜像）。记住：**你调了 `POST /verifications/{id}/verify`，系统才有记录。对话里的判定只有人类能看到——Builder Worker 在 poll 验收结果，你的 API 调用是唯一的信号源。**
+
+> **关键认知**：两个循环通过评论区异步握手，不依赖人类转发消息。Builder submit → O poll 检测 → O verify → 发评论 → B poll 检测 → B 进入下一个 Task。人类不在这个闭环的通信路径上。
 
 ### 4.2 依赖等待（depends_on · P11-B60）
 
