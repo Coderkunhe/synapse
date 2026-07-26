@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B59 ✅ Scout 跨 Agent 协作 — depends_on 6 GAP 识别 · B60 提案）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B60 ✅ depends_on P0 缺口修复 — G1/G3/G6 闭环 · B61 第三轮狗粮）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -648,6 +648,7 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B60**：depends_on P0 缺口修复 ✅ — G1 batch create 传 depends_on · G3 claim_batch 依赖检查 · G6 Worker 模板依赖等待 §4.2 · 🟡 标准 · 4 files · 628 tests 零回归
 - **P11-B59**：Scout 跨 Agent 协作 ✅ — depends_on 现状审计 · 6 GAP 识别 · B60 提案 · 🟢 微型 · 纯调研 · 1 plan file
 - 🔄 **L5 P11-B57→B59 拉通** ✅ — roadmap B59 补登记 + CLAUDE.md L5 banner 刷新 · 零 drift · 计数器复位
 **P100-B94**：B93 文档闭环 ✅ — roadmap + requirements-log + daily + track 同步 · 4 files · 🟢 微型

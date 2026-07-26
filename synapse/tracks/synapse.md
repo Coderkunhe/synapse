@@ -1,8 +1,8 @@
 ---
 project: synapse
-phase: P11-B59 ✅ Scout 跨 Agent 依赖协作 · 0 code files · 纯调研
-last_batch: P11-B59
-next_batch: P11-B60
+phase: P11-B60 ✅ depends_on P0 缺口修复 · G1/G3/G6 闭环 · 4 files · 628 tests 零回归
+last_batch: P11-B60
+next_batch: P11-B61
 description: Synapse 主项目 — B59 Scout 完成 · depends_on 6 GAP 识别 · B60 前置就绪
 ---
 
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B59 Scout 完成 · depends_on 6 GAP 识别 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B93 | **P100-B94** 🔜 | B93 ✅ 文档新鲜度修复 · make check 归零 · 7 files · Scout 盲区 14 隐藏错误全量清零 |
-| **P11** | P11-B59 | **P11-B60** 🔜 | B1-B59 ✅ · B59 Scout 完成 · depends_on 6 GAP 识别 · B60 缺口修复 |
+| **P11** | P11-B60 | **P11-B61** 🔜 | B1-B60 ✅ · B60 depends_on P0 缺口修复 G1/G3/G6 · B61 第三轮双节点狗粮 |
 
 ## P11 路线图：多 Agent 接入战
 

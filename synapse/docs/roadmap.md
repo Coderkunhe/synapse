@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-26（P11-B59 ✅ Scout 跨 Agent 协作 · L5 B57→B59 拉通完成）
+> 最后更新：2026-07-26（P11-B60 ✅ depends_on P0 缺口修复 · G1/G3/G6 闭环）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -129,6 +129,7 @@
 | **P11-B57** | **GAP-8 Capability 安全审计持久化** — CapabilityAudit 不可变模型 · audit service 非阻塞 · GET /projects/{pid}/capability-audits cursor 分页 · 🟡 标准 · 10 files · 628 tests | ✅ |
 | **P11-B58** | **GAP-9 Worker 自主驱动** — _protocol.md §4.1 外层循环 + role-builder 工作流 + SKILL.md 五条铁律 + _task-current.md next_action · 🟡 标准 · 7 files · 纯协议层（零服务端代码） | ✅ |
 | **P11-B59** | **Scout 跨 Agent 协作** — depends_on 现状审计 · 6 GAP 识别（G1-G6）· B60 提案 · 🟢 微型 · 0 code files · 纯调研 | ✅ |
+| **P11-B60** | **depends_on P0 缺口修复** — G1 batch create 传 depends_on · G3 claim_batch 依赖检查 · G6 Worker 模板依赖等待 §4.2 · 🟡 标准 · 4 files · 628 tests 零回归 | ✅ |
 
 ---
 
