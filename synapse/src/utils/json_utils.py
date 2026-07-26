@@ -28,7 +28,15 @@ def safe_loads(raw: str | None) -> Any:
     Usage:
         metadata = safe_loads(task.metadata_)
         tags = safe_loads(task.tags)
+
+    P11-B67: Catches JSONDecodeError to prevent 500 errors when DB
+    contains non-JSON data (e.g. tags stored as plain string
+    ``"B65,permission,gap"`` instead of ``'["B65","permission","gap"]'``).
+    Returns None for invalid JSON so the API can still respond.
     """
     if raw is None:
         return None
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
