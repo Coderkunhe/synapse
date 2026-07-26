@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B57 ✅ GAP-8 Capability 安全审计持久化 · 10 files · 628 tests
-last_batch: P11-B57
-next_batch: P11-B59
-description: Synapse 主项目 — B58 ✅ GAP-9 Worker 自主驱动 · 三 GAP 全部闭环 🎉
+phase: P11-B59 ✅ Scout 跨 Agent 依赖协作 · 0 code files · 纯调研
+last_batch: P11-B59
+next_batch: P11-B60
+description: Synapse 主项目 — B59 Scout 完成 · depends_on 6 GAP 识别 · B60 前置就绪
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B58 ✅ GAP-9 Worker 自主驱动 · 三 GAP 
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B93 | **P100-B94** 🔜 | B93 ✅ 文档新鲜度修复 · make check 归零 · 7 files · Scout 盲区 14 隐藏错误全量清零 |
-| **P11** | P11-B58 | **P11-B59** 🔜 | B1-B58 ✅ · GAP-7/8/9 全部闭环 🎉 · B58 GAP-9 Worker 自主驱动 |
+| **P11** | P11-B59 | **P11-B60** 🔜 | B1-B59 ✅ · B59 Scout 完成 · depends_on 6 GAP 识别 · B60 缺口修复 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -275,6 +275,27 @@ description: Synapse 主项目 — B58 ✅ GAP-9 Worker 自主驱动 · 三 GAP 
 | P11-008 | **🔴 Worker 角色围栏服务端强制** (GAP-7) — Builder API key 调 `POST /tasks` → 403 "Builders cannot create tasks" · Orchestrator 调 write → 403 · `dependencies.py` + routers | 🔴 高 |
 | P11-009 | **🟡 Capability 安全命令审计持久化** (GAP-8) — 新增 `POST /v1/capability-executions` 端点 · 安全命令执行后服务端持久化 | 中 |
 | P11-010 | **🟢 Worker 自主驱动循环** (GAP-9 · PFL-050) — 完成 Task → 自动 `GET /tasks?status=ready` → claim → execute → submit 循环 | 🔴 高 | ✅ B58 |
+
+### P11-B59 Scout ✅（2026-07-26 · 纯调研 · 0 code files）
+
+> **产出**：[`docs/plans/p11-b59-scout-cross-agent.md`](../docs/plans/p11-b59-scout-cross-agent.md)
+
+| 维度 | 结果 |
+|------|------|
+| depends_on 平台状态 | 核心链路已闭环（创建→校验→阻断→放行），6 项 GAP |
+| 双节点狗粮历史 | 2 轮（B32 Redo ✅ + B53 ✅）· 核心假设已验证 |
+| B60 方向 | depends_on 缺口修复（P0: G1/G3/G6 · P1: G4/G5 · P2: G2） |
+
+**6 项 depends_on GAP**：
+
+| # | Gap | 严重度 |
+|:--:|------|:--:|
+| G1 | Batch create 不传 depends_on | 🔴 |
+| G2 | depends_on 创建后不可修改 | 🟡 |
+| G3 | claim_batch 绕过依赖检查 | 🔴 |
+| G4 | 可用 Task 列表不过滤依赖未就绪 | 🟡 |
+| G5 | 依赖完成无 WS 推送 | 🟡 |
+| G6 | Worker 模板零提及 depends_on | 🟡 |
 
 ## 路线图（2026-07-21 更新 · P100/P9 双轨分治）
 
