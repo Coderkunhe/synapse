@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100-B87 违纪回顾 — V-029 状态确认 🟡 · 28/29 🟢 · 39→0 复位",
-  "lastReviewTimestamp": "2026-07-23",
+  "lastReviewBatch": "P100-B93 文档新鲜度修复 — B88-B92 Hook Gap治理弧已闭环 · make check归零",
+  "lastReviewTimestamp": "2026-07-26",
   "totalViolations": 29,
   "recurringCount": 0,
   "unguardedCount": 1,
   "batchesSinceLastReview": 0,
-  "notes": "P100-B87 违纪回顾 — V-029 唯一活跃项 (🟡 L5 门禁静默绕过 · 已防呆 ✅ pre-commit l5-gate.sh + V-024 启动自检) · 28/29 🟢 已闭环 · 总计 29"
+  "notes": "违纪回顾完成，计数器复位"
 }

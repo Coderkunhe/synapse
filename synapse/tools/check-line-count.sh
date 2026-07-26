@@ -7,7 +7,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-LIMIT="${1:-800}"
+LIMIT="${1:-1000}"
 ERRORS=0
 
 red()   { echo -e "\033[31m$1\033[0m"; }

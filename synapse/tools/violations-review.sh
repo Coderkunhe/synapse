@@ -46,7 +46,7 @@ fi
 
 # ── Parse current stats ───────────────────────────────────────────
 TOTAL=$(grep -c '^| V-... |.*| [0-9] |' "$VIOLATIONS_FILE" 2>/dev/null || echo "0")
-RECURRING=$(grep -c '| 🔴 |' "$VIOLATIONS_FILE" 2>/dev/null || echo "0")
+RECURRING=$(grep -c '| 🔴 |' "$VIOLATIONS_FILE" 2>/dev/null || true)
 GUARDED=$(grep '^| V-... |.*| ✅' "$VIOLATIONS_FILE" 2>/dev/null | wc -l | tr -d ' ')
 NO_MARKER=$(grep '^| V-... |.*| [0-9] |' "$VIOLATIONS_FILE" 2>/dev/null | grep -v '✅\|⚠️' | wc -l | tr -d ' ')
 UNGUARDED=$(grep '^| V-... |.*| ⚠️' "$VIOLATIONS_FILE" 2>/dev/null | wc -l | tr -d ' ')
