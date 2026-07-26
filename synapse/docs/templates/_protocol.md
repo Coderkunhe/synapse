@@ -219,6 +219,37 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 **如果对话汇报了但忘记调 API** → 这是最常见的断点（PFL-050 断点 1）。记住：**你调了 `POST /tasks/{id}/submit`，系统才有记录。对话里的表格只有人类能看到——Orchestrator Worker 看不到，Synapse 平台也看不到。**
 
+#### 4.1.1 双角色自主循环（GAP-B62-3 · P11-B65）
+
+> ⚠️ **自主驱动不是 Builder 独有的能力。** Orchestrator 也需要对等的自主监工循环——分配→轮询→验收→推进，而非"分配完就等 Builder 汇报"。
+
+| 维度 | Builder 自主驱动循环 | Orchestrator 自主监工循环 |
+|------|-------------------|--------------------------|
+| **触发** | 有 ready Task 可认领 | 有活跃 Task 需管理 |
+| **核心动作** | claim → execute → submit → poll验收 | 拉全景 → 优先级分拣 → 验收/分配/监工 → poll |
+| **最高优先级** | 恢复 in_progress（中断恢复） | 验收 submitted（Builder 在等你） |
+| **轮询间隔** | 验收 15s / 授权 10s | 正常 30s / 审批 10s / 空闲 60s |
+| **终止条件** | 无 ready Task / 202 超时 / 拒 ≥2 次 | 无活跃 Task / 3 轮无变化 / 全部完成 |
+| **状态依赖** | 每次判断前 re-fetch Task 状态 | 每次决策前 re-fetch 项目全景 |
+| **角色通信** | 被验收者：submit → 等判定 → 收评论区反馈 | 验收者：收 submit → 判定 → 发评论区通知 |
+
+**双循环的协同点**：
+
+```
+Builder 循环                    Orchestrator 循环
+   │                               │
+   ├─ claim Task                   │
+   ├─ execute + submit ──────────► ├─ 检测到 submitted → 验收（最高优先级）
+   ├─ poll 验收结果 ◄────────────── ├─ 判定 passed/failed → 发评论
+   ├─ passed → 找下一个            ├─ 检查是否有 ready → 分配
+   │                               ├─ 监工 in_progress（检查逾期/阻塞）
+   │                               │
+   ▼                               ▼
+  终止（无 ready Task）            终止（无活跃 Task）
+```
+
+> **关键认知**：两个循环通过评论区异步握手，不依赖人类转发消息。评论区不是报错通道——它是 Worker 间的共享状态总线。
+
 ### 4.2 依赖等待（depends_on · P11-B60）
 
 > ⚠️ **当 Task 设置了 `depends_on` 时，Worker 必须先等待依赖满足才能 claim。**
