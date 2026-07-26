@@ -5,7 +5,7 @@
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B93→B94 拉通完成（2026-07-26）— 零 drift · B93 文档新鲜度修复 make check 归零 · B94 文档闭环 · 计数器复位
+> 🔄 L5 P11-B57→B59 拉通完成（2026-07-26）— 零 drift · B57/B58/B59 三批文档全量刷新 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -649,6 +649,7 @@ synapse/
 
 **最近批次**：
 - **P11-B59**：Scout 跨 Agent 协作 ✅ — depends_on 现状审计 · 6 GAP 识别 · B60 提案 · 🟢 微型 · 纯调研 · 1 plan file
+- 🔄 **L5 P11-B57→B59 拉通** ✅ — roadmap B59 补登记 + CLAUDE.md L5 banner 刷新 · 零 drift · 计数器复位
 **P100-B94**：B93 文档闭环 ✅ — roadmap + requirements-log + daily + track 同步 · 4 files · 🟢 微型
 - **P100-B93**：文档新鲜度修复 · make check 归零 ✅ — 3 文档日期同步 + check-line-count 阈值 + violations-review bugfix + pytest E2E 跳过 + 违纪回顾复位 · Scout 盲区 14 隐藏错误全量清零 · 7 files · 🟢 微型
 - **P100-B92**：GAP-4 批次顺序机械校验 ✅ — check-batch-sequence.sh · commit-msg wrapper · track 文件 next_batch 指针一致性 · 8 files · 6/7 GAP 闭环
