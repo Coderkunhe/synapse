@@ -3,7 +3,7 @@
 P10-B30: 议题 5 A2A 协议 — API 路由层。
 
 端点挂载在 ``/v1/projects/{project_id}/tasks/{task_id}/messages`` 下，
-使用 ``require_project_role("admin", "lead", "member")`` 守卫。
+使用 ``require_permission("task:comment")`` 守卫。
 """
 
 from __future__ import annotations
@@ -13,7 +13,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo, require_project_role
+from src.dependencies import ActorInfo
+from src.permissions import require_permission
 
 from src.schemas.task_worker_conversation import (
     ConversationMessageCreate,
@@ -57,7 +58,7 @@ async def create_message_endpoint(
     project_id: str,
     task_id: str,
     body: ConversationMessageCreate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "member")),
+    actor: ActorInfo = Depends(require_permission("task:comment")),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a structured coordination message in a Task context.
@@ -97,7 +98,7 @@ async def list_messages_endpoint(
     task_id: str,
     cursor: str | None = Query(None, description="Pagination cursor (message ID)"),
     limit: int = Query(50, ge=1, le=100, description="Max messages per page"),
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "member")),
+    actor: ActorInfo = Depends(require_permission("task:comment")),
     db: AsyncSession = Depends(get_db),
 ):
     """List coordination messages for a Task, ordered by creation time (ascending).
@@ -133,7 +134,7 @@ async def get_message_endpoint(
     project_id: str,
     task_id: str,
     message_id: str,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "member")),
+    actor: ActorInfo = Depends(require_permission("task:comment")),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single coordination message by ID."""
@@ -159,7 +160,7 @@ async def update_message_endpoint(
     task_id: str,
     message_id: str,
     body: ConversationMessageUpdate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "member")),
+    actor: ActorInfo = Depends(require_permission("task:comment")),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a message body or mark it resolved.
