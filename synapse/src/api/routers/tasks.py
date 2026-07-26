@@ -249,6 +249,12 @@ async def create_tasks_batch(
             {"type": v.type, "description": v.description, "criteria": v.criteria}
             for v in task_create.verifications
         ]
+        # P11-B60 G1: serialize depends_on (mirrors single-task create at :161-164)
+        depends_on = (
+            [d.model_dump() for d in task_create.depends_on]
+            if task_create.depends_on
+            else None
+        )
         task_dicts.append({
             "title": task_create.title,
             "description": task_create.description,
@@ -259,6 +265,7 @@ async def create_tasks_batch(
             "tags": task_create.tags,
             "metadata": task_create.metadata,
             "deadline_at": task_create.deadline_at,
+            "depends_on": depends_on,
             "verifications": verifications,
         })
 

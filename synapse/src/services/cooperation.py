@@ -17,6 +17,7 @@ from src.exceptions import ConflictError, NotFoundError
 from src.models.task import Task
 from src.services.event_store import event_store
 from src.task_state_machine import apply_transition
+from src.utils.json_utils import safe_loads
 
 
 # 从 task_service 重新导入以避免循环导入
@@ -91,6 +92,21 @@ async def claim_batch(
     claimed_ids: list[str] = []
 
     for task in ready_tasks:
+        # P11-B60 G3: 依赖就绪检查（与 claim_task 对齐）
+        if task.depends_on:
+            deps = safe_loads(task.depends_on)
+            if deps:
+                for dep in deps:
+                    dep_task = await db.get(Task, dep["task_id"])
+                    if dep_task is None:
+                        raise NotFoundError("task", dep["task_id"])
+                    if dep_task.status != TaskStatus.COMPLETED:
+                        raise ConflictError(
+                            "TASK_DEPENDENCY_NOT_READY",
+                            f"Task {task.id} depends on {dep['task_id']} "
+                            f"(status: {dep_task.status}, need: completed)",
+                        )
+
         # 检查无冲突认领
         if task.owner_id is not None and task.owner_id != worker_id:
             raise ConflictError(

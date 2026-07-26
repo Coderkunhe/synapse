@@ -207,7 +207,12 @@ Batch 启动时逐项确认：
 
 - [ ] **读 Verification** — 已读 Task 的所有 Verification 条件，清楚"怎样算做完"
 - [ ] **无模糊点** — Task 描述和 Verification 条件中每一个关键术语都理解，无不明确之处
-- [ ] **依赖就绪** — Task 的 `depends_on` 项（如有）已完成，不会卡在依赖上
+- [ ] **依赖就绪（depends_on · P11-B60）** — Task 如有 `depends_on` 字段，必须逐项验证：
+  - `GET /tasks/{id}` 读出 `depends_on` 列表（如有）
+  - 逐项 `GET /tasks/{dep_id}` 确认 status 为 `COMPLETED`
+  - 任一依赖未完成 → **不能 claim**。记录状态后检查其他 ready Task
+  - 所有 ready Task 都依赖未就绪 → 每 30s 轮询 `GET /tasks?status=ready`，等待依赖完成
+  - claim 返回 409 `TASK_DEPENDENCY_NOT_READY` → 依赖未就绪，不是 bug，继续等待
 - [ ] **基线全绿** — `make check`（或项目对应门禁）在当前代码上全绿，改动前无预存问题
 - [ ] **模糊已澄清** — 有疑问的已通过评论区 `POST /tasks/{id}/comments` @Orchestrator 提问并获得答复
 

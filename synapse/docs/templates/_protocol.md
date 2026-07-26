@@ -219,6 +219,39 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 **如果对话汇报了但忘记调 API** → 这是最常见的断点（PFL-050 断点 1）。记住：**你调了 `POST /tasks/{id}/submit`，系统才有记录。对话里的表格只有人类能看到——Orchestrator Worker 看不到，Synapse 平台也看不到。**
 
+### 4.2 依赖等待（depends_on · P11-B60）
+
+> ⚠️ **当 Task 设置了 `depends_on` 时，Worker 必须先等待依赖满足才能 claim。**
+
+**依赖检查流程**：
+
+```
+准备 claim Task
+  │
+  ├─ GET /tasks/{id} → 检查 depends_on 字段
+  │   └─ depends_on 为空 → 直接 claim ✅
+  │
+  ├─ depends_on 非空 → 逐项检查每个依赖 Task 的 status
+  │   ├─ 全部 COMPLETED → claim ✅
+  │   └─ 有未完成 → 不能 claim ❌
+  │
+  └─ 依赖未就绪时的行为：
+      ├─ 记录: "Task tsk_xxx 依赖 tsk_yyy (status: IN_PROGRESS)，等待完成"
+      ├─ 继续检查其他 ready Task（可能有不依赖的可以做）
+      ├─ 如所有 ready Task 都依赖未就绪 → HTTP Poll 等待
+      │   └─ 每 30s GET /tasks?status=ready 重新拉取列表
+      └─ 依赖 Task 完成后 → 依赖就绪 → claim 当前 Task
+```
+
+**依赖等待规则**：
+
+| 规则 | 说明 |
+|------|------|
+| **claim 前检查 depends_on** | 每次 claim 前读 Task 详情，确认 `depends_on` 字段。即使列表接口返回了 ready Task，claim 时也可能因依赖未就绪被拒绝（409 `TASK_DEPENDENCY_NOT_READY`） |
+| **不空转等待** | 依赖未就绪时检查其他 ready Task。只当所有可做 Task 都依赖未就绪时才进入 poll 等待 |
+| **409 不是错误** | claim 返回 409 `TASK_DEPENDENCY_NOT_READY` → 依赖未就绪，不是系统故障。记录状态后继续轮询 |
+| **依赖完成 ≠ 自动通知** | Worker 不会自动收到"依赖解除"的 push。必须通过 HTTP Poll 重新检查。GAP-9 自主驱动循环的「终止条件：无 ready Task 可认领」触发时，先检查是否有依赖中的 Task → 有则继续 poll |
+
 ---
 
 ## 5. 关键规则
