@@ -85,7 +85,7 @@ async def _create_ready_task(db: AsyncSession, seeded: dict, **kw) -> Task:
         description=kw.get("description", "测试描述"), priority="p1",
         parent_task_id=None, batch_id=kw.get("batch_id", seeded["batch_id"]),
         estimated_effort=None, tags=None, metadata=None, deadline_at=None,
-        verifications=[{"type": "manual", "description": "检查"}],
+        verifications=[{"type": "manual", "description": "Verify all checks passed"}],
         actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"), team_id=seeded["team_id"],
     )
     await db.flush()
@@ -211,7 +211,7 @@ class TestBatchClaim:
             description="未就绪", priority="p1",
             parent_task_id=None, batch_id=seeded["batch_id"],
             estimated_effort=None, tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "检查"}],
+            verifications=[{"type": "manual", "description": "Verify all checks passed"}],
             actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"), team_id=seeded["team_id"],
         )
         await db.flush()

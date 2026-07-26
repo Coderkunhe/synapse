@@ -107,7 +107,7 @@ async def _create_ready_claimed_task(
         tags=None,
         metadata=None,
         deadline_at=None,
-        verifications=[{"type": "manual", "description": "检查"}],
+        verifications=[{"type": "manual", "description": "Verify all checks passed"}],
         actor_type="human",
         actor_id=derive_id(seeded["member_id"], "worker"),
         team_id=seeded["team_id"],
@@ -141,7 +141,7 @@ class TestSubmitTask:
         task = await _create_ready_claimed_task(db, seeded)
 
         submitted = await submit_task(
-            db, task.id, summary="全部完成", evidence=None,
+            db, task.id, summary="全部完成", evidence={"output_access": {"type": "inline", "value": "test"}},
             verification_results=[], expected_version=task.version_no,
             actor_type="worker", actor_id=seeded["agent_id"],
             team_id=seeded["team_id"],
@@ -163,7 +163,7 @@ class TestSubmitTask:
         await db.flush()
 
         await submit_task(
-            db, task.id, summary="完成", evidence=None,
+            db, task.id, summary="完成", evidence={"output_access": {"type": "inline", "value": "test"}},
             verification_results=[], expected_version=task.version_no,
             actor_type="worker", actor_id=seeded["agent_id"],
             team_id=seeded["team_id"],
@@ -188,7 +188,7 @@ class TestSubmitTask:
 
         # 以 member 身份提交
         submitted = await submit_task(
-            db, task.id, summary="人工完成", evidence=None,
+            db, task.id, summary="人工完成", evidence={"output_access": {"type": "inline", "value": "test"}},
             verification_results=[], expected_version=task.version_no,
             actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"),
             team_id=seeded["team_id"],
@@ -217,7 +217,7 @@ class TestSubmitTask:
 
         with pytest.raises(ForbiddenError, match="NOT_TASK_OWNER"):
             await submit_task(
-                db, task.id, summary="盗取", evidence=None,
+                db, task.id, summary="盗取", evidence={"output_access": {"type": "inline", "value": "test"}},
                 verification_results=[], expected_version=task.version_no,
                 actor_type="worker", actor_id=agent2_id,
                 team_id=seeded["team_id"],
@@ -231,7 +231,7 @@ class TestSubmitTask:
 
         # 第一次提交成功
         await submit_task(
-            db, task.id, summary="第一次", evidence=None,
+            db, task.id, summary="第一次", evidence={"output_access": {"type": "inline", "value": "test"}},
             verification_results=[], expected_version=task.version_no,
             actor_type="worker", actor_id=seeded["agent_id"],
             team_id=seeded["team_id"],
@@ -242,7 +242,7 @@ class TestSubmitTask:
         from src.exceptions import InvalidStateTransition
         with pytest.raises(InvalidStateTransition):
             await submit_task(
-                db, task.id, summary="重复", evidence=None,
+                db, task.id, summary="重复", evidence={"output_access": {"type": "inline", "value": "test"}},
                 verification_results=[], expected_version=task.version_no,
                 actor_type="worker", actor_id=seeded["agent_id"],
                 team_id=seeded["team_id"],
@@ -255,7 +255,7 @@ class TestSubmitTask:
         task = await _create_ready_claimed_task(db, seeded)
         with pytest.raises(ConflictError, match="VERSION_CONFLICT"):
             await submit_task(
-                db, task.id, summary="过期", evidence=None,
+                db, task.id, summary="过期", evidence={"output_access": {"type": "inline", "value": "test"}},
                 verification_results=[], expected_version=999,
                 actor_type="worker", actor_id=seeded["agent_id"],
                 team_id=seeded["team_id"],
@@ -389,7 +389,7 @@ class TestStartFinishTask:
             description="由 member 拥有", priority="p1",
             parent_task_id=None, batch_id=seeded["batch_id"],
             estimated_effort=None, tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "检查"}],
+            verifications=[{"type": "manual", "description": "Verify all checks passed"}],
             actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"),
             team_id=seeded["team_id"],
         )

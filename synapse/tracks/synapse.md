@@ -1,8 +1,8 @@
 ---
 project: synapse
-phase: P11-B69 ✅ O 自主监工循环可执行化 · B68 ✅ 文档追补
-last_batch: P11-B69
-next_batch: P11-B70
+phase: P11-B70 ✅ 1:1 协作基线代码+协议落地 · Verification 可判定性门禁 · evidence output_access 硬约束
+last_batch: P11-B70
+next_batch: P11-B71
 description: Synapse 主项目 — B69 _protocol.md §4.1 双角色对称重构 · role-orchestrator.md 反模式+中断恢复 · 模板→部署零漂移 · B70 🔜
 ---
 

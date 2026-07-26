@@ -122,6 +122,7 @@ class TestVerificationEventCoverage:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Done",
+                "evidence": {"output_access": {"type": "inline", "value": "test output"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],
@@ -181,6 +182,7 @@ class TestVerificationEventCoverage:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Done",
+                "evidence": {"output_access": {"type": "inline", "value": "test output"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],
@@ -247,6 +249,7 @@ class TestVerificationEventCoverage:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Fixed",
+                "evidence": {"output_access": {"type": "inline", "value": "test output"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],

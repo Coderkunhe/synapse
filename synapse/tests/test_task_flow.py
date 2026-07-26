@@ -66,7 +66,7 @@ class TestTaskHappyPath:
                 "verifications": [
                     {"type": "manual", "description": "登录功能正常",
                      "criteria": {"url": "/login", "expected_status": 200}},
-                    {"type": "check_list", "description": "代码质量",
+                    {"type": "check_list", "description": "Code quality checks pass",
                      "criteria": {"lint": "pass", "tests": "pass"}},
                 ],
             },
@@ -103,7 +103,7 @@ class TestTaskHappyPath:
             f"/v1/tasks/{task_id}/submit",
             json={
                 "summary": "已实现登录页面",
-                "evidence": {"commit": "abc123", "files_changed": 3},
+                "evidence": {"commit": "abc123", "files_changed": 3, "output_access": {"type": "git_branch", "value": "https://github.com/test/repo@feature/login"}},
                 "verification_results": [
                     {"verification_id": ver_ids[0], "status": "passed", "evidence": "自检通过"},
                     {"verification_id": ver_ids[1], "status": "passed", "evidence": "自检通过"},
@@ -147,9 +147,9 @@ class TestTaskHappyPath:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "事件测试任务",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p2",
-                "verifications": [{"type": "manual", "description": "检查", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Verify all checks passed", "criteria": {}}],
             },
             headers=headers,
         )
@@ -221,9 +221,9 @@ class TestAgentClaimFlow:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "可认领任务",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Verification check passed", "criteria": {}}],
             },
             headers=headers,
         )
@@ -279,9 +279,9 @@ class TestTaskCancelFlow:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "可取消任务",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p3",
-                "verifications": [{"type": "manual", "description": "检查", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Verify all checks passed", "criteria": {}}],
             },
             headers=headers,
         )
@@ -336,9 +336,9 @@ class TestTaskCancelFlow:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "将被完成",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p3",
-                "verifications": [{"type": "manual", "description": "验证", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Verification check passed", "criteria": {}}],
             },
             headers=headers,
         )
@@ -361,6 +361,7 @@ class TestTaskCancelFlow:
         submit_resp = await client.post(
             f"/v1/tasks/{task_id}/submit",
             json={"summary": "完成",
+                  "evidence": {"output_access": {"type": "inline", "value": "test"}},
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}],
                   "expected_version": version},
             headers=auth_header(api_key),
@@ -432,9 +433,9 @@ class TestVerificationRework:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "需要返工",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p2",
-                "verifications": [{"type": "manual", "description": "质量门禁",
+                "verifications": [{"type": "manual", "description": "Quality gate passed successfully",
                                    "criteria": {}}],
             },
             headers=headers,
@@ -458,6 +459,7 @@ class TestVerificationRework:
         submit_resp = await client.post(
             f"/v1/tasks/{task_id}/submit",
             json={"summary": "第一次尝试",
+                  "evidence": {"output_access": {"type": "inline", "value": "test"}},
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}],
                   "expected_version": version},
             headers=auth_header(api_key),
@@ -494,6 +496,7 @@ class TestVerificationRework:
         submit2_resp = await client.post(
             f"/v1/tasks/{task_id}/submit",
             json={"summary": "已修复，添加了更多测试",
+                  "evidence": {"output_access": {"type": "inline", "value": "test"}},
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}],
                   "expected_version": version},
             headers=auth_header(api_key),
@@ -575,7 +578,7 @@ class TestAdminWorkerAuth:
                 "description": "验证 Orchestrator 能用 API key 执行核心操作",
                 "priority": "p2",
                 "verifications": [
-                    {"type": "manual", "description": "手动确认", "criteria": {"check": "所有检查通过"}}
+                    {"type": "manual", "description": "Manual confirmation passed", "criteria": {"check": "所有检查通过"}}
                 ],
             },
             headers=admin_headers,
@@ -614,6 +617,7 @@ class TestAdminWorkerAuth:
             f"/v1/tasks/{task_id}/submit",
             json={
                 "summary": "已完成",
+                "evidence": {"output_access": {"type": "inline", "value": "completed task output"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed", "evidence": "自检通过"}
                 ],
@@ -700,9 +704,9 @@ class TestProjectResolve:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "通过 resolve 创建的任务",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p2",
-                "verifications": [{"type": "manual", "description": "功能正常"}],
+                "verifications": [{"type": "manual", "description": "All features work correctly"}],
             },
             headers=headers,
         )

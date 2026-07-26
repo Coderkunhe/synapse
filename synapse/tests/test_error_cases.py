@@ -249,7 +249,7 @@ class TestForbiddenErrors:
             json={
                 "title": "Test Task",
                 "description": "A test task",
-                "verifications": [{"type": "manual", "description": "Check it"}],
+                "verifications": [{"type": "manual", "description": "Check it works correctly"}],
             },
             headers=auth_header(seed.token),
         )
@@ -371,7 +371,7 @@ class TestConflictErrors:
                 "title": "Should fail",
                 "description": "Test task in archived project",
                 "priority": "p3",
-                "verifications": [{"type": "manual", "description": "X", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Verification check X", "criteria": {}}],
             },
             headers=headers,
         )
@@ -405,9 +405,9 @@ class TestCrossTeamIsolation:
             f"/v1/projects/{project_a_id}/tasks",
             json={
                 "title": "Team A Task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p2",
-                "verifications": [{"type": "manual", "description": "Check", "criteria": {}}],
+                "verifications": [{"type": "manual", "description": "Check verification condition", "criteria": {}}],
             },
             headers=headers_a,
         )
@@ -495,9 +495,9 @@ class TestAgentVisibility:
                 f"/v1/projects/{project_id}/tasks",
                 json={
                     "title": f"Task for {agent_name}",
-                    "description": "test",
+                    "description": "Verify task works correctly",
                     "priority": "p2",
-                    "verifications": [{"type": "manual", "description": "X", "criteria": {}}],
+                    "verifications": [{"type": "manual", "description": "Verification check X", "criteria": {}}],
                 },
                 headers=headers,
             )

@@ -130,7 +130,7 @@ class TestCreateUserId:
                 "title": "Audit Scan Task",
                 "description": "t",
                 "priority": "p2",
-                "verifications": [{"type": "manual", "description": "Check"}],
+                "verifications": [{"type": "manual", "description": "Check verification works correctly"}],
             }, h,
         )
         data = await _create_entity(

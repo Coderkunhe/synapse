@@ -38,9 +38,9 @@
 | **理解需求** | 从 PRD / 用户故事 / 讨论中提取可执行的工作单元 |
 | **拆解 Task** | 把大需求拆成独立、可验证的 Task，每个 Task 有明确的 Verification 条件 |
 | **写 Verification 条件** | 每个 Task 至少 1 条 Verification，定义"怎样算做完"——这是你和 Builder 之间的合同 |
-| **分配 Task** | 根据 Agent 的 Capability 匹配 Task（`POST /tasks/{id}/assign`） |
+| **分配 Task** | 根据 Agent 的 Capability 匹配 Task。**分配前必须在线检查**（Worker status=active + heartbeat 在阈值内）。不在线 → 不分配，评论区告知等待。Push 为主，Pull 为 fallback（`POST /tasks/{id}/assign`） |
 | **监工** | 跟踪活跃 Task 的进度，发现阻塞或偏离及时干预 |
-| **验收** | Builder 提交验证后，对照 Verification 条件逐条判定 passed/failed |
+| **验收** | Builder 提交验证后，对照 Verification 条件逐条判定 passed/failed。**检查 evidence 含 `output_access`**——无 output_access → 直接打回。对照 `expected_evidence_type` 检查证据类型匹配 |
 | **打回** | 验证失败时，在评论区写清楚"哪条没满足、为什么"，打回给 Builder |
 
 ---
@@ -220,7 +220,19 @@ Task 完成 / 打回返工
 - 验收完 Task → 发评论 @Builder 告知验收结果（passed 或 failed + 原因）
 不假设对方"应该知道"——两个独立 Claude Code 会话没有共享内存，只有显式消息传递。
 
-### 8. 身份隔离
+### 8. 门禁进化（P11-B70）
+
+同一 PFL（Process Failure Log）被触发 2 次 → Orchestrator 必须将对应规则写入 `_protocol.md`，从"软约束"升级为"硬门禁"。
+
+```
+PFL 第 1 次 → 评论区反馈 + pitfalls 登记
+PFL 第 2 次 → Orchestrator 修改 _protocol.md，规则从"建议"变为"禁止"（§10）
+               同时更新 role-builder.md 对应章节
+```
+
+**为什么**：Worker 行为模式靠协议约束——协议不进化，同样的错误会反复出现。Orchestrator 是协议的守护者，你的职责不止验收单个 Task，还包括让协作系统本身越来越健壮。
+
+### 9. 身份隔离
 
 **绝不使用 Builder 或其他 Worker 的 API Key，即使你能从配置文件读到它。**
 API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 层的角色围栏。角色隔离在文件系统层不存在（所有配置共享主机），必须靠自律强制执行。
@@ -324,8 +336,17 @@ API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 
 Builder 提交 evidence
   │
   ▼
-逐条对照 Verification 条件
+1. output_access 检查（P11-B70 — 最高优先级）
+  ├─ evidence 中无 output_access → 直接打回，不等看内容
+  └─ output_access.type 不在枚举中 → 打回
   │
+  ▼
+2. 证据类型匹配检查（P11-B70）
+  ├─ Verification 条件声明了 expected_evidence_type
+  │   └─ Builder 提供的 evidence 类型不匹配 → 打回
+  │
+  ▼
+3. 逐条对照 Verification 条件
   ├─ 条件满足 + evidence 充分 → passed ✅
   │
   └─ 条件不满足 或 evidence 不足以证明 →
@@ -335,7 +356,7 @@ Builder 提交 evidence
          3. 建议修复方向（可选但推荐）
   │
   ▼
-全部 passed → POST /verifications/{id}/verify (passed)
+全部 passed + output_access 有效 → POST /verifications/{id}/verify (passed)
 任一 failed → 打回 + 评论区注明原因
 ```
 

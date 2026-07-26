@@ -174,12 +174,17 @@ async def create_task(
     # 创建验证记录
     verification_objs = []
     for v in verifications:
+        # P11-B70: expected_evidence_type 存入 criteria JSON（零 migration）
+        criteria = v.get("criteria") or {}
+        ee_type = v.get("expected_evidence_type")
+        if ee_type is not None:
+            criteria = {**criteria, "_expected_evidence_type": ee_type}
         ver = Verification(
             id=generate_id("verification"),
             task_id=task.id,
             type=v["type"],
             description=v["description"],
-            criteria=safe_dumps(v.get("criteria")),
+            criteria=safe_dumps(criteria) if criteria else None,
             status=VerificationStatus.PENDING,
             create_user_id=actor_id,
         )
@@ -530,6 +535,35 @@ async def submit_task(
             {"ownerType": task.owner_type, "ownerId": task.owner_id},
         )
 
+    # P11-B70: evidence 必须包含 output_access — 客户如何获取产出
+    if not evidence or "output_access" not in evidence:
+        raise ConflictError(
+            "OUTPUT_ACCESS_REQUIRED",
+            "Evidence must include 'output_access' field specifying how to access "
+            "the completed output. output_access must have: "
+            'type (git_branch|file_url|web_link|inline) and value.\n'
+            'Example: {"output_access": {"type": "git_branch", "value": "https://github.com/x/y@feature/z"}}',
+        )
+    oa = evidence["output_access"]
+    if not isinstance(oa, dict):
+        raise ConflictError(
+            "OUTPUT_ACCESS_INVALID",
+            "output_access must be an object with 'type' and 'value' fields.",
+        )
+    valid_oa_types = {"git_branch", "file_url", "web_link", "inline"}
+    oa_type = oa.get("type", "")
+    if oa_type not in valid_oa_types:
+        raise ConflictError(
+            "OUTPUT_ACCESS_INVALID_TYPE",
+            f"output_access.type must be one of: {', '.join(sorted(valid_oa_types))}. "
+            f"Got: '{oa_type}'",
+        )
+    if not oa.get("value") or not isinstance(oa.get("value"), str):
+        raise ConflictError(
+            "OUTPUT_ACCESS_INVALID",
+            "output_access.value is required and must be a non-empty string.",
+        )
+
     # 处理 owner 提交的验证结果
     for vr in verification_results:
         ver = await db.get(Verification, vr["verification_id"])
@@ -701,6 +735,31 @@ async def ready_task(
             "TASK_NOT_READY",
             "Task must have at least one verification condition before moving to READY",
         )
+
+    # P11-B70: Verification 可判定性校验 — 拒绝模糊描述
+    vague_set = {
+        "代码写好了", "功能正常", "没问题", "做好了", "完成了",
+        "code is done", "works fine", "looks good", "done",
+        "测试通过", "lint过了", "没问题了", "it works",
+        "差不多", "还行", "ok", "好了",
+    }
+    verifications = await _get_verifications(db, task_id)
+    for ver in verifications:
+        desc = (ver.description or "").strip()
+        if len(desc) < 6:
+            raise ConflictError(
+                "VERIFICATION_NOT_DECIDABLE",
+                f"Verification '{desc}' is too short ({len(desc)} chars). "
+                f"Must be ≥6 characters with specific, machine-verifiable criteria. "
+                f"Example: 'pytest 23/23 passed, ruff 0 errors'",
+            )
+        if desc.lower() in vague_set:
+            raise ConflictError(
+                "VERIFICATION_NOT_DECIDABLE",
+                f"Verification '{desc}' is too vague. "
+                f"Use specific criteria with measurable indicators. "
+                f"Example: 'POST /login returns 200 + response contains access_token'",
+            )
 
     event_type, payload = apply_transition(
         task, TaskStatus.READY, actor_type=actor_type, actor_id=actor_id,
@@ -927,6 +986,14 @@ async def _count_verifications(db: AsyncSession, task_id: str) -> int:
         sa_select(sa_func.count(Verification.id)).where(Verification.task_id == task_id)
     )
     return result.scalar() or 0
+
+
+async def _get_verifications(db: AsyncSession, task_id: str) -> list[Verification]:
+    """返回任务的验证记录列表（P11-B70）。"""
+    result = await db.execute(
+        select(Verification).where(Verification.task_id == task_id)
+    )
+    return list(result.scalars().all())
 
 
 # ── 查询 ─────────────────────────────────────────────────────────

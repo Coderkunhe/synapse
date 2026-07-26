@@ -67,9 +67,9 @@ class TestTaskDependencyCheck:
 
         task_body: dict = {
             "title": title,
-            "description": "test",
+            "description": "Verify task works correctly",
             "priority": "p1",
-            "verifications": [{"type": "manual", "description": "验证"}],
+            "verifications": [{"type": "manual", "description": "Verification check passed"}],
         }
         if depends_on is not None:
             task_body["depends_on"] = depends_on
@@ -198,9 +198,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "依赖不存在的任务",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
                 "depends_on": [{"task_id": "tsk_nonexistent", "type": "artifact"}],
             },
             headers=headers,
@@ -250,9 +250,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "重复依赖",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
                 "depends_on": [
                     {"task_id": dep_task_id, "type": "sequential"},
                     {"task_id": dep_task_id, "type": "artifact"},
@@ -295,9 +295,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_b}/tasks",
             json={
                 "title": "跨项目依赖",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
                 "depends_on": [{"task_id": dep_task_id, "type": "sequential"}],
             },
             headers=headers,
@@ -327,9 +327,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Task B",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
             },
             headers=headers,
         )
@@ -341,9 +341,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Task A",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
                 "depends_on": [{"task_id": task_b_id, "type": "sequential"}],
             },
             headers=headers,
@@ -365,9 +365,9 @@ class TestTaskDependencyCheck:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Task C",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "priority": "p1",
-                "verifications": [{"type": "manual", "description": "验证"}],
+                "verifications": [{"type": "manual", "description": "Verification check passed"}],
                 "depends_on": [{"task_id": task_b_id, "type": "sequential"}],
             },
             headers=headers,

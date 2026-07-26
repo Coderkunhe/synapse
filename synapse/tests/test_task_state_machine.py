@@ -237,7 +237,7 @@ class TestReadyTask:
             description="Has description", priority="p1",
             parent_task_id=None, batch_id=None, estimated_effort=None,
             tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "Check"}],
+            verifications=[{"type": "manual", "description": "Check verification works correctly"}],
             actor_type="human", actor_id="user-1", team_id=seeded_project.team_id,
         )
         await db.flush()  # 解析服务端默认值（version_no）
@@ -257,7 +257,7 @@ class TestReadyTask:
             description=None, priority="p1",
             parent_task_id=None, batch_id=None, estimated_effort=None,
             tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "Check"}],
+            verifications=[{"type": "manual", "description": "Check verification works correctly"}],
             actor_type="human", actor_id="user-1", team_id=seeded_project.team_id,
         )
         with pytest.raises(ConflictError, match="TASK_NOT_READY"):
@@ -274,7 +274,7 @@ class TestReadyTask:
             description="Has desc", priority="p1",
             parent_task_id=None, batch_id=None, estimated_effort=None,
             tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "Check"}],
+            verifications=[{"type": "manual", "description": "Check verification works correctly"}],
             actor_type="human", actor_id="user-1", team_id=seeded_project.team_id,
         )
         with pytest.raises(ConflictError, match="VERSION_CONFLICT"):
@@ -342,7 +342,7 @@ class TestPauseResumeTask:
             description="Has desc", priority="p1",
             parent_task_id=None, batch_id=None, estimated_effort=None,
             tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "Check"}],
+            verifications=[{"type": "manual", "description": "Check verification works correctly"}],
             actor_type="human", actor_id="user-1", team_id=seeded_project.team_id,
         )
         task = await ready_task(
@@ -405,7 +405,7 @@ class TestTerminateTask:
             description="Will be cancelled", priority="p1",
             parent_task_id=None, batch_id=None, estimated_effort=None,
             tags=None, metadata=None, deadline_at=None,
-            verifications=[{"type": "manual", "description": "Check"}],
+            verifications=[{"type": "manual", "description": "Check verification works correctly"}],
             actor_type="human", actor_id="user-1", team_id=seeded_project.team_id,
         )
         task = await ready_task(
@@ -472,7 +472,7 @@ async def _create_completed_task(db: AsyncSession, project: Project):
     task = await _create_ready_claimed_task(db, project)
     await db.flush()
     task = await submit_task(
-        db, task.id, summary="Done", evidence=None,
+        db, task.id, summary="Done", evidence={"output_access": {"type": "inline", "value": "test"}},
         verification_results=[], expected_version=task.version_no,
         actor_type="worker", actor_id=agent_id, team_id=project.team_id,
     )

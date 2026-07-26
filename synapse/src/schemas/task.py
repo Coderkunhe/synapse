@@ -171,11 +171,71 @@ class VerificationResult(BaseModel):
     evidence: str | None = None
 
 
+# ── P11-B70: expected_evidence_type 枚举 ─────────────────────
+EXPECTED_EVIDENCE_TYPES: set[str] = {
+    "command_output",   # 命令执行输出（测试、lint、脚本）
+    "artifact_hash",    # 产物文件（路径 + SHA256 + 大小）
+    "api_response",     # API 响应（状态码 + 关键字段）
+    "external_ref",     # 外部系统引用（Git commit, CI run ID）
+    "self_report",      # 自我声明（仅限主观判断类条件）
+}
+VAGUE_DESCRIPTIONS: set[str] = {
+    "代码写好了", "功能正常", "没问题", "做好了", "完成了",
+    "code is done", "works fine", "looks good", "done",
+    "测试通过", "lint过了", "没问题了", "it works",
+    "差不多", "还行", "ok", "好了",
+}
+
+
 class VerificationCreate(BaseModel):
-    """嵌入 TaskCreate 的验证条件。"""
+    """嵌入 TaskCreate 的验证条件。
+
+    P11-B70: 新增 expected_evidence_type 字段 + 可判定性 validator。
+    """
     type: str = Field(..., pattern=r"^(manual|automated|check_list)$")
     description: str = Field(..., max_length=1000)
     criteria: dict | None = None
+    expected_evidence_type: str | None = Field(
+        None,
+        description=(
+            "Expected evidence type for this verification. "
+            "One of: command_output, artifact_hash, api_response, external_ref, self_report. "
+            "Builder must provide evidence matching this type."
+        ),
+    )
+
+    @field_validator("description")
+    @classmethod
+    def check_decidability(cls, v: str) -> str:
+        """P11-B70: 拒绝模糊的 Verification 描述。
+
+        "代码写好了"、"功能正常" 这类模糊措辞在 Task 创建阶段就被拦截，
+        不等 Builder 开始干活才发现验收标准不可判定。
+        """
+        stripped = v.strip()
+        if len(stripped) < 6:
+            raise ValueError(
+                f"Verification description too short ({len(stripped)} chars): '{stripped}'. "
+                f"Must be ≥6 characters with specific, machine-verifiable criteria. "
+                f"Example: 'pytest 23/23 passed, ruff 0 errors'"
+            )
+        if stripped.lower() in VAGUE_DESCRIPTIONS:
+            raise ValueError(
+                f"Verification description too vague: '{stripped}'. "
+                f"Use specific criteria with measurable indicators. "
+                f"Example: 'POST /login returns 200 + response contains access_token + test_auth.py 12/12 passed'"
+            )
+        return stripped
+
+    @field_validator("expected_evidence_type")
+    @classmethod
+    def check_evidence_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in EXPECTED_EVIDENCE_TYPES:
+            raise ValueError(
+                f"Invalid expected_evidence_type: '{v}'. "
+                f"Must be one of: {', '.join(sorted(EXPECTED_EVIDENCE_TYPES))}"
+            )
+        return v
 
 
 class BlockerReportRequest(BaseModel):

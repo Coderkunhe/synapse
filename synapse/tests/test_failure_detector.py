@@ -77,8 +77,8 @@ async def _setup_agent_with_task(
 
     task_resp = await client.post(
         f"/v1/projects/{project_id}/tasks",
-        json={"title": f"Task-{slug}", "description": "test", "priority": "p2",
-              "verifications": [{"type": "manual", "description": "检查"}]},
+        json={"title": f"Task-{slug}", "description": "Verify task works correctly", "priority": "p2",
+              "verifications": [{"type": "manual", "description": "Verify all checks passed"}]},
         headers=headers,
     )
     task_id = task_resp.json()["id"]
@@ -185,7 +185,7 @@ class TestReviewTimeout:
         # 提交任务使其进入 IN_VERIFICATION
         submit_resp = await client.post(
             f"/v1/tasks/{data['task_id']}/submit",
-            json={"summary": "完成", "expected_version": data["version"]},
+            json={"summary": "完成", "evidence": {"output_access": {"type": "inline", "value": "test output"}}, "expected_version": data["version"]},
             headers=auth_header(data["api_key"]),
         )
         assert submit_resp.status_code == 200
@@ -259,7 +259,7 @@ class TestBlockerReport:
             f"/v1/tasks/{data['task_id']}/blocker",
             json={
                 "blocker_type": "other",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "expected_version": version,
             },
             headers=data["headers"],  # member token
@@ -277,7 +277,7 @@ class TestBlockerReport:
             f"/v1/tasks/{data['task_id']}/blocker",
             json={
                 "blocker_type": "other",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "expected_version": 999,  # 错误版本
             },
             headers=auth_header(data["api_key"]),
@@ -321,7 +321,7 @@ class TestBlockerReport:
             f"/v1/tasks/{data['task_id']}/blocker",
             json={
                 "blocker_type": "other",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "expected_version": version,
             },
             headers=auth_header(api_key2),
@@ -399,8 +399,8 @@ class TestFailureCountField:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "FC-Task", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "检查"}]},
+            json={"title": "FC-Task", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Verify all checks passed"}]},
             headers=headers,
         )
         task = task_resp.json()

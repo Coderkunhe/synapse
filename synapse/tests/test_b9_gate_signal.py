@@ -24,7 +24,7 @@ async def _create_project(client: AsyncClient, seed: SeedData, slug: str = "") -
     s = slug or f"b9-{uuid.uuid4().hex[:8]}"
     resp = await client.post(
         f"/v1/teams/{seed.team_id}/projects",
-        json={"name": "B9 Test Project", "description": "test", "slug": s},
+        json={"name": "B9 Test Project", "description": "Verify task works correctly", "slug": s},
         headers=auth_header(seed.token),
     )
     assert resp.status_code == 201
@@ -115,21 +115,21 @@ class TestBatchTaskCreate:
                         "title": "Task 1",
                         "description": "First task",
                         "priority": "p1",
-                        "verifications": [{"type": "manual", "description": "Check 1"}],
+                        "verifications": [{"type": "manual", "description": "Check condition one"}],
                     },
                     {
                         "title": "Task 2",
                         "description": "Second task",
                         "priority": "p2",
-                        "verifications": [{"type": "manual", "description": "Check 2"}],
+                        "verifications": [{"type": "manual", "description": "Check condition two"}],
                     },
                     {
                         "title": "Task 3",
                         "description": "Third task",
                         "priority": "p3",
                         "verifications": [
-                            {"type": "manual", "description": "Check 3a"},
-                            {"type": "check_list", "description": "Check 3b"},
+                            {"type": "manual", "description": "Check condition three A"},
+                            {"type": "check_list", "description": "Check condition three B"},
                         ],
                     },
                 ]
@@ -160,7 +160,7 @@ class TestBatchTaskCreate:
                     {
                         "title": "Solo Task",
                         "description": "Just one",
-                        "verifications": [{"type": "manual", "description": "Check"}],
+                        "verifications": [{"type": "manual", "description": "Check verification works correctly"}],
                     },
                 ]
             },
@@ -192,8 +192,8 @@ class TestBatchTaskCreate:
                 "tasks": [
                     {
                         "title": f"T{i}",
-                        "description": "x",
-                        "verifications": [{"type": "manual", "description": "C"}],
+                        "description": "Task description here",
+                        "verifications": [{"type": "manual", "description": "Verification check C"}],
                     }
                     for i in range(21)
                 ]
@@ -214,8 +214,8 @@ class TestBatchTaskCreate:
                 "tasks": [
                     {
                         "title": "Valid Task",
-                        "description": "ok",
-                        "verifications": [{"type": "manual", "description": "V"}],
+                        "description": "Task description here",
+                        "verifications": [{"type": "manual", "description": "Verification check V"}],
                     },
                     {
                         "title": "Invalid Task",
@@ -255,13 +255,13 @@ class TestBatchTaskCreate:
                         "title": "Batch Task 1",
                         "description": "Task in batch",
                         "batch_id": batch["id"],
-                        "verifications": [{"type": "manual", "description": "C"}],
+                        "verifications": [{"type": "manual", "description": "Check batch task one works"}],
                     },
                     {
                         "title": "Batch Task 2",
                         "description": "Also in batch",
                         "batch_id": batch["id"],
-                        "verifications": [{"type": "manual", "description": "C"}],
+                        "verifications": [{"type": "manual", "description": "Check batch task two works"}],
                     },
                 ]
             },
@@ -382,6 +382,7 @@ class TestTerminateTask:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Done",
+                "evidence": {"output_access": {"type": "inline", "value": "task completed"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],
@@ -600,6 +601,7 @@ class TestWSSignals:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Done",
+                "evidence": {"output_access": {"type": "inline", "value": "task completed"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],
@@ -651,6 +653,7 @@ class TestWSSignals:
             f"/v1/tasks/{task['id']}/submit",
             json={
                 "summary": "Done",
+                "evidence": {"output_access": {"type": "inline", "value": "task completed"}},
                 "verification_results": [
                     {"verification_id": ver_id, "status": "passed"},
                 ],

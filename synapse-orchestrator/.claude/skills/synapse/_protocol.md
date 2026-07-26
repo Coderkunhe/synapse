@@ -366,12 +366,79 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
   "evidence": {
     "testResults": {"passed": 23, "failed": 0},
     "lintPassed": true,
-    "filesChanged": ["src/auth/login.py", "tests/test_login.py"]
+    "filesChanged": ["src/auth/login.py", "tests/test_login.py"],
+    "output_access": {
+      "type": "git_branch",
+      "value": "https://github.com/team/repo@feature/login-api"
+    }
   }
 }
 ```
 
-没有 evidence 的提交 = API 拒绝（硬约束）。
+**`evidence` 必须包含 `output_access` 字段**（P11-B70 硬约束）：
+
+| type | value 格式 | 适用场景 |
+|:---|------|------|
+| `git_branch` | `"{repo_url}@{branch_name}"` | 代码实现（客户 clone/查看分支） |
+| `file_url` | `"{可访问的文件 URL}"` | 设计稿、PDF、图片 |
+| `web_link` | `"{可访问的网页 URL}"` | 部署预览、在线文档、CI 结果 |
+| `inline` | `"{纯文本内容}"` | 文案、分析报告、短文本 |
+
+无 `evidence` 或无 `output_access` → API 返回 `409 OUTPUT_ACCESS_REQUIRED`（硬约束）。
+
+### 5.1b evidence 可信度（P11-B70）
+
+每个 Verification 条件可声明 `expected_evidence_type`，声明 Builder 应提供什么类型的证据：
+
+| 类型 | 含义 | Builder 必须提供 |
+|:---|------|------|
+| `command_output` | 命令执行输出 | 命令文本 + 完整输出 |
+| `artifact_hash` | 产物文件 | 文件路径 + SHA256 + 大小 |
+| `api_response` | API 响应 | 状态码 + 响应体关键字段 |
+| `external_ref` | 外部系统引用 | 外部链接/ID（如 Git commit, CI run ID） |
+| `self_report` | 自我声明 | 文字描述（仅限主观判断类条件） |
+
+Orchestrator 验收时对照 `expected_evidence_type` 检查证据类型是否匹配——类型不匹配直接打回。
+
+### 5.1c 能力声明格式（P11-B70）
+
+Worker 在 handshake 时声明 `capability_tags`，格式约定：
+
+```json
+{
+  "capability_tags": {
+    "skills": ["code-generation", "frontend", "data-analysis"],
+    "description": "Full-stack developer with vision capabilities",
+    "model": "claude-sonnet-5",
+    "strengths": ["backend", "api-design"],
+    "cost_tier": "medium"
+  }
+}
+```
+
+Task 需求由 Orchestrator 在 `tags` 中标注：
+
+```json
+{
+  "tags": ["skill:frontend", "skill:vision", "effort:m"]
+}
+```
+
+匹配 = Worker `capability_tags.skills` ∩ Task `tags` 中的 `skill:*` → 选最佳适配。
+
+### 5.1d Push/Pull 协作模型（P11-B70）
+
+| 模式 | 触发方 | 何时用 | API |
+|:---|:---|------|------|
+| **Push（主）** | Orchestrator | 正常流程 — O 主动分配 Task 给匹配的 Builder | `POST /tasks/{id}/assign` |
+| **Pull（fallback）** | Builder | O 沉默 > 5 min → Builder 自行 claim | `POST /tasks/{id}/claim` |
+
+**Push 分配前在线检查**：Orchestrator 分配前检查 Worker status=active + heartbeat 在阈值内。不在线 → 不分配，评论区告知等待。
+
+**Pull fallback 触发条件**：
+- Orchestrator 超过 5 分钟未分配任何 Task
+- 有 ready Task 等待中
+- Builder 已完成当前工作，队列为空
 
 ### 5.2 模糊立即问，不猜测
 
@@ -575,6 +642,7 @@ GET {{SYNAPSE_API_URL}}/v1/workers/me/authorization-requests?status=pending
 | ❌ 禁止 | 原因 |
 |---------|------|
 | 无 evidence 提交验证 | API 硬阻断 |
+| evidence 中无 `output_access` | API 硬阻断（P11-B70） |
 | 跳过 Verification 直接标记 Task 完成 | 状态机不允许 |
 | 修改或删除已写入的 Event | Event 表 append-only |
 | 伪装成其他 Agent 或 Member | API Key 绑定唯一身份 |

@@ -140,6 +140,7 @@
 | **P11-B67** | **safe_loads JSON 防御门禁** — safe_loads() 捕获 JSONDecodeError → 返回 None · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归 | ✅ |
 | **P11-B68** | **文档追补** — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 | ✅ |
 | **P11-B69** | **O 自主监工循环可执行化** — _protocol.md §4.1 双角色对称重构（通用规则 + §4.1.1 Builder + §4.1.2 Orchestrator）· role-orchestrator.md 补强（反模式+中断恢复+API verify=验收完成）· 模板→部署零漂移 3 文件 · 🟡 标准 · 纯协议层 | ✅ |
+| **P11-B70** | **1:1 协作基线代码+协议落地** — Verification 可判定性门禁（schema + service 双层）· evidence output_access 硬约束 · 能力声明格式 + Push/Pull 模型 · 门禁进化规则 · 🟡 标准 · 6 files (2 code + 3 template + 15 test mechanical) · 628 tests 零回归 | ✅ |
 
 ---
 

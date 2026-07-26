@@ -157,7 +157,7 @@ async def _submit_task(
         f"/v1/tasks/{task_id}/submit",
         json={
             "summary": "任务成功完成",
-            "evidence": {"output": "所有检查通过"},
+            "evidence": {"output": "所有检查通过", "output_access": {"type": "inline", "value": "所有自动检查全部通过"}},
             "verification_results": [{
                 "verification_id": verification_id,
                 "status": "passed",
@@ -464,7 +464,7 @@ class TestFailureRecovery:
                 f"/v1/tasks/{tid}/submit",
                 json={
                     "summary": "由 Worker Bravo 救援",
-                    "evidence": {"recovered": True},
+                    "evidence": {"recovered": True, "output_access": {"type": "inline", "value": "recovery result"}},
                     "verification_results": [{
                         "verification_id": verifs[0]["id"],
                         "status": "passed",

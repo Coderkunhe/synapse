@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B69 ✅ O 自主监工循环可执行化 · B68 ✅ 文档追补 · B67 ✅ safe_loads JSON 防御）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B70 ✅ 1:1 协作基线代码+协议落地 · Verification 可判定性门禁 · evidence output_access 硬约束）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -663,6 +663,7 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B70**：1:1 协作基线代码+协议落地 ✅ — Verification 可判定性门禁 · evidence output_access 硬约束 · 能力声明格式 + Push/Pull 模型 · 🟡 标准 · 6 files (2 code + 3 template + 1 doc) + 15 test mechanical · 628 tests 零回归
 - **P11-B69**：O 自主监工循环可执行化 ✅ — _protocol.md §4.1 双角色对称重构（§4.1.2 O 循环新增）· role-orchestrator 反模式+中断恢复 · 模板→部署零漂移 · 🟡 标准 · 纯协议层 · 5 files
 - **P11-B68**：文档追补 ✅ — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 · 5 files
 - **P11-B67**：safe_loads JSON 防御 ✅ — safe_loads() try/except JSONDecodeError · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归

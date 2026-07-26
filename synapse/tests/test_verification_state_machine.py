@@ -60,7 +60,7 @@ class TestSingleVerificationPass:
         # 创建带 1 个 verification 的任务
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Single verif pass", "description": "test", "priority": "p2",
+            json={"title": "Single verif pass", "description": "Verify task works correctly", "priority": "p2",
                   "verifications": [{"type": "manual", "description": "Code review"}]},
             headers=headers,
         )
@@ -80,7 +80,7 @@ class TestSingleVerificationPass:
 
         submit = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Done", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Done", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -136,10 +136,10 @@ class TestMultiVerificationPass:
         # 创建带 2 个 verification 的任务
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Multi verif pass", "description": "test", "priority": "p2",
+            json={"title": "Multi verif pass", "description": "Verify task works correctly", "priority": "p2",
                   "verifications": [
                       {"type": "manual", "description": "Code review"},
-                      {"type": "automated", "description": "CI passes"},
+                      {"type": "automated", "description": "CI pipeline passes"},
                   ]},
             headers=headers,
         )
@@ -160,7 +160,7 @@ class TestMultiVerificationPass:
 
         submit = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Done", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Done", "expected_version": version,
                   "verification_results": [
                       {"verification_id": ver_ids[0], "status": "passed"},
                       {"verification_id": ver_ids[1], "status": "passed"},
@@ -228,8 +228,8 @@ class TestVerificationReject:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Fail me", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Fail me", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -247,7 +247,7 @@ class TestVerificationReject:
 
         submit = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Done", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Done", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -310,8 +310,8 @@ class TestRedoCountIncrement:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Redo test", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Redo test", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -330,7 +330,7 @@ class TestRedoCountIncrement:
         # 第 1 轮：submit → reject → start_task → redo_count=1
         submit1 = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Attempt 1", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Attempt 1", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -356,7 +356,7 @@ class TestRedoCountIncrement:
 
         submit2 = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Attempt 2", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Attempt 2", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -410,8 +410,8 @@ class TestRejectedToInProgressTransition:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "R2I test", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "R2I test", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -429,7 +429,7 @@ class TestRejectedToInProgressTransition:
 
         submit = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Done", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Done", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -493,8 +493,8 @@ class TestStructuredRejection:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Clear test", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Clear test", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -513,7 +513,7 @@ class TestStructuredRejection:
         # 第 1 轮：submit → reject（带原因）
         submit1 = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Attempt 1", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Attempt 1", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -544,7 +544,7 @@ class TestStructuredRejection:
 
         submit2 = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Attempt 2", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Attempt 2", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -601,8 +601,8 @@ class TestEdgeCases:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Dup verify", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Dup verify", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -620,7 +620,7 @@ class TestEdgeCases:
 
         submit = await client.post(
             f"/v1/tasks/{task_id}/submit",
-            json={"summary": "Done", "expected_version": version,
+            json={"evidence": {"output_access": {"type": "inline", "value": "test output"}}, "summary": "Done", "expected_version": version,
                   "verification_results": [{"verification_id": ver_id, "status": "passed"}]},
             headers=auth_header(api_key),
         )
@@ -659,8 +659,8 @@ class TestEdgeCases:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Not submitted yet", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Not submitted yet", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]
@@ -711,8 +711,8 @@ class TestEdgeCases:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "Idempotent start", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "Check"}]},
+            json={"title": "Idempotent start", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Check verification works correctly"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]

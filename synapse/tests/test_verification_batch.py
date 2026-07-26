@@ -56,11 +56,11 @@ async def _setup_agent_with_task(
     await ensure_project_role(client, project_id, agent_id, "builder", headers)
 
     if verifications is None:
-        verifications = [{"type": "manual", "description": "检查"}]
+        verifications = [{"type": "manual", "description": "Verify all checks passed"}]
 
     task_resp = await client.post(
         f"/v1/projects/{project_id}/tasks",
-        json={"title": f"Task-{slug_prefix}", "description": "test", "priority": "p2",
+        json={"title": f"Task-{slug_prefix}", "description": "Verify task works correctly", "priority": "p2",
               "verifications": verifications},
         headers=headers,
     )
@@ -81,6 +81,7 @@ async def _setup_agent_with_task(
     # 提交并标记所有验证项为通过
     submit_payload = {
         "summary": "完成",
+        "evidence": {"output_access": {"type": "inline", "value": "batch test output"}},
         "expected_version": version,
         "verification_results": [
             {"verification_id": vid, "status": "passed"} for vid in ver_ids
@@ -109,8 +110,8 @@ class TestBatchAllPass:
         headers, _, _, task_id, ver_ids, version = await _setup_agent_with_task(
             client, seed, "B6-AllPass", "b6ap",
             verifications=[
-                {"type": "manual", "description": "审查"},
-                {"type": "automated", "description": "CI"},
+                {"type": "manual", "description": "Code review passed"},
+                {"type": "automated", "description": "CI pipeline passes"},
             ],
         )
 
@@ -178,8 +179,8 @@ class TestBatchMixed:
         headers, _, _, task_id, ver_ids, version = await _setup_agent_with_task(
             client, seed, "B6-Mix", "b6mix",
             verifications=[
-                {"type": "manual", "description": "V1"},
-                {"type": "manual", "description": "V2"},
+                {"type": "manual", "description": "Verification condition one"},
+                {"type": "manual", "description": "Verification condition two"},
             ],
         )
 
@@ -225,8 +226,8 @@ class TestBatchReviewFlag:
         headers, _, _, task_id, ver_ids, version = await _setup_agent_with_task(
             client, seed, "B6-Flag", "b6flag",
             verifications=[
-                {"type": "manual", "description": "V1"},
-                {"type": "manual", "description": "V2"},
+                {"type": "manual", "description": "Verification condition one"},
+                {"type": "manual", "description": "Verification condition two"},
             ],
         )
 
@@ -275,7 +276,7 @@ class TestBatchReviewFlag:
         headers, _, _, task_id, ver_ids, version = await _setup_agent_with_task(
             client, seed, "B6-Flag2", "b6flag2",
             verifications=[
-                {"type": "manual", "description": "V1"},
+                {"type": "manual", "description": "Verification condition one"},
             ],
         )
 
@@ -481,8 +482,8 @@ class TestBatchErrors:
 
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
-            json={"title": "未提交", "description": "test", "priority": "p2",
-                  "verifications": [{"type": "manual", "description": "检查"}]},
+            json={"title": "未提交", "description": "Verify task works correctly", "priority": "p2",
+                  "verifications": [{"type": "manual", "description": "Verify all checks passed"}]},
             headers=headers,
         )
         task_id = task_resp.json()["id"]

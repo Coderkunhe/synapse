@@ -36,7 +36,7 @@ class TestComplianceScan:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Task with verifications",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
                     {"type": "manual", "description": "Code review", "criteria": {}}
                 ],
@@ -149,7 +149,7 @@ class TestComplianceScan:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Owned Task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "batch_id": batch_id,
                 "verifications": [
                     {"type": "manual", "description": "Check ownership", "criteria": {}}
@@ -177,7 +177,7 @@ class TestComplianceScan:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Unowned Task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "batch_id": batch_id,
                 "verifications": [
                     {"type": "manual", "description": "Check ownership", "criteria": {}}
@@ -221,7 +221,7 @@ class TestComplianceScan:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Team 1 Task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
                     {"type": "manual", "description": "Cross-team test", "criteria": {}}
                 ],
@@ -289,7 +289,7 @@ class TestComplianceScan:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Actor tracking task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
                     {"type": "manual", "description": "Verify actor", "criteria": {}}
                 ],
@@ -360,7 +360,7 @@ class TestComplianceScanRetrieval:
                 f"/v1/projects/{project_id}/tasks",
                 json={
                     "title": f"Scan list task {i}",
-                    "description": "test",
+                    "description": "Verify task works correctly",
                     "verifications": [
                         {"type": "manual", "description": f"Check {i}", "criteria": {}}
                     ],
@@ -407,9 +407,9 @@ class TestComplianceScanRetrieval:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Filtered task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
-                    {"type": "manual", "description": "Filter", "criteria": {}}
+                    {"type": "manual", "description": "Filter results correctly", "criteria": {}}
                 ],
             },
             headers=headers,
@@ -453,9 +453,9 @@ class TestComplianceScanRetrieval:
                 f"/v1/projects/{project_id}/tasks",
                 json={
                     "title": f"Cursor task {i}",
-                    "description": "test",
+                    "description": "Verify task works correctly",
                     "verifications": [
-                        {"type": "manual", "description": f"C{i}", "criteria": {}}
+                        {"type": "manual", "description": f"Cursor task check {i}", "criteria": {}}
                     ],
                 },
                 headers=headers,
@@ -507,7 +507,7 @@ class TestComplianceScanRetrieval:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Get scan task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
                     {"type": "manual", "description": "Verify get", "criteria": {}}
                 ],
@@ -561,9 +561,9 @@ class TestComplianceScanRetrieval:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Team 1 task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
-                    {"type": "manual", "description": "T1", "criteria": {}}
+                    {"type": "manual", "description": "Task one verification", "criteria": {}}
                 ],
             },
             headers=headers,
@@ -639,9 +639,9 @@ class TestComplianceScanRetrieval:
             f"/v1/projects/{project_id}/tasks",
             json={
                 "title": "Isolation task",
-                "description": "test",
+                "description": "Verify task works correctly",
                 "verifications": [
-                    {"type": "manual", "description": "Iso", "criteria": {}}
+                    {"type": "manual", "description": "Isolation verification", "criteria": {}}
                 ],
             },
             headers=headers1,

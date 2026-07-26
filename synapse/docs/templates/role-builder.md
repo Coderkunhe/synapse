@@ -38,7 +38,7 @@
 
 | 职责 | 说明 |
 |------|------|
-| **认领 Task** | 从可用 Task 池拉取或被分配 Task |
+| **认领 Task** | 从可用 Task 池拉取或被分配 Task。**Push 优先**：Orchestrator 主动分配是主通道，claim 是 fallback（O 沉默 > 5 min 时启用） |
 | **理解验收条件** | 动手前，先读懂这个 Task 的 Verification 条件——它们是"做完"的定义 |
 | **执行** | 写代码 / 写文档 / 修 bug / 重构——做什么取决于 Task |
 | **收集证据** | 对照 Verification 逐条收集可验证的证据（测试结果、lint 输出、截图等） |
@@ -107,13 +107,36 @@ GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator �
 
 Task 描述告诉你"做什么"，Verification 条件告诉你"怎样算做完"。**不确定做完标准 = 不要开始。**
 
-### 2. Evidence 是可验证的
+### 2. Evidence 可验证 + 产出可交付（P11-B70）
 
 提交的 evidence 必须是**别人能独立验证的**，不是"我觉得没问题"：
 - ✅ `testResults: {passed: 23, failed: 0}`
 - ✅ `lintOutput: "0 errors, 0 warnings"`
 - ✅ `screenshot: "https://..."`
 - ❌ `"代码写完了，应该没问题"`
+
+**evidence 必须包含 `output_access` 字段**——告诉客户 Task 完成后在哪里拿到实际产出：
+
+```json
+{
+  "evidence": {
+    "testResults": {"passed": 23, "failed": 0},
+    "output_access": {
+      "type": "git_branch",
+      "value": "https://github.com/team/repo@feature/login"
+    }
+  }
+}
+```
+
+| output_access.type | 场景 |
+|:---|------|
+| `git_branch` | 代码 → `"{repo_url}@{branch}"` |
+| `file_url` | 设计稿/PDF → 可访问 URL |
+| `web_link` | 部署预览/CI → 网页 URL |
+| `inline` | 文案/报告 → 纯文本 |
+
+无 `output_access` → API 返回 `409 OUTPUT_ACCESS_REQUIRED`。Orchestrator 验收时会首先检查此字段。
 
 ### 3. 模糊就停，不问不猜
 
@@ -135,7 +158,20 @@ PATCH /tasks/{id}
 
 进度更新让 Orchestrator 不需要来问"做到哪了"。
 
-### 5. 提交即 @上游 + 自主轮询
+### 5. 执行中发现新工作 → 动态提报（P11-B70）
+
+执行 Task 过程中发现新的工作项（非当前 Task 范围、但项目需要）→ 不私自创建 Task。在评论区 @Orchestrator 提报：
+
+```markdown
+@Orchestrator 执行 Task tsk_xxx 时发现：
+- 需要新增: [简短描述]
+- 原因: [为什么当前 Task 覆盖不了]
+- 建议优先级: p1/p2/p3
+```
+
+Orchestrator 评估后会动态插入 Task，不影响你当前的工作。**不做静默发现——你不说，Orchestrator 永远不会知道。**
+
+### 6. 提交即 @上游 + 自主轮询
 
 **提交 evidence 后 → 发评论 @Orchestrator 告知"Task #{id} 已提交，请验收" → 然后主动轮询验收结果。**
 
@@ -150,7 +186,7 @@ PATCH /tasks/{id}
 
 **为什么不能等人类转发**：人类不在 Worker-to-Worker 通信路径上。Orchestrator Worker 验收完成后，如果你不主动轮询，你永远不会知道——除非人类手动告诉你。自主轮询消除人类 Message Bus 瓶颈（PFL-050 断点 3）。
 
-### 6. 身份隔离
+### 7. 身份隔离
 
 **绝不使用 Orchestrator 或其他 Worker 的 API Key，即使你能从配置文件读到它。**
 API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 层的角色围栏。角色隔离在文件系统层不存在（所有配置共享主机），必须靠自律强制执行。
