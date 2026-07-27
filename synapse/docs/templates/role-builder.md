@@ -77,17 +77,32 @@ POST /tasks/{id}/submit（附 evidence）
 
 ### 自主驱动循环（GAP-9 · 外层 — 跨 Task）
 
+> ⚠️ **这是响应内 while 循环（P11-B74）。** 不是"做完一个 Task 就停"——在一个 response 内持续循环：claim → execute → submit → poll 验收 → 下一个，做到无活为止。只在无 ready Task 时 ScheduleWakeup 30s 自唤醒退出。你是被动响应者——O assign 是主通道，claim 是 O 沉默 >5min 的 fallback。详见 `_protocol.md` §4.1.3。
+>
 > ⚠️ **你的工作不是"做完一个 Task 就停下来汇报"。** 完成当前 Task 后，主动检查是否有下一个 ready Task 并继续工作。详细协议见 `_protocol.md` §4.1。
 
 ```
-当前 Task passed
+当前 Task passed（或会话启动 · 无活跃 Task）
   │
   ▼
-GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator 分配
-  │
-  ├─→ 有 ready Task → claim → 执行 → submit → 回到这里
-  │
-  └─→ 无 ready Task → 报告"工作队列为空，等待新 Task"
+┌──────────────────────────────────────────────────────┐
+│  🔄 被动响应循环（P11-B74 · 非对称模型）              │
+│                                                      │
+│  1. 等待 O 分配（主通道）                              │
+│     ├─ 轮询 GET /projects/{id}/tasks?assigned_to=me   │
+│     │   └─ 检查是否有 O assign 的 in_progress Task     │
+│     └─ O 沉默 >5min → 启用 Pull fallback（步骤 2）    │
+│                                                      │
+│  2. Pull fallback（仅 O 沉默时启用）                   │
+│     └─ GET /projects/{id}/tasks?status=ready          │
+│        └─ 有 ready → claim → 进入执行                  │
+│                                                      │
+│  3. 执行 → submit → poll 验收 → 回到步骤 1             │
+│                                                      │
+│  4. 空闲出口（ScheduleWakeup）                         │
+│     └─ 无 assigned + 无 ready + 无 in_progress         │
+│        → ScheduleWakeup 30s 自唤醒                     │
+└──────────────────────────────────────────────────────┘
 ```
 
 **循环规则**：
@@ -97,7 +112,8 @@ GET /projects/{id}/tasks?status=ready  ← 主动拉取，不等 Orchestrator �
 | **API submit = 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成 |
 | **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
-| **终止条件**：无 ready Task / 202 超时 ≥15min / 同一 Task 被拒 ≥2 次 / 显式 stop |
+| **空闲出口（ScheduleWakeup · P11-B74）** | 无 ready Task + 无 in_progress → ScheduleWakeup 30s 自唤醒。202 超时 ≥15min → 评论区 @Orchestrator + ScheduleWakeup 60s。被拒 ≥2 次 → 评论区 @Orchestrator 讨论，等待人工。**⚠️ 不再无条件"停止"——无事可做时设闹钟回头，不是等人叫** |
+| **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
 
 ---
 

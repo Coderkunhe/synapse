@@ -323,6 +323,59 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 
 > **关键认知**：两个循环通过评论区异步握手，不依赖人类转发消息。Builder submit → O poll 检测 → O verify → 发评论 → B poll 检测 → B 进入下一个 Task。人类不在这个闭环的通信路径上。
 
+#### 4.1.3 非对称执行模型（P11-B74）
+
+> ⚠️ **Agent 物理约束必须被协议承认。** Agent 的执行模型是 episodic 的——一个 prompt → 一个 response → 停止。一个 response 结束后，Agent 物理上无法自发继续。协议不能假设 Agent "持续运行"，必须在这个约束下设计协作机制。
+
+**根因回顾**（B71/B73 狗粮 RCA）：
+
+Agent episodic 模型（prompt→做事→停）vs 协议假设的"持续运行"——这是导致 Worker 完成一个动作后就停下来等人推的根本原因。不是 Agent "不够主动"，是物理上无法跨 response 自发行动。
+
+**响应内循环 = 在这个约束下的最优解**：
+
+```
+一个 response 的开始
+  │
+  ▼
+┌──────────────────────────────────────────────────────┐
+│  🔄 响应内 while 循环（在一个 response 内连续执行）    │
+│                                                      │
+│  while True:                                         │
+│    re-fetch 最新状态（API）                            │
+│    decide 下一步做什么                                 │
+│    act 执行动作                                       │
+│    if 无事可做: break → ScheduleWakeup 设闹钟回头      │
+│                                                      │
+│  ⚠️ 不是"做一件事 → 停 → 等人推"                      │
+│  ⚠️ 是"一直做，做到没活为止"                           │
+└──────────────────────────────────────────────────────┘
+  │
+  ▼
+ScheduleWakeup 自唤醒 → 新 response → 循环继续
+```
+
+**非对称分工**：
+
+| 角色 | 模式 | 行为 |
+|------|------|------|
+| **Orchestrator（O）** | **连续引擎** | 一直跑——assign → poll 进度 → verify → 再 assign。只有全队列空才 ScheduleWakeup 60s |
+| **Builder（B）** | **被动响应者** | 有活就干——claim → execute → submit → poll 验收 → 下一个。O assign 是主通道，B claim 是 O 沉默 >5min 的 fallback |
+
+**为什么非对称**：对称模型（两个 Worker 都主动驱动）看似更"自主"，实则引入竞争——O 和 B 同时尝试操作同一 Task 的冲突、重复 poll 浪费、状态不一致。非对称让 O 单点驱动推进节奏，B 专注执行——复杂度砍半，吞吐不降。
+
+**ScheduleWakeup = 空闲出口，不是主循环机制**：
+
+```
+✅ 正确理解：主循环在 response 内跑 → 无事可做 → ScheduleWakeup 退出（回头再跑）
+❌ 错误理解：ScheduleWakeup = 主循环（每次唤醒做一件事又退出）
+```
+
+空闲出口条件：
+- **O 侧**：全队列空（无活跃 Task + 无 ready Task + backlog 无待拆需求）→ ScheduleWakeup 60s
+- **B 侧**：无 ready Task + 无 in_progress Task → ScheduleWakeup 30s
+
+**跨 Worker 等待 = 主同步机制**：B submit → poll O 验收结果 → passed → 继续。O assign → poll B 进度 → submitted → 验收。两个 Worker 通过 API 状态变化同步——不通过人类 Message Bus。人类不在这个闭环的通信路径上。
+
 ### 4.2 依赖等待（depends_on · P11-B60）
 
 > ⚠️ **当 Task 设置了 `depends_on` 时，Worker 必须先等待依赖满足才能 claim。**

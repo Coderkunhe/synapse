@@ -78,12 +78,14 @@ Task 完成 / 打回返工
 
 **自主监工循环（外层 — 跨 Task）**：
 
+> ⚠️ **这是响应内 while 循环（P11-B74）。** 你是连续引擎——不是"启动时跑一次就停"。在一个 response 内持续循环：re-fetch → decide → act → repeat，做到没活为止。只在全队列空时 ScheduleWakeup 60s 自唤醒退出。Builder 是你的被动响应者——你 assign，B 执行；你 verify，B 等结果。详见 `_protocol.md` §4.1.3。
+
 ```
 会话启动 → Handshake + State Sync
   │
   ▼
 ┌─────────────────────────────────────────────────┐
-│  🔄 自主监工循环（在一个 session 内持续运行）      │
+│  🔄 自主监工循环（响应内 while 循环 — 连续执行）   │
 │                                                 │
 │  1. 拉取项目全景状态                               │
 │     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
@@ -106,11 +108,12 @@ Task 完成 / 打回返工
 │     ├─ 无活跃 Task → 检查是否有新需求需拆解          │
 │     └─ 有 pending_auth → 每 10s 检查审批状态       │
 │                                                 │
-│  5. 终止条件（满足任一 → 退出循环）：               │
-│     ├─ 项目无活跃 Task + 无待拆解需求               │
-│     ├─ 所有 submitted Task 验收完毕 + 无 ready Task │
-│     ├─ 连续 3 轮轮询无状态变化（≥90s 空闲）         │
-│     └─ 显式 stop 信号（人类指令 / Task 全部完成）   │
+│  5. 空闲出口（ScheduleWakeup · P11-B74）：         │
+│     └─ 全队列空（无活跃 + 无 ready + backlog 无待拆）│
+│        → ScheduleWakeup 60s 后自唤醒，继续循环       │
+│     ⚠️ 只有这个条件触发退出。有任何 submitted/        │
+│        ready/in_progress/pending_auth → 继续跑       │
+│     ⚠️ 不再因"3 轮无变化"退出——有 Task 就得盯        │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -126,6 +129,18 @@ Task 完成 / 打回返工
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
 | **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求需创建新 Task。只有 backlog 也为空时才报告"项目工作队列为空"。不无限空转 |
 | **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步 → 拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
+
+**5 态路由矩阵（P11-B74 · 响应内循环决策表）**：
+
+> 每轮 re-fetch 后，按此矩阵判定下一步动作。从上到下匹配——命中第一行即执行，不等后续。
+
+| 系统状态 | O 动作 | 间隔 |
+|---------|--------|:--:|
+| 🔴 有 submitted Task | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder | — |
+| 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
+| 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
+| 🔵 全部 in_progress（正常进展）| 监工：逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
+| ⚫ 全队列空 | ScheduleWakeup 60s 自唤醒。无活跃 + 无 ready + backlog 无待拆。**只有这个状态退出循环** | 60s |
 
 **验收 vs 对话汇报 — 明确区分**：
 
@@ -162,14 +177,14 @@ Task 完成 / 打回返工
 
 > **关键认知**：中断恢复不依赖人类告诉你"做到哪了"。API 是共享状态源——拉取全景就能重建上下文。你不需要记住上次做到哪，只需问 API "现在什么状态"。
 
-**HTTP Poll 间隔建议**：
+**轮询间隔参考**（与 5 态路由矩阵对齐）：
 
-| 场景 | 间隔 | 原因 |
+| 场景 | 间隔 | 对应路由状态 |
 |------|:---:|------|
-| 等待 Builder 提交 | 30s | Builder 正在工作中，不会秒级变化 |
-| 等待审批结果 | 10s | 人类审批操作快（点按钮），短间隔减少等待 |
-| 空闲（无活跃 Task） | 60s | 无工作可做，长间隔节省资源 |
-| 刚提交验收判定后 | 5s | Builder 可能立即回复评论区，快速响应 |
+| 等待 Builder 提交 | 30s | 🔵 in_progress 监工 |
+| 等待审批结果 | 10s | 🟡 pending_auth |
+| 全队列空 | ScheduleWakeup 60s | ⚫ 空闲出口 |
+| 刚提交验收判定后 | 5s | 🔴 submitted → 已验收，快速确认
 
 ---
 
