@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B95→B96 拉通完成 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B96 补登记 · 📄 requirements-log B96 · 📄 daily B96 · 📄 tracks 指针 B95→B96 · 零 drift · 计数器复位",
+  "lastL5Batch": "P100-B96→B97 L5 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap.md B97+header · 📄 requirements-log.md 拆分归档 · 📄 daily/2026-07-27.md B97 · 📄 tracks/synapse.md 指针 B96→B97 · 📄 check-docs.sh 阈值更新 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-27",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B95→B96 拉通完成 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B96 补登记 · 📄 requirements-log B96 · 📄 daily B96 · 📄 tracks 指针 B95→B96 · 零 drift · 计数器复位",
+  "lastL5Evidence": "P100-B96→B97 L5 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap.md B97+header · 📄 requirements-log.md 拆分归档 · 📄 daily/2026-07-27.md B97 · 📄 tracks/synapse.md 指针 B96→B97 · 📄 check-docs.sh 阈值更新 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
