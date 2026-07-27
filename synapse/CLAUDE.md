@@ -1,11 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P100-B96 ✅ Node.js scripts 集成 · B97 🔜）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P100-B97 ✅ G-036 requirements-log 拆分归档 · B98 🔜）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 L5 P100-B95→B96 拉通完成（2026-07-27）— B95 Node.js 脚本基础设施 + B96 scripts 集成 · requirements-log+roadmap+daily+track 全量刷新 · 计数器复位
+> 🆕 P100-B97 ✅ G-036 requirements-log 拆分归档（2026-07-27）— 9677→4528 行 · P9+P10 归档 · 阈值 10000→5000
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -491,6 +492,8 @@ synapse/
 │   ├── methodology-reference.md ← 方法论参考附录（五层金字塔·反模式·SMG·迁移策略）🆕 P100-B75
 │   ├── roadmap.md         ← 开发路线图（宏观）
 │   ├── requirements-log.md← 需求日志（微观，每批 L1-L4）
+│   ├── archive/           ← 历史归档
+│   │   └── requirements-log-archive.md ← P9+P10 已完成 Phase 需求日志归档 🆕 P100-B97
 │   ├── data-model.md      ← 核心数据模型（设计原则·ER·关系矩阵·决策）✅
 │   ├── data-model-entities.md ← 实体定义（23 实体属性表·状态机·约束）🆕 P100-B74 · 🔄 P100-B78
 │   ├── protocol.md        ← 人机协调协议 ✅
@@ -660,9 +663,11 @@ synapse/
 - P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
 - P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
 - P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B95 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
+- P100：治理段 B1-B97 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · B97 G-036 拆分归档 ✅
 
 **最近批次**：
+- **P100-B97**：G-036 requirements-log 拆分归档 ✅ — 9677→4528 行 · P9+P10 → `docs/archive/requirements-log-archive.md` · check-docs.sh 阈值 10000→5000 · 🟡 标准 · 3 files
+- **P100-B96**：Node.js scripts 集成 ✅ — generate-skill.sh 复制 scripts/ · SessionStart bash→node heartbeat.js · 双 Worker 部署验证 · 7 files · +1263/-6 · commits `fd78a22` `2db46cb`
 - **P11-B78**：heartbeat 脚本化 ✅ — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜
 - **P11-B77**：狗粮 R4 无人干预全链路 ✅ — 双 Worker 零人工干预 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮
 - **P11-B76**：Server 侧加固 ✅ — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6`

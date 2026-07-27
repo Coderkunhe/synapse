@@ -232,14 +232,10 @@ for doc in $CRITICAL_DOCS; do
     DOC_NAME=$(basename "$doc")
 
     if [ "$DOC_LINES" -gt 800 ]; then
-      # requirements-log 是特殊历史日志，阈值放宽到 10000
+      # requirements-log 是活跃日志，阈值 5000（P100-B97 G-036 拆分后从 10000 降级）
       if [ "$DOC_NAME" = "requirements-log.md" ]; then
-        if [ "$DOC_LINES" -gt 10000 ]; then
-          yellow "  ⚠️  $doc $DOC_LINES 行（历史日志阈值 10000）— 需归档旧条目到 docs/archive/"
-          DOC_BLOAT_WARNINGS=$((DOC_BLOAT_WARNINGS + 1))
-          WARNINGS=$((WARNINGS + 1))
-        elif [ "$DOC_LINES" -gt 5000 ]; then
-          yellow "  ⚠️  $doc $DOC_LINES 行（历史日志 ≥5000，阈值 10000）— 考虑将已完成 Phase 条目归档"
+        if [ "$DOC_LINES" -gt 5000 ]; then
+          yellow "  ⚠️  $doc $DOC_LINES 行（活跃日志阈值 5000）— 考虑将已完成 Phase 条目归档到 docs/archive/requirements-log-archive.md"
           DOC_BLOAT_WARNINGS=$((DOC_BLOAT_WARNINGS + 1))
           WARNINGS=$((WARNINGS + 1))
         fi
