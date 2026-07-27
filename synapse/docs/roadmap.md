@@ -141,6 +141,10 @@
 | **P11-B68** | **文档追补** — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 | ✅ |
 | **P11-B69** | **O 自主监工循环可执行化** — _protocol.md §4.1 双角色对称重构（通用规则 + §4.1.1 Builder + §4.1.2 Orchestrator）· role-orchestrator.md 补强（反模式+中断恢复+API verify=验收完成）· 模板→部署零漂移 3 文件 · 🟡 标准 · 纯协议层 | ✅ |
 | **P11-B70** | **1:1 协作基线代码+协议落地** — Verification 可判定性门禁（schema + service 双层）· evidence output_access 硬约束 · 能力声明格式 + Push/Pull 模型 · 门禁进化规则 · 🟡 标准 · 6 files (2 code + 3 template + 15 test mechanical) · 628 tests 零回归 | ✅ |
+| **P11-B71** | **狗粮 R2** — 双轮狗粮全链路走通 · 7 PFL（PFL-057~063）+ 架构诊断 · 🟢 微型 · 纯狗粮 | ✅ |
+| **P11-B72** | **Task 状态机补完** — assign/claim READY 前置校验 · Manual verify 禁止自验 · BACKLOG→IN_PROGRESS 移除 · 🟡 标准 · 3 code + 3 template · 628 tests 零回归 | ✅ |
+| **P11-B73** | **狗粮 R3 闭环** — B72 三门禁全绿验证 · PFL-064~068 + 跨轮次 RCA · 🟢 微型 · 纯狗粮 · commit `a5d5f30` | ✅ |
+| **P11-B74** | **非对称自调度** — O 连续引擎 / B 被动响应者 · 响应内 while 循环 + ScheduleWakeup 续命 · 5 态路由矩阵 · 🟡 标准 · 3 files 纯协议层 · Server 零改动 · commit `edd15e2` | ✅ |
 
 ---
 

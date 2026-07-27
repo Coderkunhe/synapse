@@ -5,7 +5,7 @@
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B68→B69 拉通完成（2026-07-26）— 零 drift · B68 文档追补 · B69 O 自主监工循环可执行化 · 模板+部署 5 文件全量对齐 · 计数器复位
+> 🔄 L5 P11-B71→B74 拉通完成（2026-07-27）— B71-B74 requirements-log+roadmap 补登记 · B74 非对称自调度 · PFL-069~072 自检发现 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
