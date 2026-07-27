@@ -3,12 +3,11 @@
     "SessionStart": [
       {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "set -a; source \"$CLAUDEDIR/.env\"; if command -v security &>/dev/null; then export SYNAPSE_API_KEY=$(security find-generic-password -a \"synapse-worker-${SYNAPSE_WORKER_ID}\" -s \"synapse\" -w 2>/dev/null || echo \"${SYNAPSE_API_KEY:-}\"); elif command -v secret-tool &>/dev/null; then export SYNAPSE_API_KEY=$(secret-tool lookup account \"synapse-worker-${SYNAPSE_WORKER_ID}\" service \"synapse\" 2>/dev/null || echo \"${SYNAPSE_API_KEY:-}\"); fi; set +a; bash \"$CLAUDEDIR/../../synapse/tools/synapse-heartbeat.sh\"; echo '>>> AUTO-START: load synapse skill, read _task-current.md, begin work.'"
-          }
-        ]
+        "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
+      },
+      {
+        "matcher": "",
+        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\""
       }
     ]
   }
