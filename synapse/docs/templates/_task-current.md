@@ -1,6 +1,6 @@
 # 当前任务
 
-> 🫀 **[REQUIRED] 启动后第一步：`bash tools/synapse-heartbeat.sh`** — 无脑幂等 heartbeat，不依赖 Agent 记忆。脚本自动从环境变量加载 Worker ID + API Key，调用 `POST /v1/workers/{id}/heartbeat`。不可跳过。
+> 🫀 **[REQUIRED] 启动后第一步：`node scripts/heartbeat.js`** — 无脑幂等 heartbeat，不依赖 Agent 记忆。脚本使用 Node.js（唯一跨平台运行时），自动从环境变量 + OS 密钥链加载 Worker ID + API Key，调用 `POST /v1/workers/{id}/heartbeat`。不可跳过。
 >
 > ⚠️ **一期手动填写模板**（D-P11-010 决策 — P11-B6 落地）。
 >
