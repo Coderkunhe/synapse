@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B68→B69 L5 拉通 — 📄 requirements-log B68+B69 全量 · 📄 roadmap B68+B69 条目 · 📄 CLAUDE.md header+L5 banner+最近批次刷新 · 📄 daily B68+B69+L5 三段追记 · 📄 tracks B67→B68→B69 指针推进 · 零 drift · 5 文件交叉引用一致性验证通过",
-  "lastL5Timestamp": "2026-07-26",
+  "lastL5Batch": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
+  "lastL5Timestamp": "2026-07-27",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B68→B69 L5 拉通 — 📄 requirements-log B68+B69 全量 · 📄 roadmap B68+B69 条目 · 📄 CLAUDE.md header+L5 banner+最近批次刷新 · 📄 daily B68+B69+L5 三段追记 · 📄 tracks B67→B68→B69 指针推进 · 零 drift · 5 文件交叉引用一致性验证通过",
+  "lastL5Evidence": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
