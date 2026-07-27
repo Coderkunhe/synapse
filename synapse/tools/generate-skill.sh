@@ -237,6 +237,14 @@ generate_claude() {
         echo "  ✅ conventions-backend.md"
     fi
 
+    # ── P100-B96: 复制 scripts/ 目录（Node.js Worker 工具）──
+    local SCRIPTS_SRC="$TEMPLATES_DIR/synapse-client/scripts"
+    if [[ -d "$SCRIPTS_SRC" ]]; then
+        rm -rf "$OUT_DIR/scripts"
+        cp -r "$SCRIPTS_SRC" "$OUT_DIR/scripts"
+        echo "  ✅ scripts/ (api-client + keychain + heartbeat)"
+    fi
+
     # 检查未填充变量
     local WARNINGS=0
     for f in "$OUT_DIR"/*.md; do
@@ -390,9 +398,12 @@ with open('$SETTINGS_FILE') as f:
     cfg = json.load(f)
 cfg.setdefault('hooks', {})
 hooks = cfg['hooks'].setdefault('SessionStart', [])
-# 检查是否已有 source .env 的 hook（兼容 source .env 和 source "$CLAUDEDIR/.env"）
+# 检查是否已有 source .env 的 hook（兼容 source .env 和 source \$CLAUDEDIR/.env）
 if not any('source ' in h.get('command','') and '.env' in h.get('command','') for h in hooks):
     hooks.append({'matcher': '', 'command': 'set -a; source \"\$CLAUDEDIR/.env\"; set +a'})
+# P100-B96: check for heartbeat.js hook (Node.js edition)
+if not any('heartbeat.js' in h.get('command','') for h in hooks):
+    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\"'})
 with open('$SETTINGS_FILE', 'w') as f:
     json.dump(cfg, f, indent=2)
     f.write('\n')
@@ -406,6 +417,10 @@ with open('$SETTINGS_FILE', 'w') as f:
       {
         "matcher": "",
         "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
+      },
+      {
+        "matcher": "",
+        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\""
       }
     ]
   }
@@ -413,7 +428,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 SETEOF
     fi
 
-    echo "  ✅ .claude/settings.json（SessionStart hook → auto source .env）"
+    echo "  ✅ .claude/settings.json（SessionStart hooks → source .env + heartbeat.js）"
 }
 
 # ─── Client Skill: Claude Code ───
@@ -429,6 +444,14 @@ generate_client_claude() {
 
     write_client_env "$OUT_DIR"
     echo "  ✅ _env.md（3 个必需环境变量）"
+
+    # ── P100-B96: 复制 scripts/ 目录（Node.js Worker 工具）──
+    local SCRIPTS_SRC="$TEMPLATES_DIR/synapse-client/scripts"
+    if [[ -d "$SCRIPTS_SRC" ]]; then
+        rm -rf "$OUT_DIR/scripts"
+        cp -r "$SCRIPTS_SRC" "$OUT_DIR/scripts"
+        echo "  ✅ scripts/ (api-client + keychain + heartbeat)"
+    fi
 
     write_settings_json "$OUTPUT"
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
