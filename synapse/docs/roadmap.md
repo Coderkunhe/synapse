@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-27（P11-B77 ✅ 双 Worker 无人干预全链路验证 · B76 ✅ Server 侧加固 · B75 ✅ 协议加固）
+> 最后更新：2026-07-27（P11-B78 ✅ heartbeat 脚本化 · PFL-073 闭环 · B77 ✅ 狗粮 R4）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -148,6 +148,7 @@
 | **P11-B75** | **协议加固** — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · +71/-16 · commit `528266e` | ✅ |
 | **P11-B76** | **Server 侧加固** — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6` | ✅ |
 | **P11-B77** | **狗粮 R4 无人干预全链路** — 双 Worker 零人工干预完成全链路 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮 | ✅ |
+| **P11-B78** | **Worker heartbeat 脚本化** — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜 | ✅ |
 
 ---
 

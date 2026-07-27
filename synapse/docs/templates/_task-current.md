@@ -1,5 +1,7 @@
 # 当前任务
 
+> 🫀 **[REQUIRED] 启动后第一步：`bash tools/synapse-heartbeat.sh`** — 无脑幂等 heartbeat，不依赖 Agent 记忆。脚本自动从环境变量加载 Worker ID + API Key，调用 `POST /v1/workers/{id}/heartbeat`。不可跳过。
+>
 > ⚠️ **一期手动填写模板**（D-P11-010 决策 — P11-B6 落地）。
 >
 > Task 级变量（TASK_ID / TASK_TITLE / TASK_PRIORITY / TASK_EFFORT / TASK_VERIFICATIONS / TASK_CONTEXT）无法在 Project 层面自动解析——它们属于具体的 Task assignment。

@@ -1,5 +1,7 @@
 # 当前任务
 
+> 🫀 **[REQUIRED] 启动后第一步：`bash tools/synapse-heartbeat.sh`** — 无脑幂等 heartbeat。脚本自动加载 Worker ID + API Key，不可跳过。
+
 ## ⏳ 空闲 — 等待下个狗粮任务
 
 | 字段 | 值 |

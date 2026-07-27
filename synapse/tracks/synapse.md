@@ -1,8 +1,8 @@
 ---
 project: synapse
-phase: P11-B70 ✅ 1:1 协作基线代码+协议落地 · Verification 可判定性门禁 · evidence output_access 硬约束
-last_batch: P11-B70
-next_batch: P11-B71
+phase: P11-B78 ✅ heartbeat 脚本化 · PFL-073 闭环 · P100 治理波 🔜
+last_batch: P11-B78
+next_batch: P100 (暂挂 P11，治理波)
 description: Synapse 主项目 — B69 _protocol.md §4.1 双角色对称重构 · role-orchestrator.md 反模式+中断恢复 · 模板→部署零漂移 · B70 🔜
 ---
 
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B69 _protocol.md §4.1 双角色对称重构 
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B93 | **P100-B94** 🔜 | B93 ✅ 文档新鲜度修复 · make check 归零 · 7 files · Scout 盲区 14 隐藏错误全量清零 |
-| **P11** | P11-B69 | **P11-B70** 🔜 | B1-B69 ✅ · B69 O 自主监工循环可执行化 · 模板+部署 5 文件 · 零漂移 |
+| **P11** | P11-B78 | **P100** 🔜 (治理波) | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · 暂挂 P11，P100 后继续 |
 
 ## P11 路线图：多 Agent 接入战
 
