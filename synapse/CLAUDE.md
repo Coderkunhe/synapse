@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-26（P11-B70 ✅ 1:1 协作基线代码+协议落地 · Verification 可判定性门禁 · evidence output_access 硬约束）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P11-B76 ✅ Server 侧加固 · stale 检测 + verify 幂等 guard · 633 tests 零回归）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P11-B71→B74 拉通完成（2026-07-27）— B71-B74 requirements-log+roadmap 补登记 · B74 非对称自调度 · PFL-069~072 自检发现 · 计数器复位
+> 🔄 L5 P11-B75→B76 拉通完成（2026-07-27）— B75 协议加固 + B76 Server 侧加固 · requirements-log+roadmap+daily 补登记 · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -663,6 +663,12 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B76**：Server 侧加固 ✅ — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6`
+- **P11-B75**：协议加固 ✅ — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · commit `528266e`
+- **P11-B74**：非对称自调度 ✅ — O 连续引擎 / B 被动响应者 · 响应内 while 循环 + ScheduleWakeup 续命 · 🟡 标准 · 3 files 纯协议 · commit `edd15e2`
+- **P11-B73**：狗粮 R3 闭环 ✅ — B72 三门禁全绿验证 · PFL-064~068 · commit `a5d5f30`
+- **P11-B72**：Task 状态机补完 ✅ — Server 强制门禁 · assign/claim READY 前置校验 · 🟡 标准 · commit `b01ff3f`
+- **P11-B71**：狗粮 R2 ✅ — 7 PFL 登记 + 架构诊断 · commit `771ff8e`
 - **P11-B70**：1:1 协作基线代码+协议落地 ✅ — Verification 可判定性门禁 · evidence output_access 硬约束 · 能力声明格式 + Push/Pull 模型 · 🟡 标准 · 6 files (2 code + 3 template + 1 doc) + 15 test mechanical · 628 tests 零回归
 - **P11-B69**：O 自主监工循环可执行化 ✅ — _protocol.md §4.1 双角色对称重构（§4.1.2 O 循环新增）· role-orchestrator 反模式+中断恢复 · 模板→部署零漂移 · 🟡 标准 · 纯协议层 · 5 files
 - **P11-B68**：文档追补 ✅ — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 · 5 files

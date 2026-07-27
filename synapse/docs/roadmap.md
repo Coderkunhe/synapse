@@ -145,6 +145,8 @@
 | **P11-B72** | **Task 状态机补完** — assign/claim READY 前置校验 · Manual verify 禁止自验 · BACKLOG→IN_PROGRESS 移除 · 🟡 标准 · 3 code + 3 template · 628 tests 零回归 | ✅ |
 | **P11-B73** | **狗粮 R3 闭环** — B72 三门禁全绿验证 · PFL-064~068 + 跨轮次 RCA · 🟢 微型 · 纯狗粮 · commit `a5d5f30` | ✅ |
 | **P11-B74** | **非对称自调度** — O 连续引擎 / B 被动响应者 · 响应内 while 循环 + ScheduleWakeup 续命 · 5 态路由矩阵 · 🟡 标准 · 3 files 纯协议层 · Server 零改动 · commit `edd15e2` | ✅ |
+| **P11-B75** | **协议加固** — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · +71/-16 · commit `528266e` | ✅ |
+| **P11-B76** | **Server 侧加固** — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6` | ✅ |
 
 ---
 
