@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B95 ✅ Node.js 脚本基础设施 · PFL-075 登记 · B96 🔜 scripts 集成
-last_batch: P100-B95
-next_batch: P100-B96
-description: Synapse 主项目 — P100 治理波 · B95 Node.js 脚本基础设施 (api-client+keychain+heartbeat) · B96 scripts 集成 🔜
+phase: P100-B96 ✅ Node.js scripts 集成 · B97 🔜
+last_batch: P100-B96
+next_batch: P100-B97
+description: Synapse 主项目 — P100 治理波 · B96 Node.js scripts 集成 (generate-skill + heartbeat hook 迁移) · B97 🔜
 ---
 
 # Synapse 轨道
@@ -14,7 +14,7 @@ description: Synapse 主项目 — P100 治理波 · B95 Node.js 脚本基础设
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B95 | **P100-B96** 🔜 | B95 ✅ Node.js 脚本基础设施 · api-client + keychain + heartbeat · B96 scripts 集成 |
+| **P100** | P100-B96 | **P100-B97** 🔜 | B96 ✅ Node.js scripts 集成 · generate-skill 复制 scripts/ + SessionStart bash→node · B97 🔜 |
 | **P11** | P11-B78 | **P100** 🔜 (治理波) | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · 暂挂 P11，P100 后继续 |
 
 ## P11 路线图：多 Agent 接入战

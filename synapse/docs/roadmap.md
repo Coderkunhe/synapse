@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-27（P100-B95 ✅ Node.js 脚本基础设施 · PFL-075 登记 · L5 P100-B95→PFL-075 拉通）
+> 最后更新：2026-07-27（P100-B96 ✅ Node.js scripts 集成 · L5 P100-B95→B96 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -622,5 +622,6 @@
 - **P100-B93**：文档新鲜度修复 · make check 归零 ✅ — 3 文档日期同步 (2026-07-23→2026-07-26) · check-line-count.sh 阈值 800→1000 · violations-review.sh grep -c 双重输出 bug 修复 · pytest.ini P9 E2E 跳过 · 违纪回顾 47→0 复位 · Scout 盲区 14 隐藏错误全量清零 · 7 files · commit `51e582f`
 - **P100-B94**：B93 文档闭环 ✅ — roadmap + requirements-log + daily + track 同步 · 4 files · 🟢 微型
 - **P100-B95**：Node.js 脚本基础设施 ✅ — api-client.js + keychain.js + heartbeat.js · 零外部依赖 · JS+JSDoc · Node.js ≥18 · 6 files · +634/-4 · commit `7b65f65`
+- **P100-B96**：Node.js scripts 集成 ✅ — generate-skill.sh 复制 scripts/ · SessionStart bash→node heartbeat.js · 双 Worker 部署验证 · 7 files · +1263/-6 · commits `fd78a22` `2db46cb`
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）

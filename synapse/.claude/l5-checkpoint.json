@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B95→PFL-075 拉通完成 — 📄 CLAUDE.md L5 banner 刷新 · 📄 roadmap B94+B95 补登记 · 📄 requirements-log B94+B95+PFL-075 · 📄 daily 补登记 · 📄 tracks 指针同步 · 零 drift · 计数器复位",
+  "lastL5Batch": "P100-B95→B96 拉通完成 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B96 补登记 · 📄 requirements-log B96 · 📄 daily B96 · 📄 tracks 指针 B95→B96 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-27",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B95→PFL-075 拉通完成 — 📄 CLAUDE.md L5 banner 刷新 · 📄 roadmap B94+B95 补登记 · 📄 requirements-log B94+B95+PFL-075 · 📄 daily 补登记 · 📄 tracks 指针同步 · 零 drift · 计数器复位",
+  "lastL5Evidence": "P100-B95→B96 拉通完成 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B96 补登记 · 📄 requirements-log B96 · 📄 daily B96 · 📄 tracks 指针 B95→B96 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
