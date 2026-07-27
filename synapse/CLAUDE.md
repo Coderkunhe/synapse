@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P11-B76 ✅ Server 侧加固 · stale 检测 + verify 幂等 guard · 633 tests 零回归）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P11-B77 ✅ 狗粮 R4 无人干预全链路 · PFL-073/074 登记 · SessionStart auto-start）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -663,6 +663,7 @@ synapse/
 - P100：治理段 B1-B94 ✅ · 🎉 GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · Hook Gap 治理弧完整闭环
 
 **最近批次**：
+- **P11-B77**：狗粮 R4 无人干预全链路 ✅ — 双 Worker 零人工干预 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮
 - **P11-B76**：Server 侧加固 ✅ — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6`
 - **P11-B75**：协议加固 ✅ — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · commit `528266e`
 - **P11-B74**：非对称自调度 ✅ — O 连续引擎 / B 被动响应者 · 响应内 while 循环 + ScheduleWakeup 续命 · 🟡 标准 · 3 files 纯协议 · commit `edd15e2`
