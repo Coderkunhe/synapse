@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B77→B78 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily/2026-07-27.md+tracks/synapse.md 全量补登记 · 📚 pitfalls.md PFL-073 B77发现→B78修复 三方叙事一致 · 📚 CLAUDE.md header同步 · 零 drift · 计数器复位",
+  "lastL5Batch": "P100-B95→PFL-075 拉通完成 — 📄 CLAUDE.md L5 banner 刷新 · 📄 roadmap B94+B95 补登记 · 📄 requirements-log B94+B95+PFL-075 · 📄 daily 补登记 · 📄 tracks 指针同步 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-27",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B77→B78 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily/2026-07-27.md+tracks/synapse.md 全量补登记 · 📚 pitfalls.md PFL-073 B77发现→B78修复 三方叙事一致 · 📚 CLAUDE.md header同步 · 零 drift · 计数器复位",
+  "lastL5Evidence": "P100-B95→PFL-075 拉通完成 — 📄 CLAUDE.md L5 banner 刷新 · 📄 roadmap B94+B95 补登记 · 📄 requirements-log B94+B95+PFL-075 · 📄 daily 补登记 · 📄 tracks 指针同步 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
