@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P100-B97 ✅ G-036 requirements-log 拆分归档 · B98 🔜）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-27（P100-B98 ✅ 脚本硬约束 · B99 🔜）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B96→B97 拉通完成（2026-07-27）— B96 scripts 集成 + B97 G-036 拆分归档 · 零 drift · 计数器复位
+> 🔄 L5 P100-B97→B98 拉通完成（2026-07-27）— B97 G-036 拆分归档 + B98 脚本硬约束（session-init.js + SKILL.md -70% + heartbeat daemon）· 零 drift · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 

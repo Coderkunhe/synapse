@@ -1,0 +1,3 @@
+# Dogfood test clients — temporary, not part of the Synapse platform codebase
+synapse-builder/
+synapse-orchestrator/
