@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
+  "lastL5Batch": "B71→B73 L5 拉通 — B72 状态机补完✅ B73 狗粮R3三门禁全绿✅ · PFL-064~068+跨轮次RCA已登记 · pitfalls.md 全量同步 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-27",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
+  "lastL5Evidence": "B71→B73 L5 拉通 — B72 状态机补完✅ B73 狗粮R3三门禁全绿✅ · PFL-064~068+跨轮次RCA已登记 · pitfalls.md 全量同步 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
