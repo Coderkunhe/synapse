@@ -354,6 +354,8 @@ Agent episodic 模型（prompt→做事→停）vs 协议假设的"持续运行"
 ScheduleWakeup 自唤醒 → 新 response → 循环继续
 ```
 
+> ⚠️ **诚实标注（PFL-069）**：响应内 while 循环是 **LLM 行为引导（prompting pattern），不是运行时强制机制**。Claude Code 没有代码级 while 循环——这是一条 prompt 指令，告诉 LLM "一直做，做到没活为止"，期望它在一个 response 中连续调用多次工具。实际行为：~70-80% 概率模型做 3-5 轮 re-fetch→act→re-fetch；~20-30% 概率模型做 1-2 轮后输出文字提前退出。**Agent 可能在任何时候提前退出循环——ScheduleWakeup 不只是"空闲出口"，也是"循环意外退出后的恢复路径"。** 醒来后从 handshake + state sync 重建上下文，继续循环。
+
 **非对称分工**：
 
 | 角色 | 模式 | 行为 |
@@ -375,6 +377,26 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 - **B 侧**：无 ready Task + 无 in_progress Task → ScheduleWakeup 30s
 
 **跨 Worker 等待 = 主同步机制**：B submit → poll O 验收结果 → passed → 继续。O assign → poll B 进度 → submitted → 验收。两个 Worker 通过 API 状态变化同步——不通过人类 Message Bus。人类不在这个闭环的通信路径上。
+
+**WS Push 优先，Polling 为 Fallback（PFL-071）**：
+
+> ⚠️ 系统已有 WebSocket push（B22/B23/B24 三板斧），Task 状态变更（submitted/verified/assigned）可通过 WS 在 <1s 内推送。协议当前默认 HTTP polling 是考虑到短生命周期 CLI 会话的可靠性——WS 连接可能未建立或已断开。但 **WS 连接可用时应优先通过 WS push 感知状态变化**，polling 作为 fallback 兜底：
+> - WS 已连接 → 监听 `task.*` 事件（submitted/verified/assigned），收到 push 立即响应，不等下次 poll
+> - WS 未连接 → HTTP polling 按路由矩阵定义的间隔执行
+> - 两个通道不互斥——WS push 先到就先处理，poll 到同一变更时 version_no 未增长 → 跳过
+
+**异常退出协议（PFL-072）**：
+
+> ⚠️ 响应内 while 循环在异常场景下没有代码级 try/except 保护。以下 4 个失败模式必须在 prompt 层面告知 Agent 如何处理：
+
+| 失败场景 | 处理协议 |
+|---------|---------|
+| **API 5xx / 网络错误** | 退避重试：等 2s → 重试 → 仍失败等 5s → 重试 → 仍失败等 10s → 重试。3 次全部失败 → 评论区记录错误 → ScheduleWakeup 60s（不静默退出） |
+| **同一 Task 反复出现在 re-fetch 中** | 检查 `version_no` 是否增长。未增长 → 该 Task 状态未变化，跳过本轮（不重复操作）。已增长 → 正常处理。这是 PFL-050 断点 1（重复 submit 不检查）的防呆 |
+| **Stale in_progress Task** | 检查 `last_updated_at`。>2h 无任何活动 → 评论区 @协作 Worker 询问状态。>24h → 评论区 @Human 报告异常，等待人工决策（cancel? reassign?） |
+| **ScheduleWakeup 醒来后 context 过期** | Wakeup prompt 必须触发完整启动流程：handshake → state sync → 重建上下文 → 进入循环。不假设"还记得上次做到哪"——API 是共享状态源，拉取全景即可重建 |
+
+> 这些不是"建议"——是循环的异常处理块。正常路径和异常路径加在一起才是完整的 while 循环。
 
 ### 4.2 依赖等待（depends_on · P11-B60）
 

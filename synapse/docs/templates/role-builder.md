@@ -79,6 +79,8 @@ POST /tasks/{id}/submit（附 evidence）
 
 > ⚠️ **这是响应内 while 循环（P11-B74）。** 不是"做完一个 Task 就停"——在一个 response 内持续循环：claim → execute → submit → poll 验收 → 下一个，做到无活为止。只在无 ready Task 时 ScheduleWakeup 30s 自唤醒退出。你是被动响应者——O assign 是主通道，claim 是 O 沉默 >5min 的 fallback。详见 `_protocol.md` §4.1.3。
 >
+> ⚠️ **诚实标注（PFL-069）**：响应内循环是 LLM 行为引导，不是代码级 while 循环。你可能在任何时候提前退出——ScheduleWakeup 是循环意外退出后的恢复路径，不只是空闲出口。醒来后 handshake + state sync → 重建上下文 → 继续循环。
+>
 > ⚠️ **你的工作不是"做完一个 Task 就停下来汇报"。** 完成当前 Task 后，主动检查是否有下一个 ready Task 并继续工作。详细协议见 `_protocol.md` §4.1。
 
 ```
@@ -114,6 +116,21 @@ POST /tasks/{id}/submit（附 evidence）
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
 | **空闲出口（ScheduleWakeup · P11-B74）** | 无 ready Task + 无 in_progress → ScheduleWakeup 30s 自唤醒。202 超时 ≥15min → 评论区 @Orchestrator + ScheduleWakeup 60s。被拒 ≥2 次 → 评论区 @Orchestrator 讨论，等待人工。**⚠️ 不再无条件"停止"——无事可做时设闹钟回头，不是等人叫** |
 | **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
+
+> ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
+
+**异常处理（PFL-072）**：
+
+> 循环中遇到以下异常场景时，按协议处理而非静默退出：
+
+| 异常场景 | B 处理 |
+|---------|--------|
+| API 5xx / 网络错误 | 退避重试 3 次（2s→5s→10s）。全部失败 → ScheduleWakeup 60s，评论区记录错误 |
+| 同一 Task 反复出现在 re-fetch | 检查 `version_no`。claim 前确认 `version_no` 与上次操作时不同。未增长 → 跳过 |
+| in_progress Task >2h 无活动 | 评论区 @Orchestrator 报告异常，等待 O 决策。不自行 cancel |
+| Wakeup 后 context 过期 | 不假设"还记得上次做到哪"——handshake + state sync 重建上下文 |
+
+> 详见 `_protocol.md` §4.1.3「异常退出协议」。
 
 ---
 

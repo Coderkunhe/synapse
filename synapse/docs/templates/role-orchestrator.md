@@ -79,6 +79,8 @@ Task 完成 / 打回返工
 **自主监工循环（外层 — 跨 Task）**：
 
 > ⚠️ **这是响应内 while 循环（P11-B74）。** 你是连续引擎——不是"启动时跑一次就停"。在一个 response 内持续循环：re-fetch → decide → act → repeat，做到没活为止。只在全队列空时 ScheduleWakeup 60s 自唤醒退出。Builder 是你的被动响应者——你 assign，B 执行；你 verify，B 等结果。详见 `_protocol.md` §4.1.3。
+>
+> ⚠️ **诚实标注（PFL-069）**：响应内循环是 LLM 行为引导，不是代码级 while 循环。你可能在任何时候提前退出——ScheduleWakeup 是循环意外退出后的恢复路径，不只是空闲出口。醒来后 handshake + state sync → 重建上下文 → 继续循环。
 
 ```
 会话启动 → Handshake + State Sync
@@ -185,6 +187,21 @@ Task 完成 / 打回返工
 | 等待审批结果 | 10s | 🟡 pending_auth |
 | 全队列空 | ScheduleWakeup 60s | ⚫ 空闲出口 |
 | 刚提交验收判定后 | 5s | 🔴 submitted → 已验收，快速确认
+
+> ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，Task 状态变更（B submit / B claim）通过 WS push 即时感知，不等 polling 间隔。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理，poll 到同一变更时 `version_no` 未增长 → 跳过。详见 `_protocol.md` §4.1.3「WS Push 优先」。
+
+**异常处理（PFL-072）**：
+
+> 循环中遇到以下异常场景时，按协议处理而非静默退出：
+
+| 异常场景 | O 处理 |
+|---------|--------|
+| API 5xx / 网络错误 | 退避重试 3 次（2s→5s→10s）。全部失败 → ScheduleWakeup 60s，评论区记录错误 |
+| 同一 Task 反复出现在 re-fetch | 检查 `version_no` 是否增长。未增长 → 跳过本轮。已增长 → 正常处理 |
+| in_progress Task >2h 无更新 | 评论区 @Builder 询问状态。>24h → @Human 报告异常 |
+| Wakeup 后 context 过期 | 不假设"还记得上次做到哪"——handshake + state sync 重建上下文 |
+
+> 详见 `_protocol.md` §4.1.3「异常退出协议」。
 
 ---
 
