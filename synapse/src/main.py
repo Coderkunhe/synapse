@@ -13,6 +13,7 @@ from src.config import settings
 from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
 from src.services.authorization_service import expire_stale_requests
+from src.services.stale_task_detector import detect_stale_tasks
 from src.services.ws_manager import ws_manager
 
 
@@ -53,16 +54,47 @@ async def _auth_expiry_reaper() -> None:
             pass
 
 
+# ── Background task: detect stale in_progress tasks (P11-B76) ──────────
+
+
+async def _stale_task_reaper() -> None:
+    """Periodically scan for stale in_progress tasks.
+
+    Calls detect_stale_tasks() on its own DB session.
+    Runs every task_stale_scan_interval_seconds (default 120s).
+    """
+    interval = settings.task_stale_scan_interval_seconds
+    threshold = settings.task_stale_threshold_minutes
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            async with async_session_factory() as db:
+                result = await detect_stale_tasks(db, threshold_minutes=threshold)
+                await db.commit()
+                if result["stale_count"] > 0:
+                    import logging
+                    logger = logging.getLogger("synapse")
+                    logger.info(
+                        "Detected %d stale task(s): %s",
+                        result["stale_count"],
+                        result["stale_task_ids"],
+                    )
+        except Exception:
+            pass
+
+
 _reaper_task: asyncio.Task | None = None
 _expiry_reaper_task: asyncio.Task | None = None
+_stale_reaper_task: asyncio.Task | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
-    global _reaper_task, _expiry_reaper_task
+    global _reaper_task, _expiry_reaper_task, _stale_reaper_task
     _reaper_task = asyncio.create_task(_ws_reaper())
     _expiry_reaper_task = asyncio.create_task(_auth_expiry_reaper())
+    _stale_reaper_task = asyncio.create_task(_stale_task_reaper())
     yield
     # P11-B23: 优雅关闭 — 通知所有 WS 客户端后断开
     await ws_manager.graceful_shutdown()
@@ -76,6 +108,12 @@ async def lifespan(app: FastAPI):
         _expiry_reaper_task.cancel()
         try:
             await _expiry_reaper_task
+        except asyncio.CancelledError:
+            pass
+    if _stale_reaper_task:
+        _stale_reaper_task.cancel()
+        try:
+            await _stale_reaper_task
         except asyncio.CancelledError:
             pass
 

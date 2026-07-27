@@ -19,13 +19,90 @@ from src.exceptions import (
     NotFoundError,
 )
 from src.models.authorization_request import AuthorizationRequest
+from src.models.event import Event
 from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
 from src.services.ws_manager import ws_manager
 from src.constants import TaskStatus, VerificationStatus, VerificationType
+from src.config import settings
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_dumps, safe_loads
+
+
+# ── 幂等 guard (P11-B76) ─────────────────────────────────────
+
+
+async def _check_verify_idempotent(
+    db: AsyncSession,
+    *,
+    verification_id: str,
+    actor_id: str,
+    task_id: str,
+) -> None:
+    """检查同一 actor 对同一 verification 是否在幂等窗口内已执行过 verify。
+
+    查询 Event 表（append-only），跨 resubmit 周期有效。
+    若窗口内有 ``verification.executed`` 事件，且此后 Task 未被 REJECTED
+    （即不是合法 rework 周期），则返回 409 DUPLICATE_VERIFICATION。
+
+    Task 被 REJECTED → redo → resubmit 是合法的新周期，不拦截。
+    """
+    from datetime import datetime, timedelta, timezone
+
+    window_start = datetime.now(timezone.utc) - timedelta(
+        seconds=settings.verify_idempotent_window_seconds
+    )
+    result = await db.execute(
+        select(Event).where(
+            Event.event_type == "verification.executed",
+            Event.actor_id == actor_id,
+            Event.target_type == "verification",
+            Event.target_id == verification_id,
+            Event.created_at >= window_start,
+        ).order_by(Event.created_at.desc()).limit(1)
+    )
+    prev = result.scalars().first()
+    if prev is None:
+        return  # 窗口内无历史 verify → OK
+
+    # 若上次 verify 是 review_flag（待人工复核）→ 放行
+    # review_flag 的 verification 保持 PENDING，不应被幂等 guard 拦截
+    prev_payload = safe_loads(prev.payload) if prev.payload else {}
+    if prev_payload.get("review_flag"):
+        return  # 待人工复核 → OK
+
+    # 若 Task 在本次 verify 之后被 REJECTED → 合法 rework 周期 → 放行
+    # 时序约束：仅当 rejection 发生在 prev verification.executed 之后（含同时），
+    # 才是"验证失败→返工→重验"的合法周期。历史的 rejection 不应放行。
+    # 使用 >= 是因为 execute_verification 在同一事务中先记录
+    # verification.executed 再记录 task.rejected，两者 func.now() 可能相同。
+    all_rejections = await db.execute(
+        select(Event).where(
+            Event.event_type == "task.rejected",
+            Event.target_type == "task",
+            Event.target_id == task_id,
+        )
+    )
+    # Python-side temporal comparison: SQLite 的 DateTime 存储为字符串，
+    # SQL-side >= 比较在某些 SQLAlchemy 版本中因类型转换不一致而失效。
+    # Python datetime 比较更可靠。
+    if any(r.created_at >= prev.created_at for r in all_rejections.scalars().all()):
+        return  # 合法 rework → OK
+
+    raise ConflictError(
+        "DUPLICATE_VERIFICATION",
+        f"Verification {verification_id} was already executed by {actor_id} "
+        f"at {prev.created_at.isoformat()}. "
+        f"Idempotent window: {settings.verify_idempotent_window_seconds}s. "
+        f"Wait before re-verifying.",
+        {
+            "verificationId": verification_id,
+            "verifierId": actor_id,
+            "previousExecutionAt": prev.created_at.isoformat(),
+            "idempotentWindowSeconds": settings.verify_idempotent_window_seconds,
+        },
+    )
 
 
 # ── 验证操作 ───────────────────────────────────────
@@ -112,6 +189,11 @@ async def execute_verification(
                 f"Ask an orchestrator or admin to execute this verification.",
                 {"taskId": task.id, "ownerId": task.owner_id, "verifierId": actor_id},
             )
+
+    # P11-B76: 幂等 guard — 同一 verifier 对同一 verification 在窗口内不可重复执行
+    await _check_verify_idempotent(
+        db, verification_id=verification_id, actor_id=actor_id, task_id=task.id,
+    )
 
     # 更新验证记录
     now = datetime.now(timezone.utc)
@@ -339,6 +421,20 @@ async def execute_batch_verification(
                     f"The person who executed the work (owner: {task.owner_id}) "
                     f"cannot verify their own task."
                 ),
+            })
+            continue
+
+        # P11-B76: 幂等 guard — 同一 verifier 对同一 verification 在窗口内不可重复执行
+        try:
+            await _check_verify_idempotent(
+                db, verification_id=verification_id, actor_id=actor_id, task_id=task_id,
+            )
+        except ConflictError as e:
+            item_results.append({
+                "verification_id": verification_id,
+                "task_id": task_id,
+                "status": "error",
+                "error": str(e.message),
             })
             continue
 

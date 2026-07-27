@@ -525,6 +525,251 @@ class TestVerificationRework:
         assert task["redo_count"] == 1  # redo_count 从第一次拒绝保留
 
 
+class TestVerifyIdempotentGuard:
+    """P11-B76: 幂等 guard 单元测试 — DUPLICATE_VERIFICATION 时序约束。"""
+
+    @pytest.mark.asyncio
+    async def test_duplicate_verify_blocked_without_rework(self):
+        """单元测试：无 task.rejected 事件 → DUPLICATE_VERIFICATION 被抛出。
+
+        模拟场景：记录 verification.executed 事件（窗口内），
+        同一 actor 再次 verify → 应抛出 DUPLICATE_VERIFICATION。
+        """
+        from datetime import datetime, timedelta, timezone
+        from src.services.verification_service import _check_verify_idempotent
+        from src.services.event_store import event_store
+        from src.models.event import Event
+        from src.db import async_session_factory
+        from src.exceptions import ConflictError
+
+        async with async_session_factory() as db:
+            ver_id = "ver_test_idem_001"
+            task_id = "tsk_test_idem_001"
+            actor_id = "ag_test_idem_001"
+            now = datetime.now(timezone.utc)
+
+            # Record verification.executed within idempotent window (10s ago)
+            ver_event = await event_store.record(
+                db,
+                event_type="verification.executed",
+                team_id="test",
+                actor_type="human",
+                actor_id=actor_id,
+                target_type="verification",
+                target_id=ver_id,
+                payload={"task_id": task_id, "verification_status": "passed"},
+            )
+            ver_event.created_at = now - timedelta(seconds=10)
+            await db.flush()
+
+            # No task.rejected → should raise DUPLICATE_VERIFICATION
+            with pytest.raises(ConflictError) as exc_info:
+                await _check_verify_idempotent(
+                    db, verification_id=ver_id, actor_id=actor_id, task_id=task_id,
+                )
+            assert exc_info.value.code == "DUPLICATE_VERIFICATION"
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_rework_allows_re_verify(self):
+        """单元测试：有 task.rejected >= prev.created_at → 合法 rework → 放行。
+
+        时序：verification(T-30) → rejection(T-15) → 重验
+        rejection 发生在 verification 之后，是合法返工周期。
+        """
+        from datetime import datetime, timedelta, timezone
+        from src.services.verification_service import _check_verify_idempotent
+        from src.services.event_store import event_store
+        from src.models.event import Event
+        from src.db import async_session_factory
+        from src.exceptions import ConflictError
+
+        async with async_session_factory() as db:
+            ver_id = "ver_test_idem_002"
+            task_id = "tsk_test_idem_002"
+            actor_id = "ag_test_idem_002"
+            now = datetime.now(timezone.utc)
+
+            # Step 1: Record verification.executed (30s ago, within window)
+            ver_event = await event_store.record(
+                db,
+                event_type="verification.executed",
+                team_id="test",
+                actor_type="human",
+                actor_id=actor_id,
+                target_type="verification",
+                target_id=ver_id,
+                payload={"task_id": task_id, "verification_status": "failed"},
+            )
+            ver_event.created_at = now - timedelta(seconds=30)
+            await db.flush()
+
+            # Step 2: Record task.rejected (15s ago, AFTER verification)
+            rej_event = await event_store.record(
+                db,
+                event_type="task.rejected",
+                team_id="test",
+                actor_type="human",
+                actor_id=actor_id,
+                target_type="task",
+                target_id=task_id,
+                payload={"reason": "rework needed"},
+            )
+            rej_event.created_at = now - timedelta(seconds=15)
+            await db.flush()
+
+            # Step 3: rejection(15s) >= verification(30s) → re-verify allowed
+            try:
+                await _check_verify_idempotent(
+                    db, verification_id=ver_id, actor_id=actor_id, task_id=task_id,
+                )
+            except ConflictError:
+                pytest.fail("Should allow re-verify after task.rejected")
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_historical_rejection_does_not_bypass_guard(self):
+        """单元测试：历史 rejection（在 verification.executed 之前）不放行。
+
+        时序：rejection(T-30) → verification(T-15)
+        rejection 发生在 verification 之前，不是合法返工周期 → DUPLICATE_VERIFICATION。
+        """
+        from datetime import datetime, timedelta, timezone
+        from src.services.verification_service import _check_verify_idempotent
+        from src.services.event_store import event_store
+        from src.models.event import Event
+        from src.db import async_session_factory
+        from src.exceptions import ConflictError
+
+        async with async_session_factory() as db:
+            ver_id = "ver_test_idem_003"
+            task_id = "tsk_test_idem_003"
+            actor_id = "ag_test_idem_003"
+            now = datetime.now(timezone.utc)
+
+            # Step 1: Record historical rejection (30s ago)
+            rej_event = await event_store.record(
+                db,
+                event_type="task.rejected",
+                team_id="test",
+                actor_type="human",
+                actor_id=actor_id,
+                target_type="task",
+                target_id=task_id,
+                payload={"reason": "old rejection"},
+            )
+            rej_event.created_at = now - timedelta(seconds=30)
+            await db.flush()
+
+            # Step 2: Record verification.executed (15s ago, AFTER rejection)
+            ver_event = await event_store.record(
+                db,
+                event_type="verification.executed",
+                team_id="test",
+                actor_type="human",
+                actor_id=actor_id,
+                target_type="verification",
+                target_id=ver_id,
+                payload={"task_id": task_id, "verification_status": "passed"},
+            )
+            ver_event.created_at = now - timedelta(seconds=15)
+            await db.flush()
+
+            # Step 3: rejection(30s) is BEFORE verification(15s)
+            # → should still raise DUPLICATE_VERIFICATION
+            with pytest.raises(ConflictError) as exc_info:
+                await _check_verify_idempotent(
+                    db, verification_id=ver_id, actor_id=actor_id, task_id=task_id,
+                )
+            assert exc_info.value.code == "DUPLICATE_VERIFICATION"
+
+            await db.rollback()
+
+
+class TestStaleTaskDetector:
+    """P11-B76: stale task 检测器单元测试。"""
+
+    @pytest.mark.asyncio
+    async def test_detect_stale_in_progress_tasks(self):
+        """扫描过期 in_progress 任务并记录 stale 事件。"""
+        from datetime import datetime, timedelta, timezone
+        from src.services.stale_task_detector import detect_stale_tasks
+        from src.services.event_store import event_store
+        from src.models.task import Task
+        from src.db import async_session_factory
+        from src.constants import TaskStatus
+
+        async with async_session_factory() as db:
+            # Create a stale task (updated_at far in the past)
+            stale_task = Task(
+                id="tsk_stale_001",
+                project_id="prj_test_001",
+                title="Stale Task",
+                description="This task has been in_progress too long",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_stale_001",
+            )
+            stale_task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            db.add(stale_task)
+
+            # Create a fresh task (updated_at recently)
+            fresh_task = Task(
+                id="tsk_fresh_001",
+                project_id="prj_test_001",
+                title="Fresh Task",
+                description="This task is actively being worked on",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_fresh_001",
+            )
+            fresh_task.claimed_at = datetime.now(timezone.utc)
+            fresh_task.updated_at = datetime.now(timezone.utc)
+            db.add(fresh_task)
+            await db.flush()
+
+            # Run detector with 60 min threshold
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            assert result["stale_count"] == 1
+            assert "tsk_stale_001" in result["stale_task_ids"]
+            assert "tsk_fresh_001" not in result["stale_task_ids"]
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_no_stale_tasks_when_all_fresh(self):
+        """所有任务都是最近的 → 不检测到 stale。"""
+        from datetime import datetime, timezone
+        from src.services.stale_task_detector import detect_stale_tasks
+        from src.models.task import Task
+        from src.db import async_session_factory
+        from src.constants import TaskStatus
+
+        async with async_session_factory() as db:
+            task = Task(
+                id="tsk_active_001",
+                project_id="prj_test_001",
+                title="Active Task",
+                description="Being worked on",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_active_001",
+            )
+            task.claimed_at = datetime.now(timezone.utc)
+            task.updated_at = datetime.now(timezone.utc)
+            db.add(task)
+            await db.flush()
+
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            assert result["stale_count"] == 0
+            assert result["stale_task_ids"] == []
+
+            await db.rollback()
+
+
 class TestAdminWorkerAuth:
     """P11-B15 + B55 (GAP-7): Admin Worker 应能通过 API key 执行全角色操作。
 

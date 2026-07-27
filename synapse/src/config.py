@@ -98,6 +98,13 @@ class Settings(BaseSettings):
     # Authorization request expiry scheduler (P11-B50)
     auth_expiry_interval_seconds: int = 30
 
+    # Task staleness detection (P11-B76)
+    task_stale_threshold_minutes: int = 60
+    task_stale_scan_interval_seconds: int = 120
+
+    # Verify idempotent guard (P11-B76)
+    verify_idempotent_window_seconds: int = 60
+
     # WebSocket (P11-B23: 生产加固)
     ws_max_connections: int = 200
     ws_max_message_size: int = 65536  # 64 KB
