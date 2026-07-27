@@ -9,7 +9,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 # ── 辅助函数 ────────────────────────────────────────────────────────────
@@ -145,9 +145,12 @@ class TestTaskEventCoverage:
         assert readied[0]["payload"]["new_status"] == "ready"
 
     async def test_task_assigned_event(self, client: AsyncClient, seed: SeedData):
-        """task.assigned 在 BACKLOG → IN_PROGRESS（通过 assign）时写入。"""
+        """task.claimed 在 READY → IN_PROGRESS（通过 assign，P11-B72: 必须先 ready）时写入。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -161,8 +164,9 @@ class TestTaskEventCoverage:
         assert resp.status_code == 200
 
         events = await _get_events(client, seed)
+        # P11-B72: READY→IN_PROGRESS maps to "task.claimed" (BACKLOG→IN_PROGRESS removed)
         assigned = [e for e in events
-                    if e["event_type"] == "task.assigned" and e["target_id"] == task["id"]]
+                    if e["event_type"] == "task.claimed" and e["target_id"] == task["id"]]
         assert len(assigned) == 1
         assert assigned[0]["payload"]["new_status"] == "in_progress"
 
@@ -218,6 +222,9 @@ class TestTaskEventCoverage:
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
 
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
+
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
             json={
@@ -264,6 +271,9 @@ class TestTaskEventCoverage:
         """task.paused + task.resumed 在暂停/恢复循环中写入。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -326,6 +336,9 @@ class TestTaskEventCoverage:
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
 
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
+
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
             json={
@@ -384,6 +397,9 @@ class TestTaskEventCoverage:
         """task.rejected 在 verification 失败时写入。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",

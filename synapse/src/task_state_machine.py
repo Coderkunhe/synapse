@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 # 此为权威定义；Task.ALLOWED_TRANSITIONS 委托至此以保证向后兼容。
 
 _TRANSITIONS: dict[str, frozenset[str]] = {
-    TaskStatus.BACKLOG:         frozenset({TaskStatus.READY, TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED}),
+    TaskStatus.BACKLOG:         frozenset({TaskStatus.READY, TaskStatus.CANCELLED}),
     TaskStatus.READY:           frozenset({TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED}),
     TaskStatus.IN_PROGRESS:     frozenset({TaskStatus.PAUSED, TaskStatus.IN_VERIFICATION, TaskStatus.CANCELLED, TaskStatus.READY}),
     TaskStatus.PAUSED:          frozenset({TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED}),
@@ -43,7 +43,6 @@ _TRANSITIONS: dict[str, frozenset[str]] = {
 
 _EVENT_TYPE_MAP: dict[tuple[str, str], str] = {
     (TaskStatus.BACKLOG, TaskStatus.READY):             "task.readied",
-    (TaskStatus.BACKLOG, TaskStatus.IN_PROGRESS):       "task.assigned",
     (TaskStatus.BACKLOG, TaskStatus.CANCELLED):         "task.cancelled",
     (TaskStatus.READY, TaskStatus.IN_PROGRESS):         "task.claimed",
     (TaskStatus.READY, TaskStatus.CANCELLED):           "task.cancelled",

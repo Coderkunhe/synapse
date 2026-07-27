@@ -155,6 +155,21 @@ def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def ready_task(client, task: dict, token: str) -> dict:
+    """P11-B72: 将 Task 从 BACKLOG 提升为 READY，返回更新后的 task。
+
+    Ready gate 要求 task.description 非空且至少有 1 个可判定的 verification。
+    所有使用 _create_task 后紧跟 assign/claim 的测试必须先调此函数。
+    """
+    resp = await client.post(
+        f"/v1/tasks/{task['id']}/ready",
+        json={"expected_version": task["version_no"]},
+        headers=auth_header(token),
+    )
+    assert resp.status_code == 200, f"ready_task failed: {resp.status_code} {resp.text}"
+    return resp.json()
+
+
 async def ensure_project_role(
     client,
     project_id: str,

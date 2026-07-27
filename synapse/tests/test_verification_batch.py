@@ -13,7 +13,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -69,6 +69,10 @@ async def _setup_agent_with_task(
 
     ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
     ver_ids = [v["id"] for v in ver_resp.json()]
+
+    # P11-B72: ready gate — must promote from BACKLOG before assigning
+    task = await ready_task(client, task_resp.json(), seed.token)
+    version = task["version_no"]
 
     # 分配
     assign = await client.post(

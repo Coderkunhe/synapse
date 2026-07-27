@@ -24,7 +24,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -102,6 +102,7 @@ async def _worker_heartbeat(
 async def _create_task_api(
     client: AsyncClient, seed: SeedData, project_id: str,
     title: str, batch_id: str, priority: str = "p2",
+    auto_ready: bool = True,
 ) -> dict:
     resp = await client.post(
         f"/v1/projects/{project_id}/tasks",
@@ -117,7 +118,11 @@ async def _create_task_api(
         headers=auth_header(seed.token),
     )
     assert resp.status_code == 201, f"创建任务失败 [{resp.status_code}]: {resp.text}"
-    return resp.json()
+    task = resp.json()
+    # P11-B72: auto-promote to READY so tests can assign/claim directly
+    if auto_ready:
+        task = await ready_task(client, task, seed.token)
+    return task
 
 
 async def _assign_task(
@@ -291,9 +296,9 @@ class TestHappyPathFullChain:
         task1 = await _create_task_api(client, seed, project["id"], "E2E 任务 1", batch["id"], "p1")
         task2 = await _create_task_api(client, seed, project["id"], "E2E 任务 2", batch["id"], "p1")
         task3 = await _create_task_api(client, seed, project["id"], "E2E 任务 3", batch["id"], "p2")
-        assert task1["status"] == "backlog"
-        assert task2["status"] == "backlog"
-        assert task3["status"] == "backlog"
+        assert task1["status"] == "ready"
+        assert task2["status"] == "ready"
+        assert task3["status"] == "ready"
 
         # ── 第 3 步: 推送分配任务（BACKLOG → IN_PROGRESS）──
         task1 = await _assign_task(
@@ -356,7 +361,7 @@ class TestHappyPathFullChain:
 
         # ── 第 6 步: EventStore 追踪完整性 ──
         critical = [
-            "batch.created", "task.created", "task.assigned",
+            "batch.created", "task.created", "task.claimed",
             "task.submitted", "task.completed", "batch.completed",
         ]
         for evt in critical:
@@ -367,7 +372,7 @@ class TestHappyPathFullChain:
                            if e.get("target_id") == t["id"]
                            and e.get("target_type") == "task"]
             t_types = {e["event_type"] for e in task_events}
-            for req in ["task.created", "task.assigned", "task.submitted", "task.completed"]:
+            for req in ["task.created", "task.claimed", "task.submitted", "task.completed"]:
                 assert req in t_types, f"Task {t['id']} 缺少 {req}。当前: {t_types}"
 
 
@@ -750,7 +755,7 @@ class TestEventStoreCompleteness:
     """运行自包含的 E2E 流程并审计结果事件追踪。"""
 
     P8_KEY_EVENTS = [
-        "task.created", "task.readied", "task.claimed", "task.assigned",
+        "task.created", "task.readied", "task.claimed", "task.claimed",
         "task.paused", "task.resumed", "task.submitted",
         "task.completed", "task.rejected", "task.cancelled",
         "task.lease_expired", "task.blocker_reported",
@@ -788,7 +793,7 @@ class TestEventStoreCompleteness:
         event_types_in_store = {e["event_type"] for e in events}
 
         must_have = [
-            "batch.created", "task.created", "task.assigned",
+            "batch.created", "task.created", "task.claimed",
             "task.submitted", "task.completed", "batch.completed",
             "worker.runtime.busy", "worker.runtime.idle", "verification.executed",
         ]

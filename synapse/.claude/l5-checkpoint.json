@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-27",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B71→B71-R2 L5 拉通 — 📄 synapse/docs/dogfood-b71-test.md B71+B71-R2 双批修改 · 📄 requirements-log B71/B71-R2 狗粮条目 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

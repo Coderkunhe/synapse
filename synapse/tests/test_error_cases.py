@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ready_task
 
 
 class TestAuthErrors:
@@ -502,12 +502,16 @@ class TestAgentVisibility:
                 headers=headers,
             )
             tid = resp.json()["id"]
-            ver = resp.json()["version_no"]
+            task_data = resp.json()
             task_ids[agent_name] = tid
+
+            # P11-B72: promote to ready before assign
+            task_data = await ready_task(client, task_data, seed.token)
+
             await client.post(
                 f"/v1/tasks/{tid}/assign",
                 json={"owner_type": "worker", "owner_id": agents[agent_name]["id"],
-                      "expected_version": ver},
+                      "expected_version": task_data["version_no"]},
                 headers=headers,
             )
 

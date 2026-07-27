@@ -14,7 +14,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -65,7 +65,9 @@ class TestSingleVerificationPass:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -144,7 +146,9 @@ class TestMultiVerificationPass:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_ids = [v["id"] for v in ver_resp.json()]
@@ -233,7 +237,9 @@ class TestVerificationReject:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -315,7 +321,9 @@ class TestRedoCountIncrement:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -415,7 +423,9 @@ class TestRejectedToInProgressTransition:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -498,7 +508,9 @@ class TestStructuredRejection:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -606,7 +618,9 @@ class TestEdgeCases:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -664,7 +678,9 @@ class TestEdgeCases:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
         ver_id = ver_resp.json()[0]["id"]
@@ -716,7 +732,9 @@ class TestEdgeCases:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         assign = await client.post(
             f"/v1/tasks/{task_id}/assign",

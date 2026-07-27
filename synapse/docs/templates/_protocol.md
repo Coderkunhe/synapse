@@ -213,6 +213,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 | **API submit = Task 完成** | 在对话里汇报结果表格 **不是** 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成。对话汇报是给人看的进度提示——API 提交是给系统的状态变更 |
 | **每轮迭代前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新状态。不依赖 handshake 缓存的状态快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
+| **不可自验（Server 强制）** | 不可调用 `POST /verifications/{id}/verify` 验收自己的 Task。Manual 类型的 Verification 由 Server 强制执行职责分离——自验会收到 409 `SELF_VERIFICATION_NOT_ALLOWED`。等待 Orchestrator 验收 |
 | **完成后不停止** | 当前 Task passed → 立即检查是否有下一个 ready Task → 有就 claim 继续，没有才报告"工作队列为空" |
 | **中断可恢复** | 会话中断后，下次启动时 Step 3.5 状态同步自动发现 `in_progress` Task → 恢复执行 |
 
@@ -270,8 +271,10 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 │                                                 │
 │  4. 验收（触发条件：任一 Task submitted）            │
 │     ├─ 逐条对照 Verification 条件                   │
+│     ├─ 检查 evidence 含 output_access               │
 │     ├─ 全部 passed → POST /verifications/{id}/verify│
 │     │   └─ 发评论 @Builder 告知结果 + 下一步建议     │
+│     │   └─ ⚠️ Server 强制：Manual 类型禁止自验        │
 │     └─ 任一 failed → 评论区写清楚哪条没满足          │
 │                                                 │
 │  5. 推进（验收完成后的连续动作 — 不等人问）           │
@@ -298,6 +301,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 | **验收不等积累** | 有 1 个 submitted Task → 立即验收，不等"攒够 3 个一起验"。验收是阻断性步骤——积压 = 阻塞 Builder 的下一个循环 |
 | **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，重新调用 API 获取最新 Task 列表。Builder 可能在你验收上一个 Task 时提交了新的——缓存让你漏掉 submitted Task |
 | **监工不 micromanage** | 检查状态和更新时间的目的是发现异常（阻塞、逾期），不是考核 Builder 的每步操作。正常进展中的 Task 不需要干预 |
+| **跟踪已分配任务（P11-B72）** | 分配 Task 后不遗忘——assign 只是起点。每轮监工循环检查已分配 Task 的进度：claimed 了吗？在 submit 了吗？超时了吗？Server 状态机保证 Task 只能从 ready 分配，但跟踪是 O 的职责 |
 | **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求**需创建新 Task**。只有 backlog 也为空时才报告"项目工作队列为空" |
 | **中断可恢复** | 会话中断后，下次启动时自动拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |

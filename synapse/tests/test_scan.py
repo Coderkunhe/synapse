@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ready_task
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -158,7 +158,11 @@ class TestComplianceScan:
             headers=headers,
         )
         assert task1_resp.status_code == 201, task1_resp.text
-        task1_id = task1_resp.json()["id"]
+        task1 = task1_resp.json()
+        task1_id = task1["id"]
+
+        # P11-B72: promote to ready before assign
+        task1 = await ready_task(client, task1, seed.token)
 
         # 为任务 1 分配归属人
         assign_resp = await client.post(
@@ -166,7 +170,7 @@ class TestComplianceScan:
             json={
                 "owner_type": "member",
                 "owner_id": seed.member_id,
-                "expected_version": 1,
+                "expected_version": task1["version_no"],
             },
             headers=headers,
         )

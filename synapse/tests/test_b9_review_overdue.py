@@ -16,7 +16,7 @@ from sqlalchemy import select
 from src.db import async_session_factory
 from src.models.event import Event
 from src.models.verification import Verification
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ready_task
 
 
 # ── 辅助函数 ──────────────────────────────────────────────────────────
@@ -80,6 +80,9 @@ class TestReviewOverdueSignal:
         """failure_detector 对滞留验证队列的任务发出 review.overdue。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         # Assign 并 submit 任务使其进入 IN_VERIFICATION
         resp = await client.post(

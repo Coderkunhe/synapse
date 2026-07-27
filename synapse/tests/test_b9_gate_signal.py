@@ -12,7 +12,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header
+from tests.conftest import SeedData, auth_header, ready_task
 
 
 # ── 辅助函数 ──────────────────────────────────────────────────────────
@@ -287,6 +287,9 @@ class TestTerminateTask:
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
 
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
+
         # Assign 任务使其进入 IN_PROGRESS
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -353,6 +356,9 @@ class TestTerminateTask:
         """终止已完成任务时返回 406 InvalidStateTransition。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         # Assign、submit、通过验证完成
         resp = await client.post(
@@ -425,6 +431,9 @@ class TestTerminateTask:
         """过期版本号返回 409。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -530,6 +539,9 @@ class TestBatchCompletion:
             client, seed, project["id"], title="Solo", batch_id=batch["id"],
         )
 
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
+
         # Assign 然后终止
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -573,6 +585,9 @@ class TestWSSignals:
         """task.submitted 事件已记录（通过 WS 桥接自动广播）。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",
@@ -625,6 +640,9 @@ class TestWSSignals:
         """验证失败时 task.rejected 事件通过 WS 广播。"""
         project = await _create_project(client, seed)
         task = await _create_task(client, seed, project["id"])
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
 
         resp = await client.post(
             f"/v1/tasks/{task['id']}/assign",

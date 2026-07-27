@@ -23,7 +23,7 @@ from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
 from src.services.ws_manager import ws_manager
-from src.constants import TaskStatus, VerificationStatus
+from src.constants import TaskStatus, VerificationStatus, VerificationType
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_dumps, safe_loads
 
@@ -100,6 +100,18 @@ async def execute_verification(
             f"task_status:{task.status}",
             "requires task in in_verification",
         )
+
+    # P11-B72: 手动验证禁止自验 — verifier 不能是 task owner（职责分离）
+    if ver.type == VerificationType.MANUAL:
+        if actor_id == task.owner_id:
+            raise ConflictError(
+                "SELF_VERIFICATION_NOT_ALLOWED",
+                f"Manual verification requires a different person than the task owner. "
+                f"The person who executed the work (owner: {task.owner_id}) "
+                f"cannot verify their own task. "
+                f"Ask an orchestrator or admin to execute this verification.",
+                {"taskId": task.id, "ownerId": task.owner_id, "verifierId": actor_id},
+            )
 
     # 更新验证记录
     now = datetime.now(timezone.utc)
@@ -312,6 +324,21 @@ async def execute_batch_verification(
                 "task_id": task_id,
                 "status": "error",
                 "error": f"Task not in_verification (status: {task.status})",
+            })
+            continue
+
+        # P11-B72: 手动验证禁止自验
+        if ver.type == VerificationType.MANUAL and actor_id == task.owner_id:
+            item_results.append({
+                "verification_id": verification_id,
+                "task_id": task_id,
+                "status": "error",
+                "error": (
+                    f"SELF_VERIFICATION_NOT_ALLOWED: "
+                    f"Manual verification requires a different person than the task owner. "
+                    f"The person who executed the work (owner: {task.owner_id}) "
+                    f"cannot verify their own task."
+                ),
             })
             continue
 

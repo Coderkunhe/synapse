@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 def _uniq_slug(prefix: str) -> str:
@@ -76,6 +76,9 @@ class TestTaskHappyPath:
         task = task_resp.json()
         assert task["status"] == "backlog"
         task_id = task["id"]
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task, seed.token)
         version = task["version_no"]
 
         # 单独获取验证项（不在 TaskResponse 中）
@@ -343,7 +346,10 @@ class TestTaskCancelFlow:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         # 获取验证项 ID
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
@@ -441,7 +447,10 @@ class TestVerificationRework:
             headers=headers,
         )
         task_id = task_resp.json()["id"]
-        version = task_resp.json()["version_no"]
+
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        version = task["version_no"]
 
         # 获取验证项 ID
         ver_resp = await client.get(f"/v1/tasks/{task_id}/verifications", headers=headers)
@@ -529,7 +538,11 @@ class TestAdminWorkerAuth:
     async def test_admin_worker_can_assign_submit_and_verify(
         self, client: AsyncClient, seed: SeedData
     ):
-        """Admin Worker (API key auth) 执行 assign + submit + verify 全链路。"""
+        """Admin Worker (API key auth) 执行 assign + submit + verify 全链路。
+
+        P11-B72: 使用独立的 Builder agent 执行 Task，Admin agent 负责验收。
+        职责分离 — Manual 类型 verification 的 verifier 不能是 task owner。
+        """
         admin_headers = auth_header(seed.token)
 
         # ── 1. 创建 Project ──
@@ -561,7 +574,24 @@ class TestAdminWorkerAuth:
         )
         assert hs_resp.status_code == 200, hs_resp.text
 
-        # ── 3. 赋予 Admin 项目角色 ──
+        # ── 3. 注册 Builder Worker Agent（P11-B72: 独立执行者）──
+        builder_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/agents",
+            json={"name": "Builder Test", "provider": "claude", "provider_model": "sonnet"},
+            headers=admin_headers,
+        )
+        assert builder_resp.status_code == 201, builder_resp.text
+        builder_id = builder_resp.json()["worker"]["id"]
+        builder_api_key = builder_resp.json()["api_key"]
+        builder_headers = auth_header(builder_api_key)
+
+        await client.post(
+            f"/v1/agents/{builder_id}/handshake",
+            json={"worker_version": "1.0.0", "capabilities": ["coding"], "preferred_channel": "websocket"},
+            headers=builder_headers,
+        )
+
+        # ── 4. 赋予角色 ──
         # B55 (GAP-7): admin inherits orchestrator + builder + steward via ROLE_HIERARCHY
         role_resp = await client.post(
             f"/v1/admin/projects/{project_id}/roles",
@@ -570,7 +600,14 @@ class TestAdminWorkerAuth:
         )
         assert role_resp.status_code == 201, role_resp.text
 
-        # ── 4. 创建 Task（带 verification 条件）──
+        # Builder needs builder role for submit
+        await client.post(
+            f"/v1/admin/projects/{project_id}/roles",
+            json={"worker_id": builder_id, "role": "builder"},
+            headers=admin_headers,
+        )
+
+        # ── 5. 创建 Task（带 verification 条件）──
         task_resp = await client.post(
             f"/v1/projects/{project_id}/tasks",
             json={
@@ -587,19 +624,14 @@ class TestAdminWorkerAuth:
         task_id = task_resp.json()["id"]
         task_version = task_resp.json()["version_no"]
 
-        # Ready
-        ready_resp = await client.post(
-            f"/v1/tasks/{task_id}/ready",
-            json={"expected_version": task_version},
-            headers=admin_headers,
-        )
-        assert ready_resp.status_code == 200, ready_resp.text
-        task_version = ready_resp.json()["version_no"]
+        # P11-B72: promote to ready before assign
+        task = await ready_task(client, task_resp.json(), seed.token)
+        task_version = task["version_no"]
 
-        # ── 5. TEST: Orchestrator API key 分配 Task → 200 ──
+        # ── 6. TEST: Orchestrator API key 分配 Task 给 Builder → 200 ──
         assign_resp = await client.post(
             f"/v1/tasks/{task_id}/assign",
-            json={"owner_type": "worker", "owner_id": orch_id, "expected_version": task_version},
+            json={"owner_type": "worker", "owner_id": builder_id, "expected_version": task_version},
             headers=orch_headers,
         )
         assert assign_resp.status_code == 200, (
@@ -607,7 +639,7 @@ class TestAdminWorkerAuth:
         )
         task_version = assign_resp.json()["version_no"]
 
-        # ── 6. Worker 提交（Admin 角色通过 ROLE_HIERARCHY 继承 builder 权限）──
+        # ── 7. Builder 提交 ──
         ver_id = task_resp.json().get("verifications", [{}])[0].get("id")
         if not ver_id:
             ver_list = await client.get(f"/v1/tasks/{task_id}/verifications", headers=admin_headers)
@@ -623,12 +655,12 @@ class TestAdminWorkerAuth:
                 ],
                 "expected_version": task_version,
             },
-            headers=orch_headers,
+            headers=builder_headers,
         )
         assert submit_resp.status_code == 200, submit_resp.text
         task_version = submit_resp.json()["version_no"]
 
-        # ── 7. TEST: Orchestrator API key 验收 → 200 ──
+        # ── 8. TEST: Orchestrator API key 验收 → 200（verifier ≠ task owner ✅）──
         verify_resp = await client.post(
             f"/v1/verifications/{ver_id}/verify",
             json={"status": "approved", "comment": "Orchestrator 验收通过", "expected_task_version": task_version},

@@ -191,6 +191,21 @@ Orchestrator 评估后会动态插入 Task，不影响你当前的工作。**不
 **绝不使用 Orchestrator 或其他 Worker 的 API Key，即使你能从配置文件读到它。**
 API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 层的角色围栏。角色隔离在文件系统层不存在（所有配置共享主机），必须靠自律强制执行。
 
+### 8. 不可自验（Server 强制 · P11-B72）
+
+**Manual 类型的 Verification 不可由执行者本人验收。** 你是 Task 的执行者——你的工作是 submit evidence，不是 verify。验收是 Orchestrator 的职责（职责分离原则）。
+
+```
+❌ 错误：submit 后自己调 POST /verifications/{id}/verify
+   → Server 返回 409 SELF_VERIFICATION_NOT_ALLOWED
+   → verified_by 必须 ≠ task owner
+
+✅ 正确：submit → 评论区 @Orchestrator → 主动轮询 GET /tasks/{id}/verifications
+   → 等待 Orchestrator 验收 → passed/failed 结果由 Orchestrator 写入
+```
+
+**Server 强制执行此规则**——即使你尝试自验，API 也会拒绝。这不是"建议"，是硬门禁。
+
 ---
 
 ## 常用 API

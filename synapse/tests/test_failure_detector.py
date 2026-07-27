@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import SeedData, auth_header, ensure_project_role
+from tests.conftest import SeedData, auth_header, ensure_project_role, ready_task
 
 
 def _uniq(prefix: str) -> str:
@@ -82,7 +82,10 @@ async def _setup_agent_with_task(
         headers=headers,
     )
     task_id = task_resp.json()["id"]
-    version = task_resp.json()["version_no"]
+
+    # P11-B72: promote to ready before assign
+    task = await ready_task(client, task_resp.json(), seed.token)
+    version = task["version_no"]
 
     # 分配给 agent
     assign = await client.post(

@@ -308,7 +308,17 @@ async def assign_task(
     _check_version(task, expected_version)
     await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
 
-    # 校验状态转换：必须处于 backlog 或 ready
+    # P11-B72: 必须处于 ready — 不可从 backlog 直接分配（绕过 decidability gate）
+    if task.status != TaskStatus.READY:
+        raise ConflictError(
+            "TASK_NOT_READY",
+            f"Task must be in 'ready' status to be assigned. "
+            f"Current status: {task.status}. "
+            f"Use POST /v1/tasks/{task_id}/ready first to pass the decidability gate.",
+            {"taskId": task.id, "currentStatus": task.status, "requiredStatus": TaskStatus.READY},
+        )
+
+    # 校验状态转换
     target_status = TaskStatus.IN_PROGRESS
     _validate_transition(task, target_status)
 
@@ -431,6 +441,16 @@ async def claim_task(
                         f"Task depends on {dep['task_id']} "
                         f"(status: {dep_task.status}, need: completed)",
                     )
+
+    # P11-B72: 必须处于 ready — 不可从 backlog 直接认领（绕过 decidability gate）
+    if task.status != TaskStatus.READY:
+        raise ConflictError(
+            "TASK_NOT_READY",
+            f"Task must be in 'ready' status to be claimed. "
+            f"Current status: {task.status}. "
+            f"Wait for an orchestrator to run POST /v1/tasks/{task_id}/ready first.",
+            {"taskId": task.id, "currentStatus": task.status, "requiredStatus": TaskStatus.READY},
+        )
 
     _validate_transition(task, TaskStatus.IN_PROGRESS)
 
