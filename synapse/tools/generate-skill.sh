@@ -350,6 +350,7 @@ write_client_env() {
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `SYNAPSE_PROJECT_ID` | 默认 Project ID | 可在 API 调用时通过 `?project_id=` 覆盖 |
+| `SYNAPSE_WORKER_ROLE` | 角色标识 | `builder` / `orchestrator` / `steward` · `session-init.js` 用此区分角色行为 |
 
 ## 配置方式
 
@@ -358,6 +359,7 @@ export SYNAPSE_API_URL="http://localhost:8000"
 export SYNAPSE_API_KEY="sk-syn-..."
 export SYNAPSE_WORKER_ID="wa_xxxxxxxx"
 export SYNAPSE_PROJECT_ID="prj_xxxxxxxx"
+export SYNAPSE_WORKER_ROLE="builder"   # 或 "orchestrator" / "steward"
 ```
 
 > ⚠️ 不要将 API Key 提交到版本控制。建议使用 `.env` 文件（已加入 `.gitignore`）。
@@ -401,9 +403,12 @@ hooks = cfg['hooks'].setdefault('SessionStart', [])
 # 检查是否已有 source .env 的 hook（兼容 source .env 和 source \$CLAUDEDIR/.env）
 if not any('source ' in h.get('command','') and '.env' in h.get('command','') for h in hooks):
     hooks.append({'matcher': '', 'command': 'set -a; source \"\$CLAUDEDIR/.env\"; set +a'})
-# P100-B96: check for heartbeat.js hook (Node.js edition)
+# P100-B96: check for heartbeat.js hook (Node.js daemon edition · P100-B99 upgraded to background)
 if not any('heartbeat.js' in h.get('command','') for h in hooks):
-    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\"'})
+    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" &'})
+# P100-B99: check for session-init.js hook (B98 脚本硬约束 — mechanical startup)
+if not any('session-init.js' in h.get('command','') for h in hooks):
+    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/session-init.js\"'})
 with open('$SETTINGS_FILE', 'w') as f:
     json.dump(cfg, f, indent=2)
     f.write('\n')
@@ -420,7 +425,11 @@ with open('$SETTINGS_FILE', 'w') as f:
       },
       {
         "matcher": "",
-        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\""
+        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" &"
+      },
+      {
+        "matcher": "",
+        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/session-init.js\""
       }
     ]
   }
@@ -428,7 +437,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 SETEOF
     fi
 
-    echo "  ✅ .claude/settings.json（SessionStart hooks → source .env + heartbeat.js）"
+    echo "  ✅ .claude/settings.json（SessionStart hooks → source .env + heartbeat.js & + session-init.js）"
 }
 
 # ─── Client Skill: Claude Code ───

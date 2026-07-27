@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B97 ✅ G-036 requirements-log 拆分归档 · B98 🔜
-last_batch: P100-B97
-next_batch: P100-B98
-description: Synapse 主项目 — P100 治理波 · B97 ✅ G-036 requirements-log 膨胀治理 (9677→4528 行 · check-docs 阈值 10000→5000) · B98 🔜
+phase: P100-B99 ✅ 模板源回灌 · B100 🔜
+last_batch: P100-B99
+next_batch: P100-B100
+description: Synapse 主项目 — P100 治理波 · B99 ✅ B98 脚本硬约束回灌到模板源 (6 files · session-init.js 入库 + SKILL.md -70% + heartbeat daemon + generate-skill 适配) · B100 🔜
 ---
 
 # Synapse 轨道
@@ -14,7 +14,7 @@ description: Synapse 主项目 — P100 治理波 · B97 ✅ G-036 requirements-
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B97 | **P100-B98** 🔜 | B97 ✅ G-036 requirements-log 拆分归档 (9677→4528行 · 阈值 10000→5000) · B98 🔜 |
+| **P100** | P100-B99 | **P100-B100** 🔜 | B99 ✅ B98 脚本硬约束回灌 (6 files · session-init.js 入库 + SKILL.md -70%) · B100 🔜 |
 | **P11** | P11-B78 | **P100** 🔜 (治理波) | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · 暂挂 P11，P100 后继续 |
 
 ## P11 路线图：多 Agent 接入战

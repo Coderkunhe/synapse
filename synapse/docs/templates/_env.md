@@ -10,6 +10,7 @@
 | `SYNAPSE_API_KEY` | Agent API Key（存入 OS 密钥链，不从 .env 读取） | `{{SYNAPSE_API_KEY}}` |
 | `SYNAPSE_WORKER_ID` | 你的 Agent ID | `{{SYNAPSE_WORKER_ID}}` |
 | `SYNAPSE_PROJECT_ID` | 默认项目 ID | `{{SYNAPSE_PROJECT_ID}}` |
+| `SYNAPSE_WORKER_ROLE` | 角色标识（`builder` / `orchestrator` / `steward`） | `{{SYNAPSE_WORKER_ROLE}}` |
 
 ## 🔐 API Key 存储（P11-B35: Key 隔离）
 
@@ -56,6 +57,7 @@ export SYNAPSE_API_URL="{{SYNAPSE_API_URL}}"
 export SYNAPSE_API_KEY="{{SYNAPSE_API_KEY}}"
 export SYNAPSE_WORKER_ID="{{SYNAPSE_WORKER_ID}}"
 export SYNAPSE_PROJECT_ID="{{SYNAPSE_PROJECT_ID}}"
+export SYNAPSE_WORKER_ROLE="{{SYNAPSE_WORKER_ROLE}}"
 ```
 
 ### Codex CLI
