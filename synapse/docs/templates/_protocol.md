@@ -387,6 +387,19 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 > - WS 未连接 → HTTP polling 按路由矩阵定义的间隔执行
 > - 两个通道不互斥——WS push 先到就先处理，poll 到同一变更时 version_no 未增长 → 跳过
 
+**O-B 心跳协调（PFL-070 · B87 检测 + B89 恢复）**：
+
+> ⚠️ 非对称模型下 O 是单点——O 离线时 B 无法被分配 Task 也无法获得验收。B87/B89 建立了两层心跳协调机制：
+
+| 机制 | 批次 | 角色 | 说明 |
+|------|:---:|------|------|
+| **O 状态检测** | B87 | B 启动时 | `GET /v1/projects/{pid}/orchestrator-status` — 检查 O 是否在线 |
+| **B 三级恢复** | B89 | B 检测到 O 离线 | ≤5min→ScheduleWakeup 30s 重试 · 5-30min→@Human+120s · >30min→退出 |
+| **O 自检心跳** | B89 | O 启动+循环中 | `GET /workers/me` 检查 `last_heartbeat_at`→过期>120s 立即补发 |
+| **Server 安全网** | B88 | Server 后台 | `detect_stale_verifications()` — 30min 自动回退 in_verification 任务 |
+
+> **B 侧角色约束**（PFL-070 设计决策）：B 是被动响应者——O 离线时 B 不替代 O 的职责（不自行分配 Task、不自验）。B 的恢复动作限于智能等待 + 通知 Human。O 的职责（分配、验收）不可委托给 B——这是角色围栏，不是能力缺失。
+
 **异常退出协议（PFL-072）**：
 
 > ⚠️ 响应内 while 循环在异常场景下没有代码级 try/except 保护。以下 4 个失败模式必须在 prompt 层面告知 Agent 如何处理：

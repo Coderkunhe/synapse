@@ -83,15 +83,17 @@ GET /v1/projects/{project_id}/orchestrator-status
   │
   ├─ online=false, 300s<age≤1800s（离线 5-30min）
   │     → 📝 输出 "O 离线 {age}s，已通知 Human"
-  │     → POST /v1/projects/{pid}/tasks/{tid}/messages @Human
-  │        "Orchestrator 离线 {age} 秒，无法分配/验收 Task。请检查 O Worker 状态。"
+  │     → 若有活跃 Task（GET /projects/{pid}/tasks?assigned_to=me&status=in_progress 非空）
+  │        → POST /v1/projects/{pid}/tasks/{first_tid}/messages @Human
+  │           "Orchestrator 离线 {age} 秒，无法分配/验收 Task。请检查 O Worker 状态。"
+  │     → 无活跃 Task → 仅输出警告（无 Task 可挂评论）
   │     → ScheduleWakeup 120s
   │     → 醒来后重新 GET orchestrator-status
   │     → 仍离线 → 如果 age>1800s → 降级退出
   │
   └─ online=false, age>1800s 或 worker_id=null（>30min 或无 O）
         → 📝 输出 "O 离线超过 30 分钟 / 无 O 注册。退出等待人工介入。"
-        → POST /v1/projects/{pid}/tasks/{tid}/messages @Human
+        → 若有活跃 Task → POST /v1/projects/{pid}/tasks/{first_tid}/messages @Human
            "Orchestrator 长期离线（{age}s）/ 未注册。B 无法自主工作，等待 O 恢复。"
         → 退出（不再重试——长期离线需人工排查根因）
 ```

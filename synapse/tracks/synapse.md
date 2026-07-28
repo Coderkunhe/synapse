@@ -1,6 +1,6 @@
 ---
 project: synapse
-phase: P11-B89 ✅ PFL-070 心跳恢复动作 · L5 B87→B89 拉通
+phase: P11-B89 ✅ PFL-070 心跳恢复动作 · L5 B88→B89 拉通
 last_batch: P11-B89
 next_batch: P11-B90
 description: Synapse 主项目 — B89 ✅ 心跳恢复动作 · B90 🔜
