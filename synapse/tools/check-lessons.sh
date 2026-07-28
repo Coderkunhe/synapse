@@ -128,8 +128,10 @@ if [ -n "$LESSONS_FILE" ] && [ -n "$PITFALLS_FILE" ]; then
   P_REFS=$(grep -oE '\bP-[0-9]{3}\b' "$LESSONS_FILE" 2>/dev/null | \
     grep -oE '[0-9]+' | sort -n | uniq || true)
 
-  # 从 pitfalls.md 提取存在的 P-NNN
-  P_EXISTING=$(grep -oE '^### P-[0-9]+:' "$PITFALLS_FILE" 2>/dev/null | \
+  # 从 pitfalls.md + archive 提取存在的 P-NNN（P100-B103 归档后需查两份文件）
+  PITFALLS_ARCHIVE="$PROJECT_DIR/docs/archive/pitfalls-archive.md"
+  P_EXISTING=$( (grep -oE '^### P-[0-9]+:' "$PITFALLS_FILE" 2>/dev/null; \
+                 grep -oE '^### P-[0-9]+:' "$PITFALLS_ARCHIVE" 2>/dev/null) | \
     grep -oE '[0-9]+' | sort -n || true)
 
   INVALID_REFS=0

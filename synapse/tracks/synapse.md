@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B102 ✅ 违纪回顾 · V-029 🟡→🟢 · B103 🔜
-last_batch: P100-B102
-next_batch: P100-B103
-description: Synapse 主项目 — P100 治理波 · B102 ✅ 违纪回顾 (V-029 🟡→🟢 · V-024+l5-gate 双层覆盖 · 29/29 🟢 · 活跃 0) · B103 🔜
+phase: P100-B103 ✅ 文档膨胀治理 · pitfalls 1573→829 · B104 🔜
+last_batch: P100-B103
+next_batch: P100-B104
+description: Synapse 主项目 — P100 治理波 · B103 ✅ 文档膨胀治理 (pitfalls 拆分 · 3 doc 日期同步 · plan 清理 · make check 归零) · B104 🔜
 ---
 
 # Synapse 轨道

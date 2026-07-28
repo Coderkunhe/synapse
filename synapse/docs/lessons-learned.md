@@ -2,7 +2,7 @@
 
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
-> 最后更新：2026-07-26（P100-B93 文档新鲜度修复 · 日期同步 · B88-B92 Hook Gap 治理弧已闭环）
+> 最后更新：2026-07-28（P100-B103 文档膨胀治理 · 日期同步）
 
 ---
 
@@ -11,9 +11,9 @@
 **场景**: Batch 4 编写首批 22 个 E2E 测试，覆盖 Agent 生命周期、Task 流程、错误处理、跨团队隔离、Agent 可见性。
 
 **发现**:
-1. **Greenlet 兼容性**: `onupdate=func.now()` 在测试环境下触发 MissingGreenlet，手工测试（uvicorn + curl）不会触发（P-002）
-2. **Rework 流程卡死**: submit_task 不重置 verification 状态，rework 场景手工只测了第一轮，没测重做 → 验证通过 → 完成的完整路径（P-005）
-3. **Schema 与存储不一致**: evidence 字段 API 接受 string，存储端期望 JSON，手工 curl 传了合法 JSON 所以没暴露（P-006）
+1. **Greenlet 兼容性**: `onupdate=func.now()` 在测试环境下触发 MissingGreenlet，手工测试（uvicorn + curl）不会触发（[P-002](docs/archive/pitfalls-archive.md)）
+2. **Rework 流程卡死**: submit_task 不重置 verification 状态，rework 场景手工只测了第一轮，没测重做 → 验证通过 → 完成的完整路径（[P-005](docs/archive/pitfalls-archive.md)）
+3. **Schema 与存储不一致**: evidence 字段 API 接受 string，存储端期望 JSON，手工 curl 传了合法 JSON 所以没暴露（[P-006](docs/archive/pitfalls-archive.md)）
 
 **结论**: E2E 测试的价值不是"确认已知功能还能用"，而是"跑通手工测试不会走的路径"。零测试的项目，第一个测试套件几乎一定会发现 bug。
 
@@ -60,12 +60,12 @@
 
 ## LL5: "发现即待办"铁律的执行效果
 
-**场景**: Batch 4 编写测试过程中发现 P-002（MissingGreenlet）、P-005（rework 卡死）、P-006（evidence 编码不一致），全部在同一会话内修复。
+**场景**: Batch 4 编写测试过程中发现 [P-002](docs/archive/pitfalls-archive.md)（MissingGreenlet）、[P-005](docs/archive/pitfalls-archive.md)（rework 卡死）、[P-006](docs/archive/pitfalls-archive.md)（evidence 编码不一致），全部在同一会话内修复。
 
 **执行**:
-- P-002: 当场修 `src/models/base.py`（小改动，改 Python 端默认值）
-- P-005: 当场修 `src/services/task_service.py`（加 3 行重置逻辑）
-- P-006: 当场修 `src/services/task_service.py`（改 evidence 编码逻辑）
+- [P-002](docs/archive/pitfalls-archive.md): 当场修 `src/models/base.py`（小改动，改 Python 端默认值）
+- [P-005](docs/archive/pitfalls-archive.md): 当场修 `src/services/task_service.py`（加 3 行重置逻辑）
+- [P-006](docs/archive/pitfalls-archive.md): 当场修 `src/services/task_service.py`（改 evidence 编码逻辑）
 
 **结论**: 发现即待办规则防止"测试发现 bug → 记录到 backlog → 永远不修"。小问题当场修的成本远低于"以后再说"的遗忘成本。
 
