@@ -41,15 +41,26 @@ async def find_pending_duplicate(
     """查找同 worker + capability 是否已有 pending 请求（P11-B50 去重）。
 
     用于 capability_exec 类型创建前的幂等检查。
+
+    P100-B99 扩展：同时检查 status=approved 且 outcome=null 的孤儿请求
+    （synapse-exec 超时退出后用户在 Web UI 批准但无人执行的请求）。
+    这些请求被复用而非创建新请求，打破"批了又回来"的循环。
     """
+    from sqlalchemy import or_, and_
     result = await db.execute(
         select(AuthorizationRequest).where(
             AuthorizationRequest.worker_id == worker_id,
             AuthorizationRequest.capability_id == capability_id,
-            AuthorizationRequest.status == "pending",
-        )
+            or_(
+                AuthorizationRequest.status == "pending",
+                and_(
+                    AuthorizationRequest.status == "approved",
+                    AuthorizationRequest.outcome.is_(None),
+                ),
+            ),
+        ).order_by(AuthorizationRequest.created_at.desc())
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 
 # ── 查询辅助 ──────────────────────────────────────────────────────

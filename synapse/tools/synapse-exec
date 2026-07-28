@@ -34,7 +34,7 @@ ${BOLD}用法:${NC}
 ${BOLD}选项:${NC}
   --params  k=v[,k=v...]  能力参数（如 BRANCH=feature/xxx）
   --reason  "..."          操作原因（审批时展示）
-  --timeout N              审批等待超时秒数（默认 120）
+  --timeout N              审批等待超时秒数（默认 300）
   --task-id  id            关联的 Synapse Task ID
   --install-hook [path]    安装 git pre-push hook（默认当前目录）
   --help                   显示此帮助
@@ -190,7 +190,7 @@ parse_args() {
 
     INSTALL_HOOK=0
     REASON=""
-    TIMEOUT=120
+    TIMEOUT=300
     TASK_ID=""
     # 清理上一轮遗留的参数环境变量
     unset "${!SYNAPSE_PARAM_@}" 2>/dev/null || true
@@ -219,7 +219,7 @@ parse_args() {
                 shift 2
                 ;;
             --timeout)
-                TIMEOUT="${2:-120}"
+                TIMEOUT="${2:-300}"
                 if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [[ "$TIMEOUT" -lt 1 ]]; then
                     echo -e "${RED}❌ --timeout 必须是正整数${NC}" >&2
                     exit 1

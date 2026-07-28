@@ -266,8 +266,9 @@ class TestRenderProtocol:
         )
         agent = _make_agent()
         result = await render_protocol(agent, project, "builder")
-        # SYNAPSE_API_KEY is deliberately excluded (secret); _task-current.md not loaded
-        expected_unfilled = {"SYNAPSE_API_KEY"}
+        # SYNAPSE_API_KEY is deliberately excluded (secret); SYNAPSE_WORKER_ROLE is set per-Worker
+        # (not a project-level config — admin assigns it when deploying each Worker)
+        expected_unfilled = {"SYNAPSE_API_KEY", "SYNAPSE_WORKER_ROLE"}
         actual = set(result["unfilled_variables"])
         assert actual == expected_unfilled, f"Expected {expected_unfilled}, got {actual}"
 

@@ -90,7 +90,10 @@ async def create_auth_request(
     if not is_self_capability:
         await check_project_role(db, project_id, actor, "admin", "lead")
 
-    # P11-B50: capability_exec 去重 — 同 worker + capability 已有 pending 则返回已有
+    # P11-B50 + P100-B99: capability_exec 去重
+    # - pending: 已有等待审批的请求 → 返回已有（防重复创建）
+    # - approved + outcome=null: 孤儿批准（synapse-exec 超时退出后用户在 Web UI 批准）
+    #   → 返回已有，synapse-exec 看到 approved 直接执行（打破"批了又回来"循环）
     if body.request_type == "capability_exec" and body.capability_id:
         existing = await find_pending_duplicate(
             db, body.worker_id or actor.actor_id, body.capability_id
