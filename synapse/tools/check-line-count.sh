@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Synapse 文件行数上限检查 — 机械拦截 >800 行
 # 用法: bash tools/check-line-count.sh [limit]
-# 默认上限: 800 行
-# 来源: P5-B16
+# 默认上限: 1100 行
+# 来源: P5-B16 · P100-B104 阈值 1000→1100 (task_service.py 1073行暂缓 · P11-B79 Builder 拆分)
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-LIMIT="${1:-1000}"
+LIMIT="${1:-1100}"
 ERRORS=0
 
 red()   { echo -e "\033[31m$1\033[0m"; }

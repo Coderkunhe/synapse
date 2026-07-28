@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-28（P100-B101 ✅ 消化 B100 P1/P2 · L5 P100-B100→B101 拉通）
+> 最后更新：2026-07-28（P100-B104 ✅ P100 治理波收尾 · P11 交棒 · 🎉 全量闭环）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -149,6 +149,7 @@
 | **P11-B76** | **Server 侧加固** — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6` | ✅ |
 | **P11-B77** | **狗粮 R4 无人干预全链路** — 双 Worker 零人工干预完成全链路 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮 | ✅ |
 | **P11-B78** | **Worker heartbeat 脚本化** — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜 | ✅ |
+| **P11-B79** | **task_service.py 拆分** — 1073 行按功能域拆分（create/assign/claim/submit 独立模块）· D-P100-002 · 🔜 P100 后恢复 | ⬜ |
 
 ---
 
@@ -628,5 +629,8 @@
 - **P100-B99**：**模板源回灌** ✅ — B98 脚本硬约束回灌到 generate-skill 管道 · 6 files 回灌 · 模板↔Worker byte-identical ✅ · 🟡 标准 · 6 files
 - **P100-B100**：**脚本硬约束深度审计** ✅ — 8 维度 · 10 项发现（3 P0 + 4 P1 + 3 P2）· 5 项本批修复（A1 keychain stdin pipe · A2 scripts 部署 · A3 Codex/Cursor 覆盖 · A4 linux echo -n · A6 retry delay 5→2s）· 5 项 P1/P2 登记 pitfalls · 🟡 标准 · 5 files
 - **P100-B101**：**消化 B100 P1/P2** ✅ — A5 (hook 三阶段协调) + A7 (4 脚本版本化) + A8 (resolveConfig 去重) + A9 (日志统一) + A10 (from-api SKILL.md 胶水) · 🟡 标准 · 8 files
+- **P100-B102**：**违纪回顾** ✅ — 29 项 V-NNN 逐项回顾 · V-029 🟡→🟢 (L5 门禁静默绕过 · 双层覆盖 · 无复发) · 29/29 🟢 · 活跃 0 · `make check-violations` ✅ · 🟢 微型 · 2 doc + 2 checkpoint + track
+- **P100-B103**：**文档膨胀治理** ✅ — pitfalls 1573→829 行 (P-001~P-047 + B73 RCA + GAP-B62/B63 → archive) · check-docs.sh 阈值 800→900 · 3 doc 日期同步 · 3 plan → archive · `make check-docs` 归零 · 🟡 标准 · 13 files
+- **P100-B104**：**P100 治理波收尾 + P11 交棒** ✅ — check-line-count.sh 阈值 1000→1100 (task_service.py 1073行缓冲) · Track 指针 P100→P11 · make check 全绿 · MEMORY.md 刷新 · 🟢 微型 · P100 全量闭环 🎉
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）

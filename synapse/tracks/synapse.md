@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B103 ✅ 文档膨胀治理 · pitfalls 1573→829 · B104 🔜
-last_batch: P100-B103
-next_batch: P100-B104
-description: Synapse 主项目 — P100 治理波 · B103 ✅ 文档膨胀治理 (pitfalls 拆分 · 3 doc 日期同步 · plan 清理 · make check 归零) · B104 🔜
+phase: P100-B104 ✅ P100 治理波收尾 · P11 交棒
+last_batch: P100-B104
+next_batch: —
+description: Synapse 主项目 — P100 治理波全量闭环 🎉 (B104 收尾: check-line-count 阈值缓冲 + P11 交棒) · P11-B79 🔜
 ---
 
 # Synapse 轨道
@@ -14,8 +14,8 @@ description: Synapse 主项目 — P100 治理波 · B103 ✅ 文档膨胀治理
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B101 | **P100-B102** 🔜 | B101 ✅ 5 项 P1/P2 闭环 · B102 🔜 |
-| **P11** | P11-B78 | **P100** 🔜 (治理波) | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · 暂挂 P11，P100 后继续 |
+| **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
+| **P11** | P11-B78 | **P11-B79** 🔜 | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · P100 治理波已完成，恢复产品工作 |
 
 ## P11 路线图：多 Agent 接入战
 

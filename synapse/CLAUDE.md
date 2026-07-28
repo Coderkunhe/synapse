@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P100-B101 ✅ 消化 B100 P1/P2 · B102 🔜）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P100-B104 ✅ P100 治理波收尾 · P11 交棒 · 🎉 全量闭环）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 P100-B100→B101 拉通完成（2026-07-28）— B101 消化 B100 P1/P2 (A5+A7+A8+A9+A10) · B100 脚本硬约束深度审计 · 零 drift · 计数器复位
+> 🔄 P100-B104 P100 治理波收尾（2026-07-28）— B104 收尾: check-line-count 阈值 1000→1100 · Track 指针 P100→P11 交棒 · make check 全绿 · P100 全量闭环 🎉
 
 ## 🚨 铁律：GlassCortex 只读
 
