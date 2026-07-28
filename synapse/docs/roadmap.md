@@ -155,6 +155,8 @@
 | **P11-B82** | **狗粮闭环 🎉** — 换题狗粮全链路 VDD 闭环 (10min) · 7 PFL 登记 (PFL-076~082 · 启动可靠性/Worker通信/调度机制三层) · PFL-074 根因查明 (handoff 语义混淆) · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理 | ✅ |
 | **P11-B83** | **PFL 消化 5/5 + 审计** — generate-skill.sh PFL-076 双 bug 修复 (`& &&` 语法错误+路径缺 `.claude/`) · PFL-078 根因定位 (state.warnings 未初始化) · PFL-080 机械检测评估 · PFL-081 CronCreate 根因分析 · PFL-074 消息语义审计 · 🟢 微型 · 1 file · commit `601502d` | ✅ |
 | **P11-B84** | **PFL 消化(二) 协议+脚本层** — PFL-077/079/082 硬约束修复: session-init.js Step 5e 活跃任务数机械告警 + in_verification 停滞检测 (>15min) · role-builder/role-orchestrator 终止条件审计 · Side fix: PFL-078 state.warnings[] 初始化 · 3 PFL 🔴→🟡 · 🟡 标准 · 4 files · commit `a39ec74` | ✅ |
+| **P11-B85** | **PFL-081 CronCreate 机械兜底** — session-init.js writeState() 无条件 CronCreate FIRST ACTION banner 生成 · _task-current.md 模板清理 · 🟡 标准 · 3 files · +26/-10 · commit `f9caf4d` | ✅ |
+| **P11-B86** | **PFL-069/074 审计** — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · 2 files · +7/-3 · commit `82ccb7f` | ✅ |
 
 ---
 

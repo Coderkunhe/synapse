@@ -24,6 +24,7 @@ from src.schemas.worker import (
     WorkerHeartbeatRequest,
     WorkerProjectResponse,
     WorkerResponse,
+    OrchestratorStatusResponse,
 )
 from src.schemas.common import CursorPage
 from src.schemas.protocol import ProtocolResponse
@@ -38,6 +39,7 @@ from src.services.worker_service import (
     register_worker as _register_worker,
     resume_worker as _resume_worker,
     suspend_worker as _suspend_worker,
+    get_orchestrator_status,
 )
 from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
@@ -760,3 +762,69 @@ async def download_skill_agent(
     return await download_skill(
         worker_id=agent_id, project_id=project_id, role=role, actor=actor, db=db
     )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Orchestrator Status (PFL-070 · B87)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/projects/{project_id}/orchestrator-status",
+    response_model=OrchestratorStatusResponse,
+)
+async def get_project_orchestrator_status(
+    project_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """查询 Project 的 Orchestrator 心跳状态（PFL-070 · B87）。
+
+    Builder Worker 在启动工作循环前调用此端点，确认 O 是否存活。
+    支持 API Key 和 project_key 两种认证方式（与 protocol 端点一致）。
+
+    返回 ``OrchestratorStatusResponse``：
+    - ``online``: O 是否在线（last_heartbeat_at ≤ 120s）
+    - ``worker_id`` / ``worker_name``: O 身份
+    - ``last_heartbeat_at`` / ``heartbeat_age_seconds``: 心跳详情
+    """
+    # ── Manual authentication (same pattern as protocol endpoint) ──
+    token = await extract_bearer_token(request)
+    if not token:
+        raise AuthenticationError("AUTH_MISSING_TOKEN", "Missing authentication token")
+
+    key_hash = hash_api_key(token)
+    result = await db.execute(
+        select(Worker).where(
+            Worker.api_key_hash == key_hash,
+        )
+    )
+    worker = result.scalar_one_or_none()
+
+    # project_key fallback
+    if worker is None:
+        proj_key_hash = hash_project_key(token)
+        proj_result = await db.execute(
+            select(Project).where(
+                Project.project_key_hash == proj_key_hash,
+            )
+        )
+        project_from_key = proj_result.scalar_one_or_none()
+        if project_from_key is None or project_from_key.id != project_id:
+            raise AuthenticationError(
+                "AUTH_INVALID_TOKEN",
+                "Invalid API key or project key for this project",
+            )
+    else:
+        # Verify project exists and worker is in same team
+        project = await db.get(Project, project_id)
+        if project is None:
+            raise NotFoundError("project", project_id)
+        if project.team_id != worker.team_id:
+            raise ForbiddenError(
+                "FORBIDDEN_CROSS_TEAM",
+                "Worker does not belong to the project's team",
+            )
+
+    status = await get_orchestrator_status(db, project_id)
+    return OrchestratorStatusResponse(**status)

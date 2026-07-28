@@ -520,3 +520,61 @@ def worker_to_response(worker: Worker) -> dict:
         "completed_task_count": getattr(worker, "_completed_task_count", 0),
         "active_batches": getattr(worker, "_active_batches", 0),
     }
+
+
+async def get_orchestrator_status(
+    db: AsyncSession,
+    project_id: str,
+    *,
+    heartbeat_timeout_seconds: int = 120,
+) -> dict:
+    """查询 Project 中 O 的心跳状态（PFL-070 · B87）。
+
+    通过 project_actor_roles 找到 orchestrator 角色的 Worker，
+    检查 last_heartbeat_at 是否在阈值内。
+
+    Returns:
+        dict with keys: online, worker_id, worker_name,
+        last_heartbeat_at, heartbeat_age_seconds
+    """
+    from datetime import datetime, timezone
+
+    from src.models.project_actor_role import ProjectActorRole
+
+    # 查找 project 中 role=orchestrator 的 Worker
+    result = await db.execute(
+        select(Worker)
+        .join(ProjectActorRole, ProjectActorRole.worker_id == Worker.id)
+        .where(
+            ProjectActorRole.project_id == project_id,
+            ProjectActorRole.role == "orchestrator",
+            Worker.status == WorkerStatus.ACTIVE,
+        )
+        .limit(1)
+    )
+    orchestrator = result.scalar_one_or_none()
+
+    if orchestrator is None:
+        return {
+            "online": False,
+            "worker_id": None,
+            "worker_name": None,
+            "last_heartbeat_at": None,
+            "heartbeat_age_seconds": None,
+        }
+
+    now = datetime.now(timezone.utc)
+    age = (
+        int((now - orchestrator.last_heartbeat_at).total_seconds())
+        if orchestrator.last_heartbeat_at
+        else None
+    )
+    online = age is not None and age <= heartbeat_timeout_seconds
+
+    return {
+        "online": online,
+        "worker_id": orchestrator.id,
+        "worker_name": orchestrator.name,
+        "last_heartbeat_at": orchestrator.last_heartbeat_at,
+        "heartbeat_age_seconds": age,
+    }

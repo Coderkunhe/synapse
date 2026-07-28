@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B84 ✅ PFL 消化(二) · B83 hotfix · L5 B83→B84 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B86 ✅ PFL 审计 · B85 CronCreate 机械兜底 · L5 B85→B86 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的

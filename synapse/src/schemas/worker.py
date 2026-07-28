@@ -117,3 +117,28 @@ class WorkerProjectResponse(BaseModel):
     display_name: str | None = None
     role: str
     has_project_key: bool = False
+
+
+class OrchestratorStatusResponse(BaseModel):
+    """O 心跳状态 — Builder 启动前检查 O 是否存活（PFL-070 · B87）。"""
+
+    online: bool = Field(
+        ...,
+        description="O 是否在线（last_heartbeat_at 在阈值内）",
+    )
+    worker_id: str | None = Field(
+        None,
+        description="O Worker ID — 无 O 时为 None",
+    )
+    worker_name: str | None = Field(
+        None,
+        description="O Worker 名称",
+    )
+    last_heartbeat_at: datetime | None = Field(
+        None,
+        description="O 最近心跳时间",
+    )
+    heartbeat_age_seconds: int | None = Field(
+        None,
+        description="距上次心跳的秒数 — 无 O 时为 None",
+    )

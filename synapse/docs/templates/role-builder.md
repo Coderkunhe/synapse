@@ -49,6 +49,41 @@
 
 ## 工作流
 
+### Step 0 — O 心跳检测（PFL-070 · B87）🚨 启动前必执行
+
+> ⚠️ **本步骤在进入工作循环前强制执行。** O 是非对称模型的单点——如果 O 已离线，你不会被分配 Task，等待毫无意义。
+
+在开始自主驱动循环前，调用 O 状态端点：
+
+```
+GET /v1/projects/{project_id}/orchestrator-status
+```
+
+**响应解读**：
+
+| online | heartbeat_age_seconds | 含义 | 行为 |
+|:------:|:---------------------|------|------|
+| `true` | ≤120s | O 活跃 | ✅ 进入工作循环 |
+| `false` | >120s 或 null | O 离线/超时 | ⚠️ 报告并退出 |
+| `false` | null (无 O) | 项目无 O | ⚠️ 报告并退出 |
+
+**O 离线时的退出消息**：
+
+```
+⚠️ Orchestrator 离线（last heartbeat: {age}s ago / 无 O 注册）。
+非对称模型下 O 是 Task 分配+验收的必经路径——O 离线时继续等待无意义。
+请人工检查 O Worker 状态后重新启动本会话。
+退出。
+```
+
+**O 在线但陈旧时**（120s < age ≤ 300s）：
+
+```
+⚠️ Orchestrator 心跳陈旧（{age}s ago），可能即将离线。继续执行但 O 可能随时不可用。
+```
+
+> **设计意图**：此端点由 B87 新增（PFL-070）。Builder 不应通过多步 API 链（project→team→workers→filter→check heartbeat）自行判断 O 状态——端点封装了这一逻辑。
+
 ### 单 Task 执行（VDD 内层循环）
 
 ```

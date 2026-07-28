@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B83 ✅ PFL 消化 5/5 · 退出 God's-eye
-last_batch: P11-B83
-next_batch: P11-B84
-description: Synapse 主项目 — B83 ✅ PFL 消化 5/5 · B84 🔜 狗粮验证（B83 修复效果）
+phase: P11-B86 ✅ PFL 审计 · B85 CronCreate 机械兜底 · L5 B85→B86 拉通
+last_batch: P11-B86
+next_batch: P11-B87
+description: Synapse 主项目 — B86 ✅ PFL-069/074 审计 · B87 🔜 PFL-070 O 心跳检测
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B83 ✅ PFL 消化 5/5 · B84 🔜 狗粮验�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
-| **P11** | P11-B82 | **P11-B83** 🔜 | B82 ✅ 狗粮闭环 · 7 PFL · B83 🔜 PFL 消化（P0: PFL-081 ScheduleWakeup 机械兜底）|
+| **P11** | P11-B86 | **P11-B87** 🔜 | B86 ✅ PFL-069/074 审计 · B87 🔜 PFL-070 O 心跳检测 |
 
 ## P11 路线图：多 Agent 接入战
 
