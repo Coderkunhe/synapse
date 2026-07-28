@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100-B98 脚本硬约束 — session-init.js + SKILL.md 616→187行 (-70%) + heartbeat daemon",
-  "lastReviewTimestamp": "2026-07-27",
+  "lastReviewBatch": "P100-B102 违纪回顾 — V-029 🟡→🟢 闭环 · V-024+l5-gate 双层覆盖 · 29/29 🟢 · 活跃 0 · 计数器复位",
+  "lastReviewTimestamp": "2026-07-28",
   "totalViolations": 29,
   "recurringCount": 0,
   "unguardedCount": 1,
-  "batchesSinceLastReview": 1,
-  "notes": "B97 G-036 拆分归档 + B98 脚本硬约束闭环 · heartbeat daemon 补全 · 零 drift · 计数器复位"
+  "batchesSinceLastReview": 0,
+  "notes": "违纪回顾完成，计数器复位"
 }

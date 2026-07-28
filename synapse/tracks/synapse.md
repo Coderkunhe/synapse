@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B101 ✅ 消化 B100 登记的 P1/P2 · B102 🔜
-last_batch: P100-B101
-next_batch: P100-B102
-description: Synapse 主项目 — P100 治理波 · B101 ✅ 5 项 P1/P2 闭环 (A5 状态协调 + A7 版本化 + A8 去重 + A9 日志统一 + A10 胶水) · B102 🔜
+phase: P100-B102 ✅ 违纪回顾 · V-029 🟡→🟢 · B103 🔜
+last_batch: P100-B102
+next_batch: P100-B103
+description: Synapse 主项目 — P100 治理波 · B102 ✅ 违纪回顾 (V-029 🟡→🟢 · V-024+l5-gate 双层覆盖 · 29/29 🟢 · 活跃 0) · B103 🔜
 ---
 
 # Synapse 轨道
