@@ -134,7 +134,7 @@ Task 完成 / 打回返工
 
 | 规则 | 说明 |
 |------|------|
-| **评论区优先（PFL-080）** | 监工模式每一轮第一步：`GET /tasks/{id}/messages` 检查是否有未回复的 Worker 消息（`message_type IN (blocking, clarification, handoff)` 且 `is_resolved=false`）。有则优先处理——blocking（B 被阻塞等回复）和 handoff（B 请求转交）的优先级与 submitted 同级。不回复时 B 在死等——评论区是 Worker 间唯一的异步通道，不读 = 盲区 |
+| **评论区优先（PFL-080）** | 监工模式每一轮第一步：`GET /tasks/{id}/messages` 检查是否有未回复的 Worker 消息（`message_type IN (blocking, clarification, handoff)` 且 `is_resolved=false`）。有则优先处理——blocking（B 被阻塞等回复）和 handoff（B 请求转交）的优先级与 submitted 同级。不回复时 B 在死等——评论区是 Worker 间唯一的异步通道，不读 = 盲区。**注：`review_request` 不在此列表（PFL-074 · B86 审计）——O 通过 `in_verification` 状态检测（5 态矩阵 🔴 行）替代消息通知。B 的 submit 操作已改变 Task 状态为 in_verification，O 的状态同步必然感知，无需额外消息类型检查。** |
 | **API verify = 验收完成** | 在对话里说"验收通过"不是验收。只有 `POST /verifications/{id}/verify`（含 passed/failed 判定 + 评论区 @Builder）才算完成。对话里的判定只有人类能看到——Builder Worker 在 poll 验收结果，你的 API 调用是唯一的信号源 |
 | **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新 Task 列表。不依赖 handshake 缓存的状态快照。Builder 可能在你验收上一个 Task 时提交了新的——缓存数据会让你漏掉 submitted Task |
 | **优先级刚性执行** | submitted > ready 分配 > 监工。验收是最高优先级——Builder 在等你的判定，每延迟一秒 Builder 就多等一秒 |
