@@ -30,7 +30,7 @@ _TRANSITIONS: dict[str, frozenset[str]] = {
     TaskStatus.READY:           frozenset({TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED}),
     TaskStatus.IN_PROGRESS:     frozenset({TaskStatus.PAUSED, TaskStatus.IN_VERIFICATION, TaskStatus.CANCELLED, TaskStatus.READY}),
     TaskStatus.PAUSED:          frozenset({TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED}),
-    TaskStatus.IN_VERIFICATION: frozenset({TaskStatus.COMPLETED, TaskStatus.REJECTED, TaskStatus.CANCELLED}),
+    TaskStatus.IN_VERIFICATION: frozenset({TaskStatus.COMPLETED, TaskStatus.REJECTED, TaskStatus.CANCELLED, TaskStatus.IN_PROGRESS}),
     TaskStatus.REJECTED:        frozenset({TaskStatus.IN_PROGRESS}),
     TaskStatus.COMPLETED:       frozenset(),
     TaskStatus.CANCELLED:       frozenset(),
@@ -55,6 +55,7 @@ _EVENT_TYPE_MAP: dict[tuple[str, str], str] = {
     (TaskStatus.IN_VERIFICATION, TaskStatus.COMPLETED): "task.completed",
     (TaskStatus.IN_VERIFICATION, TaskStatus.REJECTED):  "task.rejected",
     (TaskStatus.IN_VERIFICATION, TaskStatus.CANCELLED): "task.cancelled",
+    (TaskStatus.IN_VERIFICATION, TaskStatus.IN_PROGRESS): "task.verification_timeout_reverted",
     (TaskStatus.REJECTED, TaskStatus.IN_PROGRESS):      "task.claimed",
 }
 

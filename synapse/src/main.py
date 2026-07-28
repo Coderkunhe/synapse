@@ -13,7 +13,7 @@ from src.config import settings
 from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
 from src.services.authorization_service import expire_stale_requests
-from src.services.stale_task_detector import detect_stale_tasks
+from src.services.stale_task_detector import detect_stale_tasks, detect_stale_verifications
 from src.services.ws_manager import ws_manager
 
 
@@ -54,31 +54,46 @@ async def _auth_expiry_reaper() -> None:
             pass
 
 
-# ── Background task: detect stale in_progress tasks (P11-B76) ──────────
+# ── Background task: detect stale tasks and timed-out verifications ──────────
 
 
 async def _stale_task_reaper() -> None:
-    """Periodically scan for stale in_progress tasks.
+    """Periodically scan for stale in_progress tasks (P11-B76)
+    and timed-out in_verification tasks (P11-B88).
 
-    Calls detect_stale_tasks() on its own DB session.
+    Calls detect_stale_tasks() and detect_stale_verifications()
+    on their own DB session.
     Runs every task_stale_scan_interval_seconds (default 120s).
     """
     interval = settings.task_stale_scan_interval_seconds
-    threshold = settings.task_stale_threshold_minutes
+    stale_threshold = settings.task_stale_threshold_minutes
+    verify_timeout = settings.verification_timeout_minutes
     while True:
         await asyncio.sleep(interval)
         try:
             async with async_session_factory() as db:
-                result = await detect_stale_tasks(db, threshold_minutes=threshold)
+                # P11-B76: stale in_progress detection
+                result = await detect_stale_tasks(db, threshold_minutes=stale_threshold)
+                # P11-B88: verification timeout auto-reclaim
+                verify_result = await detect_stale_verifications(
+                    db, threshold_minutes=verify_timeout,
+                )
                 await db.commit()
-                if result["stale_count"] > 0:
+                if result["stale_count"] > 0 or verify_result["reverted_count"] > 0:
                     import logging
                     logger = logging.getLogger("synapse")
-                    logger.info(
-                        "Detected %d stale task(s): %s",
-                        result["stale_count"],
-                        result["stale_task_ids"],
-                    )
+                    if result["stale_count"] > 0:
+                        logger.info(
+                            "Detected %d stale task(s): %s",
+                            result["stale_count"],
+                            result["stale_task_ids"],
+                        )
+                    if verify_result["reverted_count"] > 0:
+                        logger.info(
+                            "Auto-reverted %d timed-out verification(s): %s",
+                            verify_result["reverted_count"],
+                            verify_result["reverted_task_ids"],
+                        )
         except Exception:
             pass
 

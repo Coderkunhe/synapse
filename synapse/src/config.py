@@ -102,6 +102,9 @@ class Settings(BaseSettings):
     task_stale_threshold_minutes: int = 60
     task_stale_scan_interval_seconds: int = 120
 
+    # Verification timeout auto-reclaim (P11-B88)
+    verification_timeout_minutes: int = 30
+
     # Verify idempotent guard (P11-B76)
     verify_idempotent_window_seconds: int = 60
 
