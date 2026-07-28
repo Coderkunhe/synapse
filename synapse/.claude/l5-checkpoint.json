@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B98→B99 L5 拉通 — B98 脚本硬约束 (session-init.js + SKILL.md -70% + heartbeat daemon) · B99 模板源回灌 (6 files 回灌到 generate-skill 管道 · 模板↔Worker byte-identical ✅) · 零 drift · 计数器复位",
+  "lastL5Batch": "B100→B101 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B98/B99/B100/B101 补齐 · 📄 pitfalls header 日期刷新 · 📄 daily 2026-07-28 新建 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-28",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B98→B99 L5 拉通 — B98 脚本硬约束 (session-init.js + SKILL.md -70% + heartbeat daemon) · B99 模板源回灌 (6 files 回灌到 generate-skill 管道 · 模板↔Worker byte-identical ✅) · 零 drift · 计数器复位",
+  "lastL5Evidence": "B100→B101 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B98/B99/B100/B101 补齐 · 📄 pitfalls header 日期刷新 · 📄 daily 2026-07-28 新建 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
