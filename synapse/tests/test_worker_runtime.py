@@ -99,7 +99,11 @@ class TestHeartbeatColumns:
 
     async def test_heartbeat_sets_last_heartbeat_at(self, db: AsyncSession, seeded: dict):
         agent = await _register_and_handshake(db, seeded)
-        assert agent.last_heartbeat_at is None  # 首次心跳前为空
+        # P11-B81 PFL-065: handshake 现在同步更新 last_heartbeat_at
+        # 一次网络往返已证明 Worker 在线 — 心跳时间戳在握手时即初始化
+        assert agent.last_heartbeat_at is not None, (
+            "handshake should set last_heartbeat_at (PFL-065)"
+        )
 
         agent, _ = await worker_heartbeat(db, agent.id, current_load=0)
         await db.flush()

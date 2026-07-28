@@ -105,6 +105,11 @@ async def worker_handshake(
     previous_status = worker.status
     worker.status = WorkerStatus.ACTIVE
 
+    # P11-B81 PFL-065: handshake 同步更新 last_heartbeat_at
+    # handshake 已完成一次网络往返证明 Worker 在线 → 更新心跳时间戳
+    # 避免 stale detector 误杀刚握手的 Worker（只调 handshake 不调 heartbeat）
+    worker.last_heartbeat_at = datetime.now(timezone.utc)
+
     # 在 worker 上存储握手元数据
     handshake_meta = {
         "worker_version": worker_version,

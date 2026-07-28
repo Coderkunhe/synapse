@@ -139,6 +139,7 @@ Task 完成 / 打回返工
 | 系统状态 | O 动作 | 间隔 |
 |---------|--------|:--:|
 | 🔴 有 submitted Task | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder | — |
+| ⚪ 有 backlog 未 ready Task | 评估后执行 ready（`POST /tasks/{id}/ready`）。B72 Server 强制 `BACKLOG→READY` 是必经步骤——跳过 ready 直接 assign 会被 409 拒绝 | — |
 | 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
 | 🔵 全部 in_progress（正常进展）| 监工：逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |

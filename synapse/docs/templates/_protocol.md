@@ -583,7 +583,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
 | 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
-| 评论/提问 | `POST` | `/v1/projects/{pid}/tasks/{tid}/messages` |
+| 评论/提问 | `POST` | `/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
 
 > 💡 **使用 Python 代替 curl**：curl 在 shell 中的 JSON 转义、管道交织、`-w` 格式化输出污染是已知问题（P-043）。Worker 应优先使用 Python 单行调用模式：

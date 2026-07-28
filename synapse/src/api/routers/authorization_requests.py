@@ -192,6 +192,16 @@ async def respond_to_auth_request(
     # 获取记录以确定 project_id，同时验证存在性
     record = await get_request(db, request_id)
 
+    # P11-B81 PFL-047 L3: API 硬门禁 — Worker 不可审批授权请求
+    # 审批人是 Human（且仅限 Human），任何 Worker（含 Orchestrator）尝试审批直接 403
+    if actor.actor_type == ActorType.WORKER:
+        raise ForbiddenError(
+            "WORKER_CANNOT_APPROVE",
+            "Only humans can approve or deny authorization requests. "
+            "Workers (including Orchestrators) are not authorized to respond to authorization requests. "
+            "Please open the Synapse Web UI to approve this request.",
+        )
+
     # 验证 actor 对所属 project 有 admin/lead 角色
     # （check_project_role 自动处理 super_admin 绕过）
     await check_project_role(db, record.project_id, actor, "admin", "lead")

@@ -150,6 +150,8 @@
 | **P11-B77** | **狗粮 R4 无人干预全链路** — 双 Worker 零人工干预完成全链路 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮 | ✅ |
 | **P11-B78** | **Worker heartbeat 脚本化** — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜 | ✅ |
 | **P11-B79** | **task_service.py 拆分** — 1073 行按功能域拆分（create/assign/claim/submit 独立模块）· D-P100-002 | ✅ |
+| **P11-B80** | **PFL 状态审计** — 26 项交叉对照模板+源码核实 · 18 项状态同步 · 🟢 微型 · 1 file · commit `3eb748a` | ✅ |
+| **P11-B81** | **PFL 微型缺口修复 5/5** — PFL-047 L3 API 硬门禁 · PFL-053 路径更正 · PFL-059 auto-verify 确认 · PFL-064 backlog→ready 路由 · PFL-065 handshake 心跳 · 🟡 标准 · 6 files · 633 tests 零回归 | ✅ |
 
 ---
 
