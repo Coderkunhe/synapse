@@ -396,6 +396,7 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 | **O 状态检测** | B87 | B 启动时 | `GET /v1/projects/{pid}/orchestrator-status` — 检查 O 是否在线 |
 | **B 三级恢复** | B89 | B 检测到 O 离线 | ≤5min→ScheduleWakeup 30s 重试 · 5-30min→@Human+120s · >30min→退出 |
 | **O 自检心跳** | B89 | O 启动+循环中 | `GET /workers/me` 检查 `last_heartbeat_at`→过期>120s 立即补发 |
+| **B 自检心跳** | B91 | B 启动+循环中 | `GET /workers/me` 检查 `last_heartbeat_at`→过期>120s 立即补发 · Handshake≠Heartbeat |
 | **Server 安全网** | B88 | Server 后台 | `detect_stale_verifications()` — 30min 自动回退 in_verification 任务 |
 
 > **B 侧角色约束**（PFL-070 设计决策）：B 是被动响应者——O 离线时 B 不替代 O 的职责（不自行分配 Task、不自验）。B 的恢复动作限于智能等待 + 通知 Human。O 的职责（分配、验收）不可委托给 B——这是角色围栏，不是能力缺失。

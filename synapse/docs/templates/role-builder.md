@@ -111,6 +111,27 @@ GET /v1/projects/{project_id}/orchestrator-status
 
 > **设计意图**：orchestrator-status 端点由 B87 新增（检测），B89 补恢复逻辑（三级重试）。Builder 不应通过多步 API 链自行判断 O 状态——端点封装了这一逻辑。恢复动作遵循非对称模型——B 是被动响应者，O 离线时 B 不替代 O 的职责，只做智能等待。
 
+### Step 0.5 — B 自检心跳（PFL-083 · B91）🚨 进入循环前必执行
+
+> ⚠️ **你的心跳是 O 判断你在线的前提。** Handshake（一次性启动事件，更新 `last_seen_at`）≠ Heartbeat（周期性保活信号，更新 `last_heartbeat_at`）。O 通过 `orchestrator-status` 检查 Worker 心跳来决定 push assign 和验收——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 链路断裂。
+
+在进入执行循环前，检查并补发自己的心跳：
+
+```
+GET /workers/me → 检查 last_heartbeat_at
+  │
+  ├─ age > 120s → POST /workers/{id}/heartbeat（立即补一跳）
+  │   └─ "⚠️ 自检：心跳过期 {age}s，已补发。进入循环。"
+  │
+  ├─ age ≤ 120s → ✅ 心跳正常，进入循环
+  │
+  └─ heartbeat API 不可达 → "🚨 自检失败：无法连接 Synapse API。
+     检查网络/SYNAPSE_API_KEY/SYNAPSE_WORKER_ID。"
+      → 退避重试 3 次（2s→5s→10s）→ 仍失败 → 退出
+```
+
+> **为什么不是可选的**（B90 狗粮教训）：Builder 在 14:41-14:48 期间活跃执行 3 个 Task（claim→submit 全链路），但 `last_heartbeat_at` 始终停留在 09:01（5.7 小时前）。O 看到 B "离线"→ 拒绝 push assign → B 只能靠 pull claim → VDD 验收链路断裂。心跳不是"有当然好"的优化——它是 O-B 协作协议的基础信号。
+
 ### 单 Task 执行（VDD 内层循环）
 
 ```
@@ -152,6 +173,9 @@ POST /tasks/{id}/submit（附 evidence）
 ┌──────────────────────────────────────────────────────┐
 │  🔄 被动响应循环（P11-B74 · 非对称模型）              │
 │                                                      │
+│  0. 心跳保活（PFL-083 · B91）                          │
+│     └─ GET /workers/me → age>120s → POST heartbeat    │
+│                                                      │
 │  1. 等待 O 分配（主通道）                              │
 │     ├─ 轮询 GET /projects/{id}/tasks?assigned_to=me   │
 │     │   └─ 检查是否有 O assign 的 in_progress Task     │
@@ -180,6 +204,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
 | **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
+| **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
 | **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。

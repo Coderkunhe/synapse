@@ -41,7 +41,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const { SynapseClient } = require('./api-client');
 const { getKey } = require('./keychain');
 
@@ -78,6 +78,37 @@ function checkHeartbeatDaemon() {
     if (e.status === 1) return { running: false, pids: [] };
     // Any other error (pgrep not found, timeout, etc.) — best-effort, don't block
     return { running: false, pids: [], error: e.message };
+  }
+}
+
+/**
+ * Start the heartbeat daemon as a detached background process (PFL-083 · B91).
+ *
+ * Uses child_process.spawn with detached:true + unref() — the daemon survives
+ * the parent hook subprocess exit. This is the MECHANICAL guarantee: once spawned,
+ * heartbeat.js sends POST /workers/{id}/heartbeat every 55s via setInterval.
+ *
+ * The previous approach (shell `&` in the hook command) was unreliable because
+ * Claude Code's hook runner may kill the process group on command completion.
+ * detached:true + unref() is the POSIX-compliant daemon pattern.
+ *
+ * Returns the daemon PID on success, null on failure.
+ */
+function startHeartbeatDaemon() {
+  try {
+    const scriptPath = path.join(__dirname, 'heartbeat.js');
+    if (!fs.existsSync(scriptPath)) {
+      return { started: false, error: 'heartbeat.js not found at ' + scriptPath };
+    }
+    const child = spawn(process.execPath, [scriptPath], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env },  // inherit SYNAPSE_* vars
+    });
+    child.unref();  // detach from parent — daemon survives hook exit
+    return { started: true, pid: child.pid };
+  } catch (e) {
+    return { started: false, error: e.message };
   }
 }
 
@@ -153,6 +184,11 @@ function writeState(state) {
   lines.push('> ');
   lines.push('> **唯一例外**：人类用户显式说"停止"或"退出循环"。');
   lines.push('> ');
+  lines.push('> **🔄 CronCreate vs ScheduleWakeup 分工（B90 补文档）**：');
+  lines.push('> - **CronCreate**（本 banner）= 安全网（belt）— 每 60 秒兜底，只在 REPL 空闲时触发，不会在你工作时打扰');
+  lines.push('> - **ScheduleWakeup**（角色模板"空闲出口"）= 主通道（suspenders）— 精确控制下次唤醒时间，你必须在退出前调用');
+  lines.push('> - **两个都要设**：启动时 CronCreate（安全网），退出时 ScheduleWakeup（主通道）。缺一不可。');
+  lines.push('> ');
   lines.push('> **然后**再读下面的状态。本 banner 由 session-init.js 机械生成——脚本不会骗你。');
   lines.push('');
 
@@ -171,6 +207,22 @@ function writeState(state) {
     lines.push('> **B82 教训**：两个 Worker 各自完成自己的动作就停止——');
     lines.push('> B 空队列→退出→O assign 后 B 不在（PFL-079）· O assign 完→退出→B submit 后 O 不在（PFL-082）。');
     lines.push('> 没有一方在"等待对方"时保持循环活跃。**脚本不会骗你——如果你判断为空闲，你就是错的。**');
+    lines.push('');
+  }
+
+  // ── B90 API Unreachable Banner (B90 · 防止真空闲假信号) ──
+  // When ALL API queries return -1, activeTaskCount = 0 could mean "API down"
+  // rather than "truly idle". The AI must not exit when it can't verify the queue.
+  if (state.apiUnreachable) {
+    lines.push('## ⚠️ API 不可达 — 无法判断是否空闲');
+    lines.push('');
+    lines.push('> 🚨 **B90 机械检测**：所有状态查询（in_progress / ready / verification）均返回错误。');
+    lines.push('> `activeTaskCount = 0` 不代表真空闲 — API 不可达时脚本无法获取真实状态。');
+    lines.push('> ');
+    lines.push('> **禁止判断为空闲退出。** 改为：');
+    lines.push('> 1. 检查网络/API 连接（`curl $SYNAPSE_API_URL/health`）');
+    lines.push('> 2. 如果 API 恢复 → 重新运行 `node scripts/session-init.js` 刷新状态');
+    lines.push('> 3. 如果 API 持续不可达 → ScheduleWakeup 120s 后重试，评论区 @Human 报告');
     lines.push('');
   }
 
@@ -203,10 +255,13 @@ function writeState(state) {
     lines.push(`- **Project**: \`${state.env.SYNAPSE_PROJECT_ID}\``);
     lines.push(`- **Role**: \`${state.role || state.env.SYNAPSE_WORKER_ROLE || 'unknown'}\``);
     lines.push(`- **API Key**: from ${state.env._keySource || 'env'}`);
-    // Heartbeat daemon status (A5: SessionStart hook 三阶段无状态协调)
+    // Heartbeat daemon status (A5: SessionStart hook 三阶段无状态协调 · B91: auto-start)
     if (state.heartbeatDaemon) {
       if (state.heartbeatDaemon.running) {
-        lines.push(`- **Heartbeat daemon**: ✅ running (pid: ${state.heartbeatDaemon.pids.join(', ')})`);
+        const tag = state.heartbeatDaemon.startedByUs ? '🆕 auto-started by session-init' : 'already running';
+        lines.push(`- **Heartbeat daemon**: ✅ running (pid: ${state.heartbeatDaemon.pids.join(', ')}, ${tag})`);
+      } else if (state.heartbeatDaemon.startError) {
+        lines.push(`- **Heartbeat daemon**: 🔴 FAILED TO START — ${state.heartbeatDaemon.startError}. AI should send manual heartbeat.`);
       } else if (state.heartbeatDaemon.error) {
         lines.push(`- **Heartbeat daemon**: ⚠️ unable to check (${state.heartbeatDaemon.error})`);
       } else {
@@ -356,6 +411,16 @@ function writeState(state) {
     }
   }
 
+  // ── Warnings ──
+  if (state.warnings && state.warnings.length > 0) {
+    lines.push('');
+    lines.push('## ⚠️ Warnings');
+    lines.push('');
+    for (const w of state.warnings) {
+      lines.push(`- ${w}`);
+    }
+  }
+
   // ── Errors ──
   if (state.errors && state.errors.length > 0) {
     lines.push('');
@@ -451,6 +516,8 @@ async function main() {
     staleVerificationTasks: [],
     unreadMessagesTotal: 0,
     unreadMessages: [],
+    // B90: apiUnreachable flag — prevent "0 active tasks" false signal when API is down
+    apiUnreachable: false,
   };
 
   // ── Step 1: Check environment ──────────────────────────────────
@@ -472,8 +539,17 @@ async function main() {
   const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
   const client = new SynapseClient(config);
 
-  // ── Step 2.5: Check heartbeat daemon status ─────────────────────
+  // ── Step 2.5: Check + start heartbeat daemon (PFL-083 · B91) ──────
   state.heartbeatDaemon = checkHeartbeatDaemon();
+  if (!state.heartbeatDaemon.running) {
+    const startResult = startHeartbeatDaemon();
+    if (startResult.started) {
+      state.heartbeatDaemon = { running: true, pids: [String(startResult.pid)], startedByUs: true };
+    } else {
+      state.heartbeatDaemon.startedByUs = false;
+      state.heartbeatDaemon.startError = startResult.error;
+    }
+  }
 
   // ── Step 3: Fetch protocol ─────────────────────────────────────
   const protocolRole = state.role || 'builder';
@@ -639,7 +715,11 @@ async function main() {
   // Deduplicate by task id
   const seen = new Set();
   const uniqueTasks = allTasks.filter(t => { const k = t.id; if (seen.has(k)) return false; seen.add(k); return true; });
-  for (const t of uniqueTasks.slice(0, 10)) { // Cap at 10 tasks to avoid excessive API calls
+  const MSG_CHECK_CAP = 10;
+  if (uniqueTasks.length > MSG_CHECK_CAP) {
+    state.warnings.push(`Unread message check capped at ${MSG_CHECK_CAP} of ${uniqueTasks.length} active tasks — messages on tasks beyond the cap were not checked.`);
+  }
+  for (const t of uniqueTasks.slice(0, MSG_CHECK_CAP)) { // Cap to avoid excessive API calls
     try {
       const msgRes = await client.get(`/v1/projects/${projectId}/tasks/${t.id}/messages?is_resolved=false`);
       if (!msgRes.error && msgRes.data) {
@@ -669,6 +749,14 @@ async function main() {
     activeTaskCount = state.allActiveTotal;
   }
   state.activeTaskCount = activeTaskCount;
+
+  // B90: Detect API unreachable — when ALL queried totals are -1, "0 active tasks"
+  // is a false signal. activeTaskCount = 0 can mean either "truly idle" or "API down,
+  // can't determine". The apiUnreachable flag disambiguates for the writeState banner.
+  const queriedTotals = [state.inProgressTotal];
+  if (state.role === 'builder') { queriedTotals.push(state.readyTotal); }
+  else if (state.role === 'orchestrator') { queriedTotals.push(state.readyTotal, state.verificationTotal); }
+  state.apiUnreachable = queriedTotals.length > 0 && queriedTotals.every(t => t < 0);
 
   // PFL-077: Detect stale in_verification tasks (>15 min without update).
   // These indicate Human is not responding — O should not wait forever.
@@ -725,6 +813,7 @@ main().catch((err) => {
     activeTaskCount: 0,
     staleVerificationCount: 0,
     staleVerificationTasks: [],
+    apiUnreachable: true,  // B90: assume unreachable on script failure — safer default
   };
   try {
     writeState(errorState);

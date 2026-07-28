@@ -4,6 +4,10 @@
       {
         "matcher": "",
         "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
+      },
+      {
+        "matcher": "",
+        "command": "node \"$CLAUDEDIR/scripts/heartbeat.js\" > /dev/null 2>&1 &"
       }
     ]
   }
