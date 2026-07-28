@@ -130,6 +130,44 @@ function writeState(state) {
     '',
   ];
 
+  // ── PFL-079/082 Active Task Banner (B84 · 机械告警) ──
+  // MUST appear before Connection section — the AI reads this file top-to-bottom.
+  // If activeTaskCount > 0, Worker must NOT judge itself as idle, regardless of
+  // what the queue looks like. B82 lesson: both Workers stopped after doing their
+  // own action — neither stayed alive to wait for the other.
+  if (state.activeTaskCount > 0) {
+    lines.push(`## 🚨 你有 ${state.activeTaskCount} 个活跃任务，禁止判断为空闲`);
+    lines.push('');
+    lines.push('> ⚠️ **PFL-079/082 机械告警（B84 · session-init.js 硬约束）**：');
+    lines.push('> 脚本检测到活跃任务（in_progress / in_verification / submitted / ready）。');
+    lines.push('> 即使当前队列看起来"空"，这些任务仍在进行中——退出循环 = 死锁。');
+    lines.push('> ');
+    lines.push('> **B82 教训**：两个 Worker 各自完成自己的动作就停止——');
+    lines.push('> B 空队列→退出→O assign 后 B 不在（PFL-079）· O assign 完→退出→B submit 后 O 不在（PFL-082）。');
+    lines.push('> 没有一方在"等待对方"时保持循环活跃。**脚本不会骗你——如果你判断为空闲，你就是错的。**');
+    lines.push('');
+  }
+
+  // ── PFL-077 Stale Verification Banner (B84 · 机械停滞检测) ──
+  if (state.staleVerificationCount > 0) {
+    lines.push(`## 🚨 死锁风险: ${state.staleVerificationCount} tasks stuck in verification for >15min`);
+    lines.push('');
+    for (const t of state.staleVerificationTasks) {
+      const ageMin = t.updated_at
+        ? Math.round((Date.now() - new Date(t.updated_at).getTime()) / 60000)
+        : '?';
+      lines.push(`- 🔴 **${t.title || t.id}** (\`${t.id}\`) — last updated ${ageMin} min ago`);
+    }
+    lines.push('');
+    lines.push('> ⚠️ **PFL-077 机械停滞检测（B84 · session-init.js 硬约束）**：');
+    lines.push('> 这些 Task 卡在 `in_verification` 超过 15 分钟。Human 可能不在线，');
+    lines.push('> 或者验收结果未通过 API 写入。**不要无限等待**——采取超时策略：');
+    lines.push('> 1. `POST /tasks/{id}/messages @Human "请验收"` — 通知 Human');
+    lines.push('> 2. 继续等待 5 分钟 → 仍无响应 → 强制 reject 或标记 stale → 继续处理下一个 Task');
+    lines.push('> 3. O 的职责是推进工作流，不是等 Human 永远不来的回复。');
+    lines.push('');
+  }
+
   // ── Connection status ──
   lines.push('## 🔌 Connection');
   lines.push('');
@@ -379,7 +417,14 @@ async function main() {
     allActiveTotal: -1,
     allActiveTasks: [],
     errors: [],
+    warnings: [],
     heartbeatDaemon: null,
+    // B84: PFL-077/079/082 mechanical guards
+    activeTaskCount: 0,
+    staleVerificationCount: 0,
+    staleVerificationTasks: [],
+    unreadMessagesTotal: 0,
+    unreadMessages: [],
   };
 
   // ── Step 1: Check environment ──────────────────────────────────
@@ -582,6 +627,39 @@ async function main() {
     } catch (_) { /* best-effort — don't block startup on message query failure */ }
   }
 
+  // ── Step 5e: Active task count + stale detection (PFL-077/079/082) ─
+  // PFL-079/082: Compute total active tasks for "do NOT judge as idle" banner.
+  // Active = any task that is NOT completed/cancelled. If count > 0, Worker
+  // must not exit — tasks exist that need attention, even if current queue looks empty.
+  let activeTaskCount = 0;
+  if (state.inProgressTotal > 0) activeTaskCount += state.inProgressTotal;
+  if (state.verificationTotal > 0) activeTaskCount += state.verificationTotal;
+  // For Builder: ready tasks are the work queue — they count as active
+  if (state.role === 'builder' && state.readyTotal > 0) {
+    activeTaskCount += state.readyTotal;
+  }
+  // For Orchestrator: use allActiveTotal if available (more comprehensive)
+  if (state.role === 'orchestrator' && state.allActiveTotal > 0) {
+    activeTaskCount = state.allActiveTotal;
+  }
+  state.activeTaskCount = activeTaskCount;
+
+  // PFL-077: Detect stale in_verification tasks (>15 min without update).
+  // These indicate Human is not responding — O should not wait forever.
+  state.staleVerificationCount = 0;
+  state.staleVerificationTasks = [];
+  if (state.verificationTasks && state.verificationTasks.length > 0) {
+    const nowTs = Date.now();
+    const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+    for (const t of state.verificationTasks) {
+      const updatedAt = t.updated_at ? new Date(t.updated_at).getTime() : 0;
+      if (updatedAt > 0 && (nowTs - updatedAt) > STALE_THRESHOLD_MS) {
+        state.staleVerificationTasks.push(t);
+      }
+    }
+    state.staleVerificationCount = state.staleVerificationTasks.length;
+  }
+
   // ── Step 6: Write output ──────────────────────────────────────
   writeState(state);
 
@@ -606,6 +684,7 @@ main().catch((err) => {
     env: {},
     envMissing: [],
     errors: [`Script failure: ${err.message}`],
+    warnings: [],
     role: null,
     protocolOk: false,
     handshakeOk: false,
@@ -617,6 +696,9 @@ main().catch((err) => {
     unreadMessagesTotal: -1,
     unreadMessages: [],
     heartbeatDaemon: null,
+    activeTaskCount: 0,
+    staleVerificationCount: 0,
+    staleVerificationTasks: [],
   };
   try {
     writeState(errorState);

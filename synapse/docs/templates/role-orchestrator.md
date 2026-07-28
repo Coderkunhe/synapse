@@ -112,15 +112,21 @@ Task 完成 / 打回返工
 │     ├─ 无活跃 Task → 检查是否有新需求需拆解          │
 │     └─ 有 pending_auth → 每 10s 检查审批状态       │
 │                                                 │
-│  5. 空闲出口（ScheduleWakeup · P11-B74 · PFL-081）：  │
+│  5. 空闲出口（ScheduleWakeup · P11-B74 · PFL-081/082）：│
 │     🚨 退出前必须调用 ScheduleWakeup 工具设闹钟。        │
+│     🚨 退出前先读 _task-current.md 顶部——如果脚本显示    │
+│        有活跃任务（PFL-082 机械告警），禁止退出！         │
+│        脚本不会骗你——活跃任务数 > 0 = 你判断为空闲是错的  │
 │     全队列空（无活跃 + 无 ready + backlog 无待拆）       │
+│        + _task-current.md 活跃任务数 = 0                  │
 │        → ScheduleWakeup 60s 后自唤醒，继续循环           │
 │     ⚠️ 只有这个条件触发退出。有任何 submitted/            │
 │        ready/in_progress/pending_auth → 继续跑           │
 │     ⚠️ 禁止不设 ScheduleWakeup 直接退出。B82 教训：      │
 │        Agent 在"分析完→写总结"后直接停——设闹钟这步       │
 │        从未被执行。ScheduleWakeup 是续命机制，不是建议    │
+│     ⚠️ B82 镜像教训（PFL-082）：O assign 完→退出→        │
+│        B submit 后 O 不在——VDD 闭环断裂在验收端          │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -136,6 +142,7 @@ Task 完成 / 打回返工
 | **监工不 micromanage** | 检查状态和更新时间的目的是发现异常（阻塞、逾期），不是考核 Builder 的每步操作。正常进展中的 Task 不需要干预 |
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
 | **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求需创建新 Task。只有 backlog 也为空时才报告"项目工作队列为空"。不无限空转 |
+| **验收超时不无限等（PFL-077 · B84）** | 在 `_task-current.md` 顶部检查停滞告警。有 in_verification 停滞 >15min → 执行验收超时策略（通知 Human → 等 5min → 强制 reject → 移回 backlog）。**Human 不在线时 O 不能卡死——你是在推进项目，不是等客服回复。** |
 | **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步 → 拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
 
 **5 态路由矩阵（P11-B74 · 响应内循环决策表）**：
@@ -150,7 +157,8 @@ Task 完成 / 打回返工
 | 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
 | 🔵 全部 in_progress（正常进展）| 监工：先查评论区 → 逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
-| ⚫ 全队列空 | 🚨 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆。**只有这个状态退出循环** | 60s |
+| ⚫ 全队列空 | 🚨 先读 `_task-current.md` 顶部活跃任务数（PFL-082 机械告警）。活跃任务数 > 0 → **禁止退出，回到步骤 1**。活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆 + `_task-current.md` 活跃任务数 = 0。**只有这个状态退出循环** | 60s |
+| 🔴 有 in_verification 停滞 >15min（PFL-077） | **验收超时策略**：① `POST /tasks/{id}/messages @Human "请验收 Task #{id}"` 通知 Human。② 继续等待 5 分钟。③ 仍无响应 → `POST /verifications/{id}/verify` 强制 reject（备注 "Auto-rejected: verification timeout >20min, no Human response"）。④ 评论区 @Builder 说明情况。⑤ 将 Task 移回 backlog 或标记 cancelled。**不要无限等待——O 的职责是推进工作流，不是等 Human 永远不来的回复。** | — |
 
 **验收 vs 对话汇报 — 明确区分**：
 
@@ -207,6 +215,7 @@ Task 完成 / 打回返工
 | API 5xx / 网络错误 | 退避重试 3 次（2s→5s→10s）。全部失败 → ScheduleWakeup 60s，评论区记录错误 |
 | 同一 Task 反复出现在 re-fetch | 检查 `version_no` 是否增长。未增长 → 跳过本轮。已增长 → 正常处理 |
 | in_progress Task >2h 无更新 | 评论区 @Builder 询问状态。>24h → @Human 报告异常 |
+| **in_verification Task >15min 无响应（PFL-077）** | 🚨 **验收超时——不要无限等待。** ① `POST /tasks/{id}/messages @Human "请验收"` ② 等待 5min ③ 仍无响应 → `POST /verifications/{id}/verify` 强制 reject（备注 `Auto-rejected: verification timeout >20min`）④ 评论区 @Builder 说明 ⑤ Task 移回 backlog。O 的职责是推进工作流，不是等 Human 永远不来的回复。 |
 | Wakeup 后 context 过期 | 不假设"还记得上次做到哪"——handshake + state sync 重建上下文 |
 
 > 详见 `_protocol.md` §4.1.3「异常退出协议」。

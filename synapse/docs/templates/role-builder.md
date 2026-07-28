@@ -101,9 +101,12 @@ POST /tasks/{id}/submit（附 evidence）
 │                                                      │
 │  3. 执行 → submit → poll 验收 → 回到步骤 1             │
 │                                                      │
-│  4. 空闲出口（ScheduleWakeup）                         │
-│     └─ 无 assigned + 无 ready + 无 in_progress         │
-│        → ScheduleWakeup 30s 自唤醒                     │
+│  4. 空闲出口（ScheduleWakeup · PFL-079 机械告警）        │
+│     ├─ 先读 _task-current.md 顶部活跃任务数               │
+│     │   └─ 🚨 活跃任务数 > 0 → 禁止退出！回到步骤 1       │
+│     └─ 无 assigned + 无 ready + 无 in_progress            │
+│        + _task-current.md 活跃任务数 = 0                  │
+│        → ScheduleWakeup 30s 自唤醒                        │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -114,7 +117,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **API submit = 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成 |
 | **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
-| **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。无 ready + 无 in_progress → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
+| **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
