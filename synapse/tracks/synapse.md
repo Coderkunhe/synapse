@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B100 ✅ 脚本硬约束审计 · B101 🔜
-last_batch: P100-B100
-next_batch: P100-B101
-description: Synapse 主项目 — P100 治理波 · B100 ✅ 深度审计修复 (3 P0 + 2 P1 fixed · 5 P1/P2 登记 pitfalls) · B101 🔜
+phase: P100-B101 ✅ 消化 B100 登记的 P1/P2 · B102 🔜
+last_batch: P100-B101
+next_batch: P100-B102
+description: Synapse 主项目 — P100 治理波 · B101 ✅ 5 项 P1/P2 闭环 (A5 状态协调 + A7 版本化 + A8 去重 + A9 日志统一 + A10 胶水) · B102 🔜
 ---
 
 # Synapse 轨道
@@ -14,7 +14,7 @@ description: Synapse 主项目 — P100 治理波 · B100 ✅ 深度审计修复
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B99 | **P100-B100** 🔜 | B99 ✅ B98 脚本硬约束回灌 (6 files · session-init.js 入库 + SKILL.md -70%) · B100 🔜 |
+| **P100** | P100-B101 | **P100-B102** 🔜 | B101 ✅ 5 项 P1/P2 闭环 · B102 🔜 |
 | **P11** | P11-B78 | **P100** 🔜 (治理波) | B1-B78 ✅ · B78 heartbeat 脚本化 · PFL-073 闭环 · 暂挂 P11，P100 后继续 |
 
 ## P11 路线图：多 Agent 接入战

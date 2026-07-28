@@ -33,6 +33,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
+ * @version 1.0.1
  * @file session-init.js
  */
 
@@ -40,6 +41,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { SynapseClient } = require('./api-client');
 const { getKey } = require('./keychain');
 
@@ -53,6 +55,30 @@ const SCRIPT_NAME = 'session-init';
 /** Current ISO timestamp for output files. */
 function now() {
   return new Date().toISOString();
+}
+
+/**
+ * Check if a heartbeat daemon process is running.
+ * Uses pgrep (macOS/Linux) to find node processes running heartbeat.js.
+ * Non-blocking — returns false on any error (daemon detection is best-effort).
+ *
+ * @returns {{ running: boolean, pids: string[] }}
+ */
+function checkHeartbeatDaemon() {
+  try {
+    const out = execSync('pgrep -f "node.*heartbeat\\.js"', {
+      timeout: 1000,
+      encoding: 'utf-8',
+    }).trim();
+    if (!out) return { running: false, pids: [] };
+    const pids = out.split('\n').filter(Boolean);
+    return { running: pids.length > 0, pids };
+  } catch (e) {
+    // pgrep exits 1 when no match — that's not an error
+    if (e.status === 1) return { running: false, pids: [] };
+    // Any other error (pgrep not found, timeout, etc.) — best-effort, don't block
+    return { running: false, pids: [], error: e.message };
+  }
 }
 
 /**
@@ -113,6 +139,16 @@ function writeState(state) {
     lines.push(`- **Project**: \`${state.env.SYNAPSE_PROJECT_ID}\``);
     lines.push(`- **Role**: \`${state.role || state.env.SYNAPSE_WORKER_ROLE || 'unknown'}\``);
     lines.push(`- **API Key**: from ${state.env._keySource || 'env'}`);
+    // Heartbeat daemon status (A5: SessionStart hook 三阶段无状态协调)
+    if (state.heartbeatDaemon) {
+      if (state.heartbeatDaemon.running) {
+        lines.push(`- **Heartbeat daemon**: ✅ running (pid: ${state.heartbeatDaemon.pids.join(', ')})`);
+      } else if (state.heartbeatDaemon.error) {
+        lines.push(`- **Heartbeat daemon**: ⚠️ unable to check (${state.heartbeatDaemon.error})`);
+      } else {
+        lines.push('- **Heartbeat daemon**: ⚠️ NOT RUNNING — AI should check before proceeding');
+      }
+    }
   } else {
     lines.push('❌ **Environment incomplete** — missing:');
     for (const m of state.envMissing) {
@@ -325,6 +361,7 @@ async function main() {
     allActiveTotal: -1,
     allActiveTasks: [],
     errors: [],
+    heartbeatDaemon: null,
   };
 
   // ── Step 1: Check environment ──────────────────────────────────
@@ -341,12 +378,13 @@ async function main() {
   }
 
   // ── Step 2: Create client ──────────────────────────────────────
-  const apiUrl = envCheck.present.SYNAPSE_API_URL.replace(/\/+$/, '');
-  const workerId = envCheck.present.SYNAPSE_WORKER_ID;
-  const apiKey = envCheck.present.SYNAPSE_API_KEY;
+  const config = SynapseClient.resolveConfig(envCheck.present);
+  const workerId = config.workerId;
   const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
+  const client = new SynapseClient(config);
 
-  const client = new SynapseClient({ apiUrl, workerId, apiKey, timeout: 10000 });
+  // ── Step 2.5: Check heartbeat daemon status ─────────────────────
+  state.heartbeatDaemon = checkHeartbeatDaemon();
 
   // ── Step 3: Fetch protocol ─────────────────────────────────────
   const protocolRole = state.role || 'builder';
@@ -528,6 +566,7 @@ main().catch((err) => {
     readyTotal: -1,
     verificationTotal: -1,
     allActiveTotal: -1,
+    heartbeatDaemon: null,
   };
   try {
     writeState(errorState);

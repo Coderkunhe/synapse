@@ -22,32 +22,24 @@
  * Exit codes:
  *   0 — Always (non-blocking contract for SessionStart hooks)
  *
+ * @version 1.1.0
  * @file heartbeat.js
  */
 
 'use strict';
 
 const { SynapseClient } = require('./api-client');
-const { getKey } = require('./keychain');
 
 const HEARTBEAT_INTERVAL_MS = 55_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
-
-function resolveApiKey(workerId) {
-  let apiKey = process.env.SYNAPSE_API_KEY || '';
-  if (!apiKey && workerId) {
-    apiKey = getKey(workerId) || '';
-  }
-  return apiKey;
-}
 
 async function sendHeartbeat(client, workerId) {
   const res = await client.post('/v1/workers/' + workerId + '/heartbeat', { current_load: 0 });
   if (res.error) {
     if (res.status && res.status > 0) {
-      process.stderr.write('heartbeat: WARN (HTTP ' + res.status + ')\n');
+      console.error('heartbeat: WARN (HTTP ' + res.status + ')');
     } else {
-      process.stderr.write('heartbeat: WARN (unreachable)\n');
+      console.error('heartbeat: WARN (unreachable)');
     }
     return null;
   }
@@ -56,33 +48,29 @@ async function sendHeartbeat(client, workerId) {
 
 // --once mode (backward compatible)
 async function once() {
-  const workerId = process.env.SYNAPSE_WORKER_ID || '';
-  if (!workerId) { console.log('heartbeat: SKIP (no SYNAPSE_WORKER_ID)'); process.exit(0); }
-  const apiKey = resolveApiKey(workerId);
-  if (!apiKey) { console.log('heartbeat: SKIP (no API key)'); process.exit(0); }
-  const apiUrl = (process.env.SYNAPSE_API_URL || 'http://127.0.0.1:8001').replace(/\/+$/, '');
-  const client = new SynapseClient({ apiUrl, workerId, apiKey });
-  const status = await sendHeartbeat(client, workerId);
+  const config = SynapseClient.resolveConfig();
+  if (!config.workerId) { console.log('heartbeat: SKIP (no SYNAPSE_WORKER_ID)'); process.exit(0); }
+  if (!config.apiKey) { console.log('heartbeat: SKIP (no API key)'); process.exit(0); }
+  const client = new SynapseClient(config);
+  const status = await sendHeartbeat(client, config.workerId);
   if (status) console.log('heartbeat: ' + status);
   process.exit(0);
 }
 
 // Daemon mode (default) — loops every 55s
 async function daemon() {
-  const workerId = process.env.SYNAPSE_WORKER_ID || '';
-  if (!workerId) { process.exit(0); }
-  const apiKey = resolveApiKey(workerId);
-  if (!apiKey) { process.exit(0); }
-  const apiUrl = (process.env.SYNAPSE_API_URL || 'http://127.0.0.1:8001').replace(/\/+$/, '');
-  const client = new SynapseClient({ apiUrl, workerId, apiKey });
+  const config = SynapseClient.resolveConfig();
+  if (!config.workerId) { process.exit(0); }
+  if (!config.apiKey) { process.exit(0); }
+  const client = new SynapseClient(config);
   let consecutiveFailures = 0;
 
   async function tick() {
-    const status = await sendHeartbeat(client, workerId);
+    const status = await sendHeartbeat(client, config.workerId);
     if (status) { consecutiveFailures = 0; return true; }
     consecutiveFailures++;
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      process.stderr.write('heartbeat daemon: ' + MAX_CONSECUTIVE_FAILURES + ' consecutive failures - exiting\n');
+      console.error('heartbeat daemon: ' + MAX_CONSECUTIVE_FAILURES + ' consecutive failures - exiting');
       process.exit(0);
     }
     return false;
@@ -95,7 +83,7 @@ async function daemon() {
 
   function shutdown() {
     clearInterval(interval);
-    process.stderr.write('heartbeat daemon: stopped\n');
+    console.error('heartbeat daemon: stopped');
     process.exit(0);
   }
   process.on('SIGTERM', shutdown);

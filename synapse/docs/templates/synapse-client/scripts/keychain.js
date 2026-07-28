@@ -18,6 +18,7 @@
  * API key leakage through `ps aux` / process listings. One exception:
  * Windows `cmdkey` does not support stdin — documented in _winStore().
  *
+ * @version 1.1.0
  * @module keychain
  */
 

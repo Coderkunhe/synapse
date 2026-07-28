@@ -694,6 +694,42 @@ generate_from_api() {
 TASKEOP
     echo "  ✅ _task-current.md（模板 · 含手动填写指引）"
 
+    # ── B100-A10: Generate SKILL.md glue file ──
+    # from-api mode outputs 4 independent rendered files but needs a SKILL.md
+    # entry point so Claude Code recognises this as a Skill directory.
+    cat > "$OUTPUT/SKILL.md" <<SKILLEOF
+---
+name: synapse-${ROLE}
+description: Synapse ${ROLE} Worker — API-rendered skill for project ${PROJECT_ID}
+---
+
+# Synapse Worker — ${ROLE}
+
+> API-rendered by \`generate-skill.sh --from-api\` at $(date -u +%Y-%m-%dT%H:%M:%SZ)
+> Source: ${API_URL} · Worker: ${WORKER_ID} · Project: ${PROJECT_ID}
+
+## 项目上下文
+
+参见 [\_project.md](./_project.md)
+
+## 协作协议
+
+参见 [\_protocol.md](./_protocol.md)
+
+## 角色指令
+
+参见 [role-${ROLE}.md](./role-${ROLE}.md)
+
+## 环境配置
+
+参见 [\_env.md](./_env.md)
+
+## 当前任务
+
+参见 [\_task-current.md](./_task-current.md)
+SKILLEOF
+    echo "  ✅ SKILL.md（胶水文件 · 索引 5 个渲染片段）"
+
     # ── Report unfilled vars ──
     if [[ -n "$UNFILLED" && "$UNFILLED" != "null" && "$UNFILLED" != "" ]]; then
         echo ""

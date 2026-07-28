@@ -6,6 +6,7 @@
  * Errors are returned as structured objects, never thrown — Worker scripts
  * must not be blocked by network issues.
  *
+ * @version 1.0.0
  * @module api-client
  */
 
@@ -36,7 +37,32 @@
  *   });
  *   const res = await client.post('/v1/workers/me/heartbeat', { current_load: 0 });
  */
+
+'use strict';
+
+const { getKey } = require('./keychain');
+
 class SynapseClient {
+  /**
+   * Resolve client config from environment variables.
+   *
+   * Centralizes apiUrl/apiKey resolution (env → OS keychain fallback)
+   * so individual scripts don't duplicate this logic.
+   *
+   * @param {Object} [env] — process.env or a custom env object (e.g. pre-resolved by checkEnv())
+   * @returns {SynapseClientConfig}
+   */
+  static resolveConfig(env) {
+    env = env || process.env;
+    const apiUrl = (env.SYNAPSE_API_URL || 'http://127.0.0.1:8001').replace(/\/+$/, '');
+    const workerId = env.SYNAPSE_WORKER_ID || '';
+    let apiKey = env.SYNAPSE_API_KEY || '';
+    if (!apiKey && workerId) {
+      apiKey = getKey(workerId) || '';
+    }
+    return { apiUrl, workerId, apiKey, timeout: 10000 };
+  }
+
   /**
    * @param {SynapseClientConfig} config
    */
