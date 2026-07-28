@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-28（P100-B104 ✅ P100 治理波收尾 · P11 交棒 · 🎉 全量闭环）
+> 最后更新：2026-07-28（P11-B88 ✅ 反 ping-pong 门禁 · B87 PFL-070 心跳检测 · L5 B87→B88 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -157,6 +157,8 @@
 | **P11-B84** | **PFL 消化(二) 协议+脚本层** — PFL-077/079/082 硬约束修复: session-init.js Step 5e 活跃任务数机械告警 + in_verification 停滞检测 (>15min) · role-builder/role-orchestrator 终止条件审计 · Side fix: PFL-078 state.warnings[] 初始化 · 3 PFL 🔴→🟡 · 🟡 标准 · 4 files · commit `a39ec74` | ✅ |
 | **P11-B85** | **PFL-081 CronCreate 机械兜底** — session-init.js writeState() 无条件 CronCreate FIRST ACTION banner 生成 · _task-current.md 模板清理 · 🟡 标准 · 3 files · +26/-10 · commit `f9caf4d` | ✅ |
 | **P11-B86** | **PFL-069/074 审计** — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · 2 files · +7/-3 · commit `82ccb7f` | ✅ |
+| **P11-B87** | **PFL-070 O 心跳检测** — GET /workers/me/heartbeat 端点 + worker_service.get_heartbeat() + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d` | ✅ |
+| **P11-B88** | **PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁** — 状态机新转换 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138` | ✅ |
 
 ---
 

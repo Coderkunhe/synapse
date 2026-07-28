@@ -1,11 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B86 ✅ PFL 审计 · B85 CronCreate 机械兜底 · L5 B85→B86 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B88 ✅ 反 ping-pong 门禁 · B87 PFL-070 心跳检测 · L5 B87→B88 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 P100-B104 P100 治理波收尾（2026-07-28）— B104 收尾: check-line-count 阈值 1000→1100 · Track 指针 P100→P11 交棒 · make check 全绿 · P100 全量闭环 🎉
+> 🔄 L5 B87→B88 拉通（2026-07-28）— B87 PFL-070 心跳 + B88 PFL-077 超时回收+反 ping-pong · 三层防御闭环 · 零 drift
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -662,9 +663,13 @@ synapse/
 - P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
 - P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
 - P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B97 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · B97 G-036 拆分归档 ✅
+- P100：治理段 B1-B104 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 7/7 GAP · 全量闭环 🎉
 
 **最近批次**：
+- **P11-B88**：PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁 ✅ — 状态机 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138`
+- **P11-B87**：PFL-070 O 心跳检测 ✅ — heartbeat 端点 GET /workers/me/heartbeat + worker_service + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d`
+- **P11-B86**：PFL-069/074 审计 ✅ — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · commit `82ccb7f`
+- **P11-B85**：PFL-081 CronCreate 机械兜底 ✅ — session-init.js writeState() 无条件 CronCreate banner 生成 · 🟡 标准 · 3 files · commit `f9caf4d`
 - **P11-B84**：PFL 消化(二) ✅ — PFL-077/079/082 协议+脚本层修复 · session-init.js Step 5e 机械告警（活跃任务数+停滞检测）· role-builder/role-orchestrator 终止条件审计 · Side fix: PFL-078 state.warnings[] 初始化 · 🟡 标准 · 4 files · commit `a39ec74`
 - **P11-B83**：PFL 消化 5/5 + hotfix ✅ — generate-skill.sh PFL-076 双 bug 修复 (`& &&` 语法+路径缺 `.claude/`) · PFL-078 根因定位 · 5 PFL 审计闭环 · 🟢 微型 · 1 file · commit `601502d`
 - **P11-B82**：狗粮闭环 🎉 — 换题狗粮全链路 VDD (10min) · 7 PFL 登记 (PFL-076~082) · PFL-074 根因查明 · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理
