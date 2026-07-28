@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B88 ✅ 反 ping-pong 门禁 · B87 PFL-070 心跳检测 · L5 B87→B88 拉通
-last_batch: P11-B88
-next_batch: P11-B89
-description: Synapse 主项目 — B88 ✅ 反 ping-pong 门禁 · B89 🔜
+phase: P11-B89 ✅ PFL-070 心跳恢复动作 · L5 B87→B89 拉通
+last_batch: P11-B89
+next_batch: P11-B90
+description: Synapse 主项目 — B89 ✅ 心跳恢复动作 · B90 🔜
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B88 ✅ 反 ping-pong 门禁 · B89 🔜
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
-| **P11** | P11-B88 | **P11-B89** 🔜 | B88 ✅ 反 ping-pong 门禁 · B89 🔜 |
+| **P11** | P11-B89 | **P11-B90** 🔜 | B89 ✅ 心跳恢复动作 · B90 🔜 |
 
 ## P11 路线图：多 Agent 接入战
 

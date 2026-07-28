@@ -86,6 +86,15 @@ Task 完成 / 打回返工
 会话启动 → Handshake + State Sync
   │
   ▼
+Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
+  │
+  ├─ GET /workers/me → 检查 last_heartbeat_at
+  ├─ age > 120s → POST /workers/{id}/heartbeat（立即补一跳）
+  │   └─ "⚠️ 自检：心跳过期 {age}s，已补发。继续循环。"
+  ├─ age ≤ 120s → ✅ 心跳正常，进入循环
+  └─ heartbeat API 不可达 → "🚨 自检失败：无法连接 Synapse API。检查网络/SYNAPSE_API_KEY。"
+  │
+  ▼
 ┌─────────────────────────────────────────────────┐
 │  🔄 自主监工循环（响应内 while 循环 — 连续执行）   │
 │                                                 │
@@ -144,6 +153,7 @@ Task 完成 / 打回返工
 | **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求需创建新 Task。只有 backlog 也为空时才报告"项目工作队列为空"。不无限空转 |
 | **验收超时不无限等（PFL-077 · B84 + B88 Server 安全网）** | 在 `_task-current.md` 顶部检查停滞告警。有 in_verification 停滞 >15min → 执行验收超时策略（通知 Human → 等 5min → 强制 reject → 移回 backlog）。**Server 安全网（B88）**：若 O 未在 30min 内处理，Server 自动回退到 in_progress。O 状态同步时发现 `task.verification_timeout_reverted` 事件 → 优先重新验收。**Human 不在线时 O 不能卡死——你是在推进项目，不是等客服回复。** |
 | **中断可恢复** | 会话可能因 `/clear` 或超时中断。下次会话启动时 Step 3.5 状态同步 → 拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
+| **自检心跳（PFL-070 · B89）** | 进入循环前强制 `GET /workers/me` 检查 `last_heartbeat_at`。心跳过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。O 是连续引擎——心跳是 B 判断你在线的前提。心跳缺失 → B 误判你离线 → 退出 → VDD 断裂。**每轮循环决策前也检查一次**（re-fetch `GET /workers/me`，与 Task 状态同步合并）。长时间循环（>5min）时心跳可能自然过期——补一跳即可，不影响循环连续性 |
 
 **5 态路由矩阵（P11-B74 · 响应内循环决策表）**：
 

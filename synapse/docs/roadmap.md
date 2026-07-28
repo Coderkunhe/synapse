@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-28（P11-B88 ✅ 反 ping-pong 门禁 · B87 PFL-070 心跳检测 · L5 B87→B88 拉通）
+> 最后更新：2026-07-28（P11-B89 PFL-070 心跳恢复动作 · B88 反 ping-pong 门禁 · L5 B87→B89 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -159,6 +159,7 @@
 | **P11-B86** | **PFL-069/074 审计** — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · 2 files · +7/-3 · commit `82ccb7f` | ✅ |
 | **P11-B87** | **PFL-070 O 心跳检测** — GET /workers/me/heartbeat 端点 + worker_service.get_heartbeat() + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d` | ✅ |
 | **P11-B88** | **PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁** — 状态机新转换 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138` | ✅ |
+| **P11-B89** | **PFL-070 心跳恢复动作** — role-builder.md Step 0 三级恢复（≤5min→重试 · 5-30min→通知+重试 · >30min→退出）+ role-orchestrator.md Step 0 自检心跳（进入循环前补发过期心跳）· 🟢 微型 · 2 files 纯协议层 | ✅ |
 
 ---
 

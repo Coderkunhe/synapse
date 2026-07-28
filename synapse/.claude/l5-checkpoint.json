@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B87→B88 拉通完成 · 📄 CLAUDE.md header+body · 📄 roadmap B87+B88 · 📄 requirements-log B87+B88+L5 · 📄 pitfalls header · 📄 daily B87+B88+L5 · 📄 tracks P11 B86→B88 · 零 drift · 交叉验证通过",
+  "lastL5Batch": "B87→B89 拉通完成 · 📄 CLAUDE.md header · 📄 roadmap B89 · 📄 requirements-log B89 · 📄 pitfalls PFL-070 恢复 · 📄 daily B89+L5 · 📄 tracks P11 B88→B89 · 零 drift · 纯协议层 0 Server 变更",
   "lastL5Timestamp": "2026-07-28",
   "batchesSinceLastL5": 0,
-  "completedBatches": [],
-  "lastL5Evidence": "B87→B88 拉通完成 · 📄 CLAUDE.md header+body · 📄 roadmap B87+B88 · 📄 requirements-log B87+B88+L5 · 📄 pitfalls header · 📄 daily B87+B88+L5 · 📄 tracks P11 B86→B88 · 零 drift · 交叉验证通过",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "completedBatches": ["B89"],
+  "lastL5Evidence": "B87→B89 拉通完成 · 📄 CLAUDE.md header · 📄 roadmap B89 · 📄 requirements-log B89 · 📄 pitfalls PFL-070 恢复 · 📄 daily B89+L5 · 📄 tracks P11 B88→B89 · 零 drift · 纯协议层 0 Server 变更 · PFL-070 修复方向 2 🟡→✅",
+  "notes": "L5 拉通完成，计数器复位 — B89 PFL-070 心跳恢复动作：B 侧三级恢复 + O 侧自检心跳"
 }

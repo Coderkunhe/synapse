@@ -1,12 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B88 ✅ 反 ping-pong 门禁 · B87 PFL-070 心跳检测 · L5 B87→B88 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B89 PFL-070 心跳恢复动作 · B88 反 ping-pong 门禁 · L5 B87→B89 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 P100-B104 P100 治理波收尾（2026-07-28）— B104 收尾: check-line-count 阈值 1000→1100 · Track 指针 P100→P11 交棒 · make check 全绿 · P100 全量闭环 🎉
-> 🔄 L5 B87→B88 拉通（2026-07-28）— B87 PFL-070 心跳 + B88 PFL-077 超时回收+反 ping-pong · 三层防御闭环 · 零 drift
+> 🔄 L5 B87→B89 拉通（2026-07-28）— B87 PFL-070 心跳检测 + B88 PFL-077 超时回收+反 ping-pong 三层防御 + B89 心跳恢复动作 · 零 drift
 
 ## 🚨 铁律：GlassCortex 只读
 
