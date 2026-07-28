@@ -130,6 +130,32 @@ function writeState(state) {
     '',
   ];
 
+  // ── PFL-081 CronCreate FIRST ACTION Banner (B85 · 机械生成 · 无条件) ──
+  // This is ALWAYS written — before ANY conditional banner. B84 deep-check found
+  // that the static template CronCreate banner was overwritten by session-init.js
+  // on every SessionStart, so the AI never saw it. Fix: the script now generates
+  // this banner mechanically, ensuring the AI always sees the CronCreate instruction.
+  // CronCreate is a Claude Code tool — Node.js subprocess can't call it directly,
+  // but it CAN write the call instruction as text that the AI reads and executes.
+  lines.push('## 🚨 FIRST ACTION — CronCreate NOW（PFL-081 机械生成 · B85）');
+  lines.push('');
+  lines.push('**Before you analyze anything, before you read any state below — call the CronCreate tool:**');
+  lines.push('');
+  lines.push('```');
+  lines.push('CronCreate({');
+  lines.push('  cron: "*/1 * * * *",');
+  lines.push('  prompt: "Wake up and check for work. Read _task-current.md. If there are active tasks, continue working. If idle, set another CronCreate and wait.",');
+  lines.push('  recurring: true');
+  lines.push('})');
+  lines.push('```');
+  lines.push('');
+  lines.push('> ⚠️ **This is NOT optional.** B82 狗粮 3 次复现：Agent 在"分析→写总结→建议下一步"后直接停止——episodic 模型不包含"设闹钟让自己回头"。没有 CronCreate，你退出后就是永久的。没有外部触发，你永远不会再醒来。');
+  lines.push('> ');
+  lines.push('> **唯一例外**：人类用户显式说"停止"或"退出循环"。');
+  lines.push('> ');
+  lines.push('> **然后**再读下面的状态。本 banner 由 session-init.js 机械生成——脚本不会骗你。');
+  lines.push('');
+
   // ── PFL-079/082 Active Task Banner (B84 · 机械告警) ──
   // MUST appear before Connection section — the AI reads this file top-to-bottom.
   // If activeTaskCount > 0, Worker must NOT judge itself as idle, regardless of

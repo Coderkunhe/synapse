@@ -153,6 +153,8 @@
 | **P11-B80** | **PFL 状态审计** — 26 项交叉对照模板+源码核实 · 18 项状态同步 · 🟢 微型 · 1 file · commit `3eb748a` | ✅ |
 | **P11-B81** | **PFL 微型缺口修复 5/5** — PFL-047 L3 API 硬门禁 · PFL-053 路径更正 · PFL-059 auto-verify 确认 · PFL-064 backlog→ready 路由 · PFL-065 handshake 心跳 · 🟡 标准 · 6 files · 633 tests 零回归 | ✅ |
 | **P11-B82** | **狗粮闭环 🎉** — 换题狗粮全链路 VDD 闭环 (10min) · 7 PFL 登记 (PFL-076~082 · 启动可靠性/Worker通信/调度机制三层) · PFL-074 根因查明 (handoff 语义混淆) · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理 | ✅ |
+| **P11-B83** | **PFL 消化 5/5 + 审计** — generate-skill.sh PFL-076 双 bug 修复 (`& &&` 语法错误+路径缺 `.claude/`) · PFL-078 根因定位 (state.warnings 未初始化) · PFL-080 机械检测评估 · PFL-081 CronCreate 根因分析 · PFL-074 消息语义审计 · 🟢 微型 · 1 file · commit `601502d` | ✅ |
+| **P11-B84** | **PFL 消化(二) 协议+脚本层** — PFL-077/079/082 硬约束修复: session-init.js Step 5e 活跃任务数机械告警 + in_verification 停滞检测 (>15min) · role-builder/role-orchestrator 终止条件审计 · Side fix: PFL-078 state.warnings[] 初始化 · 3 PFL 🔴→🟡 · 🟡 标准 · 4 files · commit `a39ec74` | ✅ |
 
 ---
 
