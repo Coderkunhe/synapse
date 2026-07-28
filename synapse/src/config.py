@@ -104,6 +104,7 @@ class Settings(BaseSettings):
 
     # Verification timeout auto-reclaim (P11-B88)
     verification_timeout_minutes: int = 30
+    verification_max_auto_reverts: int = 3
 
     # Verify idempotent guard (P11-B76)
     verify_idempotent_window_seconds: int = 60

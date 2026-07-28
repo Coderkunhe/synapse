@@ -79,7 +79,7 @@ async def _stale_task_reaper() -> None:
                     db, threshold_minutes=verify_timeout,
                 )
                 await db.commit()
-                if result["stale_count"] > 0 or verify_result["reverted_count"] > 0:
+                if result["stale_count"] > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
                     import logging
                     logger = logging.getLogger("synapse")
                     if result["stale_count"] > 0:
@@ -93,6 +93,12 @@ async def _stale_task_reaper() -> None:
                             "Auto-reverted %d timed-out verification(s): %s",
                             verify_result["reverted_count"],
                             verify_result["reverted_task_ids"],
+                        )
+                    if verify_result.get("cancelled_count", 0) > 0:
+                        logger.info(
+                            "Auto-cancelled %d task(s) after max revert retries: %s",
+                            verify_result["cancelled_count"],
+                            verify_result["cancelled_task_ids"],
                         )
         except Exception:
             pass

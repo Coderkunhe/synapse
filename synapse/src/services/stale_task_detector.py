@@ -17,7 +17,11 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import func
+
+from src.config import settings
 from src.constants import ActorType, TaskStatus
+from src.models.event import Event
 from src.models.task import Task
 from src.services.event_store import event_store
 from src.task_state_machine import apply_transition
@@ -84,6 +88,10 @@ async def detect_stale_verifications(
     自动回退到 in_progress。防止 O 崩溃/超时/卡住导致 Task 永久卡死在
     in_verification，backlog 冻结。
 
+    反 ping-pong 门禁（B88 补充）：同一任务被 auto-revert 次数达到
+    ``verification_max_auto_reverts``（默认 3 次）后，不再回退，直接
+    auto-cancel——打破"回退→重submit→再超时→再回退"的无限循环。
+
     回退后任务回到 Builder 的 in_progress 队列，Builder 可重新提交。
     Orchestrator 在监工循环中检测到回退事件后应优先重新验收或重新分配。
 
@@ -92,7 +100,8 @@ async def detect_stale_verifications(
         threshold_minutes: 无更新多久后视为超时（默认 30 分钟）。
 
     Returns:
-        ``{"reverted_count": N, "reverted_task_ids": [...]}``。
+        ``{"reverted_count": N, "reverted_task_ids": [...],
+           "cancelled_count": N, "cancelled_task_ids": [...]}``。
     """
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=threshold_minutes)
@@ -104,21 +113,50 @@ async def detect_stale_verifications(
     result = await db.execute(stmt)
     stale_tasks = result.scalars().all()
 
+    max_reverts = settings.verification_max_auto_reverts
+
     reverted_ids: list[str] = []
+    cancelled_ids: list[str] = []
     for task in stale_tasks:
         seconds_stuck = int((now - task.updated_at).total_seconds())
 
-        # 通过状态机回退到 in_progress
-        event_type, payload = apply_transition(
-            task,
-            TaskStatus.IN_PROGRESS,
-            actor_type=ActorType.SYSTEM,
-            actor_id="verification_timeout_detector",
-            context={
+        # 反 ping-pong 门禁：检查历史回退次数，超过阈值 → auto-cancel
+        prior_reverts = await db.execute(
+            select(func.count(Event.id)).where(
+                Event.event_type == "task.verification_timeout_reverted",
+                Event.target_type == "task",
+                Event.target_id == task.id,
+            )
+        )
+        revert_count = prior_reverts.scalar() or 0
+
+        if revert_count >= max_reverts:
+            # 达到最大回退次数 → 直接取消，打破无限 ping-pong 循环
+            target_status = TaskStatus.CANCELLED
+            ctx = {
+                "reason": "verification_timeout_max_reverts_exceeded",
+                "stale_threshold_minutes": threshold_minutes,
+                "seconds_in_verification": seconds_stuck,
+                "prior_auto_revert_count": revert_count,
+                "max_auto_reverts": max_reverts,
+            }
+        else:
+            # 正常回退到 in_progress
+            target_status = TaskStatus.IN_PROGRESS
+            ctx = {
                 "reason": "verification_timeout",
                 "stale_threshold_minutes": threshold_minutes,
                 "seconds_in_verification": seconds_stuck,
-            },
+                "auto_revert_count": revert_count + 1,
+                "max_auto_reverts": max_reverts,
+            }
+
+        event_type, payload = apply_transition(
+            task,
+            target_status,
+            actor_type=ActorType.SYSTEM,
+            actor_id="verification_timeout_detector",
+            context=ctx,
         )
 
         await event_store.record(
@@ -131,6 +169,15 @@ async def detect_stale_verifications(
             target_id=task.id,
             payload=payload,
         )
-        reverted_ids.append(task.id)
 
-    return {"reverted_count": len(reverted_ids), "reverted_task_ids": reverted_ids}
+        if target_status == TaskStatus.CANCELLED:
+            cancelled_ids.append(task.id)
+        else:
+            reverted_ids.append(task.id)
+
+    return {
+        "reverted_count": len(reverted_ids),
+        "reverted_task_ids": reverted_ids,
+        "cancelled_count": len(cancelled_ids),
+        "cancelled_task_ids": cancelled_ids,
+    }
