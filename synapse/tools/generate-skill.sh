@@ -433,7 +433,7 @@ if not has_synapse:
         'matcher': '',
         'hooks': [{
             'type': 'command',
-            'command': 'set -a; . \"\$CLAUDEDIR/.env\"; set +a && node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" & && node \"\$CLAUDEDIR/skills/synapse/scripts/session-init.js\"'
+            'command': 'set -a; . \"\$CLAUDEDIR/.env\"; set +a; node \"\$CLAUDEDIR/.claude/skills/synapse/scripts/heartbeat.js\" & node \"\$CLAUDEDIR/.claude/skills/synapse/scripts/session-init.js\"'
         }]
     })
 # PFL-076: 升级旧格式 (matcher+command) → 新格式 (matcher+hooks[])
@@ -458,7 +458,7 @@ with open('$SETTINGS_FILE', 'w') as f:
         "hooks": [
           {
             "type": "command",
-            "command": "set -a; . \"$CLAUDEDIR/.env\"; set +a && node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" & && node \"$CLAUDEDIR/skills/synapse/scripts/session-init.js\""
+            "command": "set -a; . \"$CLAUDEDIR/.env\"; set +a; node \"$CLAUDEDIR/.claude/skills/synapse/scripts/heartbeat.js\" & node \"$CLAUDEDIR/.claude/skills/synapse/scripts/session-init.js\""
           }
         ]
       }
