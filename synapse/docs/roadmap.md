@@ -149,7 +149,7 @@
 | **P11-B76** | **Server 侧加固** — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6` | ✅ |
 | **P11-B77** | **狗粮 R4 无人干预全链路** — 双 Worker 零人工干预完成全链路 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮 | ✅ |
 | **P11-B78** | **Worker heartbeat 脚本化** — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜 | ✅ |
-| **P11-B79** | **task_service.py 拆分** — 1073 行按功能域拆分（create/assign/claim/submit 独立模块）· D-P100-002 · 🔜 P100 后恢复 | ⬜ |
+| **P11-B79** | **task_service.py 拆分** — 1073 行按功能域拆分（create/assign/claim/submit 独立模块）· D-P100-002 | ✅ |
 
 ---
 

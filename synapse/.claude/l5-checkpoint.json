@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B100→B101 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B98/B99/B100/B101 补齐 · 📄 pitfalls header 日期刷新 · 📄 daily 2026-07-28 新建 · 零 drift · 计数器复位",
+  "lastL5Batch": "B103→B79 L5 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B79 · 📄 requirements-log B79 · 📄 daily B79+L5 · 📄 tracks P11 B78→B79 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-28",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B100→B101 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B98/B99/B100/B101 补齐 · 📄 pitfalls header 日期刷新 · 📄 daily 2026-07-28 新建 · 零 drift · 计数器复位",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "B103→B79 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B79 ⬜→✅ · 📄 requirements-log B79 补登记 · 📄 daily B79+L5 追加 · 📄 tracks P11 指针 B78→B79 · 零 drift · 计数器复位",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes unavailable due to classifier timeout, manual reset"
 }

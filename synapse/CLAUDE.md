@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P100-B104 ✅ P100 治理波收尾 · P11 交棒 · 🎉 全量闭环）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B79 ✅ task_service.py 拆分 · L5 B103→B79 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -668,6 +668,8 @@ synapse/
 - **P100-B97**：G-036 requirements-log 拆分归档 ✅ — 9677→4528 行 · P9+P10 → `docs/archive/requirements-log-archive.md` · check-docs.sh 阈值 10000→5000 · 🟡 标准 · 3 files
 - **P100-B96**：Node.js scripts 集成 ✅ — generate-skill.sh 复制 scripts/ · SessionStart bash→node heartbeat.js · 双 Worker 部署验证 · 7 files · +1263/-6 · commits `fd78a22` `2db46cb`
 - **P11-B78**：heartbeat 脚本化 ✅ — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜
+- **P11-B79**：task_service.py 拆分 ✅ — 1073→5 模块 (task_core 235 + task_create 154 + task_activation 398 + task_execution 362 + task_service 53 重导出) · 633 tests 零回归 · 🟡 标准 · 5 files · commit `f36717d`
+- 🔄 **L5 B103→B79 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B79 · 📄 requirements-log B79 · 📄 daily B79+L5 · 📄 tracks P11 B78→B79 · 零 drift · 计数器复位
 - **P11-B77**：狗粮 R4 无人干预全链路 ✅ — 双 Worker 零人工干预 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮
 - **P11-B76**：Server 侧加固 ✅ — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6`
 - **P11-B75**：协议加固 ✅ — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · commit `528266e`

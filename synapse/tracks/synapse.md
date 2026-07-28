@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B104 ✅ P100 治理波收尾 · P11 交棒
-last_batch: P100-B104
-next_batch: —
-description: Synapse 主项目 — P100 治理波全量闭环 🎉 (B104 收尾: check-line-count 阈值缓冲 + P11 交棒) · P11-B79 🔜
+phase: P11-B79 ✅ task_service.py 拆分
+last_batch: P11-B79
+next_batch: P11-B80
+description: Synapse 主项目 — P100 治理波全量闭环 🎉 · P11-B79 ✅ task_service 拆分 · P11-B80 🔜 产品恢复
 ---
 
 # Synapse 轨道
