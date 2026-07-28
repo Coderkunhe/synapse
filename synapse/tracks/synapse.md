@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B99 ✅ 模板源回灌 · B100 🔜
-last_batch: P100-B99
-next_batch: P100-B100
-description: Synapse 主项目 — P100 治理波 · B99 ✅ B98 脚本硬约束回灌到模板源 (6 files · session-init.js 入库 + SKILL.md -70% + heartbeat daemon + generate-skill 适配) · B100 🔜
+phase: P100-B100 ✅ 脚本硬约束审计 · B101 🔜
+last_batch: P100-B100
+next_batch: P100-B101
+description: Synapse 主项目 — P100 治理波 · B100 ✅ 深度审计修复 (3 P0 + 2 P1 fixed · 5 P1/P2 登记 pitfalls) · B101 🔜
 ---
 
 # Synapse 轨道

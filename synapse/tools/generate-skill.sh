@@ -316,6 +316,9 @@ EOF
     cp "$ENV" "$OUT_DIR/_env.md"
     echo "  ✅ _env.md"
 
+    # ── B100-A3: Copy scripts/ (Codex traditional mode) ──
+    copy_scripts "$OUT_DIR"
+
     # 检查未填充变量
     local unfilled
     unfilled=$(check_unfilled "$SKILL_FILE")
@@ -380,6 +383,21 @@ verify_client_output() {
         echo "⚠️  ${LABEL} 含未填充变量——这不应该发生（Client Skill 是静态协议）。"
     else
         echo "  ✅ 无未填充变量（纯协议，0 占位符）"
+    fi
+}
+
+# ── 共享工具：复制 scripts/ 目录 ──
+
+# B100: 从模板源复制 Node.js Worker 脚本到输出目录。
+# 所有客户端模式都应调用此函数以避免 B100-A2/A3 覆盖盲区。
+copy_scripts() {
+    local DEST_DIR="$1"
+    local SCRIPTS_SRC="$TEMPLATES_DIR/synapse-client/scripts"
+    local LABEL="${2:-scripts/}"
+    if [[ -d "$SCRIPTS_SRC" ]]; then
+        rm -rf "$DEST_DIR/scripts"
+        cp -r "$SCRIPTS_SRC" "$DEST_DIR/scripts"
+        echo "  ✅ ${LABEL} (api-client + keychain + heartbeat + session-init)"
     fi
 }
 
@@ -480,6 +498,9 @@ generate_client_codex() {
     write_client_env "$OUT_DIR"
     echo "  ✅ _env.md（3 个必需环境变量）"
 
+    # ── B100-A3: Copy scripts/ (Codex client mode) ──
+    copy_scripts "$OUT_DIR"
+
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
 
@@ -546,6 +567,9 @@ export SYNAPSE_PROJECT_ID="prj_xxxxxxxx"
 CURSOREOF
 
     echo "  ✅ synapse-worker.mdc（Cursor rules · alwaysApply: true · env 已内联）"
+
+    # ── B100-A3: Copy scripts/ (Cursor — .cursor/scripts/) ──
+    copy_scripts "$OUTPUT/.cursor" "scripts/ (Cursor)"
 
     verify_client_output "$RULES_FILE" "synapse-worker.mdc"
 }
@@ -631,6 +655,10 @@ generate_from_api() {
         cp "$CONVENTIONS_BACKEND" "$OUTPUT/conventions-backend.md"
         echo "  ✅ conventions-backend.md"
     fi
+
+    # ── B100-A2: Copy scripts/ (SessionStart hooks reference them) ──
+    mkdir -p "$OUTPUT/.claude/skills/synapse"
+    copy_scripts "$OUTPUT/.claude/skills/synapse"
 
     # ── Write _task-current.md with guidance ──
     cat > "$OUTPUT/_task-current.md" <<'TASKEOP'

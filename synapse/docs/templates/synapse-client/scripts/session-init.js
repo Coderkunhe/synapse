@@ -357,8 +357,8 @@ async function main() {
   if (protocolRes.error) {
     state.protocolError = protocolRes.message || 'Unknown protocol error';
     state.errors.push(`Protocol fetch: ${state.protocolError}`);
-    // Retry once after 5s
-    await new Promise(r => setTimeout(r, 5000));
+    // Retry once after 2s (B100-A6: was 5s, too long vs 10s client timeout → worst case 25s)
+    await new Promise(r => setTimeout(r, 2000));
     const retryRes = await client.get(
       `/v1/workers/${workerId}/protocol?project_id=${projectId}&role=${protocolRole}`
     );

@@ -13,6 +13,11 @@
  *
  * Zero dependencies — uses Node.js ≥18 built-in child_process.execSync.
  *
+ * **SECURITY (B100-A1)**: Store operations pass API keys via stdin pipe
+ * (execSync `input` option), NOT command-line arguments. This prevents
+ * API key leakage through `ps aux` / process listings. One exception:
+ * Windows `cmdkey` does not support stdin — documented in _winStore().
+ *
  * @module keychain
  */
 
@@ -95,6 +100,10 @@ function _macGet(workerId) {
 
 /**
  * Store API key in macOS Keychain.
+ *
+ * **SECURITY**: Uses stdin pipe (execSync `input` option) instead of `-w`
+ * command-line argument to prevent API key leakage via `ps aux`.
+ *
  * @param {string} workerId
  * @param {string} apiKey
  * @returns {boolean}
@@ -110,10 +119,11 @@ function _macStore(workerId, apiKey) {
       );
     } catch (_) { /* entry may not exist */ }
 
-    // Store new entry
+    // B100-A1: Pass API key via stdin pipe, NOT command-line argument.
+    // macOS `security` reads password from stdin when `-w` is omitted.
     execSync(
-      `security add-generic-password -a "${account}" -s "${SERVICE_NAME}" -w "${apiKey}" -U`,
-      { stdio: 'pipe', timeout: 5000 }
+      `security add-generic-password -a "${account}" -s "${SERVICE_NAME}" -U`,
+      { input: apiKey, stdio: 'pipe', timeout: 5000 }
     );
     return true;
   } catch (_) {
@@ -170,6 +180,10 @@ function _linuxGet(workerId) {
 
 /**
  * Store API key in Secret Service.
+ *
+ * **SECURITY**: Uses stdin pipe (execSync `input` option) — API key
+ * never appears in command-line arguments visible to `ps aux`.
+ *
  * @param {string} workerId
  * @param {string} apiKey
  * @returns {boolean}
@@ -177,9 +191,11 @@ function _linuxGet(workerId) {
 function _linuxStore(workerId, apiKey) {
   try {
     const account = `${ACCOUNT_PREFIX}${workerId}`;
+    // B100-A1+A4: Pass API key via stdin pipe, not echo -n (non-POSIX) in shell argv.
+    // secret-tool store reads password from stdin when not provided as argument.
     execSync(
-      `echo -n "${apiKey}" | secret-tool store --label="Synapse Worker ${workerId}" account "${account}" service "${SERVICE_NAME}"`,
-      { stdio: 'pipe', timeout: 5000 }
+      `secret-tool store --label="Synapse Worker ${workerId}" account "${account}" service "${SERVICE_NAME}"`,
+      { input: apiKey, stdio: 'pipe', timeout: 5000 }
     );
     return true;
   } catch (_) {
@@ -261,6 +277,11 @@ function _winGet(workerId) {
  * Store API key in Windows Credential Manager.
  *
  * Uses `cmdkey /generic` which is always available on Windows.
+ *
+ * **SECURITY NOTE (B100-A1)**: `cmdkey` does not support stdin for
+ * passwords — `/pass` value is visible in process listings during the
+ * brief execSync window. This is a known Windows OS limitation.
+ * Mitigation: execSync is synchronous and completes in milliseconds.
  *
  * @param {string} workerId
  * @param {string} apiKey
