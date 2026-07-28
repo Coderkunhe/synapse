@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B81 ✅ PFL 微型缺口 5/5 闭环 · L5 B80→B81 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B82 ✅ 狗粮闭环 · 7 PFL 登记 · L5 B81→B82 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -665,6 +665,8 @@ synapse/
 - P100：治理段 B1-B97 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 6/7 GAP · L5 B88→B92 全量拉通 ✅ · L5 B93→B94 拉通 ✅ · B93 make check 归零 · B97 G-036 拆分归档 ✅
 
 **最近批次**：
+- **P11-B82**：狗粮闭环 🎉 — 换题狗粮全链路 VDD (10min) · 7 PFL 登记 (PFL-076~082) · PFL-074 根因查明 · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理
+- 🔄 **L5 B81→B82 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B82 补登记 · 📄 requirements-log B82 补登记 · 📄 daily B82 已有 · 📄 pitfalls header 更新 (45 项·7 新增) · 零 drift · 计数器复位
 - **P11-B81**：PFL 微型缺口修复 5/5 ✅ — PFL-047 L3 API 硬门禁 · PFL-053 路径更正 · PFL-059 auto-verify 确认 · PFL-064 backlog→ready · PFL-065 handshake 心跳 · 🟡 标准 · 6 files · 633 tests 零回归
 - 🔄 **L5 B80→B81 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B80+B81 · 📄 requirements-log B80+B81 · 📄 daily B81+L5 · 📄 pitfalls 5 项状态同步 · 零 drift · 计数器复位
 - **P11-B80**：PFL 状态审计 ✅ — 26 项交叉对照模板+源码 · 18 项状态同步 · 🟢 微型 · 1 file · commit `3eb748a`

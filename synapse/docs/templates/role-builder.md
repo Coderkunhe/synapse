@@ -114,10 +114,39 @@ POST /tasks/{id}/submit（附 evidence）
 | **API submit = 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成 |
 | **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
-| **空闲出口（ScheduleWakeup · P11-B74）** | 无 ready Task + 无 in_progress → ScheduleWakeup 30s 自唤醒。202 超时 ≥15min → 评论区 @Orchestrator + ScheduleWakeup 60s。被拒 ≥2 次 → 评论区 @Orchestrator 讨论，等待人工。**⚠️ 不再无条件"停止"——无事可做时设闹钟回头，不是等人叫** |
+| **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。无 ready + 无 in_progress → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
+
+**评论区消息类型语义（PFL-074 · B82 教训）**：
+
+> B82 狗粮中 B Worker 在 submit 后 4 次误发 `handoff` → 每次触发静默 `task.assign` auth request → 14 小时无人知晓。根因：`handoff`（转交所有权）被当作 `review_request`（请审阅）使用。
+
+| 消息类型 | 语义 | 触发授权 | 使用场景 |
+|---------|------|:--:|------|
+| `clarification` | 提问——对 Task 描述/Verification 有疑问 | ❌ | 执行前发现模糊点，等 O 回复后继续 |
+| `blocking` | 被阻塞——当前 Task 无法继续执行 | ❌ | workspace 不匹配、依赖缺失、权限不足 |
+| `review_request` | **请审阅**——工作完成，请 O 验收 | ❌ | submit 后通知 O 验收 ← **submit 后用这个** |
+| `handoff` | **转交任务所有权**——把 Task 交给另一个 Worker | ✅ task.assign | 需要换人执行时才用 |
+
+**❌ 错误示例（B82 复现 4 次）**：
+```
+POST /tasks/{id}/submit  ← 提交成功
+POST /tasks/{id}/messages
+  body: { "message_type": "handoff", "content": "@Orchestrator 已完成，请验收" }
+  ← 系统自动创建 task.assign auth request → 静默挂起 14 小时！
+```
+
+**✅ 正确做法**：
+```
+POST /tasks/{id}/submit  ← 提交成功
+POST /tasks/{id}/messages
+  body: { "message_type": "review_request", "content": "@Orchestrator Task #{id} 已提交 evidence，请验收" }
+  ← 不触发 auth request，O 的监工循环或消息查询能正常感知
+```
+
+**铁律**：完成工作 → `review_request`。被阻塞 → `blocking`。有疑问 → `clarification`。**除非你真的要把 Task 转交给另一个 Worker 执行，永远不要用 `handoff`。** 每条误用的 `handoff` = 一个静默挂起的 auth request = 系统垃圾。
 
 **异常处理（PFL-072）**：
 

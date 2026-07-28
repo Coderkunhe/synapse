@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B80 ✅ PFL 状态审计
-last_batch: P11-B80
-next_batch: P11-B81
-description: Synapse 主项目 — P100 治理波全量闭环 🎉 · P11-B80 ✅ PFL 状态审计 (26 项交叉对照 · 18 项状态同步) · P11-B81 🔜 PFL 微型缺口修复
+phase: P11-B83 ✅ PFL 消化 5/5 · 退出 God's-eye
+last_batch: P11-B83
+next_batch: P11-B84
+description: Synapse 主项目 — B83 ✅ PFL 消化 5/5 · B84 🔜 狗粮验证（B83 修复效果）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — P100 治理波全量闭环 🎉 · P11-B80 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
-| **P11** | P11-B79 | **P11-B80** ✅ | B1-B80 ✅ · B80 PFL 状态审计 (26 项交叉对照 · 18 项状态同步) · B81 🔜 PFL 微型缺口修复 |
+| **P11** | P11-B82 | **P11-B83** 🔜 | B82 ✅ 狗粮闭环 · 7 PFL · B83 🔜 PFL 消化（P0: PFL-081 ScheduleWakeup 机械兜底）|
 
 ## P11 路线图：多 Agent 接入战
 

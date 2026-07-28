@@ -100,6 +100,8 @@ Task 完成 / 打回返工
 │     └─ 🔵 全部 in_progress → 监工模式（步骤 3）     │
 │                                                 │
 │  3. 监工模式（无紧急项时执行）                       │
+│     ├─ **先查评论区**（PFL-080）：GET /tasks/{id}/messages │
+│     │   └─ 有 blocking/clarification/handoff → 优先回复   │
 │     ├─ 逐项检查 in_progress Task 的更新时间和状态    │
 │     ├─ 发现阻塞（>30min 无更新）→ 评论区 @Builder    │
 │     ├─ 发现逾期（超过预计 effort）→ 评估是否需干预    │
@@ -110,12 +112,15 @@ Task 完成 / 打回返工
 │     ├─ 无活跃 Task → 检查是否有新需求需拆解          │
 │     └─ 有 pending_auth → 每 10s 检查审批状态       │
 │                                                 │
-│  5. 空闲出口（ScheduleWakeup · P11-B74）：         │
-│     └─ 全队列空（无活跃 + 无 ready + backlog 无待拆）│
-│        → ScheduleWakeup 60s 后自唤醒，继续循环       │
-│     ⚠️ 只有这个条件触发退出。有任何 submitted/        │
-│        ready/in_progress/pending_auth → 继续跑       │
-│     ⚠️ 不再因"3 轮无变化"退出——有 Task 就得盯        │
+│  5. 空闲出口（ScheduleWakeup · P11-B74 · PFL-081）：  │
+│     🚨 退出前必须调用 ScheduleWakeup 工具设闹钟。        │
+│     全队列空（无活跃 + 无 ready + backlog 无待拆）       │
+│        → ScheduleWakeup 60s 后自唤醒，继续循环           │
+│     ⚠️ 只有这个条件触发退出。有任何 submitted/            │
+│        ready/in_progress/pending_auth → 继续跑           │
+│     ⚠️ 禁止不设 ScheduleWakeup 直接退出。B82 教训：      │
+│        Agent 在"分析完→写总结"后直接停——设闹钟这步       │
+│        从未被执行。ScheduleWakeup 是续命机制，不是建议    │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -123,6 +128,7 @@ Task 完成 / 打回返工
 
 | 规则 | 说明 |
 |------|------|
+| **评论区优先（PFL-080）** | 监工模式每一轮第一步：`GET /tasks/{id}/messages` 检查是否有未回复的 Worker 消息（`message_type IN (blocking, clarification, handoff)` 且 `is_resolved=false`）。有则优先处理——blocking（B 被阻塞等回复）和 handoff（B 请求转交）的优先级与 submitted 同级。不回复时 B 在死等——评论区是 Worker 间唯一的异步通道，不读 = 盲区 |
 | **API verify = 验收完成** | 在对话里说"验收通过"不是验收。只有 `POST /verifications/{id}/verify`（含 passed/failed 判定 + 评论区 @Builder）才算完成。对话里的判定只有人类能看到——Builder Worker 在 poll 验收结果，你的 API 调用是唯一的信号源 |
 | **每轮决策前 re-fetch** | 每次判断"下一步做什么"前，必须重新调用 API 获取最新 Task 列表。不依赖 handshake 缓存的状态快照。Builder 可能在你验收上一个 Task 时提交了新的——缓存数据会让你漏掉 submitted Task |
 | **优先级刚性执行** | submitted > ready 分配 > 监工。验收是最高优先级——Builder 在等你的判定，每延迟一秒 Builder 就多等一秒 |
@@ -139,11 +145,12 @@ Task 完成 / 打回返工
 | 系统状态 | O 动作 | 间隔 |
 |---------|--------|:--:|
 | 🔴 有 submitted Task | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder | — |
+| 🟣 有未回复 blocking/clarification/handoff 消息（PFL-080） | **与 submitted 同级最高优先级** — 读消息 → 判断 → 回复。B 被阻塞时每延迟一秒 B 就多等一秒 | — |
 | ⚪ 有 backlog 未 ready Task | 评估后执行 ready（`POST /tasks/{id}/ready`）。B72 Server 强制 `BACKLOG→READY` 是必经步骤——跳过 ready 直接 assign 会被 409 拒绝 | — |
 | 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
-| 🔵 全部 in_progress（正常进展）| 监工：逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
-| ⚫ 全队列空 | ScheduleWakeup 60s 自唤醒。无活跃 + 无 ready + backlog 无待拆。**只有这个状态退出循环** | 60s |
+| 🔵 全部 in_progress（正常进展）| 监工：先查评论区 → 逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
+| ⚫ 全队列空 | 🚨 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆。**只有这个状态退出循环** | 60s |
 
 **验收 vs 对话汇报 — 明确区分**：
 

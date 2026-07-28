@@ -152,6 +152,7 @@
 | **P11-B79** | **task_service.py 拆分** — 1073 行按功能域拆分（create/assign/claim/submit 独立模块）· D-P100-002 | ✅ |
 | **P11-B80** | **PFL 状态审计** — 26 项交叉对照模板+源码核实 · 18 项状态同步 · 🟢 微型 · 1 file · commit `3eb748a` | ✅ |
 | **P11-B81** | **PFL 微型缺口修复 5/5** — PFL-047 L3 API 硬门禁 · PFL-053 路径更正 · PFL-059 auto-verify 确认 · PFL-064 backlog→ready 路由 · PFL-065 handshake 心跳 · 🟡 标准 · 6 files · 633 tests 零回归 | ✅ |
+| **P11-B82** | **狗粮闭环 🎉** — 换题狗粮全链路 VDD 闭环 (10min) · 7 PFL 登记 (PFL-076~082 · 启动可靠性/Worker通信/调度机制三层) · PFL-074 根因查明 (handoff 语义混淆) · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理 | ✅ |
 
 ---
 

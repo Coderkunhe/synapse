@@ -355,6 +355,8 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 ```
 
 > ⚠️ **诚实标注（PFL-069）**：响应内 while 循环是 **LLM 行为引导（prompting pattern），不是运行时强制机制**。Claude Code 没有代码级 while 循环——这是一条 prompt 指令，告诉 LLM "一直做，做到没活为止"，期望它在一个 response 中连续调用多次工具。实际行为：~70-80% 概率模型做 3-5 轮 re-fetch→act→re-fetch；~20-30% 概率模型做 1-2 轮后输出文字提前退出。**Agent 可能在任何时候提前退出循环——ScheduleWakeup 不只是"空闲出口"，也是"循环意外退出后的恢复路径"。** 醒来后从 handshake + state sync 重建上下文，继续循环。
+>
+> 🚨 **PFL-081 硬约束：ScheduleWakeup 是续命机制，不是可选建议。** B82 狗粮中 ScheduleWakeup 3 次复现从未被调用——Agent 的 episodic 认知模式（"分析→写总结→建议下一步→停"）中不包含"设闹钟让自己回头"。这是一道认知盲区——你必须主动跨越它。**每次 response 结束前必须调用 `ScheduleWakeup` 工具设闹钟。唯一例外：人类用户显式告诉你"停止"。**
 
 **非对称分工**：
 
@@ -585,6 +587,24 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 | 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
 | 评论/提问 | `POST` | `/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
+
+### 评论区消息类型语义（PFL-074 · B82 教训）
+
+> B82 狗粮中 B Worker 4 次误用 `handoff` 消息类型——每次都在系统中产生静默挂起的 `task.assign` auth request。根因是四种消息类型的语义边界未文档化。
+
+| `message_type` | 语义 | 触发授权 | 使用场景 |
+|:---|------|:--:|------|
+| `clarification` | 提问——对 Task/Verification 有疑问，请对方回复 | ❌ | 执行前发现模糊点 |
+| `blocking` | 被阻塞——当前 Task 无法继续，请对方决策 | ❌ | workspace 不匹配、依赖缺失、权限不足 |
+| `review_request` | **请审阅**——工作完成，请对方验收/审阅 | ❌ | submit 后通知 O 验收 |
+| `handoff` | **转交任务所有权**——把 Task 正式移交给另一个 Worker | ✅ `task.assign` | 需要换人执行此 Task |
+
+**铁律**：
+- 完成工作 → `review_request`（"请审阅"不是"转交所有权"）
+- 被阻塞 → `blocking`
+- 有疑问 → `clarification`
+- **除非你真的要把 Task 转给另一个人执行，永远不要用 `handoff`**
+- 服务端对所有 `handoff` 消息自动创建 `task.assign` 授权请求（`conversation_service.py:217-228`）——你的每条误用都在系统中留下静默挂起的 auth request
 
 > 💡 **使用 Python 代替 curl**：curl 在 shell 中的 JSON 转义、管道交织、`-w` 格式化输出污染是已知问题（P-043）。Worker 应优先使用 Python 单行调用模式：
 

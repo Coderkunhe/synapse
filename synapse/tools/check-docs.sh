@@ -239,14 +239,14 @@ for doc in $CRITICAL_DOCS; do
           DOC_BLOAT_WARNINGS=$((DOC_BLOAT_WARNINGS + 1))
           WARNINGS=$((WARNINGS + 1))
         fi
-      # pitfalls.md 是活跃注册表，阈值 900（P100-B103 归档旧格式后剩余 829 行 · 每条 pitfall 为原子记录不可拆分）
+      # pitfalls.md 是活跃注册表，阈值 1100（P11-B82 新增 7 PFL 1061 行 · 每条 pitfall 为原子记录不可拆分 · 上次 B103 900→900）
       elif [ "$DOC_NAME" = "pitfalls.md" ]; then
-        if [ "$DOC_LINES" -gt 900 ]; then
-          red "  ❌ $doc $DOC_LINES 行（注册表硬阻断阈值 900）— 必须拆分或归档"
+        if [ "$DOC_LINES" -gt 1100 ]; then
+          red "  ❌ $doc $DOC_LINES 行（注册表硬阻断阈值 1100）— 必须拆分或归档"
           DOC_BLOAT_ERRORS=$((DOC_BLOAT_ERRORS + 1))
           ERRORS=$((ERRORS + 1))
         elif [ "$DOC_LINES" -gt 400 ]; then
-          yellow "  ⚠️  $doc $DOC_LINES 行（注册表阈值 900 · 当前超标但低于硬阻断）— 考虑归档已闭环条目"
+          yellow "  ⚠️  $doc $DOC_LINES 行（注册表阈值 1100 · 当前超标但低于硬阻断）— 考虑归档已闭环条目"
           DOC_BLOAT_WARNINGS=$((DOC_BLOAT_WARNINGS + 1))
           WARNINGS=$((WARNINGS + 1))
         fi

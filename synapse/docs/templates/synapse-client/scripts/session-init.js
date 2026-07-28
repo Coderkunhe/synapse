@@ -198,6 +198,24 @@ function writeState(state) {
     lines.push('⏳ Not checked (API unavailable)');
   }
 
+  // ── Unread Messages (PFL-080 · 评论区盲区防御) ──
+  lines.push('');
+  lines.push('## 💬 Unread Messages (PFL-080)');
+  lines.push('');
+  if (state.unreadMessagesTotal === 0) {
+    lines.push('✅ No unread messages requiring attention.');
+  } else if (state.unreadMessagesTotal > 0) {
+    lines.push(`🚨 **${state.unreadMessagesTotal} unread message(s) across ${state.unreadMessages.length} task(s):**`);
+    lines.push('');
+    for (const m of (state.unreadMessages || [])) {
+      lines.push(`- **${m.taskTitle}** (\`${m.taskId}\`): ${m.count} unread — types: ${m.types.join(', ')}`);
+    }
+    lines.push('');
+    lines.push('> ⚠️ **PFL-080**: 评论区是 Worker 间唯一的异步通道。未回复的 blocking/clarification/handoff 消息意味着对方在等你。先读消息再做事——不读评论区 = 盲区。');
+  } else {
+    lines.push('⏳ Not checked');
+  }
+
   // ── Active Tasks ──
   lines.push('');
   lines.push('## 📝 Active Tasks (in_progress)');
@@ -415,10 +433,15 @@ async function main() {
   }
 
   // Update role from protocol response if not set in env
+  // P11-B83 PFL-078: protocol response 可能不返回 role → 保留 env 值作为 fallback
   if (!state.role && state.protocolData?.role) {
     state.role = state.protocolData.role;
   }
-  if (!state.role) state.role = 'builder';
+  // PFL-078: 默认值从 'builder' 改为 'unknown' — 静默覆盖比显式 unknown 更危险
+  if (!state.role) {
+    state.role = 'unknown';
+    state.warnings.push('Role unknown — SYNAPSE_WORKER_ROLE not set in env and protocol did not return role. Defaulting to "unknown". Worker may not function correctly.');
+  }
 
   // Cache protocol response
   try {
@@ -534,6 +557,31 @@ async function main() {
     }
   }
 
+  // 5d. Unread messages (PFL-080 hardening — O must see B's messages, not just task status)
+  state.unreadMessagesTotal = 0;
+  state.unreadMessages = [];
+  const allTasks = [
+    ...(state.inProgressTasks || []),
+    ...(state.verificationTasks || []),
+    ...(state.readyTasks || []),
+  ];
+  // Deduplicate by task id
+  const seen = new Set();
+  const uniqueTasks = allTasks.filter(t => { const k = t.id; if (seen.has(k)) return false; seen.add(k); return true; });
+  for (const t of uniqueTasks.slice(0, 10)) { // Cap at 10 tasks to avoid excessive API calls
+    try {
+      const msgRes = await client.get(`/v1/projects/${projectId}/tasks/${t.id}/messages?is_resolved=false`);
+      if (!msgRes.error && msgRes.data) {
+        const msgList = Array.isArray(msgRes.data) ? msgRes.data : (msgRes.data.items || []);
+        const unread = msgList.filter(m => !m.is_resolved && (m.message_type === 'blocking' || m.message_type === 'clarification' || m.message_type === 'handoff'));
+        if (unread.length > 0) {
+          state.unreadMessages.push({ taskId: t.id, taskTitle: t.title || t.id, count: unread.length, types: [...new Set(unread.map(m => m.message_type))] });
+          state.unreadMessagesTotal += unread.length;
+        }
+      }
+    } catch (_) { /* best-effort — don't block startup on message query failure */ }
+  }
+
   // ── Step 6: Write output ──────────────────────────────────────
   writeState(state);
 
@@ -566,6 +614,8 @@ main().catch((err) => {
     readyTotal: -1,
     verificationTotal: -1,
     allActiveTotal: -1,
+    unreadMessagesTotal: -1,
+    unreadMessages: [],
     heartbeatDaemon: null,
   };
   try {

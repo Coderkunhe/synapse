@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B80→B81 L5 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B80+B81 · 📄 requirements-log B80+B81 · 📄 daily B81+L5 · 📄 pitfalls 5 项状态同步 · 零 drift · 计数器复位",
+  "lastL5Batch": "B81→B82 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B82 补登记 · 📄 requirements-log B82 补登记 · 📄 daily B82 已有 · 📄 pitfalls header 更新 (45项·7新增) · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-28",
   "batchesSinceLastL5": 0,
-  "completedBatches": ["B80", "B81"],
-  "lastL5Evidence": "B80→B81 L5 拉通 — 📄 CLAUDE.md header+L5 banner 更新 · 📄 roadmap B80+B81 ✅ · 📄 requirements-log B80+B81 补登记 · 📄 daily B81+L5 追加 · 📄 pitfalls 5 项 PFL 状态同步 · 零 drift · 计数器复位",
-  "notes": "L5 B80→B81 拉通完成 — 5 文档全量同步 · 计数器复位"
+  "completedBatches": [],
+  "lastL5Evidence": "B81→B82 拉通 — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B82 补登记 · 📄 requirements-log B82 补登记 · 📄 daily B82 已有 · 📄 pitfalls header 更新 (45项·7新增) · 零 drift · 计数器复位",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

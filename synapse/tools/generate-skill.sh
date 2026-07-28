@@ -412,42 +412,55 @@ write_settings_json() {
 
     if [[ -f "$SETTINGS_FILE" ]]; then
         # 已有 settings.json，合并 hook（用 python 处理 JSON）
+        # P11-B83 PFL-076: 升级为合并单 hook 新格式 + . 替代 source
         python3 -c "
 import json, sys
 with open('$SETTINGS_FILE') as f:
     cfg = json.load(f)
 cfg.setdefault('hooks', {})
 hooks = cfg['hooks'].setdefault('SessionStart', [])
-# 检查是否已有 source .env 的 hook（兼容 source .env 和 source \$CLAUDEDIR/.env）
-if not any('source ' in h.get('command','') and '.env' in h.get('command','') for h in hooks):
-    hooks.append({'matcher': '', 'command': 'set -a; source \"\$CLAUDEDIR/.env\"; set +a'})
-# P100-B96: check for heartbeat.js hook (Node.js daemon edition · P100-B99 upgraded to background)
-if not any('heartbeat.js' in h.get('command','') for h in hooks):
-    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" &'})
-# P100-B99: check for session-init.js hook (B98 脚本硬约束 — mechanical startup)
-if not any('session-init.js' in h.get('command','') for h in hooks):
-    hooks.append({'matcher': '', 'command': 'node \"\$CLAUDEDIR/skills/synapse/scripts/session-init.js\"'})
+# PFL-076: 检测是否已有 session-init hook（合并后单命令格式）
+has_synapse = False
+for h in hooks:
+    if 'command' in h and 'session-init.js' in h.get('command',''):
+        has_synapse = True; break
+    if 'hooks' in h:
+        for c in h['hooks']:
+            if 'session-init.js' in c.get('command',''):
+                has_synapse = True; break
+if not has_synapse:
+    hooks.append({
+        'matcher': '',
+        'hooks': [{
+            'type': 'command',
+            'command': 'set -a; . \"\$CLAUDEDIR/.env\"; set +a && node \"\$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" & && node \"\$CLAUDEDIR/skills/synapse/scripts/session-init.js\"'
+        }]
+    })
+# PFL-076: 升级旧格式 (matcher+command) → 新格式 (matcher+hooks[])
+for h in hooks:
+    if 'command' in h and 'session-init.js' in h.get('command',''):
+        cmd = h.pop('command')
+        h.pop('matcher', None)
+        h['hooks'] = [{'type': 'command', 'command': cmd}]
 with open('$SETTINGS_FILE', 'w') as f:
     json.dump(cfg, f, indent=2)
-    f.write('\n')
+    f.write('\\n')
 "
     else
         # 首次创建
+        # P11-B83 PFL-076: 单 hook 新格式 + . 替代 source + 合并命令（避免 env 隔离）
         cat > "$SETTINGS_FILE" << 'SETEOF'
 {
   "hooks": {
     "SessionStart": [
       {
         "matcher": "",
-        "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
-      },
-      {
-        "matcher": "",
-        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" &"
-      },
-      {
-        "matcher": "",
-        "command": "node \"$CLAUDEDIR/skills/synapse/scripts/session-init.js\""
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set -a; . \"$CLAUDEDIR/.env\"; set +a && node \"$CLAUDEDIR/skills/synapse/scripts/heartbeat.js\" & && node \"$CLAUDEDIR/skills/synapse/scripts/session-init.js\""
+          }
+        ]
       }
     ]
   }
@@ -455,7 +468,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 SETEOF
     fi
 
-    echo "  ✅ .claude/settings.json（SessionStart hooks → source .env + heartbeat.js & + session-init.js）"
+    echo "  ✅ .claude/settings.json（SessionStart → .env + heartbeat & + session-init · PFL-076 单命令合并）"
 }
 
 # ─── Client Skill: Claude Code ───
