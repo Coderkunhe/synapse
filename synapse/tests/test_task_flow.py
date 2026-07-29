@@ -552,7 +552,7 @@ class TestVerifyIdempotentGuard:
             ver_event = await event_store.record(
                 db,
                 event_type="verification.executed",
-                team_id="test",
+                team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
                 target_type="verification",
@@ -595,7 +595,7 @@ class TestVerifyIdempotentGuard:
             ver_event = await event_store.record(
                 db,
                 event_type="verification.executed",
-                team_id="test",
+                team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
                 target_type="verification",
@@ -609,7 +609,7 @@ class TestVerifyIdempotentGuard:
             rej_event = await event_store.record(
                 db,
                 event_type="task.rejected",
-                team_id="test",
+                team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
                 target_type="task",
@@ -653,7 +653,7 @@ class TestVerifyIdempotentGuard:
             rej_event = await event_store.record(
                 db,
                 event_type="task.rejected",
-                team_id="test",
+                team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
                 target_type="task",
@@ -667,7 +667,7 @@ class TestVerifyIdempotentGuard:
             ver_event = await event_store.record(
                 db,
                 event_type="verification.executed",
-                team_id="test",
+                team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
                 target_type="verification",

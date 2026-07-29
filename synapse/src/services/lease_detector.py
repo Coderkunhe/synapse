@@ -63,7 +63,7 @@ async def release_expired_leases(db: AsyncSession) -> dict:
         await event_store.record(
             db,
             event_type=event_type,
-            team_id="",  # 租约检测器跨团队；团队上下文来自任务
+            team_id=None,  # 租约检测器跨团队；团队上下文来自任务
             actor_type=ActorType.SYSTEM,
             actor_id="lease_detector",
             target_type="task",

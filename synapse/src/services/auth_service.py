@@ -321,7 +321,7 @@ async def register_user(
     access_token = create_access_token(
         user_id=user.id,
         actor_id=worker_id,
-        team_id="",  # 注册时尚未加入任何 Team
+        team_id=None,  # 注册时尚未加入任何 Team
         role="",     # 注册时无角色
         actor_type=ActorType.HUMAN,
         is_super_admin=user.is_super_admin,  # P10-B17: DB 宽列首用

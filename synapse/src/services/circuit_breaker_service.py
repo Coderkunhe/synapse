@@ -182,7 +182,7 @@ async def record_failure(
             await event_store.record(
                 db,
                 event_type=EventType.CIRCUIT_BREAKER_OPENED,
-                team_id="",  # 系统级事件
+                team_id=None,  # 系统级事件
                 actor_type=ActorType.SYSTEM,
                 actor_id="circuit_breaker",
                 target_type="circuit_breaker",
@@ -236,7 +236,7 @@ async def record_success(
         await event_store.record(
             db,
             event_type=EventType.CIRCUIT_BREAKER_CLOSED,
-            team_id="",  # 系统级事件
+            team_id=None,  # 系统级事件
             actor_type=ActorType.SYSTEM,
             actor_id="circuit_breaker",
             target_type="circuit_breaker",
@@ -281,7 +281,7 @@ async def reset_breaker(
     await event_store.record(
         db,
         event_type=EventType.CIRCUIT_BREAKER_CLOSED,
-        team_id="",  # 系统级事件
+        team_id=None,  # 系统级事件
         actor_type=ActorType.SYSTEM,
         actor_id="circuit_breaker",
         target_type="circuit_breaker",

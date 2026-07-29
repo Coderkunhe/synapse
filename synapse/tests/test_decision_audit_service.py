@@ -78,7 +78,7 @@ class TestRecordDecision:
         """记录审批决策."""
         audit = await record_decision(
             db_session,
-            authorization_request_id=generate_id("authorization_request"),
+            authorization_request_id=None,
             decision_type=DecisionType.APPROVE,
             actor_type=ActorType.HUMAN,
             actor_id=actor_info["actor_id"],
@@ -111,7 +111,7 @@ class TestRecordDecision:
             worker_id=test_worker,
             risk_level=RiskLevel.MEDIUM,
             reason="Denied by system policy",
-            team_id="",
+            team_id=None,
         )
         await db_session.commit()
 
@@ -123,7 +123,7 @@ class TestRecordDecision:
         """记录决策同时写入 EventStore."""
         audit = await record_decision(
             db_session,
-            authorization_request_id=generate_id("authorization_request"),
+            authorization_request_id=None,
             decision_type=DecisionType.EXPIRE,
             actor_type=ActorType.SYSTEM,
             actor_id="system",
@@ -131,7 +131,7 @@ class TestRecordDecision:
             worker_id=test_worker,
             risk_level=RiskLevel.LOW,
             reason="Expired",
-            team_id="",
+            team_id=None,
         )
         await db_session.commit()
 
@@ -165,7 +165,7 @@ class TestRecordDecision:
                 worker_id=test_worker,
                 risk_level=RiskLevel.LOW,
                 reason=f"Test {dt}",
-                team_id="",
+                team_id=None,
             )
             assert audit.decision_type == dt
 
@@ -181,7 +181,7 @@ class TestRecordDecision:
             worker_id=test_worker,
             risk_level=RiskLevel.LOW,
             context={"breaker_state": "open", "risk_score": 0.85},
-            team_id="",
+            team_id=None,
         )
         await db_session.commit()
 
@@ -252,7 +252,7 @@ class TestListDecisions:
             actor_id="system",
             project_id=test_project,
             worker_id=test_worker,
-            team_id="",
+            team_id=None,
         )
         await db_session.commit()
 
@@ -265,7 +265,7 @@ class TestListDecisions:
             db_session, authorization_request_id=None,
             decision_type=DecisionType.EXPIRE,
             actor_type=ActorType.SYSTEM, actor_id="system",
-            project_id=test_project, worker_id=test_worker, team_id="",
+            project_id=test_project, worker_id=test_worker, team_id=None,
         )
         await record_decision(
             db_session, authorization_request_id=None,
@@ -286,7 +286,7 @@ class TestListDecisions:
                 db_session, authorization_request_id=None,
                 decision_type=DecisionType.CANCEL,
                 actor_type=ActorType.SYSTEM, actor_id="system",
-                project_id=test_project, worker_id=test_worker, team_id="",
+                project_id=test_project, worker_id=test_worker, team_id=None,
             )
         await db_session.commit()
 

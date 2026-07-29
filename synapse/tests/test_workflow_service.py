@@ -306,6 +306,7 @@ async def test_assign_workflow_role_new(seed: SeedData):
         list_workflow_roles,
     )
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
 
@@ -313,10 +314,15 @@ async def test_assign_workflow_role_new(seed: SeedData):
         # 直接创建 Workflow 行（跳过服务层事件以简化，或用 ORM 直接 insert）
         wf_id = generate_id("workflow")
         worker_id = generate_id("worker")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
             id=wf_id,
-            project_id="proj_test",
+            project_id=proj_id,
             name="Test WF",
             status="active",
         )
@@ -359,16 +365,22 @@ async def test_assign_workflow_role_upsert(seed: SeedData):
     from src.utils.id_gen import generate_id
     from src.services.workflow_role_service import assign_workflow_role
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
 
     async with async_session_factory() as db:
         wf_id = generate_id("workflow")
         worker_id = generate_id("worker")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
             id=wf_id,
-            project_id="proj_test",
+            project_id=proj_id,
             name="Test WF",
             status="active",
         )
@@ -407,15 +419,21 @@ async def test_assign_workflow_role_same_role_noop(seed: SeedData):
     from src.utils.id_gen import generate_id
     from src.services.workflow_role_service import assign_workflow_role
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
 
     async with async_session_factory() as db:
         wf_id = generate_id("workflow")
         worker_id = generate_id("worker")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
-            id=wf_id, project_id="proj_test", name="Test WF", status="active",
+            id=wf_id, project_id=proj_id, name="Test WF", status="active",
         )
         worker = Worker(
             id=worker_id, name="Test Worker",
@@ -461,14 +479,20 @@ async def test_list_workflow_roles_multiple(seed: SeedData):
         list_workflow_roles,
     )
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
 
     async with async_session_factory() as db:
         wf_id = generate_id("workflow")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
-            id=wf_id, project_id="proj_test", name="Test WF", status="active",
+            id=wf_id, project_id=proj_id, name="Test WF", status="active",
         )
         db.add(workflow)
         await db.flush()
@@ -511,15 +535,21 @@ async def test_revoke_workflow_role(seed: SeedData):
         revoke_workflow_role,
     )
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
 
     async with async_session_factory() as db:
         wf_id = generate_id("workflow")
         worker_id = generate_id("worker")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
-            id=wf_id, project_id="proj_test", name="Test WF", status="active",
+            id=wf_id, project_id=proj_id, name="Test WF", status="active",
         )
         worker = Worker(
             id=worker_id, name="Test Worker",
@@ -633,6 +663,7 @@ async def test_workflow_role_events(seed: SeedData):
     from src.db import async_session_factory
     from src.utils.id_gen import generate_id
     from src.constants import ActorType, WorkerActorType, WorkerStatus
+    from src.models.project import Project
     from src.models.workflow import Workflow
     from src.models.worker import Worker
     from src.services.workflow_role_service import (
@@ -645,9 +676,14 @@ async def test_workflow_role_events(seed: SeedData):
     async with async_session_factory() as db:
         wf_id = generate_id("workflow")
         worker_id = generate_id("worker")
+        proj_id = generate_id("project")
+        proj = Project(id=proj_id, team_id=seed.team_id, name="Test Project",
+                       slug=f"test-{proj_id[-8:]}", status="active")
+        db.add(proj)
+        await db.flush()
 
         workflow = Workflow(
-            id=wf_id, project_id="proj_test", name="Event WF", status="active",
+            id=wf_id, project_id=proj_id, name="Event WF", status="active",
         )
         worker = Worker(
             id=worker_id, name="Event Worker",

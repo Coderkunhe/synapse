@@ -378,20 +378,26 @@ class TestProtocolEndpoint:
 
         team2_id = generate_id("team")
         member2_id = generate_id("member")
+        worker2_id = generate_id("worker")
         async with async_session_factory() as session:
             from src.models.member import Member
             from src.models.team import Team
+            from src.models.worker import Worker
             short = team2_id.replace("tea_", "")[-12:]
             team2 = Team(id=team2_id, name=f"Other Team {short}", slug=f"other-{short}")
             member2 = Member(
                 id=member2_id, team_id=team2_id,
                 user_id=f"user-{member2_id[:8]}", display_name="OtherAdmin", role="admin",
             )
-            session.add_all([team2, member2])
+            worker2 = Worker(
+                id=worker2_id, team_id=team2_id,
+                name="OtherAdmin", actor_type="human", status="active",
+            )
+            session.add_all([team2, member2, worker2])
             await session.commit()
 
         token2 = create_access_token(
-            user_id=f"user-{member2_id[:8]}", member_id=member2_id,
+            user_id=f"user-{member2_id[:8]}", actor_id=worker2_id,
             team_id=team2_id, role="admin",
         )
 

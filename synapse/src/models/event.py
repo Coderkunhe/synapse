@@ -18,8 +18,8 @@ class Event(Base):
     __tablename__ = "event"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
-    team_id: Mapped[str] = mapped_column(
-        ForeignKey("team.id"), nullable=False, index=True
+    team_id: Mapped[str | None] = mapped_column(
+        ForeignKey("team.id"), nullable=True, index=True
     )
     event_type: Mapped[str] = mapped_column(
         String(100), nullable=False, index=True

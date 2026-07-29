@@ -43,7 +43,7 @@ class EventStore:
         db: AsyncSession,
         *,
         event_type: str,
-        team_id: str,
+        team_id: str | None,
         actor_type: str,
         actor_id: str,
         target_type: str,
@@ -158,7 +158,7 @@ event_store = EventStore()
 # ── WebSocket 广播钩子 ────────────────────────────────────────────────
 
 
-def _broadcast_event(team_id: str, event: Event) -> None:
+def _broadcast_event(team_id: str | None, event: Event) -> None:
     """Fire-and-forget 方式将新记录的事件广播给 WebSocket 客户端。
 
     作为后台任务运行以避免阻塞 HTTP 响应。

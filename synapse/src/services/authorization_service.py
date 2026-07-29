@@ -504,7 +504,7 @@ async def expire_stale_requests(
         await event_store.record(
             db,
             event_type=EventType.AUTHORIZATION_REQUEST_EXPIRED,
-            team_id="",  # 批量操作，跨 team
+            team_id=None,  # 批量操作，跨 team
             actor_type=ActorType.SYSTEM,
             actor_id="system",
             target_type="authorization_request",
@@ -533,7 +533,7 @@ async def expire_stale_requests(
                 "operation": record.operation,
                 "expires_at": record.expires_at.isoformat() if record.expires_at else None,
             },
-            team_id="",
+            team_id=None,
         )
 
         # P10-B34: WS push to Worker — notify of expiry (L5 拉通补缺)
@@ -583,7 +583,7 @@ async def cancel_worker_requests(
         await event_store.record(
             db,
             event_type=EventType.AUTHORIZATION_REQUEST_CANCELLED,
-            team_id="",  # 级联操作，从 Worker 级触发
+            team_id=None,  # 级联操作，从 Worker 级触发
             actor_type=ActorType.SYSTEM,
             actor_id="system",
             target_type="authorization_request",
@@ -612,7 +612,7 @@ async def cancel_worker_requests(
                 "operation": record.operation,
                 "reason": "worker_restart_cascade",
             },
-            team_id="",
+            team_id=None,
         )
 
         # P10-B34: WS push to Worker — notify of cancellation (L5 拉通补缺)

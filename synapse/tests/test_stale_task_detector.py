@@ -28,10 +28,16 @@ class TestStaleTaskDetector:
     async def test_detect_stale_in_progress_tasks(self):
         """扫描过期 in_progress 任务并记录 stale 事件。"""
         async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-stale"))
+            await db.flush()
+
             # Create a stale task (updated_at far in the past)
             stale_task = Task(
                 id="tsk_stale_001",
-                project_id="prj_test_001",
+                project_id=project_id,
                 title="Stale Task",
                 description="This task has been in_progress too long",
                 status=TaskStatus.IN_PROGRESS,
@@ -45,7 +51,7 @@ class TestStaleTaskDetector:
             # Create a fresh task (updated_at recently)
             fresh_task = Task(
                 id="tsk_fresh_001",
-                project_id="prj_test_001",
+                project_id=project_id,
                 title="Fresh Task",
                 description="This task is actively being worked on",
                 status=TaskStatus.IN_PROGRESS,
@@ -71,9 +77,15 @@ class TestStaleTaskDetector:
     async def test_detect_stale_paused_tasks(self):
         """PAUSED 任务过期 → 也检测为 stale（B90 补缺）。"""
         async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale-paused"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-stale-paused"))
+            await db.flush()
+
             stale_paused = Task(
                 id="tsk_stale_paused_001",
-                project_id="prj_test_001",
+                project_id=project_id,
                 title="Stale Paused Task",
                 description="Paused and abandoned",
                 status=TaskStatus.PAUSED,
@@ -95,9 +107,15 @@ class TestStaleTaskDetector:
     async def test_no_stale_tasks_when_all_fresh(self):
         """所有任务都是最近的 → 不检测到 stale。"""
         async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale-fresh"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-stale-fresh"))
+            await db.flush()
+
             task = Task(
                 id="tsk_active_001",
-                project_id="prj_test_001",
+                project_id=project_id,
                 title="Active Task",
                 description="Being worked on",
                 status=TaskStatus.IN_PROGRESS,

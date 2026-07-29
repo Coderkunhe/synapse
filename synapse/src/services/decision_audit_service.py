@@ -105,7 +105,7 @@ async def record_decision(
     reason: str | None = None,
     context: dict | None = None,
     # 事件元数据
-    team_id: str,
+    team_id: str | None,
 ) -> DecisionAudit:
     """记录不可变审计条目。
 
