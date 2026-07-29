@@ -43,10 +43,11 @@ async def _check_verify_idempotent(
     """检查同一 actor 对同一 verification 是否在幂等窗口内已执行过 verify。
 
     查询 Event 表（append-only），跨 resubmit 周期有效。
-    若窗口内有 ``verification.executed`` 事件，且此后 Task 未被 REJECTED
-    （即不是合法 rework 周期），则返回 409 DUPLICATE_VERIFICATION。
+    若窗口内有 ``verification.executed`` 事件，且此后 Verification 未被 reset
+    （P8-B8: verification.reset 事件），则返回 409 DUPLICATE_VERIFICATION。
 
-    Task 被 REJECTED → redo → resubmit 是合法的新周期，不拦截。
+    合法 rework 周期：verify failed → task.rejected → resubmit → verification 被
+    reset 为 PENDING（记录 verification.reset）→ 再 verify。不拦截。
     """
     from datetime import datetime, timedelta, timezone
 
@@ -72,23 +73,23 @@ async def _check_verify_idempotent(
     if prev_payload.get("review_flag"):
         return  # 待人工复核 → OK
 
-    # 若 Task 在本次 verify 之后被 REJECTED → 合法 rework 周期 → 放行
-    # 时序约束：仅当 rejection 发生在 prev verification.executed 之后（含同时），
-    # 才是"验证失败→返工→重验"的合法周期。历史的 rejection 不应放行。
+    # 若 Verification 在本次 verify 之后被 reset → 合法 rework 周期 → 放行
+    # P8-B8 (task_execution.py): 当已执行的验证在 task resubmit 时被重置为 PENDING，
+    # 会记录 verification.reset 事件。这是 rework 的直接信号，比 task.rejected 更可靠。
+    # 时序约束：仅当 reset 发生在 prev verification.executed 之后（含同时），
+    # 才是"验证失败→返工→重验"的合法周期。历史的 reset 不应放行。
     # 使用 >= 是因为 execute_verification 在同一事务中先记录
-    # verification.executed 再记录 task.rejected，两者 func.now() 可能相同。
-    all_rejections = await db.execute(
+    # verification.executed 再记录 task.rejected，reset 在后续的 submit_task 中记录。
+    reset_result = await db.execute(
         select(Event).where(
-            Event.event_type == "task.rejected",
-            Event.target_type == "task",
-            Event.target_id == task_id,
-        )
+            Event.event_type == "verification.reset",
+            Event.target_type == "verification",
+            Event.target_id == verification_id,
+            Event.created_at >= prev.created_at,
+        ).limit(1)
     )
-    # Python-side temporal comparison: SQLite 的 DateTime 存储为字符串，
-    # SQL-side >= 比较在某些 SQLAlchemy 版本中因类型转换不一致而失效。
-    # Python datetime 比较更可靠。
-    if any(r.created_at >= prev.created_at for r in all_rejections.scalars().all()):
-        return  # 合法 rework → OK
+    if reset_result.scalars().first() is not None:
+        return  # 合法 rework → Verification 被显式 reset
 
     raise ConflictError(
         "DUPLICATE_VERIFICATION",

@@ -526,11 +526,15 @@ class TestVerificationRework:
 
 
 class TestVerifyIdempotentGuard:
-    """P11-B76: 幂等 guard 单元测试 — DUPLICATE_VERIFICATION 时序约束。"""
+    """P11-B76 + B101: 幂等 guard 单元测试 — DUPLICATE_VERIFICATION 时序约束。
+
+    B101 修复：用 verification.reset 事件（P8-B8）替换 task.rejected 检测 rework，
+    消除 Python-side datetime 比较不可靠导致的回归。
+    """
 
     @pytest.mark.asyncio
-    async def test_duplicate_verify_blocked_without_rework(self):
-        """单元测试：无 task.rejected 事件 → DUPLICATE_VERIFICATION 被抛出。
+    async def test_duplicate_verify_blocked_without_reset(self):
+        """单元测试：无 verification.reset 事件 → DUPLICATE_VERIFICATION 被抛出。
 
         模拟场景：记录 verification.executed 事件（窗口内），
         同一 actor 再次 verify → 应抛出 DUPLICATE_VERIFICATION。
@@ -573,10 +577,11 @@ class TestVerifyIdempotentGuard:
 
     @pytest.mark.asyncio
     async def test_rework_allows_re_verify(self):
-        """单元测试：有 task.rejected >= prev.created_at → 合法 rework → 放行。
+        """单元测试：有 verification.reset >= prev.created_at → 合法 rework → 放行。
 
-        时序：verification(T-30) → rejection(T-15) → 重验
-        rejection 发生在 verification 之后，是合法返工周期。
+        P8-B8 时序：verification.executed(T-30) → task.rejected → resubmit
+        → verification.reset(T-15, 重置为 PENDING) → 重验。
+        verification.reset 发生在 execution 之后，是合法返工周期的直接信号。
         """
         from datetime import datetime, timedelta, timezone
         from src.services.verification_service import _check_verify_idempotent
@@ -605,36 +610,37 @@ class TestVerifyIdempotentGuard:
             ver_event.created_at = now - timedelta(seconds=30)
             await db.flush()
 
-            # Step 2: Record task.rejected (15s ago, AFTER verification)
-            rej_event = await event_store.record(
+            # Step 2: Record verification.reset (15s ago, AFTER execution)
+            # P8-B8: 当 task resubmit 时，已执行的 verification 被重置为 PENDING
+            reset_event = await event_store.record(
                 db,
-                event_type="task.rejected",
+                event_type="verification.reset",
                 team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
-                target_type="task",
-                target_id=task_id,
-                payload={"reason": "rework needed"},
+                target_type="verification",
+                target_id=ver_id,
+                payload={"task_id": task_id, "previous_status": "failed", "new_status": "pending"},
             )
-            rej_event.created_at = now - timedelta(seconds=15)
+            reset_event.created_at = now - timedelta(seconds=15)
             await db.flush()
 
-            # Step 3: rejection(15s) >= verification(30s) → re-verify allowed
+            # Step 3: reset(15s) >= verification(30s) → re-verify allowed
             try:
                 await _check_verify_idempotent(
                     db, verification_id=ver_id, actor_id=actor_id, task_id=task_id,
                 )
             except ConflictError:
-                pytest.fail("Should allow re-verify after task.rejected")
+                pytest.fail("Should allow re-verify after verification.reset")
 
             await db.rollback()
 
     @pytest.mark.asyncio
-    async def test_historical_rejection_does_not_bypass_guard(self):
-        """单元测试：历史 rejection（在 verification.executed 之前）不放行。
+    async def test_historical_reset_does_not_bypass_guard(self):
+        """单元测试：历史 reset（在 verification.executed 之前）不放行。
 
-        时序：rejection(T-30) → verification(T-15)
-        rejection 发生在 verification 之前，不是合法返工周期 → DUPLICATE_VERIFICATION。
+        时序：reset(T-30) → verification.executed(T-15)
+        reset 发生在 verification 之前（历史遗留），不是合法返工周期 → DUPLICATE_VERIFICATION。
         """
         from datetime import datetime, timedelta, timezone
         from src.services.verification_service import _check_verify_idempotent
@@ -649,21 +655,23 @@ class TestVerifyIdempotentGuard:
             actor_id = "ag_test_idem_003"
             now = datetime.now(timezone.utc)
 
-            # Step 1: Record historical rejection (30s ago)
-            rej_event = await event_store.record(
+            # Step 1: Record historical reset (30s ago, BEFORE execution)
+            # This is a stale reset from a prior rework cycle — should NOT bypass
+            reset_event = await event_store.record(
                 db,
-                event_type="task.rejected",
+                event_type="verification.reset",
                 team_id=None,
                 actor_type="human",
                 actor_id=actor_id,
-                target_type="task",
-                target_id=task_id,
-                payload={"reason": "old rejection"},
+                target_type="verification",
+                target_id=ver_id,
+                payload={"task_id": task_id, "previous_status": "failed", "new_status": "pending"},
             )
-            rej_event.created_at = now - timedelta(seconds=30)
+            reset_event.created_at = now - timedelta(seconds=30)
             await db.flush()
 
-            # Step 2: Record verification.executed (15s ago, AFTER rejection)
+            # Step 2: Record verification.executed (15s ago, AFTER reset)
+            # This is the current execution — the reset before it is stale
             ver_event = await event_store.record(
                 db,
                 event_type="verification.executed",
@@ -677,7 +685,7 @@ class TestVerifyIdempotentGuard:
             ver_event.created_at = now - timedelta(seconds=15)
             await db.flush()
 
-            # Step 3: rejection(30s) is BEFORE verification(15s)
+            # Step 3: reset(30s) is BEFORE verification(15s) — stale, not a rework signal
             # → should still raise DUPLICATE_VERIFICATION
             with pytest.raises(ConflictError) as exc_info:
                 await _check_verify_idempotent(
