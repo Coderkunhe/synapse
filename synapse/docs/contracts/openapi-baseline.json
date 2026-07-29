@@ -225,6 +225,17 @@
       },
       "AuthorizationRequestCreate": {
         "properties": {
+          "capability_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "operation": {
             "anyOf": [
               {
@@ -275,7 +286,7 @@
             ]
           },
           "request_type": {
-            "pattern": "^(api_auth|interactive_prompt)$",
+            "pattern": "^(api_auth|interactive_prompt|capability_exec)$",
             "type": "string"
           },
           "target_resource_id": {
@@ -321,6 +332,27 @@
         "properties": {},
         "type": "object"
       },
+      "AuthorizationRequestReport": {
+        "properties": {
+          "duration_ms": {
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "outcome": {
+            "pattern": "^(success|failure)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "exit_code",
+          "duration_ms"
+        ],
+        "type": "object"
+      },
       "AuthorizationRequestRespond": {
         "properties": {
           "response_data": {
@@ -357,12 +389,42 @@
       },
       "AuthorizationRequestResponse": {
         "properties": {
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "create_user_id": {
             "type": "string"
           },
           "created_at": {
             "format": "date-time",
             "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exit_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expires_at": {
             "format": "date-time",
@@ -389,6 +451,16 @@
             ]
           },
           "operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
             "anyOf": [
               {
                 "type": "string"
@@ -468,6 +540,16 @@
               }
             ]
           },
+          "responded_by_worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "response_data": {
             "anyOf": [
               {
@@ -501,6 +583,16 @@
               }
             ]
           },
+          "target_resource_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "target_resource_type": {
             "anyOf": [
               {
@@ -520,6 +612,16 @@
           },
           "worker_id": {
             "type": "string"
+          },
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -825,6 +927,19 @@
               }
             ]
           },
+          "required_capabilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tags": {
             "anyOf": [
               {
@@ -880,6 +995,84 @@
         ],
         "type": "object"
       },
+      "CapabilityAuditResponse": {
+        "properties": {
+          "actor_id": {
+            "type": "string"
+          },
+          "actor_type": {
+            "type": "string"
+          },
+          "authorization_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capability_id": {
+            "type": "string"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "worker_id": {
+            "type": "string"
+          },
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "worker_id",
+          "capability_id",
+          "exit_code",
+          "duration_ms",
+          "outcome",
+          "actor_type",
+          "actor_id",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "CapabilityDeclaration": {
         "properties": {
           "input_schema": {
@@ -911,6 +1104,82 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "CapabilityResponse": {
+        "properties": {
+          "approval_policy": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dangerous_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_required": {
+            "default": false,
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "protected_paths": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "risk": {
+            "type": "string"
+          },
+          "timeout": {
+            "default": 60,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "risk",
+          "approval_policy",
+          "command"
         ],
         "type": "object"
       },
@@ -1294,6 +1563,40 @@
           "items": {
             "items": {
               "$ref": "#/components/schemas/BatchResponse"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "CursorPage_CapabilityAuditResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityAuditResponse"
             },
             "type": "array"
           },
@@ -1967,6 +2270,68 @@
           "display_name",
           "role",
           "joined_at"
+        ],
+        "type": "object"
+      },
+      "OrchestratorStatusResponse": {
+        "properties": {
+          "detection_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "heartbeat_age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_heartbeat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "online"
         ],
         "type": "object"
       },
@@ -3261,6 +3626,19 @@
             "pattern": "^(p0|p1|p2|p3)$",
             "type": "string"
           },
+          "required_capabilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tags": {
             "anyOf": [
               {
@@ -3436,6 +3814,16 @@
               }
             ]
           },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "owner_type": {
             "anyOf": [
               {
@@ -3470,6 +3858,19 @@
             "anyOf": [
               {
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_capabilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
@@ -3605,6 +4006,19 @@
               {
                 "pattern": "^(p0|p1|p2|p3)$",
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_capabilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
@@ -4197,6 +4611,16 @@
               }
             ]
           },
+          "expected_evidence_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "type": {
             "pattern": "^(manual|automated|check_list)$",
             "type": "string"
@@ -4534,8 +4958,66 @@
                 "type": "null"
               }
             ]
+          },
+          "template_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
+        "type": "object"
+      },
+      "WorkerHeartbeatResponse": {
+        "properties": {
+          "recovery_event": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "runtime_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "template_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
         "type": "object"
       },
       "WorkerProjectResponse": {
@@ -4744,6 +5226,16 @@
           },
           "version_no": {
             "type": "integer"
+          },
+          "ws_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4955,6 +5447,13 @@
           "owner_id"
         ],
         "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT or API Key",
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -6221,6 +6720,50 @@
         }
       }
     },
+    "/v1/authorization-requests/{request_id}/report": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizationRequestReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/authorization-requests/{request_id}/respond": {
       "patch": {
         "parameters": [
@@ -6365,6 +6908,82 @@
                 "schema": {
                   "$ref": "#/components/schemas/BatchClaimResponse"
                 }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bootstrap": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "client",
+            "required": false,
+            "schema": {
+              "default": "auto",
+              "pattern": "^(auto|claude|codex|cursor)$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(orchestrator|builder|steward)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "sh",
+              "pattern": "^(sh|json)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -7024,7 +7643,7 @@
             "required": false,
             "schema": {
               "default": "pending",
-              "pattern": "^(pending|approved|denied|expired|cancelled)$",
+              "pattern": "^(pending|approved|denied|expired|cancelled|all)$",
               "type": "string"
             }
           },
@@ -7220,6 +7839,143 @@
         }
       }
     },
+    "/v1/projects/{project_id}/capability-audits": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "worker_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "capability_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(success|failure)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPage_CapabilityAuditResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/projects/{project_id}/decision-audits": {
       "get": {
         "parameters": [
@@ -7372,6 +8128,40 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CursorPage_EventResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/orchestrator-status": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrchestratorStatusResponse"
                 }
               }
             }
@@ -9677,6 +10467,19 @@
         }
       }
     },
+    "/v1/templates/versions": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/verifications/batch": {
       "post": {
         "requestBody": {
@@ -9996,6 +10799,43 @@
         }
       }
     },
+    "/v1/workers/{worker_id}/capabilities": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CapabilityResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workers/{worker_id}/handshake": {
       "post": {
         "parameters": [
@@ -10066,7 +10906,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerHeartbeatResponse"
+                }
               }
             }
           },

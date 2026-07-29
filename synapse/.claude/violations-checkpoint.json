@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P11-B95 — Capability硬约束 · PFL-086/094双闭环 · 违纪回顾复位",
+  "lastReviewBatch": "P100-B108 治理收尾扫描 — B105-B107 审计闭环 · 违纪回顾复位",
   "lastReviewTimestamp": "2026-07-29",
   "totalViolations": 29,
   "recurringCount": 0,
   "unguardedCount": 1,
-  "batchesSinceLastReview": 4,
+  "batchesSinceLastReview": 0,
   "notes": "违纪回顾完成，计数器复位"
 }
