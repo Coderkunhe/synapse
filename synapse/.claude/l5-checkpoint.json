@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B94→B95 拉通完成 — B94 模板升级链自动化 + B95 Capability硬约束 PFL-086/094 双闭环 · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新",
+  "lastL5Batch": "B106→B107 L5 拉通完成 — B106 测试/生产一致性(FK PRAGMA+时间源+时区+CI PG+门禁诚实度) + B107 FK合规全量修复(Event.team_id nullable+10处None+test fixture修复) · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily 全量刷新",
   "lastL5Timestamp": "2026-07-29",
-  "batchesSinceLastL5": 2,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B94→B95 拉通完成 — B94 模板升级链自动化 + B95 Capability硬约束 PFL-086/094 双闭环 · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新",
+  "lastL5Evidence": "B106→B107 L5 拉通完成 — B106 测试/生产一致性(FK PRAGMA+时间源+时区+CI PG+门禁诚实度) + B107 FK合规全量修复(Event.team_id nullable+10处None+test fixture修复) · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily 全量刷新",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

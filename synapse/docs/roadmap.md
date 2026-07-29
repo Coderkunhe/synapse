@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-29（P11-B95 ✅ Capability硬约束 · L5 B94→B95 拉通）
+> 最后更新：2026-07-29（P100-B107 ✅ FK合规全量修复 · L5 B106→B107 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -649,5 +649,6 @@
 - **P100-B104**：**P100 治理波收尾 + P11 交棒** ✅ — check-line-count.sh 阈值 1000→1100 (task_service.py 1073行缓冲) · Track 指针 P100→P11 · make check 全绿 · MEMORY.md 刷新 · 🟢 微型 · P100 全量闭环 🎉
 - **P100-B105**：**安全加固** ✅ — JWT_SECRET field_validator 防 placeholder · slowapi 速率限制 (login 5/min · register/forgot/reset 3/min) · 后台 reaper 异常日志 (ws + auth + stale) · /health reaper 状态暴露 · check-template-drift 接入 make check · RATE_LIMIT env vars 测试免限流 · 🟡 标准 · 7 files
 - **P100-B106**：**测试/生产一致性** ✅ — SQLite FK PRAGMA ⑪ · _utcnow 统一时间源 ⑭ · DateTime(timezone=True) ⑱ · CI PostgreSQL 双矩阵 ㉖ · alembic check ⑲ · quality-gate 内容诚实度升级 (WARNING→ERROR) · l5-reset 第4关 track 指针验证 · FK 合规修复 (auth flush + worker.user_id=None) · 🟡 标准 · 10 files · 611/648 tests (37 FK暴露→B107)
+- **P100-B107**：**FK合规全量修复** ✅ — ① Event.team_id nullable=True (str|None) · ② 10 处系统事件 team_id=""→None (5 service 文件) · ③ Alembic migration batch_alter_table · ④~⑥ test fixture FK 修复 (真实 Team/Project/Worker 创建) · event_store.record()/_broadcast_event()/record_decision() 签名更新 · 🟡 标准 · 13 files · 648/648 tests 零回归
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
