@@ -522,22 +522,67 @@ def worker_to_response(worker: Worker) -> dict:
     }
 
 
+# B92: O 活动事件类型 — 证明 O 在线（即使 heartbeat daemon 短暂故障）
+_O_ACTIVITY_EVENT_TYPES = frozenset({
+    "task.created",
+    "task.assigned",
+    "verification.executed",
+    "batch.created",
+    "batch.assigned",
+})
+
+
+async def _get_latest_activity_age(
+    db: AsyncSession,
+    worker_id: str,
+    cutoff: datetime,
+) -> int | None:
+    """查询 Worker 在 cutoff 之后的最新 Event 活动年龄（秒）。
+
+    Event.created_at 是 naive UTC（SQLite），需 normalize 后再计算。
+    返回 None 表示 cutoff 内无活动。
+    """
+    from src.models.event import Event
+
+    stmt = (
+        select(Event.created_at)
+        .where(
+            Event.actor_id == worker_id,
+            Event.event_type.in_(_O_ACTIVITY_EVENT_TYPES),
+            Event.created_at >= cutoff,
+        )
+        .order_by(Event.created_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+
+    latest = row
+    if latest.tzinfo is None:
+        latest = latest.replace(tzinfo=timezone.utc)
+    return int((datetime.now(timezone.utc) - latest).total_seconds())
+
+
 async def get_orchestrator_status(
     db: AsyncSession,
     project_id: str,
     *,
     heartbeat_timeout_seconds: int = 120,
 ) -> dict:
-    """查询 Project 中 O 的心跳状态（PFL-070 · B87）。
+    """查询 Project 中 O 的心跳状态（PFL-070 · B87 · B92 双源增强）。
 
     通过 project_actor_roles 找到 orchestrator 角色的 Worker，
-    检查 last_heartbeat_at 是否在阈值内。
+    双源判定在线状态：
+    1. 主源：last_heartbeat_at 是否在阈值内
+    2. 次源（B92）：heartbeat 过期时检查 Event 表近期 O 活动事件
 
     Returns:
         dict with keys: online, worker_id, worker_name,
-        last_heartbeat_at, heartbeat_age_seconds
+        last_heartbeat_at, heartbeat_age_seconds, detection_source
     """
-    from datetime import datetime, timezone
+    from datetime import datetime, timedelta, timezone
 
     from src.models.project_actor_role import ProjectActorRole
 
@@ -561,20 +606,50 @@ async def get_orchestrator_status(
             "worker_name": None,
             "last_heartbeat_at": None,
             "heartbeat_age_seconds": None,
+            "detection_source": None,
         }
 
     now = datetime.now(timezone.utc)
-    age = (
-        int((now - orchestrator.last_heartbeat_at).total_seconds())
-        if orchestrator.last_heartbeat_at
+    last_hb = orchestrator.last_heartbeat_at
+    # Normalize to UTC-aware: SQLite stores naive UTC, subtraction requires same type
+    if last_hb is not None and last_hb.tzinfo is None:
+        last_hb = last_hb.replace(tzinfo=timezone.utc)
+    hb_age = (
+        int((now - last_hb).total_seconds())
+        if last_hb is not None
         else None
     )
-    online = age is not None and age <= heartbeat_timeout_seconds
 
+    # 主源：心跳判定
+    if hb_age is not None and hb_age <= heartbeat_timeout_seconds:
+        return {
+            "online": True,
+            "worker_id": orchestrator.id,
+            "worker_name": orchestrator.name,
+            "last_heartbeat_at": orchestrator.last_heartbeat_at,
+            "heartbeat_age_seconds": hb_age,
+            "detection_source": "heartbeat",
+        }
+
+    # 次源（B92）：心跳过期 → 检查 Event 活动
+    cutoff = now - timedelta(seconds=heartbeat_timeout_seconds)
+    event_age = await _get_latest_activity_age(db, orchestrator.id, cutoff)
+    if event_age is not None:
+        return {
+            "online": True,
+            "worker_id": orchestrator.id,
+            "worker_name": orchestrator.name,
+            "last_heartbeat_at": orchestrator.last_heartbeat_at,
+            "heartbeat_age_seconds": hb_age,
+            "detection_source": "event_activity",
+        }
+
+    # 双源皆无 → 离线
     return {
-        "online": online,
+        "online": False,
         "worker_id": orchestrator.id,
         "worker_name": orchestrator.name,
         "last_heartbeat_at": orchestrator.last_heartbeat_at,
-        "heartbeat_age_seconds": age,
+        "heartbeat_age_seconds": hb_age,
+        "detection_source": None,
     }

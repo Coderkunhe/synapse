@@ -120,11 +120,15 @@ class WorkerProjectResponse(BaseModel):
 
 
 class OrchestratorStatusResponse(BaseModel):
-    """O 心跳状态 — Builder 启动前检查 O 是否存活（PFL-070 · B87）。"""
+    """O 心跳状态 — Builder 启动前检查 O 是否存活（PFL-070 · B87）。
+
+    B92 增强：双源判定 — heartbeat 过期时回退到 Event 活动时间，
+    防止心跳 daemon 短暂故障导致误报 offline。
+    """
 
     online: bool = Field(
         ...,
-        description="O 是否在线（last_heartbeat_at 在阈值内）",
+        description="O 是否在线（双源判定：heartbeat 或 event_activity）",
     )
     worker_id: str | None = Field(
         None,
@@ -141,4 +145,8 @@ class OrchestratorStatusResponse(BaseModel):
     heartbeat_age_seconds: int | None = Field(
         None,
         description="距上次心跳的秒数 — 无 O 时为 None",
+    )
+    detection_source: str | None = Field(
+        None,
+        description="检测来源: heartbeat | event_activity | None（离线）— B92 双源容错",
     )
