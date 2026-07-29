@@ -470,14 +470,38 @@ execute_capability() {
 
 report_evidence() {
     if [[ -z "$AUTH_ID" ]]; then
-        # 安全命令直接执行 — 无授权请求但仍有审计记录
+        # 安全命令直接执行 — 无授权请求但需持久化审计记录（P11-B100）
         local outcome="success"
         if [[ $EXIT_CODE -ne 0 ]]; then
             outcome="failure"
         fi
+
+        local audit_body
+        audit_body=$(jq -n \
+            --arg capability_id "$CAP_ID" \
+            --arg command "$CAP_COMMAND" \
+            --arg outcome "$outcome" \
+            --argjson exit_code "$EXIT_CODE" \
+            --argjson duration_ms "$DURATION_MS" \
+            '{
+                capability_id: $capability_id,
+                command: $command,
+                outcome: $outcome,
+                exit_code: $exit_code,
+                duration_ms: $duration_ms,
+                authorization_request_id: null
+            }')
+
+        api_post "/v1/projects/${SYNAPSE_PROJECT_ID}/capability-audits" "$audit_body" "上报审计记录" > /dev/null 2>&1 || {
+            local icon="✅"
+            [[ "$outcome" == "failure" ]] && icon="⚠️"
+            echo -e "${icon} 审计: ${CAP_NAME} · safe · exit=${EXIT_CODE} · ${DURATION_MS}ms  ${YELLOW}(持久化失败)${NC}" >&2
+            return 0
+        }
+
         local icon="✅"
         [[ "$outcome" == "failure" ]] && icon="⚠️"
-        echo -e "${icon} 审计: ${CAP_NAME} · safe (无需审批) · exit=${EXIT_CODE} · ${DURATION_MS}ms"
+        echo -e "${icon} 审计已持久化: ${CAP_NAME} · safe (免审批) · exit=${EXIT_CODE} · ${DURATION_MS}ms"
         return 0
     fi
 

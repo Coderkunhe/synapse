@@ -37,6 +37,7 @@ from src.schemas.authorization_request import (
     AuthorizationRequestResponse,
 )
 from src.schemas.capability_audit import (
+    CapabilityAuditCreate,
     CapabilityAuditListParams,
     CapabilityAuditPage,
     CapabilityAuditResponse,

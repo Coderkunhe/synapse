@@ -1,6 +1,7 @@
-"""CapabilityAudit API 端点 — 能力执行审计查询。
+"""CapabilityAudit API 端点 — 能力执行审计查询 + 创建。
 
 P11-B57 (GAP-8): 只读查询端点，审计记录不可变。
+P11-B100 (GAP-8 补刀): 安全命令审计持久化 — POST 端点。
 """
 
 from __future__ import annotations
@@ -10,16 +11,94 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo
+from src.dependencies import ActorInfo, get_current_actor
 from src.permissions import require_permission
 from src.models.capability_audit import CapabilityAudit
 from src.models.worker import Worker
-from src.schemas.capability_audit import CapabilityAuditPage, CapabilityAuditResponse
-from src.services.capability_audit_service import list_capability_audits
+from src.schemas.capability_audit import (
+    CapabilityAuditCreate,
+    CapabilityAuditPage,
+    CapabilityAuditResponse,
+)
+from src.services.capability_audit_service import (
+    list_capability_audits,
+    write_capability_audit,
+)
 
 from .helpers import get_project_or_404
 
 router = APIRouter()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# POST /projects/{project_id}/capability-audits
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/projects/{project_id}/capability-audits",
+    response_model=CapabilityAuditResponse,
+    status_code=201,
+)
+async def create_capability_audit(
+    project_id: str,
+    body: CapabilityAuditCreate,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """创建能力执行审计记录 — P11-B100。
+
+    Worker 在 capability 执行完成后调用此端点持久化审计记录。
+    覆盖两条路径：
+    - 安全命令（免审批）：authorization_request_id 为 null
+    - 授权命令：传入 authorization_request_id 关联授权请求
+
+    worker_id 从认证 actor 自动提取，Worker 只能上报自己的执行记录。
+    """
+    await get_project_or_404(db, project_id)
+
+    audit = await write_capability_audit(
+        db,
+        project_id=project_id,
+        worker_id=actor.actor_id,
+        capability_id=body.capability_id,
+        authorization_request_id=body.authorization_request_id,
+        exit_code=body.exit_code,
+        duration_ms=body.duration_ms,
+        outcome=body.outcome,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+        command=body.command,
+    )
+    # write_capability_audit 内部调用了 db.flush()，这里 commit
+    await db.commit()
+
+    # 富化 worker_name
+    result = await db.execute(
+        select(Worker.name).where(Worker.id == actor.actor_id)
+    )
+    worker_name = result.scalar_one_or_none()
+
+    return CapabilityAuditResponse(
+        id=audit.id,
+        project_id=audit.project_id,
+        worker_id=audit.worker_id,
+        capability_id=audit.capability_id,
+        authorization_request_id=audit.authorization_request_id,
+        command=audit.command,
+        exit_code=audit.exit_code,
+        duration_ms=audit.duration_ms,
+        outcome=audit.outcome,
+        actor_type=audit.actor_type,
+        actor_id=audit.actor_id,
+        created_at=audit.created_at,
+        worker_name=worker_name,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# GET /projects/{project_id}/capability-audits
+# ═══════════════════════════════════════════════════════════════════
 
 
 @router.get(

@@ -38,11 +38,11 @@ async def write_capability_audit(
     outcome: str,
     actor_type: str,
     actor_id: str,
+    command: str | None = None,
 ) -> CapabilityAudit:
     """记录一条 capability 执行审计。
 
-    在 report_execution 完成后调用。
-    自动解析 capability name 作为 command 字段值。
+    在 report_execution 完成后调用，或由 POST capability-audits 端点直接调用。
 
     Args:
         project_id: 所属 Project
@@ -54,15 +54,16 @@ async def write_capability_audit(
         outcome: success | failure
         actor_type: 执行者类型
         actor_id: 执行者 ID
+        command: 人类可读的执行命令描述 — 如果未提供，从 Capability.name 自动解析
     """
-    # 解析 capability name 作为 command
-    command = None
-    if capability_id:
+    # 解析 command：优先使用客户端传入的，否则从 Capability 表解析
+    resolved_command = command
+    if not resolved_command and capability_id:
         result = await db.execute(
             select(Capability.name).where(Capability.id == capability_id)
         )
         name = result.scalar_one_or_none()
-        command = name
+        resolved_command = name
 
     audit = CapabilityAudit(
         id=generate_id("capability_audit"),
@@ -70,7 +71,7 @@ async def write_capability_audit(
         worker_id=worker_id,
         capability_id=capability_id,
         authorization_request_id=authorization_request_id,
-        command=command,
+        command=resolved_command,
         exit_code=exit_code,
         duration_ms=duration_ms,
         outcome=outcome,
