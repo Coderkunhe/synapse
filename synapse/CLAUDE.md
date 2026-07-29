@@ -1,12 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P100-B108 ✅ · 治理收尾扫描 · B105遗漏落地+GAP审计闭环）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P100-B109 ✅ · 文档健康度批量治理 · reqlog归档+CLAUDE.md拆分）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
+> 🔄 P100-B109 文档健康度批量治理（2026-07-29）— requirements-log P11 归档 5108→4548 · CLAUDE.md 当前状态拆分 813→613 · Session checkpoint 修复
 > 🔄 P100-B108 治理收尾扫描（2026-07-29）— B105 遗漏落地: check-template-drift.sh 提交 + hook-gap-audit 10/10 GAP 全闭环 · 违纪回顾复位 · API contracts baseline 更新
-> 🔄 L5 B106→B107 拉通（2026-07-29）— B106 测试/生产一致性 + B107 FK合规全量修复 · 零 drift · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -596,218 +596,17 @@ synapse/
 ├── data/                   ← SQLite persistence (gitignored) ✅
 ```
 
+
 ---
 
 ## 当前状态
 
-- P11-B10 ✅：模板适配 — SYNAPSE_AGENT_ID→SYNAPSE_WORKER_ID · 3 files · 纯机械替换
-- P11-B11 ✅：前置阻断项全量审计 — 11 项（3 阻断 + 5 摩擦 + 3 决策）· 非产品 Batch · 0 code files · memory 登记
-- P11-B12 ✅：Feature Scope 定义 — "Worker 名称富化" 决策 · 狗粮范围锁定 · 0 code files（ADR-006 重拆后 B12 从"阻断修复"重定义为 Scope 定义）
-- P11-B13 ✅：阻断修复 + 环境搭建 — project_key + orchestrator + 角色绑定 + 模板修复 · 双 Worker + Dogfood Task + Skill 生成 · 5 项发现闭环 · generate-skill.sh bugfix · 7 files · DB 验证通过
-- P11-B14 ✅：狗粮全链路验证 — Orchestrator + Builder 双终端 · Task 全生命周期走通 · 8 项摩擦点 + 2 项违纪 · Worker 名称富化上线 · bootstrap 端点随此批提交（router 未挂载，B19 接线 · V-027 登记）
-- P11-B15 ✅：权限修复（PFL-034 + PFL-039） — assign_task + verify guard 从 require_role 切换到 require_permission · 3 code files + 2 doc · PFL-040 Swagger token 登记
-- P11-B16 ✅：God's-eye 角色边界正式化（PFL-037 ✅） + SessionStart hook 部署（PFL-038 ✅） — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · pitfalls/process-violations 闭环
-- P11-B17 ✅：狗粮发现消化（PFL-035 + PFL-036 + PFL-040） — ready 强制 Verification · handshake 返回 WS URL · Swagger Bearer auth · 5 files · PFL-041 已登记（P11-B21 ✅ 闭环）
-- P11-B18 ✅：Worker 可见性 + Catch-22 修复（PFL-032 + PFL-033） — get_task() 可见性过滤角色感知化 · TaskResponse 新增 version_no · claim 错误消息去 Catch-22 · 3 files · pitfalls 8/10 ✅
-- P11-B19 ✅：Bootstrap router 接线 — B14 遗留缺陷（bootstrap router 随 B14 提交但从未挂载到 api_router）· 2 行修复 · 18 个测试 0→18 · 1 file · V-027 登记
-- **P100-B85 ✅**：**G-028 治理基础设施独立批** — check-hooks.sh 防呆（V-028 修复） + make check 管道接线 + CLAUDE.md 启动自检增强 · 从 B19 L5 commit（`6c1fdbb`）拆出独立 P100 编号 · 3 files · 🟢 微型（纯文档）
+> 📋 完整历史批次记录已移至 docs/archive/CLAUDE-current-state-history.md（P100-B109 拆分，213 行 → 独立文件）。
 
-- **P11-B49 ✅**：git pre-push hook — hook 模板 + synapse-exec --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files · commits `0cb76ff` + `5b80bca`
-- **P11-B50 ✅**：Auth expiry scheduler + capability_exec 去重 — _auth_expiry_reaper 后台任务 · find_pending_duplicate 幂等检查 · 🟢 微型 · 4 files · commit `a8be584`
-- **P11-B52 ✅**：Skill 模板更新 — Capability Authorization 章节 — _protocol.md §13 + 3 SKILL.md 刷新 · 🟡 标准 · 4 files · 纯文档
-- **P11-B51 ✅**：shell_dangerous + git_force_push 能力定义 — 19 黑名单 + 11 保护路径 · check_shell_blacklist() 客户端匹配 · 🟡 标准 · 4 files · commit `0b0e78b`
-- **P11-B53 ✅**：狗粮验证 — Capability MVP 全链路 · 双 Worker 协作 · PFL-047/048/049 发现 · 🟢 微型 · 0 code files
-- **P11-B54 ✅**：缺口修复 — PFL-047/048 L1+L2 · _protocol.md §13.4.1 审批角色表 · synapse-exec Human提示+审计 · 🟡 标准 · 3 files · commit `79b0715`
-- **P11-B55 ✅**：Worker 角色围栏服务端强制 (GAP-7) — require_permission 5端点 · task:update+task:terminate PERMISSION_MAP · ensure_project_role · 🟡 标准 · 9 files · 630 tests · commit `2ecd30c`
-- **P11-B48 ✅**：synapse-exec CLI — 497 行 bash · 请求→审批→执行→上报全链路 · 🟡 标准 · 2 files · commits `1b4a7d3` + `e9fa479`
-- P11-B9 ✅：接线 + 项目发现 — 2端点require_permission接线 + GET /workers/me/projects + Protocol project_key鉴权 · 5 files · 605 tests
-- P11-B8 ✅：地基 — project_key + 权限引擎 + PENDING修复 · 5 files · 605 tests
-- P11-B7 ✅：串联就绪审查 — 🚧停止点·7 维前置验证通过 · GO → B8 实战
-- 🔄 **L5 P11-B8→B19 全量拉通 ✅** — 5 项 drift 修复（B8-B10 措辞 + B11-B14 ADR-006 重拆 B12↔B13 · B15-B19 零 drift）· 计数器复位 · 2026-07-21
-- **P11-B20 ✅**：hooks 补测 + 裸奔期防御验证 — check-hooks.sh 四场景 · 裸奔期 12 commits 审计 · 5 层防御 · PFL-041 评估 · L5 拉通复位
-- **P11-B21 ✅**：PFL-041 WS 推送 3/3 步全量闭环 — task_service.py 9 函数 + verification_service.py → broadcast_to_actor · ws.py auto-subscribe task.* (Workers+Humans) · Worker SKILL.md 模板 WS push 文档化 · 624 tests 零回归
-- **P11-B22 ✅**：授权审批 WS 实时化 — ws.py humans auto-subscribe authorization_request.* · Approvals.tsx useWebSocket 实时刷新 · event_store → broadcast_to_team 闭环 · 2 files · 624 tests 零回归
-- **P11-B23 ✅**：WS 加固三板斧 — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 + ws_max_message_size=64KB 配置 · ws.py 连接数/消息大小门禁 · main.py lifespan 关机钩子 · 🟡 标准 · 4 files
-- **P11-B24 ✅**：WS 去重 — authorization_service create/respond 移除冗余 broadcast_to_actor（event_store → broadcast_to_team 已覆盖）· expire/cancel 保留 · 🟢 微型 · 1 file
-- **P11-B25 ✅**：CLI 授权体验 — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳ 等待提示 + 行为规则 + ⏰ 超时降级 · 🟢 微型 · 1 file (纯文档)
-- **P11-B37 ✅**：L5 B30→B37 全量拉通 + 方向复盘 — 叙事一致性验证 · 文档全量刷新 · 双客户端 8 批拆解闭环 🎉 · 🟢 微型 · L5 质量保障
-- **L5 B40→B41 ✅**：L5 B40→B41 拉通 — 零 drift · 📄 requirements-log B40+B41 · 📄 roadmap B41 · 📄 tracks B40+B41 · 📄 CLAUDE.md header/状态 · 📄 daily 追加 · 计数器复位
-- 🔄 **L5 P11-B44 拉通 ✅** — 零 drift · 📄 requirements-log B44 · 📄 roadmap B44 · 📄 tracks B44 · 📄 CLAUDE.md · 📄 daily B44+L5 · 计数器复位
-- **P11-B44 ✅**：Approval History + 质量三板斧 — Pending/History 双 Tab · status=all · target_resource_name 富化 · 25 i18n · CLAUDE.md §7.1 三板斧 · 🟡 标准 · 7 files · 624 tests
-- **P11-B38 ✅**：登录页优化 — 删 Dev Login + Remember Me · email localStorage 持久化 · 🟡 标准 · 3 files · commit 030c477
-- **P11-B41 ✅**：SMTP 生产模式 + 忘记密码邮件流程 — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink 本地测试 · 🟡 标准 · 6 files · 624 tests
-- **P11-B43 ✅**：Auth Error Handling & Edge Cases — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
-- **P11-B42 ✅**：Auth 认证页美化 — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files · tsc+vite ✅
-- **P11-B40 ✅**：Auth 页面 SPA 路由 + CSS 重构 — <a>→<Link> 全部替换 · Auth.module.css 共享样式提取 · ForgotPassword 成功状态修复 · 🟡 标准 · 6 files
-- **P11-B39 ✅**：种子数据修复 — seed-synapse-project.py 新增 Hunter email/password User · SYNAPSE_HUNTER_PASSWORD 环境变量 · 🟢 微型 · 1 file
-- **P11-B36 ✅**：审批内容富化 — worker name lookup + 前端人性化展示 · 🟡 标准 · 5 files · 624 tests · B29→B37 8 批收尾
-- **P11-B35 ✅**：Key 存储隔离 — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
-- **P11-B34 ✅**：授权硬门禁 + JSON 转义修复 — require_permission 统一守卫 · JSON 序列化双保险 · 🟢 微型 · 2 files · 624 tests
-- **P11-B33 ✅**：SKILL.md 模板全面升级 — Worker 行为契约 v2 · 10 项模板改进 · 🟡 标准 · 3 files
-- **P11-B32 ✅**：狗粮 Run ① — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events（created→assigned→submitted→completed）· 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
-- **P11-B31 ✅**：狗粮 Prep — Task 定义 + 环境校验 — 双客户端连通性验证 · Task #1 (Orchestrator) + Task #2 (Builder) · Verification 条件 + 边界约束 · 🟡 标准 · 1 plan + 治理制品
-- **P11-B30 ✅**：L5 B28→B29 拉通 — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
-- **P11-B29 ✅**：双客户端拉通 Scope 定义 — 8 批拆解（B29→B37）· 现状评估 · 风险识别 · 1 file · 🟢 微型 (纯设计)
-- **P11-B28 ✅**：架构文档更新 — worker-admin-interaction-flow.md 双通道重新定位 · 时序图更新 · 持久 vs 短生命周期客户端分工 · 1 file · 🟢 微型 (纯文档)
-- **P11-B27 ✅**：SKILL.md 启动流重构 — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files · 🟢 微型 (纯文档)
-- **P11-B26 ✅**：Worker WS 长连接方案 — 选 C（HTTP Poll 永久模式 · WS→持久客户端）· 🟢 微型 (纯设计)
-- **P100-B86 ✅**：违纪回顾 + 全量清零 — V-027/V-028 🔴→🟢 闭环 · violations-review 11→0 · 26/27 🟢 · 活跃 0 🎉
-- **P100-B88 ✅**：GAP-1 ≤8文件硬阻断 — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
-- **P100-B89 ✅**：GAP-5 日报缺失阻断 — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
-- **P100-B90 ✅**：GAP-6+GAP-10 双 GAP 闭环 — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
-- P11-B6 ✅：Skill 生成管道闭环 — conventions读取路径修复 + --from-api模式 + D-P11-010决策落地
-- P11-B5 ✅：项目管理增强 — Projects始终可见+角色分配UI+约定配置 · 8 files
-- P11-B4 ✅：L2b 约定层+生成管线适配 · L5 P11-B1→B4 全量拉通 🎉 — Skill 模块化前置 4 批全量闭环
-- P11-B3 ✅：Skill 模板方法论升级 + architecture.md §4.1 修复 — 三角色操作法(拆解+Evidence+工具链) · ADR-006 G9 闭环
-- P11-B2 ✅：ADR-006 L2/L3 观测 + 服务端 — _protocol.md + check-role-isolation.sh + Steward + role_source
-- P11-B1 ✅：ADR-006 L0/L1 围栏落地 — 三角色负面清单 + SKILL.md 硬门禁 + CLAUDE.md G6 门禁
-- P10：架构升级 B1-B47 ✅ · 🎉 **全部 8 议题闭环 · 47 批**
-- P9：产品主线 B1-B100（100 批）✅ · 🎉 全量闭环
-- P100：治理段 B1-B104 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 7/7 GAP · 全量闭环 🎉
+- **P100-B108** ✅：治理收尾扫描 — B105遗漏落地 + GAP审计闭环 + 违纪回顾复位 · 10 files · 648/648 tests
+- **P100-B107** ✅：FK合规全量修复 — Event.team_id nullable + 37测试清零 · 13 files · 648/648 tests
+- **P100-B106** ✅：测试/生产一致性 — FK PRAGMA + 时间源统一 + DateTime时区 + CI PG · 10 files · 611/648 tests
+- **P100-B105** ✅：安全加固 — JWT强制 + slowapi速率限制 + 后台日志 + 健康检查 · 7 files
+- **P11-B96** ✅：Session连续性增强 — ws-daemon.js 自动重连 · PFL-093
 
-**最近批次**：
-- **P11-B95**：Capability 硬约束 ✅ — PFL-086 Task required_capabilities + assign_task 强制门禁 · PFL-094 capability_exec 所有权校验 · 🟡 标准 · 13 files · 648 tests 零回归 +4 E2E · commit `2b222dd`
-- **P11-B94**：模板→Worker 升级链自动化 ✅ — PFL-084 协议层修复 · SHA256 版本指纹 + --check-version/--upgrade · 🟡 标准 · 7 files · 644 tests 零回归 · commit `1a691ab`
-- **P11-B93**：止血部署 ✅ — ① B57 migration 执行（alembic upgrade head）· ② GAP-6 硬化版 pre-push hook 重装 · ③ 双 Worker session-init.js 重新部署（L-P11-002/003）· L5 B92→B93 · 🟢 微型 · 0 代码文件 · 5 治理文件 · commit `f74b924`
-- **P11-B92**：L-P11-001 orchestrator-status 双源容错 ✅ — heartbeat 过期时 Event 活动时间 fallback · detection_source 字段 (heartbeat|event_activity|None) · 🟡 标准 · 3 files · 644 tests 零回归 · commit `d4b7fd8`
-- **P11-B91**：PFL-083 B 侧心跳 daemon 硬约束 ✅ — session-init.js detached spawn + unref() · O-B 对称 heartbeat · 🟡 标准 · 3 files 纯协议层 · commit `b1f64cc`
-- **P11-B88**：PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁 ✅ — 状态机 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138`
-- **P11-B87**：PFL-070 O 心跳检测 ✅ — heartbeat 端点 GET /workers/me/heartbeat + worker_service + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d`
-- **P11-B86**：PFL-069/074 审计 ✅ — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · commit `82ccb7f`
-- **P11-B85**：PFL-081 CronCreate 机械兜底 ✅ — session-init.js writeState() 无条件 CronCreate banner 生成 · 🟡 标准 · 3 files · commit `f9caf4d`
-- **P11-B84**：PFL 消化(二) ✅ — PFL-077/079/082 协议+脚本层修复 · session-init.js Step 5e 机械告警（活跃任务数+停滞检测）· role-builder/role-orchestrator 终止条件审计 · Side fix: PFL-078 state.warnings[] 初始化 · 🟡 标准 · 4 files · commit `a39ec74`
-- **P11-B83**：PFL 消化 5/5 + hotfix ✅ — generate-skill.sh PFL-076 双 bug 修复 (`& &&` 语法+路径缺 `.claude/`) · PFL-078 根因定位 · 5 PFL 审计闭环 · 🟢 微型 · 1 file · commit `601502d`
-- **P11-B82**：狗粮闭环 🎉 — 换题狗粮全链路 VDD (10min) · 7 PFL 登记 (PFL-076~082) · PFL-074 根因查明 · 阶段一出口评估 · 🟢 微型 · 纯狗粮+治理
-- 🔄 **L5 B81→B82 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B82 补登记 · 📄 requirements-log B82 补登记 · 📄 daily B82 已有 · 📄 pitfalls header 更新 (45 项·7 新增) · 零 drift · 计数器复位
-- **P11-B81**：PFL 微型缺口修复 5/5 ✅ — PFL-047 L3 API 硬门禁 · PFL-053 路径更正 · PFL-059 auto-verify 确认 · PFL-064 backlog→ready · PFL-065 handshake 心跳 · 🟡 标准 · 6 files · 633 tests 零回归
-- 🔄 **L5 B80→B81 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B80+B81 · 📄 requirements-log B80+B81 · 📄 daily B81+L5 · 📄 pitfalls 5 项状态同步 · 零 drift · 计数器复位
-- **P11-B80**：PFL 状态审计 ✅ — 26 项交叉对照模板+源码 · 18 项状态同步 · 🟢 微型 · 1 file · commit `3eb748a`
-- **P100-B97**：G-036 requirements-log 拆分归档 ✅ — 9677→4528 行 · P9+P10 → `docs/archive/requirements-log-archive.md` · check-docs.sh 阈值 10000→5000 · 🟡 标准 · 3 files
-- **P100-B96**：Node.js scripts 集成 ✅ — generate-skill.sh 复制 scripts/ · SessionStart bash→node heartbeat.js · 双 Worker 部署验证 · 7 files · +1263/-6 · commits `fd78a22` `2db46cb`
-- **P11-B78**：heartbeat 脚本化 ✅ — `synapse-heartbeat.sh` + SessionStart hook + `_task-current.md` · PFL-073 闭环 · 🟡 标准 · 5 files · P100 治理波 🔜
-- **P11-B79**：task_service.py 拆分 ✅ — 1073→5 模块 (task_core 235 + task_create 154 + task_activation 398 + task_execution 362 + task_service 53 重导出) · 633 tests 零回归 · 🟡 标准 · 5 files · commit `f36717d`
-- 🔄 **L5 B103→B79 拉通** ✅ — 📄 CLAUDE.md header+L5 banner · 📄 roadmap B79 · 📄 requirements-log B79 · 📄 daily B79+L5 · 📄 tracks P11 B78→B79 · 零 drift · 计数器复位
-- **P11-B77**：狗粮 R4 无人干预全链路 ✅ — 双 Worker 零人工干预 · 3/3 门禁 · PFL-073/074 登记 · SessionStart auto-start · 🟢 微型 · 纯狗粮
-- **P11-B76**：Server 侧加固 ✅ — stale task 检测 + verify 幂等 guard（时序约束）· 🟡 标准 · 6 files · +459/-4 · 633 tests · commit `9d9f8f6`
-- **P11-B75**：协议加固 ✅ — PFL-069 诚实标注 + PFL-071 WS fallback + PFL-072 异常退出协议 · 🟢 微型 · 4 files 纯协议 · commit `528266e`
-- **P11-B74**：非对称自调度 ✅ — O 连续引擎 / B 被动响应者 · 响应内 while 循环 + ScheduleWakeup 续命 · 🟡 标准 · 3 files 纯协议 · commit `edd15e2`
-- **P11-B73**：狗粮 R3 闭环 ✅ — B72 三门禁全绿验证 · PFL-064~068 · commit `a5d5f30`
-- **P11-B72**：Task 状态机补完 ✅ — Server 强制门禁 · assign/claim READY 前置校验 · 🟡 标准 · commit `b01ff3f`
-- **P11-B71**：狗粮 R2 ✅ — 7 PFL 登记 + 架构诊断 · commit `771ff8e`
-- **P11-B70**：1:1 协作基线代码+协议落地 ✅ — Verification 可判定性门禁 · evidence output_access 硬约束 · 能力声明格式 + Push/Pull 模型 · 🟡 标准 · 6 files (2 code + 3 template + 1 doc) + 15 test mechanical · 628 tests 零回归
-- **P11-B69**：O 自主监工循环可执行化 ✅ — _protocol.md §4.1 双角色对称重构（§4.1.2 O 循环新增）· role-orchestrator 反模式+中断恢复 · 模板→部署零漂移 · 🟡 标准 · 纯协议层 · 5 files
-- **P11-B68**：文档追补 ✅ — B66（模板部署+执行）· B67（safe_loads 防御）requirements-log + roadmap + CLAUDE.md + daily 全量补登记 · 🟢 微型 · 纯文档 · 5 files
-- **P11-B67**：safe_loads JSON 防御 ✅ — safe_loads() try/except JSONDecodeError · PFL-055 登记 · 🟢 微型 · 2 files · 628 tests 零回归
-- **P11-B66**：模板部署 + Builder Task 执行 ✅ — 双 Worker 模板重新部署 · Builder 全链路走通 · 发现 conversation.py 权限阻断 + tags 500 · 🟢 微型 · 纯执行/发现
-- **P11-B65-1**：conversation.py 权限迁移 ✅ — require_project_role → require_permission("task:comment") · 4 端点统一守卫 · GAP-B63-4 闭环 · 🟢 微型 · 1 file · 628 tests 零回归
-- **P11-B65**：服务端修复 ✅ — 双角色自主循环（_protocol.md §4.1.1）· 前端 WS URL 配置 · 🟡 标准 · 3 files
-- **P11-B64**：模板修复 + 双 Worker 部署 ✅ — 11 处 comments→messages + generate-skill.sh 重新部署 · 🟡 标准 · 5 files
-- **P11-B63**：第三轮扫描 ✅ — 运行时行为·配置一致性·端到端 · 7 项新 GAP · 🟡 标准 · 1 plan + 治理制品
-- **P11-B62**：三维架构审计 ✅ — 文档对照+代码级验证+live API 探测 · 8 项结构性 GAP · 🟡 标准 · 1 plan + 治理制品
-- **P11-B61**：第三轮双节点狗粮 ✅ — depends_on 依赖链端到端验证 · PFL-051~054 发现 · 🟢 微型 · 纯狗粮
-- **P11-B60**：depends_on P0 缺口修复 ✅ — G1 batch create 传 depends_on · G3 claim_batch 依赖检查 · G6 Worker 模板依赖等待 §4.2 · 🟡 标准 · 4 files · 628 tests 零回归
-- **P11-B59**：Scout 跨 Agent 协作 ✅ — depends_on 现状审计 · 6 GAP 识别 · B60 提案 · 🟢 微型 · 纯调研 · 1 plan file
-- 🔄 **L5 P11-B57→B59 拉通** ✅ — roadmap B59 补登记 + CLAUDE.md L5 banner 刷新 · 零 drift · 计数器复位
-**P100-B95**：Node.js 脚本基础设施 ✅ — api-client.js + keychain.js + heartbeat.js · 3 files · 🟡 标准 · 零外部依赖 · JS+JSDoc · Node.js ≥18
-**P100-B94**：B93 文档闭环 ✅ — roadmap + requirements-log + daily + track 同步 · 4 files · 🟢 微型
-- **P100-B93**：文档新鲜度修复 · make check 归零 ✅ — 3 文档日期同步 + check-line-count 阈值 + violations-review bugfix + pytest E2E 跳过 + 违纪回顾复位 · Scout 盲区 14 隐藏错误全量清零 · 7 files · 🟢 微型
-- **P100-B92**：GAP-4 批次顺序机械校验 ✅ — check-batch-sequence.sh · commit-msg wrapper · track 文件 next_batch 指针一致性 · 8 files · 6/7 GAP 闭环
-- **P100-B91**：GAP-2+GAP-3 质量三板斧+checkpoint门禁 ✅ — check-quality-gate.sh + check-checkpoint-freshness.sh · pre-commit Stage 6+7 · 6 files · 5/7 GAP 闭环
-- **P100-B90**：GAP-6+GAP-10 双 GAP 闭环 ✅ — pre-push 逃逸通道硬化 (G-034) + 依赖升级强制门禁 (G-035) · 2 files · 70 insertions · 🟢 微型 · 4/7 GAP 闭环
-- **P100-B89**：GAP-5 日报缺失阻断 ✅ — check-docs.sh 日报缺失+代码变更 exit 1 · --allow-missing-daily 逃逸 · 2 files · 🟢 微型
-- **P100-B88**：GAP-1 ≤8文件硬阻断 ✅ — check-plan-mode.sh CODE_FILES≥9 exit 1 · 2 files · 🟢 微型
-- **L5 P100-B88→B89 拉通** ✅ — requirements-log + roadmap + CLAUDE.md + daily + memory 全面刷新 · 零 drift · 计数器复位
-- **P11-B58**：GAP-9 Worker 自主驱动 ✅ — _protocol.md §4.1 自主驱动循环 + role-builder 工作流 + SKILL.md 五条铁律 + _task-current.md next_action · 7 files · 纯协议层（零服务端代码）
-- **P11-B57**：GAP-8 Capability 安全审计持久化 ✅ — CapabilityAudit 模型 + service + GET /projects/{pid}/capability-audits · 10 files · 628 tests
-- **P11-B56**：Tier 2 端点 require_permission 迁移 (GAP-7 续) ✅ — 9 endpoints · 4 routers · 3 new resolvers · 9 files · 630 tests
-- **P11-B55**：Worker 角色围栏 (GAP-7) ✅ — require_permission 5端点 · task:update+task:terminate PERMISSION_MAP · 9 files · 630 tests
-- **P11-B54**：缺口修复 ✅ — PFL-047/048 L1+L2 · _protocol.md §13.4.1 审批角色表 · 3 files
-- **P11-B53**：狗粮验证 ✅ — Capability MVP 全链路 · PFL-047/048/049 发现 · 0 code files
-- **P11-B52**：Skill 模板更新 ✅ — Capability Authorization 章节 · _protocol.md §13 + 3 SKILL.md · 🟡 标准 · 4 files
-- **P11-B51**：shell_dangerous + git_force_push ✅ — 19 黑名单 + 11 保护路径 · check_shell_blacklist() · 🟡 标准 · 4 files
-- **P11-B50**：Auth expiry scheduler + capability_exec 去重 ✅ — _auth_expiry_reaper + find_pending_duplicate · 🟢 微型 · 4 files
-- **P11-B49**：git pre-push hook ✅ — hook 模板 + --install-hook · Approvals capability_exec 渲染适配 · 🟢 微型 · 3 files
-- **P11-B47**：Worker 自请求 capability_exec 权限旁路 ✅ — require_project_role→get_current_actor + inline · 🟢 微型 · 2 files · 630 tests
-- **P11-B46**：Capability MVP 基础设施 ✅ — capabilities.yaml · GET /capabilities · +4 model 字段 · capability_exec · POST /report · 🔴 大型 · 11 files · 626 tests
-- **P11-B45**：环境就绪 ✅ — 双 Worker SKILL.md 刷新 · generate-skill hook 修复 · V-026#1 · 🟡 标准 · 8 files · 626 tests
-- **P11-B44**：Approval History + 质量三板斧 ✅ — Pending/History 双 Tab · status=all · target_resource_name 富化 · CLAUDE.md §7.1 三板斧 · 7 files · 624 tests
-- **P11-B43**：Auth Error Handling & Edge Cases ✅ — 客户端校验+服务端错误映射+网络兜底 · 7 files · 🔴 大型 · tsc+vite ✅
-- **P11-B42**：Auth 认证页美化 ✅ — 实色卡片+inset 输入+图标前缀 · 6 轮迭代 · 🟡 标准 · 6 files
-- **P11-B41**：SMTP 生产模式 + 忘记密码邮件流程 ✅ — email_service 双引擎（aiosmtplib→stdlib 降级）· ForgotPassword debug token 移除 · SMTP sink · 🟡 标准 · 6 files · 624 tests
-- **P11-B40**：Auth 页面 SPA 路由 + CSS 重构 ✅ — <a>→<Link> · Auth.module.css 提取 · 🟡 标准 · 6 files
-- **L5 B40→B41**：L5 拉通 ✅ — 零 drift · 5 文档刷新 · 计数器复位
-- **P11-B39**：种子数据修复 ✅ — seed-synapse-project.py 新增 Hunter email/password User · 🟢 微型 · 1 file
-- **P11-B35**：Key 存储隔离 ✅ — OS 密钥链三级架构 · P-045 长期方案落地 · B32 狗粮 13/13 全量闭环 🎉 · 🟡 标准 · 11 files · 626 tests
-- **P11-B34**：授权硬门禁 + JSON 转义 ✅ — require_permission 统一守卫 · 2 files · 🟢 微型
-- **P11-B33**：SKILL.md 模板全面升级 ✅ — Worker 行为契约 v2 · 10 项模板改进 · 3 files · 🟡 标准
-- **P11-B32**：狗粮 Run ① ✅ — 单 Task 全链路闭环 · 双 Agent 独立协作 · 14min · 4 events · 6 摩擦点 · 🟡 标准 · 1 plan + 治理制品
-- **P11-B31**：狗粮 Prep ✅ — 双客户端连通性验证（DB + API 双检）· Task #1/#2 定义 + Verification 条件 + 边界约束 + 失败模式 · 🟡 标准 · 1 plan + 治理制品
-- **P11-B30**：L5 B28→B29 拉通 ✅ — 零 drift · HTTP-first 三文档对齐验证 · 计数器复位 · 🟢 微型 (L5 质量保障)
-- **P11-B29**：双客户端拉通 Scope 定义 ✅ — 8 批拆解（B29→B37）· 1 file · 🟢 微型 (纯设计)
-- **P11-B27**：SKILL.md 启动流重构 ✅ — 新增 Step 3.5 状态同步 · HTTP Poll 主通道 · WS 可选优化 · 3 files · 纯文档
-- **P11-B26**：WS 长连接方案 ✅ — 选 C（HTTP Poll 永久模式 · WS→持久客户端）· 设计文档 · 纯设计
-- **P11-B25**：CLI 授权体验 ✅ — SKILL.md 模板新增「202 CLI 用户体验」节 · ⏳等待提示 + 行为规则 + ⏰超时降级 · 1 file · 纯文档
-- **P11-B24**：WS 去重 ✅ — authorization_service create/respond 移除冗余 broadcast_to_actor · expire/cancel 保留 · 1 file · 624 tests 零回归
-- **P11-B23**：WS 加固三板斧 ✅ — ws_manager.graceful_shutdown() 优雅关闭 · ws_max_connections=200 · ws_max_message_size=64KB · main.py lifespan 关机钩子 · 4 files · 624 tests 零回归
-- **P11-B21**：PFL-041 WS 推送 ✅ — task_service.py 9 函数 + verification_service.py → broadcast_to_actor · ws.py task.* auto-subscribe · 624 tests 零回归
-- **P100-B85**：G-028 治理基础设施独立批 ✅ — check-hooks.sh 防呆 + make check 管道 + CLAUDE.md 自检 · 3 files · 🟢 微型（纯文档）
-- **P11-B17**：狗粮发现消化 ✅ — PFL-035 ready 强制 Verification · PFL-036 handshake WS URL · PFL-040 Swagger Bearer auth · 5 files
-- **P11-B16**：God's-eye 角色边界 + SessionStart hook ✅ — CLAUDE.md 新增 God's-eye 角色边界专节 · 双客户端 settings.json 部署 · PFL-037/PFL-038 闭环 · V-025/V-026 🟢
-- **P11-B7**：串联就绪审查 ✅ — 🚧停止点·7维前置验证·全链路VAR管道·判定GO → B8实战
-- **P11-B6**：Skill 生成管道闭环 ✅ — conventions读取路径修复 · generate-skill.sh --from-api · D-P11-010决策落地 · 3 files
-- **P11-B5**：项目管理增强 ✅ — Projects始终可见+ProjecDetail(Info/Roles/Conventions)+role API接线 · 8 files
-- **P11-B4**：L2b 约定层+生成管线 ✅ — conventions-frontend/backend.md 🆕 · generate-skill.sh L1/L2 适配 · architecture.md L2b 补全 · L5 P11-B1→B4 全量拉通 🎉
-- **P11-B3**：Skill 模板方法论升级 ✅ — 三角色操作法(拆Task+Evidence+工具链) · architecture.md §4.1 L1/L2 架构图修正 · 4 files · ADR-006 G9 闭环
-- **P11-B2**：ADR-006 L2/L3 观测 + 服务端 ✅ — _protocol.md 合并+check-role-isolation.sh+VALID_ROLES Steward+role_source · 4 files · ADR-006 G5/G8 闭环
-- **P100-B81**：文档全局刷新 ✅ — master-backlog S-036✅+统计 · roadmap B61-B80补登记 · requirements-log B76-B80补 · daily B78-B80追 · 含 post-commit.sh L5豁免修复 · 7 files
-- **P100-B80**：S-036 security-model 全量对齐审计 ✅ — 8 项 doc↔code drift 修复 · 60→59 事件类型 · §8 传输安全诚实化 · 3 files
-- **P100-B79**：onboarding.md 拆分 ✅ — §3.1-3.8+§5+§6+Appendix→onboarding-api-reference.md · 751→273行 · 4 files
-- **P100-B78**：data-model.md 实体补齐 ✅ — 议题⑤⑥ 4实体文档化 · 19→23实体 · S-060闭环 · 4 files
-- **P100-B77**：security-model.md 拆分 ✅ — §6+§10-12→security-model-appendix.md · 595→499行 · S-062 ⬜→✅ · 6 files
-- **P100-B76**：S-061 architecture.md 授权管道补齐 ✅ — §5.4 三层授权模型+AuthorizationRequest+Worker闭环 · v2.0→v2.1 · 6 files
-- **P100-B75**：methodology.md 拆分 ✅ — 五层金字塔+SMG+反模式等→methodology-reference.md · 761→399 行 · check-docs.sh V-011 扩展 · 4 files
-- **P100-B74**：data-model.md 拆分 ✅ — §3 实体→data-model-entities.md · 1032→285 行 · check-docs ERROR 清除 · 3 files
-- **P100-B73**：Plan 清理 + 阈值升级 + Backlog 补日期 ✅ — 17 plan→archive · >800 WARNING→ERROR · S-060/S-061/S-062 补📅
-- **P100-B72**：G25 文档膨胀治理 + G26 议题编号自洽校验 ✅ — methodology.md §5.6 文档生命周期 · check-docs.sh 文档行数扫描 · check-issue-numbers.sh 三方对齐校验 · tracks/synapse.md P10段头修复 · 5 files
-- **P10-B46**：L5 拉通议题⑦ + P10 post-完成整理 ✅ — 6 L5发现修复 · architecture.md v2.0 · worker-admin-interaction-flow.md 四通道 · P10 全量闭环 🎉
-- **P10-B45**：议题⑦ WebPush 前端+API ✅ — subscribe/unsubscribe 端点 · Service Worker · usePushNotification hook · authorization_service hook · 8 files · 议题⑦ 全链路闭环 🎉
-- **P10-B44**：议题⑦ WebPush 后端 ✅ — UserPushSubscription 模型 + VAPID 配置 + notify_webpush() · 10 files · 604 tests 零回归
-- **P10-B43**：议题⑧ 收尾 ✅ — L5 B41→B43 拉通 · data-model.md §3.5 补齐 · 议题⑧ 闭环 🎉 · 6 files · 604 tests 零回归
-- **P10-B42**：议题⑧ 前端 Phase 编号显示 ✅ — 组合 "P10-B42" 徽章 + auto-fill · 4 files · 604 tests 零回归
-- **P10-B41**：议题⑧ Phase 编号自动派生 ✅ — create_batch() auto-derive · 1 file · 604 tests
-- **P10-B40**：议题⑧ Phase/Sprint 模式 ✅ — S-059 · use_phase_mode + current_phase · 8 files · 604 tests
-- **P10-B37**：议题 ⑥ API 层 ✅ — 9 端点 (保护报告 CRUD+run · 熔断器查询+复位 · 决策审计查询) · schemas/protection.py · 3 新 router · 8 files · 604 tests 零回归 · 议题 ⑥ 全链路闭环 🎉
-- **P10-B36**：议题 ⑥ Service 层 ✅ — protection_service + circuit_breaker_service + decision_audit_service · authorization_service DecisionAudit 集成 · 7 files · 602 tests (+45)
-- **P10-B35**：议题 ⑥ 数据模型 ✅ — ProtectionReport + CircuitBreaker + DecisionAudit 三张新表 · 6 枚举 + 5 EventType · 3 ID 前缀 · 7 files · 559 tests · 议题 ⑥ 启动
-- **P10-B34**：议题 ⑦ Webhook + L5 补缺 ✅ — Project.webhook_url · notify_webhook() · expire/cancel WS push 对称 · 7 files · 议题 ⑦ 🟡 3/4
-- **P10-B33**：议题 ⑦ Email 通知 ✅ — notification_service.py + auth_request_notification 模板 · 4 files · 557 tests
-- **P10-B32**：议题 7 通知通道 WS Push ✅ — authorization_service WS push · ws.py auto-subscribe · SKILL.md 双通道 · worker-admin-interaction-flow.md 新建 · 5 files · 557 tests · 议题 7 🟡 (WS Push done · Email/WebPush/Webhook ⬜)
-- **P10-B31**：S-065 403 拦截器 + Agent 客户端授权闭环 ✅ — 6 files · 557 tests 零回归 · Worker 202→poll→approve→retry 全链路 · 议题 5 A2A 闭环 🎉
-- **P100-B70**：流程瓶颈修复 ✅ — L5 单 commit 工作流 · 同议题连续层合并豁免 · PI-16 登记 · 7 files · 557 tests 零回归
-- **P100-B71**：V-023 防呆 v2 + V-024 P1 ✅ — l5-reset.sh 证据质量门禁（长度+路径+动词 三关）· session-checkpoint.sh L5 状态输出 · V-023 🟢 闭环
-- **P10-B29**：议题 5 A2A Service 层 ✅ — conversation_service.py · 消息 CRUD + @mention 解析 + handoff 管道 · 2 files · 559 tests (+34)
-- **P10-B28**：议题 5 A2A 数据模型 ✅ — task_worker_conversation 表 + ConversationMessageType 枚举 + Schema + Migration · 8 files · 523 tests (+14)
-- **P10-B27**：议题 4 收尾 ✅ — data-model.md §3.13-3.14 Workflow/WorkflowRole 实体补齐 · ER/关系矩阵/ID 表 · L5 B24→B27 拉通 · 5 files (+3 日期同步) · 511 tests 零回归 · 议题 4 完整闭环 🎉
-- **P10-B26**：议题 4 API 路由层 ✅ — 8 端点 · require_role("admin") 守卫 · 3 files · 511 tests (+16) · 议题 4 全链路闭环 🎉
-- **P10-B25**：议题 4 Schemas + Service 层 ✅ — Workflow CRUD + WorkflowRole CRUD + EventStore 集成 · 4 files · 493 tests (+18)
-- **P10-B24**：议题 4 数据模型 ✅ — Workflow + WorkflowRole 表 · ProjectRole 枚举 · Migration · 8 files · 475 tests
-- **P10-B23**：前端审批 UI ✅ — /approvals 跨 Project 聚合 + 审批卡片 + API client + i18n · 6 files · 议题 3 全链路闭环 🎉
-- **P10-B22**：AuthorizationRequest API 端点 ✅ — POST/GET/PATCH/Heartbeat · 4 endpoints · 473 tests (+19)
-- **P10-B21**：AuthorizationRequest Service 层 ✅ — create/respond/heartbeat/expire/cancel + 流控 + 级联失效 · 4 files · 456 tests (+26)
-- **P10-B20**：AuthorizationRequest 数据模型 ✅ — 双类型单表 + Schema + Migration · 5 files · 442 tests (+18) · 议题 3 授权管道后半段启动
-- **P10-B19**：require_project_role 端点接线 ✅ — 4 routers 接线 + 创建者自动 admin · 7 files · 396 tests (+3) · 议题 3 基础设施完成
-- **P10-B18**：project_actor_roles 接线 ✅ — Service + require_project_role 依赖 + Admin CRUD 端点 · 6 files · 409 tests (+15)
-- **P10-B17**：RBAC 基础层 ✅ — is_super_admin 首用 · JWT + ActorInfo + require_super_admin + require_role 超管绕过 · 7 files · 406 tests
-- **P10-B16**：DB 宽列 migration ✅ — is_super_admin/force_password_change/created_by_admin · 4 files · 391 tests
-- **P10-B13**：Password Reset 前端 ✅ — ForgotPassword.tsx + ResetPassword.tsx · 6 files · API client + routes + i18n
-- **P10-B11**：前端 Email/Password 登录+注册 ✅ — 8 files · Login 表单 + Register 页面 + AuthContext email 方法 + i18n · 371 tests
-- **P100-B68**：B95 审计收尾 ✅ — 3 files · docstring 枚举引用 + 零残留验证 · B95 🟡 全量闭环 🎉
-- **P100-B67**：路由层枚举迁移 ✅ — 4 files · tasks+events+token_usage+ws · L5 B64→B67 🎉
-- **P100-B66**：服务层(轻)枚举迁移 ✅ — 3 files · ws_manager+lease_detector+auth_service · ActorType 收尾
-- **P100-B59**：B57 遗留 doc 提交 ✅ — 3 files · 7 项违纪 🟡→🟢 文档闭环
-- **P9-B100**：S-051 Dashboard worker fetch 用户可见 + S-054 OAuth 欢迎名 + S-055 HistoryList completed_at ✅ — 4 files
-- **P9-B99**：S-052 裸 ID→可读名 + S-056 Skills deprecate 确认弹窗 ✅ — 7 files
-- **P9-B98**：S-050 console.error→用户可见 + S-053 Loading→Saving + S-057 description 校验 ✅ — 8 files
-- **P100-B58**：G1 JWT httpOnly cookie ✅ — 8 files · P100 全量闭环 🎉
-
-> 完整历史见 `tracks/synapse.md` 路线图 + `docs/archive/CLAUDE-current-state-history.md`
+> 完整历史：见 docs/archive/CLAUDE-current-state-history.md
