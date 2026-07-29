@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B91→B92 拉通完成 — 📄 CLAUDE.md · 📄 roadmap B91+B92补登记 · 📄 requirements-log B91+B92补登记 · 📄 daily · 📄 tracks B89→B92 · 零 drift",
+  "lastL5Batch": "B92→B93 拉通完成 — 止血部署 · 📄 roadmap+reqlog+daily 已更新 · 📚 Migration+Hook+Worker重部署全量闭环 · 📚 PFL-089/090/083-L-P11-002/003 闭环 · 零代码变更 · L4 运维验证通过",
   "lastL5Timestamp": "2026-07-29",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B91→B92 拉通完成 — B91 PFL-083 B侧心跳daemon detached spawn + B92 L-P11-001 orchestrator-status双源容错 Event fallback · 2批未登记修复 (roadmap+requirements-log B91/B92均为首次登记) · 零 drift",
-  "notes": "B91 commit b1f64cc (纯协议层) · B92 commit d4b7fd8 (代码+测试) · B90为狗粮批无代码变更 · 计数器已复位"
+  "lastL5Evidence": "B92→B93 拉通完成 — 止血部署 · 📄 roadmap+reqlog+daily 已更新 · 📚 Migration+Hook+Worker重部署全量闭环 · 📚 PFL-089/090/083-L-P11-002/003 闭环 · 零代码变更 · L4 运维验证通过",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

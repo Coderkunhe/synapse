@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B92 ✅ L-P11-001 双源容错
-last_batch: P11-B92
-next_batch: P11-B93
-description: Synapse 主项目 — B92 ✅ orchestrator-status 双源 · B93 🔜 (需 L5)
+phase: P11-B93 ✅ 止血部署（Migration+Hook+Worker 重部署+L5）
+last_batch: P11-B93
+next_batch: P11-B94
+description: Synapse 主项目 — B93 ✅ 止血部署 · B94 🔜 升级机制 · B95 🔜 Capability 硬接线
 ---
 
 # Synapse 轨道
@@ -14,8 +14,8 @@ description: Synapse 主项目 — B92 ✅ orchestrator-status 双源 · B93 �
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
-| **P11** | P11-B92 | **P11-B93** 🔜 | B92 ✅ orchestrator-status 双源 · B93 🔜 (需 L5) |
+| **P100** | P100-B104 | **P100-B105** 🔜 | P100 重开 · B105 安全加固 (JWT+速率限制+后台日志+健康检查) · B106 测试一致性 · B107 反馈加速 |
+| **P11** | P11-B93 | **P11-B94** 🔜 | B93 ✅ 止血部署 · B94 🔜 升级机制 · B95 🔜 Capability硬接线 · B96 🔜 Session连续性 · B97 🔜 配置加固 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -265,6 +265,24 @@ description: Synapse 主项目 — B92 ✅ orchestrator-status 双源 · B93 �
 | **双客户端拉通** ✅ | Orchestrator + Builder 各一个 Claude 会话，通过 Synapse 协作 | Scope ✅ B29 → L5 ✅ B30 → Prep ✅ B31 → 狗粮 B32 ✅ → 消化 B33-B35 ✅ → 收尾 B36 ✅ · B37 待定 |
 | **三客户端实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实协作 | 多角色并发 · WS 推送贯穿 VDD 循环 |
 | **看板可视化** | 任务状态实时看板，拖拽/状态流转可视化 | Dashboard Kanban · 实时 WS 更新 · 拖拽改变状态 |
+
+### P11 断裂点审计新增（2026-07-29 · 26 项 → 15 PFL + 7 Batch）
+
+| Batch | 断裂点 | 内容 | 严重度 |
+|:--|:--|------|:--:|
+| **P11-B93** | ④⑨⑫㉔ | **✅ 止血部署** — Migration B57 执行 ✅ · Pre-push hook GAP-6 硬化版重装 ✅ · 双 Worker session-init.js 重新部署 ✅ · L-P11-002/003 闭环 · L5 B92→B93 拉通 | 🟢 |
+| **P11-B94** | ①㉑ | **模板→Worker 自动升级机制** — Server: version.json + GET /api/templates/versions + WS template.updated · Worker: 启动版本比对 + auto-fetch + generate-skill.sh --upgrade · SYNAPSE_API_KEY 模板解析修复 | 🔴 |
+| **P11-B95** | ③⑯㉓ | **Capability 模型硬接线** — Task 分配/认领时 Server 侧校验 Worker capability · require_capability 依赖 · Capability 执行所有权检查 · rate_limit 字段实际执行 | 🔴 |
+| **P11-B96** | ⑩⑮㉒ | **Session 连续性增强** — stall detection + auto-restart · WS 自动重连（兑现 _protocol.md 承诺）· 订阅集断连恢复 | 🟡 |
+| **P11-B97** | ㉔㉕ | **配置安全加固** — Role 默认值硬失败替代 silent fallback · batch_verify Worker 授权流程修复 | 🟡 |
+
+### P100 断裂点审计新增（2026-07-29 · P100 重开）
+
+| Batch | 断裂点 | 内容 | 严重度 |
+|:--|:--|------|:--:|
+| **P100-B105** | ②⑤⑥⑰⑳ | **安全+可观测性加固** — JWT 密钥启动校验 · slowapi 速率限制接线 · ws_reaper + auth_expiry_reaper 异常日志 · 健康检查验证后台任务存活 · auth_expiry WS team_id 修复 | 🔴 |
+| **P100-B106** | ⑪⑬⑭⑱⑲㉖ | **测试/生产一致性** — SQLite FK PRAGMA · VARCHAR 长度边界测试 · 统一时间源 (func.now→_utcnow) · DateTime 时区规范化 · Alembic 约束 diff 修复 · CI PostgreSQL 测试选项 | 🔴 |
+| **P100-B107** | ⑧ | **狗粮→生产反馈加速** — PFL 闭环 SLA 机制 · 功能效率比目标（29%→50%+）· 狗粮发现→修复最长延迟约束 | 🟡 |
 
 ### P11 Hook Gap 审计项（2026-07-25 · P11-008~P11-010）
 

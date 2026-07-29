@@ -1,6 +1,6 @@
 # Synapse 系统架构
 
-> 版本：v2.2 · 2026-07-28（P100-B104 P100 治理波收尾 + P11 交棒 · 🎉 全量闭环）
+> 版本：v2.2 · 2026-07-29（P11-B93 ✅ 止血部署 · L5 B92→B93 拉通）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md

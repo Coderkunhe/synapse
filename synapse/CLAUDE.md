@@ -1,5 +1,5 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P11-B92 ✅ · L5 B91→B92 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P11-B93 ✅ · 止血部署 · L5 B92→B93 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
@@ -666,6 +666,7 @@ synapse/
 - P100：治理段 B1-B104 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 7/7 GAP · 全量闭环 🎉
 
 **最近批次**：
+- **P11-B93**：止血部署 ✅ — ① B57 migration 执行（alembic upgrade head）· ② GAP-6 硬化版 pre-push hook 重装 · ③ 双 Worker session-init.js 重新部署（L-P11-002/003）· L5 B92→B93 · 🟢 微型 · 0 代码文件 · 5 治理文件 · commit `f74b924`
 - **P11-B92**：L-P11-001 orchestrator-status 双源容错 ✅ — heartbeat 过期时 Event 活动时间 fallback · detection_source 字段 (heartbeat|event_activity|None) · 🟡 标准 · 3 files · 644 tests 零回归 · commit `d4b7fd8`
 - **P11-B91**：PFL-083 B 侧心跳 daemon 硬约束 ✅ — session-init.js detached spawn + unref() · O-B 对称 heartbeat · 🟡 标准 · 3 files 纯协议层 · commit `b1f64cc`
 - **P11-B88**：PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁 ✅ — 状态机 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138`
