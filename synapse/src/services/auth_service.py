@@ -294,6 +294,7 @@ async def register_user(
         is_active=True,
     )
     db.add(user)
+    await db.flush()  # P100-B106: FK PRAGMA 启用后需先 flush User 再创建子实体
 
     # 创建 UserAuthMethod（provider="email", subject=email）
     auth_method = UserAuthMethod(

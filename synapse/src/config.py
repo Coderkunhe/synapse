@@ -1,6 +1,6 @@
 """通过环境变量加载的应用配置。"""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,6 +50,18 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 15
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _ensure_jwt_secret_is_set(cls, v: str) -> str:
+        """P100-B105: 禁止在非开发环境使用 placeholder JWT 密钥。"""
+        if v in ("dev-secret-change-in-production", "change-me-to-a-random-string"):
+            raise ValueError(
+                "JWT_SECRET 不能使用默认 placeholder 值。"
+                " 请设置环境变量 JWT_SECRET 为一个随机字符串。"
+                " 生成方式: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        return v
 
     # API Key
     api_key_prefix: str = "sk-syn-"
@@ -113,6 +125,13 @@ class Settings(BaseSettings):
     ws_max_connections: int = 200
     ws_max_message_size: int = 65536  # 64 KB
 
+    # Rate limiting (P100-B105 · PFL-085)
+    rate_limit_enabled: bool = True
+    rate_limit_login: str = "5/minute"
+    rate_limit_register: str = "3/minute"
+    rate_limit_forgot_password: str = "3/minute"
+    rate_limit_reset_password: str = "3/minute"
+
     # WebPush (P10-B44 · S-066)
     vapid_private_key: str = ""
     vapid_public_key: str = ""
@@ -120,3 +139,12 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# ── Rate limiter (P100-B105 · PFL-085) ──────────────────────────────────
+
+from slowapi import Limiter  # noqa: E402
+from slowapi.util import get_remote_address  # noqa: E402
+
+limiter = Limiter(key_func=get_remote_address)
+"""共享 Limiter 实例 — main.py 注册中间件，auth.py 用 @limiter.limit 装饰端点。"""

@@ -21,6 +21,11 @@ def _utcnow() -> datetime:
 class TimestampMixin:
     """为模型添加 created_at 和 updated_at 列。
 
+    两列均使用 ``DateTime(timezone=True)``（P100-B106 · ⑱），
+    与 ``_utcnow()`` 返回的 timezone-aware datetime 保持一致。
+    SQLite 将 aware datetime 存储为 ISO 8601 字符串，时区信息不丢失；
+    PostgreSQL 中为 ``TIMESTAMP WITH TIME ZONE``。
+
     注意：onupdate 使用 Python 侧可调用对象 (_utcnow) 而非
     SQL func.now()，以避免 SQLAlchemy 异步 greenlet 问题。
     当 func.now() 用作 onupdate 时，SQLAlchemy 在 UPDATE 后将列标记为
@@ -29,10 +34,10 @@ class TimestampMixin:
     """
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
+        DateTime(timezone=True), nullable=False, default=_utcnow
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
     )
 
 

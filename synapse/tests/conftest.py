@@ -33,6 +33,12 @@ os.close(_test_db_fd)
 
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TEST_DB_PATH}"
 os.environ["DEBUG"] = "false"  # 测试中禁用 SQL echo
+os.environ["JWT_SECRET"] = "test-secret-not-for-production"  # P100-B105: 防止 placeholder 校验报错
+os.environ["RATE_LIMIT_ENABLED"] = "false"  # P100-B105: 测试中禁用速率限制中间件
+os.environ["RATE_LIMIT_LOGIN"] = "999999/minute"  # 测试中设置极高限制避免 429
+os.environ["RATE_LIMIT_REGISTER"] = "999999/minute"
+os.environ["RATE_LIMIT_FORGOT_PASSWORD"] = "999999/minute"
+os.environ["RATE_LIMIT_RESET_PASSWORD"] = "999999/minute"
 
 # 现在可以安全导入 — 引擎将指向我们的临时数据库。
 # mypy: ignore-all-unimports
@@ -129,7 +135,7 @@ async def seed(client) -> AsyncGenerator[SeedData, None]:
             id=worker_id,
             name="Admin",
             team_id=team_id,
-            user_id=f"user-{member_id[:8]}",
+            user_id=None,  # P100-B106: FK PRAGMA 启用后 user_id 必须指向存在的 User；测试中无 User 记录故设为 None
             actor_type=WorkerActorType.HUMAN,
             status=WorkerStatus.ACTIVE,
             api_key_hash="",  # human workers use JWT, not API keys; TODO: make NULLABLE

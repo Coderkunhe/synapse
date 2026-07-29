@@ -18,6 +18,7 @@ import secrets
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from src.config import limiter, settings  # P100-B105 · PFL-085: limiter + rate limit values
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -168,7 +169,9 @@ async def dev_token(
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
+@limiter.limit(settings.rate_limit_register)  # P100-B105 · PFL-085
 async def register(
+    request: Request,
     body: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
@@ -206,7 +209,9 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(settings.rate_limit_login)  # P100-B105 · PFL-085
 async def login(
+    request: Request,
     body: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
@@ -246,7 +251,9 @@ async def login(
 
 
 @router.post("/forgot-password", status_code=200)
+@limiter.limit(settings.rate_limit_forgot_password)  # P100-B105 · PFL-085
 async def forgot_password(
+    request: Request,
     body: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -270,7 +277,9 @@ async def forgot_password(
 
 
 @router.post("/reset-password", status_code=200)
+@limiter.limit(settings.rate_limit_reset_password)  # P100-B105 · PFL-085
 async def reset_password(
+    request: Request,
     body: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:

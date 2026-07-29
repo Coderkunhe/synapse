@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models.base import AuditMixin, Base
+from src.models.base import AuditMixin, Base, _utcnow
 
 
 class TokenUsage(Base, AuditMixin):
@@ -38,7 +38,7 @@ class TokenUsage(Base, AuditMixin):
     cost: Mapped[str | None] = mapped_column(String(30), nullable=True)
     request_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=func.now()
+        DateTime, nullable=False, default=_utcnow
     )
     metadata_: Mapped[str | None] = mapped_column(
         "metadata", String(4000), nullable=True

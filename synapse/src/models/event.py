@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func, text
+from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models.base import Base
+from src.models.base import Base, _utcnow
 
 
 class Event(Base):
@@ -37,7 +37,7 @@ class Event(Base):
         String(255), nullable=True, unique=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=func.now()
+        DateTime, nullable=False, default=_utcnow
     )
     create_user_id: Mapped[str] = mapped_column(
         String(40), nullable=False, default="system", server_default=text("'system'"),

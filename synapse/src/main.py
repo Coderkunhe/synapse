@@ -6,10 +6,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from slowapi.middleware import SlowAPIMiddleware  # P100-B105 · PFL-085
 
 from src.api.router import api_router
 from src.api.routers.ws import websocket_endpoint
-from src.config import settings
+from src.config import limiter, settings  # P100-B105: limiter for rate limiting
 from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
 from src.services.authorization_service import expire_stale_requests
@@ -27,7 +28,11 @@ async def _ws_reaper() -> None:
         try:
             await ws_manager.reap_dead_connections()
         except Exception:
-            pass
+            import logging
+            logging.getLogger("synapse.ws_reaper").warning(
+                "WS reaper scan failed (will retry in 30s)",
+                exc_info=True,
+            )
 
 
 # ── Background task: expire stale authorization requests (P11-B50) ──────────
@@ -39,6 +44,8 @@ async def _auth_expiry_reaper() -> None:
     Calls expire_stale_requests() on its own DB session.
     Runs every auth_expiry_interval_seconds (default 30s).
     """
+    import logging
+    _logger = logging.getLogger("synapse.auth_reaper")
     interval = settings.auth_expiry_interval_seconds
     while True:
         await asyncio.sleep(interval)
@@ -47,11 +54,13 @@ async def _auth_expiry_reaper() -> None:
                 count = await expire_stale_requests(db)
                 await db.commit()
                 if count > 0:
-                    import logging
-                    logger = logging.getLogger("synapse")
-                    logger.info("Expired %d stale authorization request(s)", count)
+                    _logger.info("Expired %d stale authorization request(s)", count)
         except Exception:
-            pass
+            _logger.warning(
+                "Auth expiry reaper scan failed (will retry in %ds)",
+                interval,
+                exc_info=True,
+            )
 
 
 # ── Background task: detect stale tasks and timed-out verifications ──────────
@@ -164,13 +173,26 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Rate limiting (P100-B105 · PFL-085)
+    if settings.rate_limit_enabled:
+        app.state.limiter = limiter
+        app.add_middleware(SlowAPIMiddleware)
+
     # Structured error handling (protocol.md §9)
     app.add_exception_handler(SynapseError, synapse_error_handler)
 
     # Health check (no auth required)
     @app.get("/health")
     async def health():
-        return {"status": "ok", "ws_connections": ws_manager.connection_count}
+        return {
+            "status": "ok",
+            "ws_connections": ws_manager.connection_count,
+            "reapers": {
+                "ws_reaper": not (_reaper_task and _reaper_task.done()),
+                "auth_reaper": not (_expiry_reaper_task and _expiry_reaper_task.done()),
+                "stale_reaper": not (_stale_reaper_task and _stale_reaper_task.done()),
+            },
+        }
 
     # WebSocket endpoint — registered directly on app (not through nested router)
     # to avoid Starlette routing issues with WebSocket upgrades

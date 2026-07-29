@@ -38,7 +38,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 CURRENT="$TMPDIR/current-openapi.json"
 
 cd "$PROJECT_DIR"
-if ! PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
+if ! JWT_SECRET="ci-contracts-check-not-for-production" PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
 from src.main import app
 import json
 schema = app.openapi()
