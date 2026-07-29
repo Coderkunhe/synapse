@@ -15,7 +15,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role
+from src.dependencies import ActorInfo, get_current_actor
+from src.permissions import require_permission
 from src.exceptions import ForbiddenError
 from src.schemas.common import CursorPage
 from src.schemas.protection import DecisionAuditResponse
@@ -60,7 +61,7 @@ async def list_project_decision_audits(
     ),
     cursor: str | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("decision_audit:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """分页查询项目下的决策审计记录，按决策时间降序。

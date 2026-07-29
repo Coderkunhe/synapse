@@ -70,6 +70,23 @@ PERMISSION_MAP: dict[str, set[str]] = {
     # ── Project management ──
     "project:manage": {"super_admin", "admin"},
     "project:read":   {"super_admin", "admin", "orchestrator", "builder", "steward"},
+
+    # ── Analysis operations ──
+    "analysis:create": {"super_admin", "admin", "orchestrator"},
+
+    # ── Audit operations ──
+    "decision_audit:read":   {"super_admin", "admin"},
+    "capability_audit:read": {"super_admin", "admin"},
+
+    # ── Protection report operations ──
+    "protection_report:create": {"super_admin", "admin"},
+    "protection_report:read":   {"super_admin", "admin", "orchestrator", "builder", "steward"},
+
+    # ── Authorization request operations ──
+    "authorization:read": {"super_admin", "admin"},
+
+    # ── Batch operations ──
+    "batch:create": {"super_admin", "admin", "orchestrator"},
 }
 
 

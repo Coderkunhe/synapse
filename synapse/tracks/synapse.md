@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B97 ✅ 配置安全加固
-last_batch: P11-B97
-next_batch: P11-B98
-description: Synapse 主项目 — B97 ✅ 配置安全加固 · P11-B98 🔜 待定
+phase: P11-B98 ✅ Worker 角色围栏 require_permission 迁移 Phase 1/2
+last_batch: P11-B98
+next_batch: P11-B99
+description: Synapse 主项目 — B98 ✅ 角色围栏迁移 · P11-B99 🔜 Phase 2/2 (complex endpoints)
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B97 ✅ 配置安全加固 · P11-B98 🔜 �
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B97 | **P11-B98** 🔜 | B97 ✅ 配置安全加固（PFL-099+PFL-100 · 断裂点㉔㉕）· B98 🔜 待定 |
+| **P11** | P11-B98 | **P11-B99** 🔜 | B98 ✅ 角色围栏迁移 Phase 1 (11 endpoints · 6 新权限键) · B99 🔜 Phase 2 (complex resolvers) |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -275,6 +275,7 @@ description: Synapse 主项目 — B97 ✅ 配置安全加固 · P11-B98 🔜 �
 | **P11-B95** | ③⑯㉓ | **Capability 模型硬接线** — Task 分配/认领时 Server 侧校验 Worker capability · require_capability 依赖 · Capability 执行所有权检查 · rate_limit 字段实际执行 | 🔴 |
 | **P11-B96** | ⑩⑮㉒ | **Session 连续性增强** — stall detection + auto-restart · WS 自动重连（兑现 _protocol.md 承诺）· 订阅集断连恢复 | 🟡 |
 | **P11-B97** | ㉔㉕ | **✅ 配置安全加固** — Role 默认值硬失败替代 silent fallback · batch_verify Worker 授权流程修复 | 🟡 |
+| **P11-B98** | P11-008 | **✅ Worker 角色围栏 require_permission 迁移 Phase 1** — 6 新 PERMISSION_MAP 键 · 7 routers 11 endpoints `require_project_role`→`require_permission` · 复杂 endpoints (need resolve_project_id) → B99 | 🟡 |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 

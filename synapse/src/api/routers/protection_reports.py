@@ -17,7 +17,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role
+from src.dependencies import ActorInfo, get_current_actor
+from src.permissions import require_permission
 from src.exceptions import ForbiddenError
 from src.schemas.common import CursorPage
 from src.schemas.protection import ProtectionReportCreate, ProtectionReportResponse
@@ -65,7 +66,7 @@ def _to_response(record) -> ProtectionReportResponse:
 async def create_protection_report(
     project_id: str,
     body: ProtectionReportCreate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("protection_report:create")),
     db: AsyncSession = Depends(get_db),
 ):
     """创建保护报告 — 手动触发检测。
@@ -113,7 +114,7 @@ async def list_protection_reports(
     ),
     cursor: str | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("protection_report:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """分页查询保护报告，按创建时间降序。

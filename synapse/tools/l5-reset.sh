@@ -161,7 +161,7 @@ fi
 TRACK_FILE="$PROJECT_DIR/tracks/synapse.md"
 
 # 从 evidence 中提取 "→Bxxx" 或 "->Bxxx" 模式的目标 Batch
-TARGET_BATCH=$(echo "$DESCRIPTION" | grep -oE '(→|->)\s*(P[0-9]+-)?B[0-9]+' | tail -1 | sed 's/.*\(B[0-9]\+\)$/\1/' || true)
+TARGET_BATCH=$(echo "$DESCRIPTION" | grep -oE '(→|->)\s*(P[0-9]+-)?B[0-9]+' | tail -1 | sed -E 's/.*(B[0-9]+)$/\1/' || true)
 if [ -n "$TARGET_BATCH" ] && [ -f "$TRACK_FILE" ]; then
   # 匹配 YAML frontmatter (last_batch: P11-B106) 或表格格式 (| **P100** | P100-B106 |)
   if ! grep -qE "(last_batch:.*${TARGET_BATCH}|P[0-9]+-${TARGET_BATCH})" "$TRACK_FILE" 2>/dev/null; then

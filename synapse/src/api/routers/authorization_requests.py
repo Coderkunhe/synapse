@@ -17,7 +17,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo, check_project_role, get_current_actor, require_project_role
+from src.dependencies import ActorInfo, check_project_role, get_current_actor
+from src.permissions import require_permission
 from src.exceptions import ForbiddenError, NotFoundError
 from src.models.authorization_request import AuthorizationRequest
 from src.constants import ActorType
@@ -138,7 +139,7 @@ async def list_auth_requests(
     status: str = Query("pending", pattern=r"^(pending|approved|denied|expired|cancelled|all)$"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("authorization:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """列出项目下的授权请求，默认返回 pending 状态。

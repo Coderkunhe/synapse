@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role
+from src.dependencies import ActorInfo, get_current_actor
+from src.permissions import require_permission
 from src.exceptions import NotFoundError
 from src.schemas.analysis import AnalysisCreate, AnalysisResponse
 from src.schemas.common import CursorPage
@@ -31,7 +32,7 @@ router = APIRouter()
 async def create_analysis(
     project_id: str,
     body: AnalysisCreate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "orchestrator")),
+    actor: ActorInfo = Depends(require_permission("analysis:create")),
     db: AsyncSession = Depends(get_db),
 ):
     """Create an analysis in a project (requires admin, lead, or orchestrator role)."""

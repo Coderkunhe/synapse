@@ -10,7 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.dependencies import ActorInfo, require_project_role
+from src.dependencies import ActorInfo
+from src.permissions import require_permission
 from src.models.capability_audit import CapabilityAudit
 from src.models.worker import Worker
 from src.schemas.capability_audit import CapabilityAuditPage, CapabilityAuditResponse
@@ -34,7 +35,7 @@ async def list_project_capability_audits(
     date_to: str | None = Query(None, description="截止日期 (YYYY-MM-DD)"),
     cursor: str | None = Query(None, max_length=80, description="分页游标"),
     limit: int = Query(50, ge=1, le=100, description="每页条数"),
-    actor: ActorInfo = Depends(require_project_role("admin", "lead")),
+    actor: ActorInfo = Depends(require_permission("capability_audit:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """查询项目下 capability 执行审计记录。

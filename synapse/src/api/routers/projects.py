@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role, require_role
+from src.dependencies import ActorInfo, get_current_actor, require_role
+from src.permissions import require_permission
 from src.exceptions import NotFoundError
 from src.schemas.common import CursorPage
 from src.schemas.project import (
@@ -141,7 +142,7 @@ async def get_project(
 async def update_project(
     project_id: str,
     body: ProjectUpdate,
-    actor: ActorInfo = Depends(require_project_role("admin")),
+    actor: ActorInfo = Depends(require_permission("project:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a project (requires admin role in this project)."""
@@ -176,7 +177,7 @@ async def update_project(
 )
 async def archive_project(
     project_id: str,
-    actor: ActorInfo = Depends(require_project_role("admin")),
+    actor: ActorInfo = Depends(require_permission("project:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     """Archive a project (requires admin role in this project)."""
@@ -200,7 +201,7 @@ async def archive_project(
 async def toggle_project_protection(
     project_id: str,
     body: ProjectProtectionUpdate,
-    actor: ActorInfo = Depends(require_project_role("admin")),
+    actor: ActorInfo = Depends(require_permission("project:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     """Toggle the ``is_protected`` flag on a project (admin only).
@@ -228,7 +229,7 @@ async def toggle_project_protection(
 )
 async def delete_project(
     project_id: str,
-    actor: ActorInfo = Depends(require_project_role("admin")),
+    actor: ActorInfo = Depends(require_permission("project:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     """Hard-delete a project (admin only).

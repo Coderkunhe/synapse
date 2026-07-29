@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, ActorType, VerificationStatus
 from src.db import get_db
-from src.dependencies import ActorInfo, get_current_actor, require_project_role
+from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import ForbiddenError, NotFoundError
 from src.permissions import require_permission
 from src.schemas.batch import BatchAssignRequest, BatchCreate, BatchResponse
@@ -83,7 +83,7 @@ router = APIRouter()
 async def create_batch(
     project_id: str,
     body: BatchCreate,
-    actor: ActorInfo = Depends(require_project_role("admin", "lead", "orchestrator")),
+    actor: ActorInfo = Depends(require_permission("batch:create")),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a batch in a project (requires admin, lead, or orchestrator role)."""
