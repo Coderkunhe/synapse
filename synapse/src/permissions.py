@@ -81,6 +81,7 @@ PERMISSION_MAP: dict[str, set[str]] = {
     # ── Protection report operations ──
     "protection_report:create": {"super_admin", "admin"},
     "protection_report:read":   {"super_admin", "admin", "orchestrator", "builder", "steward"},
+    "protection_report:run":    {"super_admin", "admin"},
 
     # ── Authorization request operations ──
     "authorization:read": {"super_admin", "admin"},

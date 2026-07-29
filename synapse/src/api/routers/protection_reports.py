@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor
 from src.permissions import require_permission
-from src.exceptions import ForbiddenError
 from src.schemas.common import CursorPage
 from src.schemas.protection import ProtectionReportCreate, ProtectionReportResponse
 from src.services.protection_service import (
@@ -144,13 +143,29 @@ async def list_protection_reports(
 # ═══════════════════════════════════════════════════════════════════════
 
 
+async def _resolve_project_from_report(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from report_id in URL path parameters.
+
+    Used by ``require_permission`` for report detail/run endpoints that don't
+    have ``project_id`` in their URL path.
+    """
+    report_id = request.path_params["report_id"]
+    report = await get_report(db, report_id)
+    return report.project_id
+
+
 @router.get(
     "/protection-reports/{report_id}",
     response_model=ProtectionReportResponse,
 )
 async def get_protection_report(
     report_id: str,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(
+        require_permission(
+            "protection_report:read",
+            resolve_project_id=_resolve_project_from_report,
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """获取单个保护报告详情。
@@ -158,17 +173,6 @@ async def get_protection_report(
     权限：报告所属 Project 的 admin/lead，或超管。
     """
     report = await get_report(db, report_id)
-
-    # 权限校验：超管绕过，否则检查 project role
-    if not actor.is_super_admin and actor.actor_type != "worker":
-        from src.services.project_role_service import get_project_role
-        role = await get_project_role(db, report.project_id, actor.actor_id)
-        if role not in ("admin", "lead"):
-            raise ForbiddenError(
-                "FORBIDDEN_INSUFFICIENT_PROJECT_ROLE",
-                "This action requires project role: admin, lead",
-            )
-
     return _to_response(report)
 
 
@@ -183,7 +187,12 @@ async def get_protection_report(
 )
 async def run_protection_report(
     report_id: str,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(
+        require_permission(
+            "protection_report:run",
+            resolve_project_id=_resolve_project_from_report,
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """执行保护报告检测 — pending → running → completed/failed。
@@ -193,16 +202,6 @@ async def run_protection_report(
     B36 骨架实现：执行基本状态转换。三个检测模式的实际分析逻辑在远期实现。
     """
     report = await get_report(db, report_id)
-
-    # 权限校验
-    if not actor.is_super_admin and actor.actor_type != "worker":
-        from src.services.project_role_service import get_project_role
-        role = await get_project_role(db, report.project_id, actor.actor_id)
-        if role not in ("admin", "lead"):
-            raise ForbiddenError(
-                "FORBIDDEN_INSUFFICIENT_PROJECT_ROLE",
-                "This action requires project role: admin, lead",
-            )
 
     updated = await run_report(
         db,

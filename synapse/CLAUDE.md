@@ -1,11 +1,11 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（L5 B97→B98 拉通 ✅ · B97 配置安全加固 + B98 角色围栏迁移 Phase 1 · → P11-B99）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P11-B99 ✅ 角色围栏迁移 Phase 2 · P11-008 全量闭环 · → P11-B100）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
-> 🔄 L5 B97→B98 拉通 ✅（2026-07-29）— B97 配置安全加固 + B98 角色围栏迁移 Phase 1 · requirements-log 补登记 B98 · → P11-B99
+> 🔄 P11-B99 ✅（2026-07-29）— Worker 角色围栏迁移 Phase 2 · resolve_project_id 3 endpoints · P11-008 全量闭环
 > 🔄 P100-B111 断裂点审计 ✅ 条目归档（2026-07-29）— 9 项 ✅→archive · pitfalls 368→214 · 真正未闭环 7 项
 > 🔄 P100-B110 pitfalls 瘦身+LL 交叉引用+checkpoint 路径修复（2026-07-29）— 1009→368 行 · pitfalls↔lessons 双向链接 · agent-instances→ai-synapse
 > 🔄 P100-B109 文档健康度批量治理（2026-07-29）— requirements-log P11 归档 5108→4548 · CLAUDE.md 当前状态拆分 813→613 · Session checkpoint 修复
@@ -613,6 +613,7 @@ synapse/
 - **P100-B107** ✅：FK合规全量修复 — Event.team_id nullable + 37测试清零 · 13 files · 648/648 tests
 - **P100-B106** ✅：测试/生产一致性 — FK PRAGMA + 时间源统一 + DateTime时区 + CI PG · 10 files · 611/648 tests
 - **P100-B105** ✅：安全加固 — JWT强制 + slowapi速率限制 + 后台日志 + 健康检查 · 7 files
+- **P11-B99** ✅：Worker 角色围栏 require_permission 迁移 Phase 2 — resolve_project_id 3 endpoints · 1 新权限键 · 3 files · 648 tests · P11-008 闭环 🎉
 - **P11-B98** ✅：Worker 角色围栏 require_permission 迁移 Phase 1 — 11 endpoints · 6 新权限键 · 8 files · 648 tests
 - **P11-B97** ✅：配置安全加固 — ㉔ Role默认值硬失败 + ㉕ batch_verify Worker授权 · 4 files · 648 tests
 - **P11-B96** ✅：Session连续性增强 — ws-daemon.js 自动重连 · PFL-093

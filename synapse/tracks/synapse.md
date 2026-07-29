@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B98 ✅ Worker 角色围栏 require_permission 迁移 Phase 1/2
-last_batch: P11-B98
-next_batch: P11-B99
-description: Synapse 主项目 — B98 ✅ 角色围栏迁移 · P11-B99 🔜 Phase 2/2 (complex endpoints)
+phase: P11-B99 ✅ Worker 角色围栏 require_permission 迁移 Phase 2/2
+last_batch: P11-B99
+next_batch: P11-B100
+description: Synapse 主项目 — B99 ✅ 角色围栏迁移全量闭环 · P11-008 GAP-7 完成 · B100 🔜 TBD
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B98 ✅ 角色围栏迁移 · P11-B99 🔜 Ph
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B98 | **P11-B99** 🔜 | B98 ✅ 角色围栏迁移 Phase 1 (11 endpoints · 6 新权限键) · B99 🔜 Phase 2 (complex resolvers) |
+| **P11** | P11-B99 | **P11-B100** 🔜 | B99 ✅ 角色围栏迁移 Phase 2 (resolve_project_id 3 endpoints) · B100 🔜 TBD |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -276,6 +276,7 @@ description: Synapse 主项目 — B98 ✅ 角色围栏迁移 · P11-B99 🔜 Ph
 | **P11-B96** | ⑩⑮㉒ | **Session 连续性增强** — stall detection + auto-restart · WS 自动重连（兑现 _protocol.md 承诺）· 订阅集断连恢复 | 🟡 |
 | **P11-B97** | ㉔㉕ | **✅ 配置安全加固** — Role 默认值硬失败替代 silent fallback · batch_verify Worker 授权流程修复 | 🟡 |
 | **P11-B98** | P11-008 | **✅ Worker 角色围栏 require_permission 迁移 Phase 1** — 6 新 PERMISSION_MAP 键 · 7 routers 11 endpoints `require_project_role`→`require_permission` · 复杂 endpoints (need resolve_project_id) → B99 | 🟡 |
+| **P11-B99** | P11-008 | **✅ Worker 角色围栏 require_permission 迁移 Phase 2** — 3 resolve_project_id endpoints · `protection_report:run` 新权限键 · P11-008 GAP-7 全量闭环 | 🟡 |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 

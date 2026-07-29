@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor
 from src.permissions import require_permission
-from src.exceptions import ForbiddenError
 from src.schemas.common import CursorPage
 from src.schemas.protection import DecisionAuditResponse
 from src.services.decision_audit_service import get_decision, list_decisions
@@ -93,13 +92,29 @@ async def list_project_decision_audits(
 # ═══════════════════════════════════════════════════════════════════════
 
 
+async def _resolve_project_from_decision(request: Request, db: AsyncSession) -> str:
+    """Resolve project_id from decision_id in URL path parameters.
+
+    Used by ``require_permission`` for the GET detail endpoint that doesn't
+    have ``project_id`` in its URL path.
+    """
+    decision_id = request.path_params["decision_id"]
+    decision = await get_decision(db, decision_id)
+    return decision.project_id
+
+
 @router.get(
     "/decision-audits/{decision_id}",
     response_model=DecisionAuditResponse,
 )
 async def get_decision_audit(
     decision_id: str,
-    actor: ActorInfo = Depends(get_current_actor),
+    actor: ActorInfo = Depends(
+        require_permission(
+            "decision_audit:read",
+            resolve_project_id=_resolve_project_from_decision,
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """获取单条决策审计记录。
@@ -107,15 +122,4 @@ async def get_decision_audit(
     权限：记录所属 Project 的 admin/lead，或超管。
     """
     record = await get_decision(db, decision_id)
-
-    # 权限校验
-    if not actor.is_super_admin and actor.actor_type != "worker":
-        from src.services.project_role_service import get_project_role
-        role = await get_project_role(db, record.project_id, actor.actor_id)
-        if role not in ("admin", "lead"):
-            raise ForbiddenError(
-                "FORBIDDEN_INSUFFICIENT_PROJECT_ROLE",
-                "This action requires project role: admin, lead",
-            )
-
     return _to_response(record)
