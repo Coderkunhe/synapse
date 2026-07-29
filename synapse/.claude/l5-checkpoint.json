@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B99→B100 L5 拉通 — 📄 requirements-log.md B100新增 · 📄 CLAUDE.md header+L5 banner+当前状态 B100同步 · 📄 daily/2026-07-29.md B100+L5段追加 · 📄 tracks/synapse.md last_batch→B100 · 📄 roadmap.md B100已更新 · 📚 叙事一致: B99(P11-008 GAP-7角色围栏)→B100(P11-009 GAP-8审计补刀) 同一可追溯性建设 · 零 drift · 计数器复位",
-  "lastL5Timestamp": "2026-07-29",
+  "lastL5Batch": "B100→B101 L5 拉通 — 📄 requirements-log.md B101补登记 · 📄 CLAUDE.md header+L5 banner+当前状态 B101同步 · 📄 roadmap.md P11段 B100+B101补登记 · 📄 daily/2026-07-30.md 新建 · 📚 叙事一致: B100(GAP-8审计持久化)→B101(DUPLICATE_VERIFICATION回归修复) 同为安全/质量加固线 · 零 drift · 计数器复位",
+  "lastL5Timestamp": "2026-07-30",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B99→B100 L5 拉通 — 📄 requirements-log.md B100新增 · 📄 CLAUDE.md header+L5 banner+当前状态 B100同步 · 📄 daily/2026-07-29.md B100+L5段追加 · 📄 tracks/synapse.md last_batch→B100 · 📄 roadmap.md B100已更新 · 📚 叙事一致: B99(P11-008 GAP-7角色围栏)→B100(P11-009 GAP-8审计补刀) 同一可追溯性建设 · 零 drift · 计数器复位",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "B100→B101 L5 拉通 — 📄 requirements-log.md B101补登记 · 📄 CLAUDE.md header+L5 banner+当前状态 B101同步 · 📄 roadmap.md P11段 B100+B101补登记 · 📄 daily/2026-07-30.md 新建 · 📚 叙事一致: B100(GAP-8审计持久化)→B101(DUPLICATE_VERIFICATION回归修复) 同为安全/质量加固线 · 零 drift · 计数器复位",
+  "notes": "L5 拉通完成，计数器复位 — B101 之前缺失 3 处登记（reqlog+CLAUDE+roadmap），L5 中补全"
 }

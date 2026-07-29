@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-29（P11-B100 ✅ GAP-8 审计持久化全量闭环 · L5 B99→B100 拉通）
+> 最后更新：2026-07-30（P11-B101 ✅ DUPLICATE_VERIFICATION 回归修复 · L5 B100→B101 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -169,6 +169,8 @@
 | **P11-B97** | **配置安全加固（PFL-099 + PFL-100）** — 协议端点 require_role 硬门禁 · session-init.js default_fallback 硬失败 · batch_verify Worker 显式拒绝 · 🟡 标准 · 4 files · 648 tests 零回归 | ✅ |
 | **P11-B98** | **Worker 角色围栏 require_permission 迁移 Phase 1** — 11 endpoints require_project_role→require_permission · 6 新 PERMISSION_MAP 键 · 🟡 标准 · 8 files · 648 tests 零回归 | ✅ |
 | **P11-B99** | **Worker 角色围栏 require_permission 迁移 Phase 2** — 3 resolve_project_id endpoints · 1 新权限键 · 🟡 标准 · 3 files · 648 tests 零回归 · P11-008 全量闭环 🎉 | ✅ |
+| **P11-B100** | **Capability 安全命令审计持久化补刀** — POST 端点 + synapse-exec 安全命令持久化 · 10 tests · 🟡 标准 · 6 files · 658 tests · GAP-8 全量闭环 🎉 | ✅ |
+| **P11-B101** | **DUPLICATE_VERIFICATION 回归修复** — verification.reset 替换 task.rejected · 🟢 微型 · 2 files · 658 tests 零回归 | ✅ |
 
 ---
 
