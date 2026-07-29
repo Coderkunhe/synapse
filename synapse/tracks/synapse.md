@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B91 ✅ PFL-083 B 执行循环心跳修复
-last_batch: P11-B91
-next_batch: P11-B92
-description: Synapse 主项目 — B91 ✅ B 侧心跳闭环 · B92 🔜
+phase: P11-B92 ✅ L-P11-001 双源容错
+last_batch: P11-B92
+next_batch: P11-B93
+description: Synapse 主项目 — B92 ✅ orchestrator-status 双源 · B93 🔜 (需 L5)
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B91 ✅ B 侧心跳闭环 · B92 🔜
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B104 | — ✅ | P100 治理波全量闭环 🎉 · B104 收尾 (阈值缓冲 + P11 交棒) |
-| **P11** | P11-B89 | **P11-B90** 🔜 | B89 ✅ 心跳恢复动作 · B90 🔜 |
+| **P11** | P11-B92 | **P11-B93** 🔜 | B92 ✅ orchestrator-status 双源 · B93 🔜 (需 L5) |
 
 ## P11 路线图：多 Agent 接入战
 

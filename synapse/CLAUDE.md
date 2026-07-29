@@ -1,12 +1,12 @@
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-28（P11-B89 ✅ · L5 B88→B89 拉通）
+> 不存代码，只协调工作。Team = 人 + Worker，同等对待。最后更新：2026-07-29（P11-B92 ✅ · L5 B91→B92 拉通）
 
 > 本文件是**跨角色通用纪律**——所有角色（Orchestrator / Builder / Steward）共同遵守的工程规则。
 > 你的角色专属职责、工作流、能力边界 → 以 Synapse Protocol API 返回的
 > `role_instructions` 为准。当两处规则冲突时，`role_instructions` 优先。
 > 🔭 **God's-eye 角色边界** → 见下方「🔭 God's-eye 角色边界」专节（PFL-037 正式决策 · P11-B16）。
 > 🔄 P100-B104 P100 治理波收尾（2026-07-28）— B104 收尾: check-line-count 阈值 1000→1100 · Track 指针 P100→P11 交棒 · make check 全绿 · P100 全量闭环 🎉
-> 🔄 L5 B88→B89 拉通（2026-07-28）— B88 PFL-077 超时回收+反 ping-pong 三层防御 + B89 心跳恢复动作 · 零 drift · 计数器复位
+> 🔄 L5 B91→B92 拉通（2026-07-29）— B91 PFL-083 B 侧心跳 daemon detached spawn + B92 orchestrator-status 双源容错 Event fallback · 零 drift · 计数器复位
 
 ## 🚨 铁律：GlassCortex 只读
 
@@ -666,6 +666,8 @@ synapse/
 - P100：治理段 B1-B104 ✅ · GAP-1/2/3/4/5/6/10 全部闭环 · 7/7 GAP · 全量闭环 🎉
 
 **最近批次**：
+- **P11-B92**：L-P11-001 orchestrator-status 双源容错 ✅ — heartbeat 过期时 Event 活动时间 fallback · detection_source 字段 (heartbeat|event_activity|None) · 🟡 标准 · 3 files · 644 tests 零回归 · commit `d4b7fd8`
+- **P11-B91**：PFL-083 B 侧心跳 daemon 硬约束 ✅ — session-init.js detached spawn + unref() · O-B 对称 heartbeat · 🟡 标准 · 3 files 纯协议层 · commit `b1f64cc`
 - **P11-B88**：PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁 ✅ — 状态机 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138`
 - **P11-B87**：PFL-070 O 心跳检测 ✅ — heartbeat 端点 GET /workers/me/heartbeat + worker_service + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d`
 - **P11-B86**：PFL-069/074 审计 ✅ — 诚实标注全覆盖确认 + 消息类型跨模板对称性验证 · 🟢 微型 · commit `82ccb7f`

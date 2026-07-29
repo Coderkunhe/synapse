@@ -160,6 +160,8 @@
 | **P11-B87** | **PFL-070 O 心跳检测** — GET /workers/me/heartbeat 端点 + worker_service.get_heartbeat() + HeartbeatResponse schema · role-builder.md 心跳响应协议 · L5 B85→B86 拉通 · 🟡 标准 · 13 files · 633 tests 零回归 · commit `abb456d` | ✅ |
 | **P11-B88** | **PFL-077 Verif 超时自动回收 + 反 ping-pong 门禁** — 状态机新转换 IN_VERIFICATION→IN_PROGRESS · detect_stale_verifications() 30min 扫描 · _stale_task_reaper 双检测 · ≥3 次 auto-revert→auto-cancel · 🟡 标准 · 10 files · 633 tests 零回归 · commits `ea67795` + `07fb138` | ✅ |
 | **P11-B89** | **PFL-070 心跳恢复动作** — role-builder.md Step 0 三级恢复（≤5min→重试 · 5-30min→通知+重试 · >30min→退出）+ role-orchestrator.md Step 0 自检心跳（进入循环前补发过期心跳）· 🟢 微型 · 2 files 纯协议层 | ✅ |
+| **P11-B91** | **PFL-083 B 侧心跳 daemon 硬约束** — session-init.js Step 2.5 spawn heartbeat daemon detached:true+unref() · settings.json SessionStart hook 兜底 · role-builder.md Step 0.5 自检心跳循环 · _protocol.md §4.1.3 O-B 心跳协调 · 🟡 标准 · 3 files 纯协议层 · commit `b1f64cc` | ✅ |
+| **P11-B92** | **L-P11-001 orchestrator-status 双源容错** — heartbeat 过期时 Event 活动时间 fallback · OrchestratorStatusResponse 新增 detection_source 字段 · 5 种 O 活动事件类型 · 🟡 标准 · 3 files · 644 tests 零回归 · commit `d4b7fd8` | ✅ |
 
 ---
 
