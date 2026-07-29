@@ -175,7 +175,7 @@ fi
 echo ""
 
 echo "--- 会话 checkpoint ---"
-MEM_DIR="$HOME/.claude/projects/-Users-hunter-projects-personal-ai-agent-instances/memory"
+MEM_DIR="$HOME/.claude/projects/-Users-hunter-projects-personal-ai-ai-synapse/memory"
 LATEST=$(ls -t "$MEM_DIR"/synapse-session-*.md 2>/dev/null | head -1 || echo "")
 if [ -z "$LATEST" ]; then
   yellow "  ⚠️  未找到 Synapse 会话 checkpoint — /clear 前请创建"

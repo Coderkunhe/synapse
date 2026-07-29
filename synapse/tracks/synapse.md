@@ -1,8 +1,8 @@
 ---
 project: synapse
-phase: P100-B109 ✅ 文档健康度批量治理（reqlog归档+CLAUDE.md拆分）
-last_batch: P100-B109
-next_batch: P100-B110
+phase: P100-B110 ✅ pitfalls瘦身+LL交叉引用+checkpoint路径修复
+last_batch: P100-B110
+next_batch: P100-B111
 description: Synapse 主项目 — B109 ✅ 文档健康度批量治理 · B110 🔜 TBD
 ---
 
@@ -14,7 +14,7 @@ description: Synapse 主项目 — B109 ✅ 文档健康度批量治理 · B110 
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B109 | **P100-B110** 🔜 | B109 ✅ 文档健康度批量治理（reqlog P11归档+CLAUDE.md拆分+checkpoint修复）· B110 🔜 TBD |
+| **P100** | P100-B110 | **P100-B111** 🔜 | B110 ✅ pitfalls瘦身+LL交叉引用+checkpoint路径修复 · B111 🔜 TBD |
 | **P11** | P11-B96 | **P11-B97** 🔜 | B96 ✅ Session连续性增强（PFL-093 ws-daemon.js）· B97 🔜 配置加固 |
 
 ## P11 路线图：多 Agent 接入战

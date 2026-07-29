@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-29（P100-B109 ✅ 文档健康度批量治理 — reqlog归档+CLAUDE.md拆分）
+> 最后更新：2026-07-29（P100-B110 ✅ pitfalls瘦身+LL交叉引用+checkpoint路径修复）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -652,5 +652,6 @@
 - **P100-B107**：**FK合规全量修复** ✅ — ① Event.team_id nullable=True (str|None) · ② 10 处系统事件 team_id=""→None (5 service 文件) · ③ Alembic migration batch_alter_table · ④~⑥ test fixture FK 修复 (真实 Team/Project/Worker 创建) · event_store.record()/_broadcast_event()/record_decision() 签名更新 · 🟡 标准 · 13 files · 648/648 tests 零回归
 - **P100-B108**：**治理收尾扫描** ✅ — ① B105 遗漏落地: check-template-drift.sh 提交 (脚本已接线 Makefile，漏 commit) · ② hook-gap-audit.md 更新: 10/10 GAP 全闭环标记 · ③ p11-b92-plan.md 归档 · ④ 违纪回顾复位 (7批逾期→0) · ⑤ API contracts baseline 更新 (6 新增端点) · 🟢 微型 · 7 files
 - **P100-B109**：**文档健康度批量治理** ✅ — ① requirements-log P11 归档: 40条目·560行→archive · 活跃日志 5108→4548 · ② CLAUDE.md 当前状态拆分: 213行历史→docs/archive/CLAUDE-current-state-history.md · 主文件 813→613 · ③ Session checkpoint 修复: 日期+暗号补全 · 🟡 标准 · 8 files
+- **P100-B110**：**pitfalls 瘦身 + LL 交叉引用 + checkpoint 路径修复** ✅ — ① pitfalls.md ✅闭环条目归档: 1009→368行 (PFL-055~094 + B100-A5~A10 → archive) · ② LL# 双向交叉引用补齐: pitfalls↔lessons 双向链接 · ③ check-docs.sh session checkpoint 路径修复: agent-instances→ai-synapse · 🟡 标准 · 4 files
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
