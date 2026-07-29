@@ -57,7 +57,8 @@ async def test_project(seed):
 
 @pytest.fixture
 async def test_worker(seed):
-    """创建测试 Agent Worker。"""
+    """创建测试 Agent Worker（含 git.push capability）。"""
+    from src.models.capability import Capability
     worker_id = generate_id("worker")
     async with async_session_factory() as db:
         worker = Worker(
@@ -69,6 +70,13 @@ async def test_worker(seed):
             api_key_hash="",
         )
         db.add(worker)
+        # P11-B95: declare capability so capability_exec tests work
+        cap = Capability(
+            id=generate_id("capability"),
+            worker_id=worker_id,
+            name="git.push",
+        )
+        db.add(cap)
         await db.commit()
     return worker_id
 
@@ -231,6 +239,7 @@ class TestCreateAuthRequest:
         import secrets
 
         from src.constants import WorkerActorType, WorkerStatus
+        from src.models.capability import Capability
         from src.models.worker import Worker
         from src.utils.id_gen import generate_id
 
@@ -249,6 +258,13 @@ class TestCreateAuthRequest:
                 api_key_hash=key_hash,
             )
             db.add(worker)
+            # P11-B95: Worker must declare the capability before requesting capability_exec
+            cap = Capability(
+                id=generate_id("capability"),
+                worker_id=worker_id,
+                name="git.push",
+            )
+            db.add(cap)
             await db.commit()
 
         # Worker 用 API key 为自己创建 capability_exec 请求

@@ -27,6 +27,7 @@ class Task(Base, AuditMixin):
     batch_id: Mapped[str | None] = mapped_column(ForeignKey("batch.id"), nullable=True, index=True)
     estimated_effort: Mapped[str | None] = mapped_column(String(5), nullable=True)
     tags: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    required_capabilities: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     metadata_: Mapped[str | None] = mapped_column("metadata", String(4000), nullable=True)
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

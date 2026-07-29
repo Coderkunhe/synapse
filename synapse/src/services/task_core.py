@@ -111,6 +111,7 @@ async def update_task(
     priority: str | None,
     estimated_effort: str | None,
     tags: list[str] | None,
+    required_capabilities: list[str] | None = None,
     metadata: dict | None,
     deadline_at: datetime | None,
     expected_version: int,
@@ -137,6 +138,9 @@ async def update_task(
         changed = True
     if tags is not None:
         task.tags = safe_dumps(tags)
+        changed = True
+    if required_capabilities is not None:
+        task.required_capabilities = safe_dumps(required_capabilities)
         changed = True
     if metadata is not None:
         task.metadata_ = safe_dumps(metadata)
@@ -213,6 +217,7 @@ async def task_to_response(task: Task, db: AsyncSession) -> dict:
         "batch_id": task.batch_id,
         "estimated_effort": task.estimated_effort,
         "tags": safe_loads(task.tags),
+        "required_capabilities": safe_loads(task.required_capabilities),
         "metadata": safe_loads(task.metadata_),
         "version_no": task.version_no,
         "deadline_at": task.deadline_at,

@@ -201,6 +201,7 @@ async def create_tasks_batch(
             batch_id=task_data.get("batch_id"),
             estimated_effort=task_data.get("estimated_effort"),
             tags=task_data.get("tags"),
+            required_capabilities=task_data.get("required_capabilities"),
             metadata=task_data.get("metadata"),
             deadline_at=task_data.get("deadline_at"),
             verifications=task_data["verifications"],

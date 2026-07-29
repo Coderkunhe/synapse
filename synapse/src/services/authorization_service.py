@@ -156,6 +156,22 @@ async def create_authorization_request(
                 details={"request_type": request_type, "missing_field": "operation"},
             )
 
+        # P11-B95 PFL-094: verify Worker owns this capability
+        from src.models.capability import Capability
+        cap_result = await db.execute(
+            select(Capability).where(
+                Capability.worker_id == worker_id,
+                Capability.name == operation,
+            )
+        )
+        if cap_result.scalar_one_or_none() is None:
+            raise ForbiddenError(
+                "CAPABILITY_NOT_DECLARED",
+                f"Worker has not declared capability '{operation}'. "
+                f"Capabilities must be declared during handshake.",
+                {"workerId": worker_id, "capability": operation},
+            )
+
     # ── 流控 ──
     pending = await get_pending_count(db, worker_id)
     if pending >= MAX_PENDING_AUTH_REQUESTS:

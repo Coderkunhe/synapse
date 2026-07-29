@@ -33,6 +33,7 @@ class TaskCreate(BaseModel):
         description="Estimated effort: xs, s, m, l, or xl (not free-form hours)",
     )
     tags: list[str] | None = None
+    required_capabilities: list[str] | None = None
     metadata: dict | None = None
     deadline_at: datetime | None = None
     # P9-B69: verifications 改为创建时可选，ready 时若无则自动创建默认值
@@ -69,6 +70,7 @@ class TaskUpdate(BaseModel):
         description="Estimated effort: xs, s, m, l, or xl (not free-form hours)",
     )
     tags: list[str] | None = None
+    required_capabilities: list[str] | None = None
     metadata: dict | None = None
     deadline_at: datetime | None = None
     expected_version: int = Field(..., ge=1)
@@ -121,6 +123,7 @@ class BatchUpdateRequest(BaseModel):
         description="Estimated effort: xs, s, m, l, or xl",
     )
     tags: list[str] | None = None
+    required_capabilities: list[str] | None = None
     deadline_at: datetime | None = None
 
 
@@ -267,6 +270,7 @@ class TaskResponse(AuditFields):
     batch_id: str | None = None
     estimated_effort: str | None = None
     tags: list[str] | None = None
+    required_capabilities: list[str] | None = None
     metadata: dict | None = None
     version_no: int
     deadline_at: datetime | None = None

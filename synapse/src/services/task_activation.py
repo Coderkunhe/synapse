@@ -167,6 +167,29 @@ async def assign_task(
                 f"Worker {owner_id} is not active (status: {owner.status}). "
                 f"Activate the worker via POST /v1/workers/{owner_id}/handshake",
             )
+
+        # P11-B95 PFL-086: verify Worker has required capabilities
+        req_caps = safe_loads(task.required_capabilities)
+        if req_caps:
+            cap_tags = owner.capability_tags or {}
+            cap_names: list[str] = cap_tags.get("names", [])
+            if not cap_names:
+                raise ConflictError(
+                    "WORKER_NO_CAPABILITIES",
+                    f"Worker '{owner.name}' has no declared capabilities. "
+                    f"Task requires: {', '.join(req_caps)}. "
+                    f"Worker must complete handshake with capability declarations.",
+                    {"workerId": owner_id, "requiredCapabilities": req_caps},
+                )
+            missing = [c for c in req_caps if c not in cap_names]
+            if missing:
+                raise ConflictError(
+                    "WORKER_MISSING_CAPABILITIES",
+                    f"Worker '{owner.name}' lacks required capabilities: {', '.join(missing)}. "
+                    f"Worker declared: {', '.join(cap_names)}. "
+                    f"Task requires: {', '.join(req_caps)}.",
+                    {"workerId": owner_id, "missingCapabilities": missing, "workerCapabilities": cap_names, "requiredCapabilities": req_caps},
+                )
     else:
         raise ConflictError(
             "INVALID_OWNER_TYPE",
