@@ -692,7 +692,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 | `422` | 验证失败 | 读 `detail` 修正请求体 |
 | `429` | 频率限制 | 等待 `Retry-After` 秒后重试 |
 | `5xx` | 服务端错误 | 指数退避重试：1s → 5s → 25s → 放弃（最多 3 次） |
-| WebSocket 断开 | 连接中断 | 1s 后重连 → 失败则 5s → 25s → 报告给 Orchestrator |
+| WebSocket 断开 | 连接中断 | ws-daemon.js 自动重连（1s→5s→25s·3 轮）→ 耗尽后写 `_ws-status.json` dead · AI 检测到 → POST /tasks/{id}/messages @Orchestrator 报告（P11-B96 PFL-093） |
 
 ---
 

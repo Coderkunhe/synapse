@@ -99,7 +99,7 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 
 你尚未获得此项目的操作权限，系统已自动创建授权请求并通知管理员。
   📋 授权请求 ID: {authorization_request_id}
-  📡 通知方式: WebSocket 实时推送 + Email 通知
+  📡 通知方式: WebSocket 实时推送（ws-daemon.js 后台维护连接·P11-B96）+ Email 通知
 
 审批通过后我会自动重试，你不需要做任何操作。
 ```

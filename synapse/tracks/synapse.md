@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B95 ✅ Capability硬约束（PFL-086/094双闭环）
-last_batch: P11-B95
-next_batch: P11-B96
-description: Synapse 主项目 — B95 ✅ Capability硬约束 · B96 🔜 Session连续性增强（PFL-093 WS重连）
+phase: P11-B96 ✅ Session连续性增强（PFL-093 ws-daemon.js）
+last_batch: P11-B96
+next_batch: P11-B97
+description: Synapse 主项目 — B96 ✅ Session连续性增强 · B97 🔜 配置加固
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B95 ✅ Capability硬约束 · B96 🔜 Sessi
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B104 | **P100-B105** 🔜 | P100 重开 · B105 安全加固 (JWT+速率限制+后台日志+健康检查) · B106 测试一致性 · B107 反馈加速 |
-| **P11** | P11-B95 | **P11-B96** 🔜 | B95 ✅ Capability硬约束 · B96 🔜 Session连续性增强（PFL-093 WS重连）· B97 🔜 配置加固 |
+| **P11** | P11-B96 | **P11-B97** 🔜 | B96 ✅ Session连续性增强（PFL-093 ws-daemon.js）· B97 🔜 配置加固 |
 
 ## P11 路线图：多 Agent 接入战
 

@@ -8,6 +8,8 @@
  * What this script does (mechanical):
  *   1. Check required env vars → structured report
  *   2. Resolve API key (env → OS keychain fallback)
+ *   2.5 Start heartbeat daemon (detached · B91 PFL-083)
+ *   2.6 Start WS daemon (detached · B96 PFL-093) — real-time event push
  *   3. GET /protocol → fetch project context + role
  *   4. POST /handshake → activate worker
  *   5. Run state sync queries (auth requests, in_progress tasks, ready/verification tasks)
@@ -33,7 +35,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.0.1
+ * @version 1.1.0
  * @file session-init.js
  */
 
@@ -109,6 +111,86 @@ function startHeartbeatDaemon() {
     return { started: true, pid: child.pid };
   } catch (e) {
     return { started: false, error: e.message };
+  }
+}
+
+/**
+ * Check if the ws-daemon process is running.
+ * Uses pgrep to find node processes running ws-daemon.js.
+ *
+ * @returns {{ running: boolean, pids: string[] }}
+ */
+function checkWsDaemon() {
+  try {
+    const out = execSync('pgrep -f "node.*ws-daemon\\.js"', {
+      timeout: 1000,
+      encoding: 'utf-8',
+    }).trim();
+    if (!out) return { running: false, pids: [] };
+    const pids = out.split('\n').filter(Boolean);
+    return { running: pids.length > 0, pids };
+  } catch (e) {
+    if (e.status === 1) return { running: false, pids: [] };
+    return { running: false, pids: [], error: e.message };
+  }
+}
+
+/**
+ * Start the ws-daemon as a detached background process (PFL-093 · B96).
+ *
+ * The ws-daemon maintains a persistent WebSocket connection to the Synapse
+ * server for real-time event push. On disconnect, it auto-reconnects with
+ * 1s→5s→25s backoff. Events are written to _ws-events.jsonl.
+ *
+ * Requires Node.js ≥22 (native WebSocket global). On older Node.js,
+ * ws-daemon is skipped gracefully — the Worker falls back to HTTP polling
+ * (which was the de-facto behavior before B96 anyway).
+ *
+ * @returns {{ started: boolean, pid?: number, error?: string, skippedNodeVersion?: boolean }}
+ */
+function startWsDaemon() {
+  try {
+    // Version guard: native WebSocket requires Node.js ≥22
+    const nodeVersion = process.versions?.node;
+    if (nodeVersion) {
+      const major = parseInt(String(nodeVersion).split('.')[0], 10);
+      if (major < 22) {
+        return { started: false, skippedNodeVersion: true, error: `Node.js ${nodeVersion} < 22 — WebSocket not available` };
+      }
+    }
+
+    const scriptPath = path.join(__dirname, 'ws-daemon.js');
+    if (!fs.existsSync(scriptPath)) {
+      return { started: false, error: 'ws-daemon.js not found at ' + scriptPath };
+    }
+    const child = spawn(process.execPath, [scriptPath], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env },  // inherit SYNAPSE_* vars
+    });
+    child.unref();  // detach from parent — daemon survives hook exit
+    return { started: true, pid: child.pid };
+  } catch (e) {
+    return { started: false, error: e.message };
+  }
+}
+
+/**
+ * Read recent WS events from _ws-events.jsonl.
+ * Returns last N lines as parsed objects.
+ *
+ * @param {number} [n=5] — Number of recent events to return
+ * @returns {Array<Object>}
+ */
+function readRecentWsEvents(n = 5) {
+  const eventsFile = path.join(__dirname, '..', '_ws-events.jsonl');
+  try {
+    const raw = fs.readFileSync(eventsFile, 'utf-8');
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const recent = lines.slice(-n);
+    return recent.map(line => { try { return JSON.parse(line); } catch (_) { return null; } }).filter(Boolean);
+  } catch (_) {
+    return [];
   }
 }
 
@@ -266,6 +348,30 @@ function writeState(state) {
         lines.push(`- **Heartbeat daemon**: ⚠️ unable to check (${state.heartbeatDaemon.error})`);
       } else {
         lines.push('- **Heartbeat daemon**: ⚠️ NOT RUNNING — AI should check before proceeding');
+      }
+    }
+    // WS daemon status (B96 PFL-093)
+    if (state.wsDaemon) {
+      if (state.wsDaemon.running) {
+        const tag = state.wsDaemon.startedByUs ? '🆕 auto-started by session-init' : 'already running';
+        lines.push(`- **WS Daemon**: ✅ running (pid: ${state.wsDaemon.pids.join(', ')}, ${tag})`);
+        // Recent events
+        if (state.recentWsEvents && state.recentWsEvents.length > 0) {
+          lines.push('- **Recent WS events**:');
+          for (const evt of state.recentWsEvents) {
+            const type = evt.type || evt.event_type || 'unknown';
+            const ts = evt.ts || evt.timestamp || '?';
+            lines.push(`  - \`${type}\` @ ${ts}`);
+          }
+        }
+      } else if (state.wsDaemon.skippedNodeVersion) {
+        lines.push(`- **WS Daemon**: ⚠️ SKIPPED — ${state.wsDaemon.nodeVersionError}. Real-time push unavailable, falling back to HTTP polling.`);
+      } else if (state.wsDaemon.startError) {
+        lines.push(`- **WS Daemon**: 🔴 FAILED TO START — ${state.wsDaemon.startError}. Real-time push unavailable.`);
+      } else if (state.wsDaemon.error) {
+        lines.push(`- **WS Daemon**: ⚠️ unable to check (${state.wsDaemon.error})`);
+      } else {
+        lines.push('- **WS Daemon**: ⚠️ NOT RUNNING — real-time push unavailable');
       }
     }
   } else {
@@ -510,6 +616,9 @@ async function main() {
     errors: [],
     warnings: [],
     heartbeatDaemon: null,
+    // B96 PFL-093: WS daemon for real-time event push
+    wsDaemon: null,
+    recentWsEvents: [],
     // B84: PFL-077/079/082 mechanical guards
     activeTaskCount: 0,
     staleVerificationCount: 0,
@@ -550,6 +659,25 @@ async function main() {
       state.heartbeatDaemon.startError = startResult.error;
     }
   }
+
+  // ── Step 2.6: Check + start ws-daemon (PFL-093 · B96) ───────────
+  state.wsDaemon = checkWsDaemon();
+  if (!state.wsDaemon.running) {
+    const wsResult = startWsDaemon();
+    if (wsResult.started) {
+      state.wsDaemon = { running: true, pids: [String(wsResult.pid)], startedByUs: true };
+    } else {
+      state.wsDaemon.startedByUs = false;
+      if (wsResult.skippedNodeVersion) {
+        state.wsDaemon.skippedNodeVersion = true;
+        state.wsDaemon.nodeVersionError = wsResult.error;
+      } else if (wsResult.error) {
+        state.wsDaemon.startError = wsResult.error;
+      }
+    }
+  }
+  // Read recent WS events (even if daemon was already running)
+  state.recentWsEvents = readRecentWsEvents(5);
 
   // ── Step 3: Fetch protocol ─────────────────────────────────────
   const protocolRole = state.role || 'builder';
@@ -757,6 +885,24 @@ async function main() {
   if (state.role === 'builder') { queriedTotals.push(state.readyTotal); }
   else if (state.role === 'orchestrator') { queriedTotals.push(state.readyTotal, state.verificationTotal); }
   state.apiUnreachable = queriedTotals.length > 0 && queriedTotals.every(t => t < 0);
+
+  // B96 PFL-093: Detect dead WS daemon — reconnect exhausted
+  try {
+    const statusFile = path.join(__dirname, '..', '_ws-status.json');
+    if (fs.existsSync(statusFile)) {
+      const statusRaw = fs.readFileSync(statusFile, 'utf-8');
+      const status = JSON.parse(statusRaw);
+      if (status.status === 'dead') {
+        state.wsDaemonDead = true;
+        state.wsDaemonDeadSince = status.since || 'unknown';
+        state.warnings.push(
+          `WS Daemon has crashed after 3 reconnect attempts (since ${state.wsDaemonDeadSince}). ` +
+          'Real-time push is unavailable — falling back to HTTP polling. ' +
+          'Report to Orchestrator: POST /tasks/{id}/messages with @Orchestrator mentioning WS daemon failure.'
+        );
+      }
+    }
+  } catch (_) { /* best-effort */ }
 
   // PFL-077: Detect stale in_verification tasks (>15 min without update).
   // These indicate Human is not responding — O should not wait forever.
