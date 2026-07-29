@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P100-B110 ✅ pitfalls瘦身+LL交叉引用+checkpoint路径修复
-last_batch: P100-B110
-next_batch: P100-B111
-description: Synapse 主项目 — B109 ✅ 文档健康度批量治理 · B110 🔜 TBD
+phase: P100-B111 ✅ 断裂点审计✅条目归档
+last_batch: P100-B111
+next_batch: P11-B97
+description: Synapse 主项目 — B111 ✅ P100治理波收尾 · P11-B97 🔜 Worker运行时可靠性
 ---
 
 # Synapse 轨道
@@ -14,8 +14,8 @@ description: Synapse 主项目 — B109 ✅ 文档健康度批量治理 · B110 
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B110 | **P100-B111** 🔜 | B110 ✅ pitfalls瘦身+LL交叉引用+checkpoint路径修复 · B111 🔜 TBD |
-| **P11** | P11-B96 | **P11-B97** 🔜 | B96 ✅ Session连续性增强（PFL-093 ws-daemon.js）· B97 🔜 配置加固 |
+| **P100** | P100-B111 | **P11-B97** 🔜 | B111 ✅ 断裂点审计✅条目归档 · P100 治理波收尾 → 切 P11 |
+| **P11** | P11-B96 | **P11-B97** 🔜 | B96 ✅ Session连续性增强（PFL-093 ws-daemon.js）· B97 🔜 Worker 运行时可靠性 |
 
 ## P11 路线图：多 Agent 接入战
 
