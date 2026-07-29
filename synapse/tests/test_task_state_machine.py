@@ -146,6 +146,10 @@ class TestEventTypeMapping:
     def test_rejected_to_in_progress(self):
         assert get_event_type(TaskStatus.REJECTED, TaskStatus.IN_PROGRESS) == "task.claimed"
 
+    def test_in_verification_to_in_progress(self):
+        """P11-B88: IN_VERIFICATION → IN_PROGRESS = task.verification_timeout_reverted。"""
+        assert get_event_type(TaskStatus.IN_VERIFICATION, TaskStatus.IN_PROGRESS) == "task.verification_timeout_reverted"
+
     def test_any_to_cancelled(self):
         """所有可取消路径均映射到 task.cancelled。"""
         for from_status in [TaskStatus.BACKLOG, TaskStatus.READY, TaskStatus.IN_PROGRESS, TaskStatus.PAUSED]:

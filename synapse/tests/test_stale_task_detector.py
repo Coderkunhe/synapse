@@ -1,0 +1,220 @@
+"""P11-B76/B88: stale task 检测器单元测试 — detect_stale_tasks + detect_stale_verifications。"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.constants import ActorType, TaskStatus
+from src.db import async_session_factory
+from src.models.event import Event
+from src.models.project import Project
+from src.models.task import Task
+from src.models.team import Team
+from src.services.event_store import event_store
+from src.services.stale_task_detector import (
+    detect_stale_tasks,
+    detect_stale_verifications,
+)
+from src.utils.id_gen import generate_id
+
+
+class TestStaleTaskDetector:
+    """P11-B76/B88: stale task 检测器单元测试。"""
+
+    @pytest.mark.asyncio
+    async def test_detect_stale_in_progress_tasks(self):
+        """扫描过期 in_progress 任务并记录 stale 事件。"""
+        async with async_session_factory() as db:
+            # Create a stale task (updated_at far in the past)
+            stale_task = Task(
+                id="tsk_stale_001",
+                project_id="prj_test_001",
+                title="Stale Task",
+                description="This task has been in_progress too long",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_stale_001",
+            )
+            stale_task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            db.add(stale_task)
+
+            # Create a fresh task (updated_at recently)
+            fresh_task = Task(
+                id="tsk_fresh_001",
+                project_id="prj_test_001",
+                title="Fresh Task",
+                description="This task is actively being worked on",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_fresh_001",
+            )
+            fresh_task.claimed_at = datetime.now(timezone.utc)
+            fresh_task.updated_at = datetime.now(timezone.utc)
+            db.add(fresh_task)
+            await db.flush()
+
+            # Run detector with 60 min threshold
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            assert result["stale_count"] == 1
+            assert "tsk_stale_001" in result["stale_task_ids"]
+            assert "tsk_fresh_001" not in result["stale_task_ids"]
+
+            await db.rollback()
+
+    # ── B90: PAUSED stale detection ──
+
+    @pytest.mark.asyncio
+    async def test_detect_stale_paused_tasks(self):
+        """PAUSED 任务过期 → 也检测为 stale（B90 补缺）。"""
+        async with async_session_factory() as db:
+            stale_paused = Task(
+                id="tsk_stale_paused_001",
+                project_id="prj_test_001",
+                title="Stale Paused Task",
+                description="Paused and abandoned",
+                status=TaskStatus.PAUSED,
+                owner_type="worker",
+                owner_id="ag_stale_001",
+            )
+            stale_paused.claimed_at = datetime.now(timezone.utc) - timedelta(hours=3)
+            stale_paused.updated_at = datetime.now(timezone.utc) - timedelta(hours=3)
+            db.add(stale_paused)
+            await db.flush()
+
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            assert result["stale_count"] == 1
+            assert "tsk_stale_paused_001" in result["stale_task_ids"]
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_no_stale_tasks_when_all_fresh(self):
+        """所有任务都是最近的 → 不检测到 stale。"""
+        async with async_session_factory() as db:
+            task = Task(
+                id="tsk_active_001",
+                project_id="prj_test_001",
+                title="Active Task",
+                description="Being worked on",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_active_001",
+            )
+            task.claimed_at = datetime.now(timezone.utc)
+            task.updated_at = datetime.now(timezone.utc)
+            db.add(task)
+            await db.flush()
+
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            assert result["stale_count"] == 0
+            assert result["stale_task_ids"] == []
+
+            await db.rollback()
+
+    # ── P11-B88 detect_stale_verifications tests ──
+
+    @pytest.mark.asyncio
+    async def test_detect_stale_verifications_basic(self):
+        """扫描过期 in_verification 任务 → 自动回退到 in_progress。"""
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj"))
+            await db.flush()
+
+            # Stale in_verification task (>30 min without update)
+            stale = Task(
+                id="tsk_stale_verif_001",
+                project_id=project_id,
+                title="Stale Verification",
+                description="Waiting for verification too long",
+                status=TaskStatus.IN_VERIFICATION,
+                owner_type="worker",
+                owner_id="ag_stale_001",
+            )
+            stale.updated_at = datetime.now(timezone.utc) - timedelta(minutes=45)
+            db.add(stale)
+
+            # Fresh in_verification task
+            fresh = Task(
+                id="tsk_fresh_verif_001",
+                project_id=project_id,
+                title="Fresh Verification",
+                description="Just submitted",
+                status=TaskStatus.IN_VERIFICATION,
+                owner_type="worker",
+                owner_id="ag_fresh_001",
+            )
+            fresh.updated_at = datetime.now(timezone.utc)
+            db.add(fresh)
+            await db.flush()
+
+            result = await detect_stale_verifications(db, threshold_minutes=30)
+            assert result["reverted_count"] == 1
+            assert "tsk_stale_verif_001" in result["reverted_task_ids"]
+            assert "tsk_fresh_verif_001" not in result["reverted_task_ids"]
+            assert result["cancelled_count"] == 0
+
+            # Flush to persist status changes before reloading from DB
+            await db.flush()
+            await db.refresh(stale)
+            assert stale.status == TaskStatus.IN_PROGRESS
+            # Fresh task unaffected
+            await db.refresh(fresh)
+            assert fresh.status == TaskStatus.IN_VERIFICATION
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_detect_stale_verifications_ping_pong_gate(self):
+        """反 ping-pong 门禁：≥3 次 auto-revert → auto-cancel。"""
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-gate"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-gate"))
+            await db.flush()
+
+            task = Task(
+                id="tsk_pingpong_001",
+                project_id=project_id,
+                title="Ping Pong Task",
+                description="Keeps getting reverted",
+                status=TaskStatus.IN_VERIFICATION,
+                owner_type="worker",
+                owner_id="ag_pingpong_001",
+            )
+            task.updated_at = datetime.now(timezone.utc) - timedelta(minutes=45)
+            db.add(task)
+            await db.flush()
+
+            # Simulate 3 prior auto-reverts (pre-existing events)
+            for i in range(3):
+                await event_store.record(
+                    db,
+                    event_type="task.verification_timeout_reverted",
+                    team_id=team_id,
+                    actor_type=ActorType.SYSTEM,
+                    actor_id="verification_timeout_detector",
+                    target_type="task",
+                    target_id=task.id,
+                    payload={"task_id": task.id, "auto_revert_count": i + 1},
+                )
+            await db.flush()
+
+            result = await detect_stale_verifications(db, threshold_minutes=30)
+            # Should be CANCELLED, not reverted (ping-pong gate)
+            assert result["reverted_count"] == 0
+            assert result["cancelled_count"] == 1
+            assert "tsk_pingpong_001" in result["cancelled_task_ids"]
+
+            await db.flush()
+            await db.refresh(task)
+            assert task.status == TaskStatus.CANCELLED
+
+            await db.rollback()

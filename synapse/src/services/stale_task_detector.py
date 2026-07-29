@@ -14,10 +14,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from src.config import settings
 from src.constants import ActorType, TaskStatus
@@ -31,10 +30,13 @@ async def detect_stale_tasks(
     db: AsyncSession,
     threshold_minutes: int = 60,
 ) -> dict:
-    """扫描 in_progress 且 updated_at 超过阈值的任务，记录 stale 事件。
+    """扫描 in_progress / paused 且 updated_at 超过阈值的任务，记录 stale 事件。
 
     检测到 stale task 后记录 ``task.stale_detected`` 事件供审计。
     不改变 Task 状态 — 保留现场给 Orchestrator 判断。
+
+    覆盖 PAUSED 状态（P11-B90）：PAUSED 任务若无 Worker 恢复，
+    永久卡死在暂停态，Server 需检测并告警。
 
     Args:
         db: 数据库会话（调用方持有事务）。
@@ -46,8 +48,8 @@ async def detect_stale_tasks(
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=threshold_minutes)
 
-    stmt = select(Task).where(
-        Task.status == TaskStatus.IN_PROGRESS,
+    stmt = select(Task).options(selectinload(Task.project)).where(
+        Task.status.in_([TaskStatus.IN_PROGRESS, TaskStatus.PAUSED]),
         Task.updated_at < cutoff,
     )
     result = await db.execute(stmt)
@@ -55,10 +57,11 @@ async def detect_stale_tasks(
 
     stale_ids: list[str] = []
     for task in stale_tasks:
+        team_id = task.project.team_id if task.project else ""
         await event_store.record(
             db,
             event_type="task.stale_detected",
-            team_id="",  # 跨 team 扫描；team 上下文来自 task
+            team_id=team_id,
             actor_type=ActorType.SYSTEM,
             actor_id="stale_task_detector",
             target_type="task",
@@ -106,7 +109,7 @@ async def detect_stale_verifications(
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=threshold_minutes)
 
-    stmt = select(Task).where(
+    stmt = select(Task).options(selectinload(Task.project)).where(
         Task.status == TaskStatus.IN_VERIFICATION,
         Task.updated_at < cutoff,
     )
@@ -119,8 +122,13 @@ async def detect_stale_verifications(
     cancelled_ids: list[str] = []
     for task in stale_tasks:
         seconds_stuck = int((now - task.updated_at).total_seconds())
+        team_id = task.project.team_id if task.project else ""
 
-        # 反 ping-pong 门禁：检查历史回退次数，超过阈值 → auto-cancel
+        # 反 ping-pong 门禁：检查历史回退次数，超过阈值 → auto-cancel。
+        # 计数器统计 Task 生命周期内所有 verification_timeout_reverted 事件，
+        # 永不重置。此设计基于一个架构假设：Task 进入终态（COMPLETED/CANCELLED）
+        # 后不可逆，因此不会出现"一个 Task 在不同时期反复进入 verification"的场景。
+        # 如果未来引入"重新打开已完成 Task"功能，需要加时间窗口衰减。
         prior_reverts = await db.execute(
             select(func.count(Event.id)).where(
                 Event.event_type == "task.verification_timeout_reverted",
@@ -162,7 +170,7 @@ async def detect_stale_verifications(
         await event_store.record(
             db,
             event_type=event_type,
-            team_id="",  # 跨 team 扫描；team 上下文来自 task
+            team_id=team_id,
             actor_type=ActorType.SYSTEM,
             actor_id="verification_timeout_detector",
             target_type="task",

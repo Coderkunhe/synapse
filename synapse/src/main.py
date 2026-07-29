@@ -101,7 +101,12 @@ async def _stale_task_reaper() -> None:
                             verify_result["cancelled_task_ids"],
                         )
         except Exception:
-            pass
+            _logger = logging.getLogger("synapse.stale_reaper")
+            _logger.warning(
+                "Stale task reaper scan failed (will retry in %ds)",
+                interval,
+                exc_info=True,
+            )
 
 
 _reaper_task: asyncio.Task | None = None
