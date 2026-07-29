@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, VerificationStatus
+from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, ActorType, VerificationStatus
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_project_role
 from src.exceptions import ForbiddenError, NotFoundError
@@ -237,6 +237,14 @@ async def batch_verify(
     because the project_id must be resolved from the first item
     in the request body AFTER Pydantic validation.
     """
+    # ── P11-B97 (㉕): batch_verify is human-only — reject Workers explicitly ──
+    if actor.actor_type == ActorType.WORKER:
+        raise ForbiddenError(
+            "FORBIDDEN_WORKER_CANNOT_PERFORM_THIS_ACTION",
+            "Batch verification is a human-only operation. "
+            "Workers should submit verification results via POST /tasks/{id}/verifications.",
+        )
+
     # Resolve project_id from first verification and check permission
     from src.models.task import Task
     from src.models.verification import Verification

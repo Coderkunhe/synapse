@@ -682,16 +682,25 @@ async function main() {
   // ── Step 3: Fetch protocol ─────────────────────────────────────
   const protocolRole = state.role || 'builder';
   const protocolRes = await client.get(
-    `/v1/workers/${workerId}/protocol?project_id=${projectId}&role=${protocolRole}`
+    `/v1/workers/${workerId}/protocol?project_id=${projectId}&role=${protocolRole}&require_role=true`
   );
 
   if (protocolRes.error) {
+    // P11-B97: 422 WORKER_ROLE_NOT_CONFIGURED is a config error — bail immediately, no retry
+    if (protocolRes.status === 422) {
+      state.protocolError = protocolRes.message || 'Worker role not configured';
+      state.errors.push(`Protocol fetch: ${state.protocolError}`);
+      console.log(`❌ ${SCRIPT_NAME}: worker role not configured on server`);
+      console.log('   请在 Synapse 中为 Worker 配置角色（POST /v1/projects/{pid}/workers/{wid}/roles）');
+      writeState(state);
+      process.exit(1);
+    }
     state.protocolError = protocolRes.message || 'Unknown protocol error';
     state.errors.push(`Protocol fetch: ${state.protocolError}`);
     // Retry once after 2s (B100-A6: was 5s, too long vs 10s client timeout → worst case 25s)
     await new Promise(r => setTimeout(r, 2000));
     const retryRes = await client.get(
-      `/v1/workers/${workerId}/protocol?project_id=${projectId}&role=${protocolRole}`
+      `/v1/workers/${workerId}/protocol?project_id=${projectId}&role=${protocolRole}&require_role=true`
     );
     if (retryRes.error) {
       state.protocolError = `Retry also failed: ${retryRes.message}`;
@@ -705,6 +714,16 @@ async function main() {
   } else {
     state.protocolOk = true;
     state.protocolData = protocolRes.data;
+  }
+
+  // P11-B97: Belt-and-suspenders — if server still returned default_fallback
+  // (e.g. old server without require_role support), client-side hard-fail
+  if (state.protocolOk && state.protocolData?.role_source === 'default_fallback') {
+    console.log(`❌ ${SCRIPT_NAME}: worker role not configured (role_source=default_fallback)`);
+    console.log('   请在 Synapse 中为 Worker 配置角色（POST /v1/projects/{pid}/workers/{wid}/roles）');
+    console.log('   或在 Worker metadata JSON 中添加 "role" 字段');
+    writeState(state);
+    process.exit(1);
   }
 
   // Update role from protocol response if not set in env

@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from src.auth import extract_bearer_token, hash_api_key, hash_project_key
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_role
-from src.exceptions import AuthenticationError, ForbiddenError, NotFoundError
+from src.exceptions import AuthenticationError, ForbiddenError, NotFoundError, SynapseError
 from src.models.worker import Worker
 from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, WorkerActorType, WorkerStatus
 from src.models.project import Project
@@ -582,6 +582,7 @@ async def get_worker_protocol(
     request: Request,
     project_id: str = Query(..., description="Project ID to load context for"),
     role: str | None = Query(None, description="Override role (orchestrator|builder|steward)"),
+    require_role: bool = Query(False, description="If true, refuse to serve protocol when role is default_fallback"),
     db: AsyncSession = Depends(get_db),
 ):
     """Fetch rendered collaboration protocol for a worker.
@@ -643,6 +644,19 @@ async def get_worker_protocol(
     # ── Resolve role ──
     resolved_role, role_source = resolve_role(worker, role)
 
+    # ── Hard-fail on default_fallback when require_role is set (P11-B97 · ㉔) ──
+    if require_role is True and role_source == "default_fallback":
+        raise SynapseError(
+            status_code=422,
+            code="WORKER_ROLE_NOT_CONFIGURED",
+            message=(
+                "Worker does not have a role configured in its metadata. "
+                "Set the role via POST /v1/projects/{pid}/workers/{wid}/roles "
+                "or add 'role' to the worker's metadata JSON. "
+                "To bypass this check, omit the require_role query parameter."
+            ),
+        )
+
     # ── Load project (if not already loaded via project_key) ──
     if project is None:
         project = await db.get(Project, project_id)
@@ -685,7 +699,7 @@ async def get_agent_protocol(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_worker_protocol(
-        worker_id=agent_id, request=request, project_id=project_id, role=role, db=db
+        worker_id=agent_id, request=request, project_id=project_id, role=role, db=db, require_role=False
     )
 
 

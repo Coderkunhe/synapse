@@ -165,6 +165,8 @@
 | **P11-B93** | **止血部署** — ① B57 migration 执行（alembic upgrade head）· ② GAP-6 硬化版 pre-push hook 重装 · ③ 双 Worker session-init.js 重新部署 · L5 B92→B93 拉通 · 🟢 微型 · 0 代码 · 5 治理文件 · commit `f74b924` | ✅ |
 | **P11-B94** | **模板→Worker 升级链自动化（PFL-084）** — SHA256 版本指纹 · GET /v1/templates/versions · 心跳模板版本+role_warnings · generate-skill.sh --check-version/--upgrade · 🟡 标准 · 7 files · 644 tests 零回归 · commit `1a691ab` | ✅ |
 | **P11-B95** | **Capability 硬约束（PFL-086 + PFL-094）** — Task required_capabilities 字段 · assign_task Worker 能力门禁 · capability_exec 所有权校验 · 🟡 标准 · 13 files · 648 tests 零回归 · commit `2b222dd` | ✅ |
+| **P11-B96** | **Session 连续性增强（PFL-093）** — ws-daemon.js Node.js ≥22 原生 WebSocket 自动重连 · session-init.js Step 2.6 spawn · 零 Server 端代码变更 · 🟡 标准 · 5 files · 648 tests 零回归 · commit `5294b57` | ✅ |
+| **P11-B97** | **配置安全加固（PFL-099 + PFL-100）** — 协议端点 require_role 硬门禁 · session-init.js default_fallback 硬失败 · batch_verify Worker 显式拒绝 · 🟡 标准 · 4 files · 648 tests 零回归 | ✅ |
 
 ---
 
