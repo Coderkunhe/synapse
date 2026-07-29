@@ -5,11 +5,19 @@ Variable resolution from four sources:
 - Worker record (worker_id, role from metadata)
 - Worker's Team (team_name via relationship)
 - Project record (name, description, git_repo_url + metadata_ JSON)
+
+Template version tracking (P11-B94 · PFL-084):
+- ``compute_template_versions()`` — SHA256 hash of every .md file in docs/templates/
+  produces a single version fingerprint that changes when any template changes.
+- Called by heartbeat endpoint (Worker detects staleness on every beat) and
+  ``GET /v1/templates/versions`` (Worker --check-version / --upgrade).
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,6 +85,42 @@ def load_template(name: str) -> str:
     if not path.is_file():
         raise FileNotFoundError(f"Template not found: {name}")
     return path.read_text(encoding="utf-8")
+
+
+# ── Template version tracking (P11-B94 · PFL-084) ──────────────────
+
+
+def compute_template_versions() -> dict:
+    """Compute SHA256 version fingerprints for all template files.
+
+    Scans ``docs/templates/`` for every ``.md`` file, computes a per-file
+    SHA256 hash, then derives a combined version by hashing the sorted
+    concatenation of all file hashes.
+
+    Returns:
+        ``{"version": "sha256:...", "files": {"role-builder.md": "sha256:...", ...}, "updated_at": "2026-07-29T..."}``
+
+    The combined *version* changes when **any** template file changes.
+    Worker clients compare this against their local ``.claude/synapse-version.json``
+    to detect staleness.
+    """
+    template_files: dict[str, str] = {}
+    if TEMPLATES_DIR.is_dir():
+        for path in sorted(TEMPLATES_DIR.iterdir()):
+            if path.is_file() and path.suffix == ".md":
+                content = path.read_text(encoding="utf-8")
+                file_hash = hashlib.sha256(content.encode()).hexdigest()
+                template_files[path.name] = f"sha256:{file_hash}"
+
+    # Combined version: SHA256 of all file hashes concatenated (sorted by filename)
+    combined_input = "".join(template_files[name] for name in sorted(template_files))
+    combined_hash = hashlib.sha256(combined_input.encode()).hexdigest()
+
+    return {
+        "version": f"sha256:{combined_hash}",
+        "files": template_files,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ── Variable resolution ────────────────────────────────────────────

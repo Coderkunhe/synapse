@@ -13,6 +13,8 @@
 #   bash tools/generate-skill.sh --client --target codex --output .         # Codex CLI
 #   bash tools/generate-skill.sh --client --target cursor --output .        # Cursor IDE
 #   bash tools/generate-skill.sh --from-api --api-url http://localhost:8000 --worker-id wa_xxx --project-id prj_xxx --role builder --api-key sk_xxx --output /path/to/project
+#   bash tools/generate-skill.sh --check-version --output .                                        # 检查模板是否过期
+#   bash tools/generate-skill.sh --upgrade --output . [--api-url <url>] [--worker-id <id>] ...      # 自动升级到最新模板
 #
 # 源文件: docs/templates/
 
@@ -29,10 +31,13 @@ TARGET=""
 OUTPUT=""
 CLIENT_MODE=false
 FROM_API=false
+CHECK_VERSION=false
+UPGRADE_MODE=false
 API_URL="${SYNAPSE_API_URL:-}"
 WORKER_ID="${SYNAPSE_WORKER_ID:-}"
 PROJECT_ID="${SYNAPSE_PROJECT_ID:-}"
 API_KEY="${SYNAPSE_API_KEY:-}"
+ROLE="${SYNAPSE_ROLE:-}"
 
 usage() {
     echo "用法:"
@@ -64,6 +69,11 @@ usage() {
     echo "    --project-id <id>     Project ID（或 \$SYNAPSE_PROJECT_ID）"
     echo "    --role <role>         角色（或 \$SYNAPSE_ROLE）"
     echo "    --api-key <key>       API Key（或 \$SYNAPSE_API_KEY）"
+    echo ""
+    echo "模式 4 — 模板版本管理（P11-B94 · PFL-084 升级链）:"
+    echo "  --check-version  对比本地版本与 Server 版本，exit 0=same 1=stale 2=error"
+    echo "  --upgrade        从 Server 拉取最新模板，重新生成 Skill 文件"
+    echo "  参数（--upgrade 支持 --from-api 的全部参数）"
     exit 1
 }
 
@@ -72,8 +82,10 @@ while [[ $# -gt 0 ]]; do
         --role)       ROLE="$2"; shift 2 ;;
         --target)     TARGET="$2"; shift 2 ;;
         --output)     OUTPUT="$2"; shift 2 ;;
-        --client)     CLIENT_MODE=true; shift ;;
-        --from-api)   FROM_API=true; shift ;;
+        --client)        CLIENT_MODE=true; shift ;;
+        --from-api)      FROM_API=true; shift ;;
+        --check-version) CHECK_VERSION=true; shift ;;
+        --upgrade)       UPGRADE_MODE=true; shift ;;
         --api-url)    API_URL="$2"; shift 2 ;;
         --worker-id)  WORKER_ID="$2"; shift 2 ;;
         --project-id) PROJECT_ID="$2"; shift 2 ;;
@@ -143,6 +155,124 @@ if $FROM_API; then
     if ! command -v jq &>/dev/null; then
         echo "❌ --from-api 需要 jq（未安装）"
         exit 1
+    fi
+
+# ── Mode 4: --check-version / --upgrade (P11-B94 · PFL-084) ──
+elif $CHECK_VERSION || $UPGRADE_MODE; then
+    VERSION_FILE="$OUTPUT/.claude/synapse-version.json"
+
+    # Resolve API_URL from env if not provided
+    API_URL="${API_URL:-${SYNAPSE_API_URL:-}}"
+    if [[ -z "$API_URL" ]]; then
+        echo "❌ 需要 SYNAPSE_API_URL（通过 --api-url 或 \$SYNAPSE_API_URL 提供）"
+        exit 2
+    fi
+
+    VERSIONS_URL="${API_URL%/}/v1/templates/versions"
+
+    # ── Fetch server version ──
+    SERVER_RESP=$(curl -sS -w '\n%{http_code}' "$VERSIONS_URL" 2>&1) || {
+        echo "❌ 无法连接到 Synapse Server: $API_URL"
+        exit 2
+    }
+    HTTP_CODE=$(echo "$SERVER_RESP" | tail -1)
+    SERVER_BODY=$(echo "$SERVER_RESP" | sed '$d')
+
+    if [[ "$HTTP_CODE" != "200" ]]; then
+        echo "❌ Server 返回 HTTP ${HTTP_CODE}"
+        exit 2
+    fi
+
+    SERVER_VERSION=$(echo "$SERVER_BODY" | jq -r '.version // empty')
+    if [[ -z "$SERVER_VERSION" ]]; then
+        echo "❌ Server 响应缺少 version 字段"
+        exit 2
+    fi
+
+    # ── Read local version ──
+    LOCAL_VERSION=""
+    if [[ -f "$VERSION_FILE" ]]; then
+        LOCAL_VERSION=$(jq -r '.version // empty' "$VERSION_FILE" 2>/dev/null || true)
+    fi
+
+    if $CHECK_VERSION; then
+        # ── check-version: compare and exit ──
+        if [[ -z "$LOCAL_VERSION" ]]; then
+            echo "⚠️  本地无版本记录（${VERSION_FILE} 不存在或无效）"
+            echo "Server 版本: ${SERVER_VERSION}"
+            exit 1
+        fi
+
+        if [[ "$LOCAL_VERSION" == "$SERVER_VERSION" ]]; then
+            echo "✅ 模板已是最新（${SERVER_VERSION:0:16}...）"
+            exit 0
+        else
+            echo "⚠️  模板已过期"
+            echo "  本地: ${LOCAL_VERSION:0:16}..."
+            echo "  Server: ${SERVER_VERSION:0:16}..."
+            echo ""
+            echo "运行 generate-skill.sh --upgrade 以升级"
+            exit 1
+        fi
+    fi
+
+    if $UPGRADE_MODE; then
+        # ── upgrade: compare, regenerate if stale ──
+        if [[ -n "$LOCAL_VERSION" && "$LOCAL_VERSION" == "$SERVER_VERSION" ]]; then
+            echo "✅ 模板已是最新，无需升级"
+            exit 0
+        fi
+
+        # Resolve upgrade params
+        WORKER_ID="${WORKER_ID:-${SYNAPSE_WORKER_ID:-}}"
+        PROJECT_ID="${PROJECT_ID:-${SYNAPSE_PROJECT_ID:-}}"
+        ROLE="${ROLE:-${SYNAPSE_ROLE:-}}"
+        API_KEY="${API_KEY:-${SYNAPSE_API_KEY:-}}"
+
+        if [[ -z "$WORKER_ID" || -z "$PROJECT_ID" || -z "$ROLE" || -z "$API_KEY" ]]; then
+            echo "❌ --upgrade 需要完整的 Worker 凭据（--worker-id --project-id --role --api-key）"
+            echo ""
+            echo "缺少:"
+            [[ -z "$WORKER_ID" ]]  && echo "  SYNAPSE_WORKER_ID"
+            [[ -z "$PROJECT_ID" ]] && echo "  SYNAPSE_PROJECT_ID"
+            [[ -z "$ROLE" ]]       && echo "  SYNAPSE_ROLE"
+            [[ -z "$API_KEY" ]]    && echo "  SYNAPSE_API_KEY"
+            exit 2
+        fi
+
+        echo ""
+        echo "┌──────────────────────────────────────────────┐"
+        echo "│  Synapse 模板升级 (P11-B94 · PFL-084)         │"
+        if [[ -n "$LOCAL_VERSION" ]]; then
+            echo "│  本地: ${LOCAL_VERSION:0:16}... → Server: ${SERVER_VERSION:0:16}... │"
+        else
+            echo "│  首次部署 → Server: ${SERVER_VERSION:0:16}...           │"
+        fi
+        echo "└──────────────────────────────────────────────┘"
+        echo ""
+
+        # ── Re-run self with --from-api to regenerate ──
+        echo "▎ 从 Server 拉取最新模板..."
+        "$0" --from-api \
+            --api-url "$API_URL" \
+            --worker-id "$WORKER_ID" \
+            --project-id "$PROJECT_ID" \
+            --role "$ROLE" \
+            --api-key "$API_KEY" \
+            --output "$OUTPUT"
+
+        # ── Write version file ──
+        echo "$SERVER_BODY" > "$VERSION_FILE"
+        echo ""
+        echo "  ✅ .claude/synapse-version.json 已更新"
+
+        echo ""
+        echo "✅ 升级完成。"
+        echo ""
+        echo "⚠️  Skill 文件已更新，建议重启 Claude Code 会话以加载最新指令。"
+        echo ""
+        echo "验证: 重新运行 generate-skill.sh --check-version --output ${OUTPUT}"
+        exit 0
     fi
 
 elif $CLIENT_MODE; then

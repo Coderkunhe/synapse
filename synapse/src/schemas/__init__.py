@@ -9,6 +9,7 @@ from src.schemas.worker import (
     WorkerHandshakeRequest,
     CapabilityDeclaration,
     WorkerHeartbeatRequest,
+    WorkerHeartbeatResponse,
     WorkerResponse,
     WorkerCreateResponse,
 )
@@ -79,6 +80,7 @@ __all__ = [
     "WorkerHandshakeRequest",
     "CapabilityDeclaration",
     "WorkerHeartbeatRequest",
+    "WorkerHeartbeatResponse",
     "WorkerResponse",
     "WorkerCreateResponse",
     # Backward compat (deprecated, remove after P100-B46)

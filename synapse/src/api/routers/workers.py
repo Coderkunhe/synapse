@@ -22,6 +22,7 @@ from src.schemas.worker import (
     WorkerCreateResponse,
     WorkerHandshakeRequest,
     WorkerHeartbeatRequest,
+    WorkerHeartbeatResponse,
     WorkerProjectResponse,
     WorkerResponse,
     OrchestratorStatusResponse,
@@ -44,7 +45,7 @@ from src.services.worker_service import (
 from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
 
-from src.services.template_service import render_protocol, resolve_role
+from src.services.template_service import render_protocol, resolve_role, compute_template_versions
 
 from .helpers import get_team_or_404
 
@@ -440,14 +441,19 @@ async def agent_handshake(
 # ═══════════════════════════════════════════════════════════════════
 
 
-@router.post("/workers/{worker_id}/heartbeat", status_code=200)
+@router.post("/workers/{worker_id}/heartbeat", status_code=200, response_model=WorkerHeartbeatResponse)
 async def worker_heartbeat(
     worker_id: str,
     body: WorkerHeartbeatRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Worker heartbeat — manual API key validation."""
+    """Worker heartbeat — manual API key validation.
+
+    P11-B94 (PFL-084): Response includes ``template_version`` so the Worker
+    can detect template staleness on every heartbeat.  When ``resolve_role``
+    falls back to the default "builder", ``role_warnings`` carries a hint.
+    """
     token = await extract_bearer_token(request)
     if not token:
         raise AuthenticationError("AUTH_MISSING_TOKEN", "Missing authentication token")
@@ -475,10 +481,45 @@ async def worker_heartbeat(
         current_task_id=body.current_task_id,
     )
     await db.commit()
-    result: dict = {"status": "ok", "runtime_status": worker.runtime_status}
-    if recovery_event:
-        result["recovery_event"] = recovery_event
-    return result
+
+    # ── Template version (P11-B94 · PFL-084) ──
+    versions = compute_template_versions()
+    template_version: str | None = versions.get("version")
+
+    # ── Role warnings (P11-B94 · B93 附属) ──
+    role_warnings: list[str] = []
+    _role, role_source = resolve_role(worker)
+    if role_source == "default_fallback":
+        role_warnings.append(
+            "Worker metadata 中缺少 role 字段，已默认分配 builder 角色。"
+            "请通过 POST /v1/projects/{pid}/workers/{wid}/roles 设置正确角色。"
+        )
+
+    return WorkerHeartbeatResponse(
+        status="ok",
+        runtime_status=worker.runtime_status,
+        recovery_event=recovery_event,
+        template_version=template_version,
+        role_warnings=role_warnings,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Template versions (P11-B94 · PFL-084)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get("/templates/versions")
+async def get_template_versions():
+    """Return current template version fingerprints.
+
+    Worker clients call this at startup (--check-version) or during
+    --upgrade to compare their local ``.claude/synapse-version.json``
+    against the server.
+
+    No auth required — template versions are not secret.
+    """
+    return compute_template_versions()
 
 
 # ── Deprecated ──

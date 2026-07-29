@@ -44,6 +44,7 @@ EXEMPT_CLASSES = frozenset({
     "WorkerProjectResponse",  # P11-B9: lightweight project summary projection, not a persisted entity
     "CapabilityResponse",  # P11-B46: read from YAML config file, not a DB entity
     "OrchestratorStatusResponse",  # P11-B87: lightweight heartbeat status projection, not a persisted entity
+    "WorkerHeartbeatResponse",  # P11-B94: transient heartbeat response (not persisted, no audit fields)
 })
 
 AUDIT_FIELDS_CLASS = "AuditFields"

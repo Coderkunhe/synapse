@@ -64,9 +64,32 @@ class CapabilityDeclaration(BaseModel):
 
 
 class WorkerHeartbeatRequest(BaseModel):
-    """Worker 心跳的请求体（protocol.md §3.3）。"""
+    """Worker 心跳的请求体（protocol.md §3.3）。
+
+    P11-B94: Worker 可上报自己使用的模板版本，Server
+    在响应中返回当前版本供 Worker 比对。
+    """
     current_load: int = Field(default=0, ge=0)
     current_task_id: str | None = None
+    template_version: str | None = Field(
+        None,
+        description="Worker 当前使用的模板版本 — Server 返回最新版本供比对",
+    )
+
+
+class WorkerHeartbeatResponse(BaseModel):
+    """Worker 心跳的响应体（P11-B94 · PFL-084 升级链）。"""
+    status: str = Field(..., description="ok | error")
+    runtime_status: str | None = Field(None, description="Worker 运行时状态")
+    recovery_event: dict | None = Field(None, description="恢复事件（如存在）")
+    template_version: str | None = Field(
+        None,
+        description="Server 当前模板版本 — Worker 应对比自身版本，不一致则需升级",
+    )
+    role_warnings: list[str] = Field(
+        default_factory=list,
+        description="角色相关告警 — 如 default_fallback 时提示 Worker 缺少 role 配置",
+    )
 
 
 class WorkerResponse(AuditFields):
