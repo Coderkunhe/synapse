@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-29（P11-B93 ✅ 止血部署 · L5 B92→B93 拉通）
+> 最后更新：2026-07-29（P11-B95 ✅ Capability硬约束 · L5 B94→B95 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -162,6 +162,9 @@
 | **P11-B89** | **PFL-070 心跳恢复动作** — role-builder.md Step 0 三级恢复（≤5min→重试 · 5-30min→通知+重试 · >30min→退出）+ role-orchestrator.md Step 0 自检心跳（进入循环前补发过期心跳）· 🟢 微型 · 2 files 纯协议层 | ✅ |
 | **P11-B91** | **PFL-083 B 侧心跳 daemon 硬约束** — session-init.js Step 2.5 spawn heartbeat daemon detached:true+unref() · settings.json SessionStart hook 兜底 · role-builder.md Step 0.5 自检心跳循环 · _protocol.md §4.1.3 O-B 心跳协调 · 🟡 标准 · 3 files 纯协议层 · commit `b1f64cc` | ✅ |
 | **P11-B92** | **L-P11-001 orchestrator-status 双源容错** — heartbeat 过期时 Event 活动时间 fallback · OrchestratorStatusResponse 新增 detection_source 字段 · 5 种 O 活动事件类型 · 🟡 标准 · 3 files · 644 tests 零回归 · commit `d4b7fd8` | ✅ |
+| **P11-B93** | **止血部署** — ① B57 migration 执行（alembic upgrade head）· ② GAP-6 硬化版 pre-push hook 重装 · ③ 双 Worker session-init.js 重新部署 · L5 B92→B93 拉通 · 🟢 微型 · 0 代码 · 5 治理文件 · commit `f74b924` | ✅ |
+| **P11-B94** | **模板→Worker 升级链自动化（PFL-084）** — SHA256 版本指纹 · GET /v1/templates/versions · 心跳模板版本+role_warnings · generate-skill.sh --check-version/--upgrade · 🟡 标准 · 7 files · 644 tests 零回归 · commit `1a691ab` | ✅ |
+| **P11-B95** | **Capability 硬约束（PFL-086 + PFL-094）** — Task required_capabilities 字段 · assign_task Worker 能力门禁 · capability_exec 所有权校验 · 🟡 标准 · 13 files · 648 tests 零回归 · commit `2b222dd` | ✅ |
 
 ---
 

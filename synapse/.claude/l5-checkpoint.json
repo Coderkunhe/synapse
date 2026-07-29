@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B92→B93 拉通完成 — 止血部署 · 📄 roadmap+reqlog+daily 已更新 · 📚 Migration+Hook+Worker重部署全量闭环 · 📚 PFL-089/090/083-L-P11-002/003 闭环 · 零代码变更 · L4 运维验证通过",
+  "lastL5Batch": "B94→B95 拉通完成 — B94 模板升级链自动化 + B95 Capability硬约束 PFL-086/094 双闭环 · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新",
   "lastL5Timestamp": "2026-07-29",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B92→B93 拉通完成 — 止血部署 · 📄 roadmap+reqlog+daily 已更新 · 📚 Migration+Hook+Worker重部署全量闭环 · 📚 PFL-089/090/083-L-P11-002/003 闭环 · 零代码变更 · L4 运维验证通过",
+  "lastL5Evidence": "B94→B95 拉通完成 — B94 模板升级链自动化 + B95 Capability硬约束 PFL-086/094 双闭环 · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
