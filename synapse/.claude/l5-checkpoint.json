@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B106→B107 L5 拉通完成 — B106 测试/生产一致性(FK PRAGMA+时间源+时区+CI PG+门禁诚实度) + B107 FK合规全量修复(Event.team_id nullable+10处None+test fixture修复) · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily 全量刷新",
+  "lastL5Batch": "B108→B109 L5 拉通完成 — B108 治理收尾扫描(B105遗漏落地+GAP审计闭环+违纪回顾复位) + B109 文档健康度批量治理(reqlog P11归档+CLAUDE.md拆分+checkpoint修复) · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新 · 📚 B108→B109 治理链自然承接(扫描发现→文档修复) · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-29",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B106→B107 L5 拉通完成 — B106 测试/生产一致性(FK PRAGMA+时间源+时区+CI PG+门禁诚实度) + B107 FK合规全量修复(Event.team_id nullable+10处None+test fixture修复) · 零 drift · 📄 CLAUDE.md+roadmap+reqlog+daily 全量刷新",
+  "lastL5Evidence": "B108→B109 L5 拉通完成 — B108 治理收尾扫描(B105遗漏落地+GAP审计闭环+违纪回顾复位) + B109 文档健康度批量治理(reqlog P11归档+CLAUDE.md拆分+checkpoint修复) · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新 · 📚 B108→B109 治理链自然承接(扫描发现→文档修复) · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
