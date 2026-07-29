@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B108→B109 L5 拉通完成 — B108 治理收尾扫描(B105遗漏落地+GAP审计闭环+违纪回顾复位) + B109 文档健康度批量治理(reqlog P11归档+CLAUDE.md拆分+checkpoint修复) · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新 · 📚 B108→B109 治理链自然承接(扫描发现→文档修复) · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
+  "lastL5Batch": "B110→B111 L5 拉通 — 📄 requirements-log.md B110+B111补登记(之前遗漏·6 files daily已覆盖) · 📄 roadmap.md B110+B111已更新 · 📄 daily/2026-07-29.md B110+B111已记录 · 📄 CLAUDE.md header B110+B111已同步 · 📄 tracks/synapse.md last_batch→B111 · 📚 叙事一致: B110 pitfalls瘦身→B111断裂点审计归档 同一主题连续推进 · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-29",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B108→B109 L5 拉通完成 — B108 治理收尾扫描(B105遗漏落地+GAP审计闭环+违纪回顾复位) + B109 文档健康度批量治理(reqlog P11归档+CLAUDE.md拆分+checkpoint修复) · 📄 CLAUDE.md+roadmap+reqlog+daily+tracks 全量刷新 · 📚 B108→B109 治理链自然承接(扫描发现→文档修复) · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
+  "lastL5Evidence": "B110→B111 L5 拉通 — 📄 requirements-log.md B110+B111补登记(之前遗漏·6 files daily已覆盖) · 📄 roadmap.md B110+B111已更新 · 📄 daily/2026-07-29.md B110+B111已记录 · 📄 CLAUDE.md header B110+B111已同步 · 📄 tracks/synapse.md last_batch→B111 · 📚 叙事一致: B110 pitfalls瘦身→B111断裂点审计归档 同一主题连续推进 · 🎭 纯文档/治理批，无代码状态变更 · 零 drift · 计数器复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
