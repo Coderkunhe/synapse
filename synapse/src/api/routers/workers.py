@@ -141,6 +141,8 @@ async def register_worker(
         batch_size=body.batch_size,  # P9-B57
         actor_type=actor.actor_type,
         actor_id=actor.actor_id,
+        project_id=body.project_id,  # PFL-105 (B106)
+        project_role=body.role,  # PFL-105 (B106)
     )
     await db.commit()
 

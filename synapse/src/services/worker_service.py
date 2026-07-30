@@ -41,6 +41,8 @@ async def register_worker(
     actor_id: str,
     batch_size: int = 3,  # P9-B57
     worker_actor_type: str = WorkerActorType.AGENT,  # P10-B2: human | agent
+    project_id: str | None = None,  # PFL-105 (B106)
+    project_role: str | None = None,  # PFL-105 (B106)
 ) -> tuple[Worker, str]:
     """注册新 Worker 并生成 API 密钥。
 
@@ -83,6 +85,21 @@ async def register_worker(
             "status": WorkerStatus.PENDING,
         },
     )
+
+    # PFL-105 (B106): 自动分配 Project 角色
+    if project_id is not None:
+        from src.services.project_role_service import set_project_role
+
+        effective_role = project_role or "builder"
+        await set_project_role(
+            db,
+            project_id=project_id,
+            worker_id=worker_id,
+            role=effective_role,
+            team_id=team_id,
+            actor_type=actor_type,
+            actor_id=actor_id,
+        )
 
     return worker, plaintext_key
 

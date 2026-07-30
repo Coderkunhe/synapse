@@ -19,6 +19,17 @@ class WorkerCreate(BaseModel):
     system_prompt: str | None = None
     metadata: dict | None = None
     batch_size: int = Field(default=3, ge=1, le=20, description="Worker 适合处理的最大 Batch 任务数")
+    # PFL-105 (B106): 自动分配 Project 角色
+    project_id: str | None = Field(
+        None,
+        max_length=40,
+        description="Project ID to auto-assign the worker to with the specified role",
+    )
+    role: str | None = Field(
+        None,
+        pattern=r"^(builder|orchestrator|steward)$",
+        description="Worker role in the project (defaults to 'builder' when project_id is set)",
+    )
 
 
 class WorkerUpdate(BaseModel):
