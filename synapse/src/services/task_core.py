@@ -196,6 +196,12 @@ async def task_to_response(task: Task, db: AsyncSession) -> dict:
                 select(Worker.name).where(Worker.id == task.owner_id)
             )
             owner_name = result.scalar()
+        elif task.owner_type == OwnerType.HUMAN:
+            from src.models.worker import Worker
+            result = await db.execute(
+                select(Worker.name).where(Worker.id == task.owner_id)
+            )
+            owner_name = result.scalar()
         elif task.owner_type == OwnerType.MEMBER:
             from src.models.member import Member
             result = await db.execute(

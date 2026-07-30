@@ -75,6 +75,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B108 ✅ 狗粮前置清理 — stale auto-cancel + 2旧task取消 | **B109** 🔜 狗粮验证 |
+| **P11** | B109 ✅ 狗粮验证 — OwnerType HUMAN修复 + Task生命周期验证 | **B110** 🔜 待定 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B106→B107 已拉通 | batchesSinceLastL5=0 · B106+B107 双批拉通 · 零 drift |
+| **L5** | B108→B109 待拉通 | batchesSinceLastL5=1 · B108+B109 双批 · 待拉通 |

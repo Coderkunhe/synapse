@@ -261,6 +261,7 @@ class VerificationType(StrEnum):
 class OwnerType(StrEnum):
     """存储在 Task.owner_type 中的多态所有者类型。"""
 
+    HUMAN = "human"
     MEMBER = "member"
     WORKER = "worker"
 
