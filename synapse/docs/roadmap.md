@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-30（P11-B101 ✅ DUPLICATE_VERIFICATION 回归修复 · L5 B100→B101 拉通）
+> 最后更新：2026-07-30（P11-B105 ✅ 上下文按需加载 · B106 🔜 Onboarding 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -171,6 +171,11 @@
 | **P11-B99** | **Worker 角色围栏 require_permission 迁移 Phase 2** — 3 resolve_project_id endpoints · 1 新权限键 · 🟡 标准 · 3 files · 648 tests 零回归 · P11-008 全量闭环 🎉 | ✅ |
 | **P11-B100** | **Capability 安全命令审计持久化补刀** — POST 端点 + synapse-exec 安全命令持久化 · 10 tests · 🟡 标准 · 6 files · 658 tests · GAP-8 全量闭环 🎉 | ✅ |
 | **P11-B101** | **DUPLICATE_VERIFICATION 回归修复** — verification.reset 替换 task.rejected · 🟢 微型 · 2 files · 658 tests 零回归 | ✅ |
+| **P11-B102** | **七层深度扫描修复验证** — 9 PFL 逐项审计 · 发现 165 行部署漂移 · 🟢 纯审计 · 0 code files | ✅ |
+| **P11-B102-2** | **Worker 重部署** — session-init.js 165行补齐 · ws-daemon.js 部署 · PFL-069/070/099 确认 · 🟢 纯部署 | ✅ |
+| **P11-B103** | **狗粮前置环境搭建** — 双 Worker 目录创建 · .env 配置 · session-init.js 部署 · API keys 入 keychain · 14/14 自检全绿 | ✅ |
+| **P11-B104** | **上下文过载根因分析** — collaboration_norms 29KB 占 _protocol-cache.json 73% · Deepseek 分析瘫痪 · 3 PFL 登记 → B106 | ✅ |
+| **P11-B105** | **上下文按需加载** — session-init.js 拆分 protocol cache（essential 18KB + collaboration_norms 独立文件）· SKILL.md 按需查阅表更新 · 启动上下文 56KB→~27KB（-52%）· 3 files · commit 0705b68 | ✅ |
 
 ---
 
