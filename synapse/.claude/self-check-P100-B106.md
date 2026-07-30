@@ -12,3 +12,5 @@
 - [x] **边界状态**：37 failing tests 均为 Event.team_id="" FK 违规或测试 fixture 假 ID——非本次变更引入的回归，是 FK PRAGMA 暴露的既有 bug。auth_service flush 修复消除 refresh_token FK 时序问题。conftest Worker.user_id=None 修复消除 seed fixture FK 违规。
 - [x] **对比同类**：所有变更遵循项目现有模式——FK PRAGMA 用标准 SQLAlchemy event listener；时间源统一用已有 _utcnow()；quality-gate 升级保持与现有门禁风格一致；CI workflow 用标准 GitHub Actions 双矩阵
 - [x] **变更清单口播**：9 files changed (+ 1 new CI workflow) — src/db.py, src/models/event.py, src/models/token_usage.py, src/models/base.py, src/services/auth_service.py, tests/conftest.py, tools/check-quality-gate.sh, tools/l5-reset.sh, Makefile, .github/workflows/ci.yml (new)
+
+> B107 交棒：Event.team_id 改为 nullable + 系统事件 team_id=None + test fixture 假 ID 修复 + 目标 648/648 零回归

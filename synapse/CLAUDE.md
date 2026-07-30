@@ -75,6 +75,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B106 ✅ Onboarding PFL-101~107 全量修复 | **B107** 🔜 跨客户端架构 + SessionStart 等价物 |
+| **P11** | B107 ✅ 跨客户端架构 + SessionStart 等价物 | **B108** 🔜 待定 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B102-2→B103 已拉通 | batchesSinceLastL5=0 · B103 环境搭建无代码 |

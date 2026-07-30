@@ -15,11 +15,33 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 - 遇到 CLAUDE.md 规则与 `role_instructions` 冲突 → `role_instructions` 为准
 - 不确定某操作是否在你的职责范围内 → 在 Task 评论区 @Orchestrator，不自行判断
 
-## 🚀 启动（自动化 — B98 脚本硬约束）
+## 🚀 启动 — 会话初始化（B107 跨客户端架构）
 
-**SessionStart hook 已运行 `session-init.js`，你的初始状态在 `_task-current.md` 中。**
+### 第一步：检查启动状态
 
-启动时：
+`_task-current.md` 是否存在且内容新鲜（当日生成）？
+
+| 状态 | 含义 | 动作 |
+|:---|:---|:---|
+| **存在 + 当日** | SessionStart hook 已自动运行（Claude Code），或你刚才手动运行了脚本 | → 跳到「第二步：读取初始状态」 |
+| **不存在 / 过期** | 脚本未运行（Codex / Cursor / 首次启动） | → 手动运行初始化脚本（见下方） |
+
+**手动运行初始化脚本**：
+
+```bash
+# 根据你的客户端类型，脚本位于不同路径：
+# Claude Code / Codex CLI:
+node .claude/skills/synapse/scripts/session-init.js
+# 如果上述路径不存在（Cursor 等），尝试:
+node .cursor/scripts/session-init.js
+# 如果以上路径都不存在，尝试:
+node .agents/skills/synapse/scripts/session-init.js
+```
+
+> 💡 如果你的客户端无法执行 Node.js 脚本，跳过到下方的「手动启动」节。
+
+### 第二步：读取初始状态
+
 1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）
 2. **如果脚本报错**（env 不完整 / API 不可达）→ 根据错误类型提示用户修复，**不继续执行**
 3. **如果状态正常** → 输出 `_task-current.md` 中的角色横幅（由脚本生成），开始自主驱动循环
@@ -27,6 +49,15 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 > ⚠️ `_task-current.md` 是**会话启动时的初始快照**，不是实时状态。每次判断"下一步做什么"前，必须重新调用 API 获取最新状态（循环铁律 #2）。
 
 **不再需要手动执行**：env 检查、protocol 拉取、handshake、state sync —— 这些机械操作已由脚本完成。
+
+### 手动启动（scripts/ 目录缺失或 Node.js 不可用时）
+
+如果无法运行 `session-init.js`，按以下顺序手动执行：
+1. 检查 env vars: `SYNAPSE_API_URL`, `SYNAPSE_API_KEY`, `SYNAPSE_WORKER_ID`, `SYNAPSE_PROJECT_ID`, `SYNAPSE_WORKER_ROLE`
+2. `GET /v1/workers/{id}/protocol?project_id={project_id}&role={role}` → 获取 `project_context` + `role_instructions` + `collaboration_norms`
+3. `POST /v1/workers/{id}/handshake` → 激活 Worker（Body: `{}`）
+4. `GET /v1/workers/{id}/state?project_id={project_id}` → 获取待处理授权、in_progress tasks、就绪队列
+5. 将以上状态汇总写入 `_task-current.md`（参考模板格式）
 
 ## 🔄 核心工作循环
 

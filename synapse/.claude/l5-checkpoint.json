@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B100→B101 L5 拉通 — 📄 requirements-log.md B101补登记 · 📄 CLAUDE.md header+L5 banner+当前状态 B101同步 · 📄 roadmap.md P11段 B100+B101补登记 · 📄 daily/2026-07-30.md 新建 · 📚 叙事一致: B100(GAP-8审计持久化)→B101(DUPLICATE_VERIFICATION回归修复) 同为安全/质量加固线 · 零 drift · 计数器复位",
+  "lastL5Batch": "B105→B106 L5 拉通 — P11-B105 上下文按需加载 ✅ + P11-B106 Onboarding PFL-101~107 全量修复 ✅ · 双批联动验证 · 658 tests 零回归 · 零 drift · 计数器复位",
   "lastL5Timestamp": "2026-07-30",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B100→B101 L5 拉通 — 📄 requirements-log.md B101补登记 · 📄 CLAUDE.md header+L5 banner+当前状态 B101同步 · 📄 roadmap.md P11段 B100+B101补登记 · 📄 daily/2026-07-30.md 新建 · 📚 叙事一致: B100(GAP-8审计持久化)→B101(DUPLICATE_VERIFICATION回归修复) 同为安全/质量加固线 · 零 drift · 计数器复位",
-  "notes": "L5 拉通完成，计数器复位 — B101 之前缺失 3 处登记（reqlog+CLAUDE+roadmap），L5 中补全"
+  "lastL5Evidence": "B105→B106 L5 拉通 — 📄 CLAUDE.md + roadmap.md + requirements-log.md + daily/2026-07-30.md + tracks/synapse.md 全部 B106 ✅ 同步 · 📚 pitfalls.md PFL-101~107 🔴→✅ 全量闭环 · 🧪 658/658 tests 零回归 · 🔍 src/tests 零未提交变更 · 计数器复位",
+  "notes": "B105 session-init.js 拆分 + B106 bootstrap/hook/env/role/verification/JWT/liveness/CLAUDEDIR 九项修复全量拉通 · 下一站 B107 跨客户端架构"
 }

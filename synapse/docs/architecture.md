@@ -1,6 +1,6 @@
 # Synapse 系统架构
 
-> 版本：v2.2 · 2026-07-29（P11-B93 ✅ 止血部署 · L5 B92→B93 拉通）
+> 版本：v2.2 · 2026-07-30（P11-B105 上下文按需加载 · B104 过载诊断闭环）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md

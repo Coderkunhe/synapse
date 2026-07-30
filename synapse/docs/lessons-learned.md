@@ -3,7 +3,7 @@
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
 > 🔗 双向交叉引用：⇄ [`docs/pitfalls.md`](pitfalls.md)（P100-B110 已补齐）
-> 最后更新：2026-07-29（P100-B110 · LL 交叉引用补齐 · pitfalls↔lessons 双向链接）
+> 最后更新：2026-07-30（P11-B105 上下文按需加载 · B104 过载诊断闭环）
 
 ---
 

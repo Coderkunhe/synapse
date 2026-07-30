@@ -215,7 +215,7 @@ export SYNAPSE_PROJECT_ID="{project_id}"
 
 > ⚠️ 不要将 API Key 提交到版本控制。建议使用 `.env` 文件（已加入 `.gitignore`）。
 
-> 💡 Cursor 在每次会话中自动加载此规则文件（`alwaysApply: true`）。配置好环境变量后，Agent 启动时通过 B21 Protocol API 拉取项目上下文。
+> 💡 Cursor 在每次会话中自动加载此规则文件（`alwaysApply: true`）。**注意：Cursor 无 SessionStart hook**——新会话启动后，按上方「🚀 启动」指引手动运行 `node .cursor/scripts/session-init.js` 完成初始化。
 CURSOREOF
     else
         # Claude / Codex: write canonical SKILL.md
@@ -227,9 +227,14 @@ SKILLMDEOF
     echo "${{GREEN}}  ✅ ${{SKILL_PATH}}${{NC}}"
 }}
 
-# ── Write runtime scripts (PFL-101 · B106) ──
+# ── Write runtime scripts (PFL-101 · B106 · B107 cross-client) ──
 write_scripts() {{
-    SCRIPTS_DIR=".claude/skills/synapse/scripts"
+    case "${{CLIENT}}" in
+        claude) SCRIPTS_DIR=".claude/skills/synapse/scripts" ;;
+        codex)  SCRIPTS_DIR=".agents/skills/synapse/scripts" ;;
+        cursor) SCRIPTS_DIR=".cursor/scripts" ;;
+        *)      SCRIPTS_DIR=".claude/skills/synapse/scripts" ;;
+    esac
     mkdir -p "${{SCRIPTS_DIR}}"
 
     cat > "${{SCRIPTS_DIR}}/session-init.js" << 'JSEOF'
@@ -509,7 +514,7 @@ export SYNAPSE_PROJECT_ID="{project_id}"
 
 > ⚠️ 不要将 API Key 提交到版本控制。使用 `.env` 文件或环境变量管理。
 
-> 💡 Cursor 在每次会话中自动加载此规则文件（`alwaysApply: true`）。配置好环境变量后，Agent 启动时通过 B21 Protocol API 拉取项目上下文。
+> 💡 Cursor 在每次会话中自动加载此规则文件（`alwaysApply: true`）。**注意：Cursor 无 SessionStart hook**——新会话启动后，按上方「🚀 启动 — 会话初始化」的指引手动运行 `node .cursor/scripts/session-init.js` 或执行手动启动序列。
 """
 
 
@@ -557,18 +562,29 @@ def build_bootstrap_json(
         files[".claude/skills/synapse/SKILL.md"] = skill_md
         files[".claude/.env"] = env_content
 
-    # PFL-101 (B106): Deploy runtime scripts
-    script_dir = ".claude/skills/synapse/scripts"
+    # PFL-101 (B106) + B107 cross-client: Deploy runtime scripts to client-aware paths
+    _SCRIPT_DIRS: dict[str, str] = {
+        "claude": ".claude/skills/synapse/scripts",
+        "codex": ".agents/skills/synapse/scripts",
+        "cursor": ".cursor/scripts",
+    }
+    script_dir = _SCRIPT_DIRS.get(client, ".claude/skills/synapse/scripts")
     for name in _SCRIPT_NAMES:
         files[f"{script_dir}/{name}"] = _load_script(name)
 
-    # PFL-102 (B106): Generate settings.json with session-init.js hook
-    files[".claude/settings.json"] = _build_settings_json(worker_id=worker_id)
+    # PFL-102 (B106) + B107: settings.json SessionStart hook is Claude Code-only
+    if client == "claude":
+        files[".claude/settings.json"] = _build_settings_json(worker_id=worker_id)
 
     next_steps = [
         "重启 AI 会话以加载 Synapse Skill",
         "首次启动后 Agent 会自动调用 GET /workers/{id}/protocol 拉取项目上下文",
     ]
+    if client != "claude":
+        next_steps.append(
+            "⚠️ 你的客户端无 SessionStart hook — 会话启动后需手动运行 "
+            f"node {script_dir}/session-init.js 初始化状态"
+        )
     if use_keychain:
         next_steps.append(
             "API Key 已存入操作系统密钥链 — 会话启动时自动读取，无需手动配置"

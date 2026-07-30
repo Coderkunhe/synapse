@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B106 ✅ Onboarding PFL-101~107 全量修复
-last_batch: P11-B106
-next_batch: P11-B107
-description: Synapse 主项目 — B106 ✅ Onboarding PFL-101~107 全量修复（9项 PFL 消化 · 15 files · 658 tests）· B107 🔜 跨客户端架构
+phase: P11-B107 ✅ 跨客户端架构 + SessionStart 等价物
+last_batch: P11-B107
+next_batch: P11-B108
+description: Synapse 主项目 — B107 ✅ 跨客户端架构（SKILL.md 客户端无关 · bootstrap 路径修正 · settings.json 条件化 · 5 files + 2 dogfood redeploy · 658 tests）· B108 🔜 待定
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B106 ✅ Onboarding PFL-101~107 全量修复�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B106 | **P11-B107** 🔜 | B106 ✅ Onboarding PFL-101~107 全量修复 · B107 🔜 跨客户端架构 |
+| **P11** | P11-B107 | **P11-B108** 🔜 | B107 ✅ 跨客户端架构 + SessionStart 等价物 · B108 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
