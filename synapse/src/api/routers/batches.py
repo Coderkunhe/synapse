@@ -14,6 +14,7 @@ from src.schemas.batch import BatchAssignRequest, BatchCreate, BatchResponse
 from src.schemas.verification import (
     VerificationBatchRequest,
     VerificationBatchResponse,
+    VerificationCreateRequest,
     VerificationResponse,
     VerificationVerifyRequest,
 )
@@ -26,6 +27,7 @@ from src.services.batch_service import (
     list_batches as _list_batches,
 )
 from src.services.verification_service import (
+    create_verification as _create_verification,
     execute_batch_verification,
     execute_verification,
     get_task_verifications as _get_task_verifications,
@@ -187,6 +189,55 @@ async def assign_batch(
 
 
 # ── Verification ──────────────────────────────────────────────────
+
+@router.post(
+    "/verifications",
+    response_model=VerificationResponse,
+    status_code=201,
+)
+async def create_verification(
+    body: VerificationCreateRequest,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new verification for a task (PFL-106 · B106).
+
+    Reuses task:verify permission — the same roles that can execute
+    verifications can also create them. Uses inline permission check
+    to avoid double-parsing the request body (project_id from task_id).
+    """
+    from src.models.task import Task
+    from src.permissions import PERMISSION_MAP, _expand_roles
+    from src.services.project_role_service import get_project_role
+
+    # Resolve project and check permission
+    task = await db.get(Task, body.task_id)
+    if task is None:
+        raise NotFoundError("task", body.task_id)
+    if not actor.is_super_admin:
+        allowed = PERMISSION_MAP.get("task:verify", set())
+        expanded = _expand_roles(allowed)
+        role = await get_project_role(db, task.project_id, actor.actor_id)
+        if not role or role not in expanded:
+            raise ForbiddenError(
+                "FORBIDDEN_INSUFFICIENT_PERMISSION",
+                f"Permission 'task:verify' requires one of: {', '.join(sorted(expanded))}. "
+                f"Your project role: {role or '(none)'}.",
+            )
+
+    ver = await _create_verification(
+        db,
+        task_id=body.task_id,
+        type=body.type,
+        description=body.description,
+        criteria=body.criteria,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+        team_id=actor.team_id,
+    )
+    await db.commit()
+    return VerificationResponse.model_validate(verification_to_response(ver))
+
 
 @router.post(
     "/verifications/{verification_id}/verify",

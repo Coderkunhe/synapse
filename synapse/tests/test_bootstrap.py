@@ -278,7 +278,7 @@ class TestBootstrapJson:
         data = resp.json()
 
         assert ".claude/skills/synapse/SKILL.md" in data["files"]
-        assert ".env" in data["files"]
+        assert ".claude/.env" in data["files"]
         assert "Synapse Worker" in data["files"][".claude/skills/synapse/SKILL.md"]
 
     @pytest.mark.asyncio

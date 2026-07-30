@@ -607,6 +607,61 @@ async def execute_batch_verification(
     }
 
 
+async def create_verification(
+    db: AsyncSession,
+    *,
+    task_id: str,
+    type: str = "manual",
+    description: str,
+    criteria: dict | None = None,
+    actor_type: str,
+    actor_id: str,
+    team_id: str,
+    auto_created: bool = False,
+) -> Verification:
+    """创建新的 Verification 记录（PFL-106 · B106）。
+
+    校验父 Task 存在且尚未进入终态（COMPLETED/CANCELLED）。
+    """
+    from src.utils.id_gen import generate_id
+
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise NotFoundError("task", task_id)
+    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+        raise ConflictError(
+            "TASK_IN_TERMINAL_STATE",
+            f"Cannot add verification to task in terminal state: {task.status}",
+        )
+
+    ver = Verification(
+        id=generate_id("verification"),
+        task_id=task_id,
+        type=type,
+        description=description,
+        criteria=safe_dumps(criteria) if criteria else None,
+        status=VerificationStatus.PENDING,
+    )
+    db.add(ver)
+
+    await event_store.record(
+        db,
+        event_type="verification.created",
+        team_id=team_id,
+        actor_type=actor_type,
+        actor_id=actor_id,
+        target_type="verification",
+        target_id=ver.id,
+        payload={
+            "task_id": task_id,
+            "type": type,
+            "auto_created": auto_created,
+        },
+    )
+
+    return ver
+
+
 async def get_task_verifications(
     db: AsyncSession,
     task_id: str,

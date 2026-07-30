@@ -221,6 +221,16 @@ function checkEnv() {
   if (apiKey) {
     present.SYNAPSE_API_KEY = apiKey;
     present._keySource = keySource;
+
+    // B104-1 (B106): Key liveness — validate format before making API calls.
+    // Catches copy-paste errors and truncated keys early, before the first
+    // failed protocol fetch produces an opaque diagnostic.
+    if (!apiKey.startsWith('sk-syn-') || apiKey.length < 32) {
+      present._keyInvalid = true;
+      present._keyFormatError =
+        `API key does not match expected format (prefix sk-syn-, min 32 chars, got ${apiKey.length} chars). ` +
+        'Check your SYNAPSE_API_KEY env var or keychain entry.';
+    }
   } else {
     missing.push('SYNAPSE_API_KEY');
   }

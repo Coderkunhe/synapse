@@ -9,6 +9,19 @@ from pydantic import BaseModel, Field, AliasChoices
 from src.schemas.common import AuditFields
 
 
+class VerificationCreateRequest(BaseModel):
+    """创建新 Verification 的请求体（PFL-106 · B106）。"""
+    task_id: str = Field(..., max_length=40, description="父 Task ID")
+    type: str = Field(default="manual", pattern=r"^(manual|automated|check_list)$")
+    description: str = Field(
+        ...,
+        min_length=6,
+        max_length=1000,
+        description="可判定的验证条件描述（≥6 字符）",
+    )
+    criteria: dict | None = Field(None, description="结构化判定规则（可选）")
+
+
 class VerificationVerifyRequest(BaseModel):
     """执行验证的请求体（protocol.md §6.3）。"""
     status: str = Field(..., pattern=r"^(passed|failed|approved|rejected)$")

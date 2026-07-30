@@ -204,6 +204,7 @@ class EventType(StrEnum):
     SKILL_DEPRECATED = "skill.deprecated"
 
     # Verification
+    VERIFICATION_CREATED = "verification.created"       # P11-B106: creation endpoint + auto-create
     VERIFICATION_EXECUTED = "verification.executed"
     VERIFICATION_RESET = "verification.reset"           # P8-B8: rework re-submission
 

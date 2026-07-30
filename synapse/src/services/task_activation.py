@@ -58,9 +58,38 @@ async def ready_task(
         )
     ver_count = await _count_verifications(db, task_id)
     if ver_count < 1:
-        raise ConflictError(
-            "TASK_NOT_READY",
-            "Task must have at least one verification condition before moving to READY",
+        # PFL-106 (B106): Auto-create default verification when none exist.
+        # TaskCreate.verifications is optional; this fulfills the P9-B69 design
+        # intent of "ready 时若无则自动创建默认值".
+        from src.models.verification import Verification
+        from src.constants import VerificationStatus, VerificationType
+        from src.utils.id_gen import generate_id
+
+        default_ver = Verification(
+            id=generate_id("verification"),
+            task_id=task_id,
+            type=VerificationType.MANUAL,
+            description=(
+                "Task deliverables are complete, accessible, "
+                "and meet all specified requirements."
+            ),
+            status=VerificationStatus.PENDING,
+        )
+        db.add(default_ver)
+
+        await event_store.record(
+            db,
+            event_type="verification.created",
+            team_id=team_id,
+            actor_type=actor_type,
+            actor_id=actor_id,
+            target_type="verification",
+            target_id=default_ver.id,
+            payload={
+                "task_id": task_id,
+                "type": VerificationType.MANUAL,
+                "auto_created": True,
+            },
         )
 
     # P11-B70: Verification 可判定性校验 — 拒绝模糊描述

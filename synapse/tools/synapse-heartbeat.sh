@@ -20,11 +20,11 @@
 set -euo pipefail
 
 # ── 环境变量加载 ──────────────────────────────────────────────
-# 如果 env vars 未设置，尝试从 Worker 目录的 .env 加载
-if [ -z "${SYNAPSE_WORKER_ID:-}" ] && [ -n "${CLAUDEDIR:-}" ]; then
-    WORKER_DIR="${CLAUDEDIR}/.."
-    if [ -f "$WORKER_DIR/.env" ]; then
-        set -a; source "$WORKER_DIR/.env"; set +a
+# 如果 env vars 未设置，尝试从当前目录的 .claude/.env 加载
+# P11-B106 B104-3: $CLAUDEDIR 假设已移除（Claude Code 不设此变量）
+if [ -z "${SYNAPSE_WORKER_ID:-}" ]; then
+    if [ -f ".claude/.env" ]; then
+        set -a; . ".claude/.env"; set +a
     fi
 fi
 
