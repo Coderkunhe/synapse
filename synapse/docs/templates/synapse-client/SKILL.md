@@ -171,17 +171,17 @@ synapse-exec shell_dangerous --params SHELL_COMMAND="rm -rf /tmp/build" --reason
 
 ## 📚 详细参考
 
-以下内容在 `_protocol.md` 中有完整文档，此处不重复——按需查阅：
+以下内容在 `_collaboration-norms.md` 中有完整文档——由 `session-init.js` 在每次会话启动时从 Protocol API 刷新，保证最新且 0 未填充变量。此处不重复，按需查阅：
 
 | 需要了解 | 查阅 |
 |------|------|
-| 完整 API 参考 + Python 调用示例 | `_protocol.md` §6 |
-| 双角色自主驱动循环（Builder + Orchestrator） | `_protocol.md` §4.1 |
-| 依赖等待（depends_on） | `_protocol.md` §4.2 |
-| 授权通知双通道（WS Push + HTTP Poll） | `_protocol.md` §9 |
-| 交互式提示（Interactive Prompt） | `_protocol.md` §9 |
-| 完整错误码表 | `_protocol.md` §8 |
-| Capability 黑名单 + 审批流程 | `_protocol.md` §13 |
-| 禁止事项完整列表 | `_protocol.md` §10 |
+| 完整 API 参考 + Python 调用示例 | `_collaboration-norms.md` §6 |
+| 双角色自主驱动循环（Builder + Orchestrator） | `_collaboration-norms.md` §4.1 |
+| 依赖等待（depends_on） | `_collaboration-norms.md` §4.2 |
+| 授权通知双通道（WS Push + HTTP Poll） | `_collaboration-norms.md` §9 |
+| 交互式提示（Interactive Prompt） | `_collaboration-norms.md` §9 |
+| 完整错误码表 | `_collaboration-norms.md` §8 |
+| Capability 黑名单 + 审批流程 | `_collaboration-norms.md` §13 |
+| 禁止事项完整列表 | `_collaboration-norms.md` §10 |
 
-> 这份 Skill 是你的"操作系统"——它教你怎么在 Synapse 上工作。项目特定的"应用程序"（技术栈、团队、约定）在 Protocol API 响应中。**机械操作已由 `session-init.js` 脚本化——你的 tokens 应该花在判断上，不是花在 env check 上。**
+> `_collaboration-norms.md` 是 `_protocol.md` L1 模板的渲染版本——所有 `{{VAR}}` 已替换为实际值，0 未填充占位符。`_protocol.md` 保留作为部署时静态参考（generate-skill.sh 写入）。

@@ -50,6 +50,7 @@ const { getKey } = require('./keychain');
 // ── Constants ──────────────────────────────────────────────────────
 const OUTPUT_FILE = path.join(__dirname, '..', '_task-current.md');
 const PROTOCOL_CACHE = path.join(__dirname, '..', '_protocol-cache.json');
+const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norms.md');
 const SCRIPT_NAME = 'session-init';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -388,7 +389,7 @@ function writeState(state) {
   if (state.protocolOk) {
     lines.push(`- **Project**: ${state.protocolData?.project_name || 'unknown'}`);
     lines.push(`- **Role source**: \`${state.protocolData?.role_source || 'unknown'}\``);
-    lines.push(`- **Protocol cached**: \`_protocol-cache.json\``);
+    lines.push(`- **Protocol cached**: \`_protocol-cache.json\` (essential) + \`_collaboration-norms.md\` (on-demand, B105)`);
   } else if (state.protocolError) {
     lines.push(`❌ Protocol fetch failed: ${state.protocolError}`);
   } else {
@@ -737,9 +738,24 @@ async function main() {
     state.warnings.push('Role unknown — SYNAPSE_WORKER_ROLE not set in env and protocol did not return role. Defaulting to "unknown". Worker may not function correctly.');
   }
 
-  // Cache protocol response
+  // B105: Split protocol cache — essential fields (auto-load) vs collaboration_norms (on-demand)
+  // Context overload root cause (B104): full 80KB JSON loaded at startup → Deepseek analysis paralysis.
+  // Essential: role_instructions (15.5KB) + project_context (0.8KB) + env_template (1.9KB) ≈ 18KB
+  // On-demand: collaboration_norms (29KB) — AI reads _collaboration-norms.md only when needed
   try {
-    fs.writeFileSync(PROTOCOL_CACHE, JSON.stringify(state.protocolData, null, 2), 'utf-8');
+    const essential = {
+      role_instructions: state.protocolData?.role_instructions,
+      project_context: state.protocolData?.project_context,
+      env_template: state.protocolData?.env_template,
+      unfilled_variables: state.protocolData?.unfilled_variables,
+      role_source: state.protocolData?.role_source,
+    };
+    fs.writeFileSync(PROTOCOL_CACHE, JSON.stringify(essential, null, 2), 'utf-8');
+
+    // Write collaboration_norms as standalone on-demand file
+    if (state.protocolData?.collaboration_norms) {
+      fs.writeFileSync(COLLABORATION_NORMS_FILE, state.protocolData.collaboration_norms, 'utf-8');
+    }
   } catch (_) { /* non-critical */ }
 
   // ── Step 4: Handshake ──────────────────────────────────────────

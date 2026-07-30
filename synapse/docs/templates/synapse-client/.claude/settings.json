@@ -3,11 +3,12 @@
     "SessionStart": [
       {
         "matcher": "",
-        "command": "set -a; source \"$CLAUDEDIR/.env\"; set +a"
-      },
-      {
-        "matcher": "",
-        "command": "node \"$CLAUDEDIR/scripts/heartbeat.js\" > /dev/null 2>&1 &"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/heartbeat.js & node ./.claude/skills/synapse/scripts/session-init.js"
+          }
+        ]
       }
     ]
   }
