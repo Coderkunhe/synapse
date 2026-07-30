@@ -88,7 +88,7 @@ async def _stale_task_reaper() -> None:
                     db, threshold_minutes=verify_timeout,
                 )
                 await db.commit()
-                if result["stale_count"] > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
+                if result["stale_count"] > 0 or result.get("cancelled_count", 0) > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
                     import logging
                     logger = logging.getLogger("synapse")
                     if result["stale_count"] > 0:
@@ -96,6 +96,12 @@ async def _stale_task_reaper() -> None:
                             "Detected %d stale task(s): %s",
                             result["stale_count"],
                             result["stale_task_ids"],
+                        )
+                    if result.get("cancelled_count", 0) > 0:
+                        logger.info(
+                            "Auto-cancelled %d stale task(s) after max detections: %s",
+                            result["cancelled_count"],
+                            result["cancelled_task_ids"],
                         )
                     if verify_result["reverted_count"] > 0:
                         logger.info(

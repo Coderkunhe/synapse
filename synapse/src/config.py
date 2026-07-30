@@ -110,9 +110,10 @@ class Settings(BaseSettings):
     # Authorization request expiry scheduler (P11-B50)
     auth_expiry_interval_seconds: int = 30
 
-    # Task staleness detection (P11-B76)
+    # Task staleness detection (P11-B76) + auto-cancel gate (P11-B108)
     task_stale_threshold_minutes: int = 60
     task_stale_scan_interval_seconds: int = 120
+    task_stale_max_detections: int = 10  # auto-cancel after N stale detections
 
     # Verification timeout auto-reclaim (P11-B88)
     verification_timeout_minutes: int = 30

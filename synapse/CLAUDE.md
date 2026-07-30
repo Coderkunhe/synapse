@@ -75,6 +75,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B107 ✅ 跨客户端架构 + SessionStart 等价物 | **B108** 🔜 待定 |
+| **P11** | B108 ✅ 狗粮前置清理 — stale auto-cancel + 2旧task取消 | **B109** 🔜 狗粮验证 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B102-2→B103 已拉通 | batchesSinceLastL5=0 · B103 环境搭建无代码 |
+| **L5** | B106→B107 已拉通 | batchesSinceLastL5=0 · B106+B107 双批拉通 · 零 drift |

@@ -30,10 +30,11 @@ async def detect_stale_tasks(
     db: AsyncSession,
     threshold_minutes: int = 60,
 ) -> dict:
-    """扫描 in_progress / paused 且 updated_at 超过阈值的任务，记录 stale 事件。
+    """扫描 in_progress / paused 且 updated_at 超过阈值的任务。
 
     检测到 stale task 后记录 ``task.stale_detected`` 事件供审计。
-    不改变 Task 状态 — 保留现场给 Orchestrator 判断。
+    同一任务被重复检测超过 ``task_stale_max_detections`` 次后
+    (P11-B108)：自动取消——打破"永久 stale 但无人处理"的死循环。
 
     覆盖 PAUSED 状态（P11-B90）：PAUSED 任务若无 Worker 恢复，
     永久卡死在暂停态，Server 需检测并告警。
@@ -43,7 +44,8 @@ async def detect_stale_tasks(
         threshold_minutes: 无更新多久后视为 stale（默认 60 分钟）。
 
     Returns:
-        ``{"stale_count": N, "stale_task_ids": [...]}``。
+        ``{"stale_count": N, "stale_task_ids": [...],
+           "cancelled_count": N, "cancelled_task_ids": [...]}``。
     """
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=threshold_minutes)
@@ -55,18 +57,45 @@ async def detect_stale_tasks(
     result = await db.execute(stmt)
     stale_tasks = result.scalars().all()
 
+    max_detections = settings.task_stale_max_detections
+
     stale_ids: list[str] = []
+    cancelled_ids: list[str] = []
     for task in stale_tasks:
         team_id = task.project.team_id if task.project else ""
-        await event_store.record(
-            db,
-            event_type="task.stale_detected",
-            team_id=team_id,
-            actor_type=ActorType.SYSTEM,
-            actor_id="stale_task_detector",
-            target_type="task",
-            target_id=task.id,
-            payload={
+
+        # 反无限 stale 门禁 (P11-B108)：检查历史 stale 检测次数。
+        # 超过阈值后不再只记录事件——直接 auto-cancel，打破
+        # "永久 stale 但无人处理"的死循环。
+        prior_detections = await db.execute(
+            select(func.count(Event.id)).where(
+                Event.event_type == "task.stale_detected",
+                Event.target_type == "task",
+                Event.target_id == task.id,
+            )
+        )
+        detection_count = prior_detections.scalar() or 0
+
+        if detection_count >= max_detections:
+            # 达到最大检测次数 → 自动取消
+            target_status = TaskStatus.CANCELLED
+            event_type, payload = apply_transition(
+                task,
+                target_status,
+                actor_type=ActorType.SYSTEM,
+                actor_id="stale_task_detector",
+                context={
+                    "reason": "stale_max_detections_exceeded",
+                    "stale_threshold_minutes": threshold_minutes,
+                    "prior_stale_detection_count": detection_count,
+                    "max_detections": max_detections,
+                },
+            )
+            cancelled_ids.append(task.id)
+        else:
+            # 正常 stale 检测：仅记录事件
+            event_type = "task.stale_detected"
+            payload = {
                 "task_id": task.id,
                 "current_status": task.status,
                 "owner_type": task.owner_type,
@@ -74,11 +103,28 @@ async def detect_stale_tasks(
                 "claimed_at": task.claimed_at.isoformat() if task.claimed_at else None,
                 "updated_at": task.updated_at.isoformat() if task.updated_at else None,
                 "stale_threshold_minutes": threshold_minutes,
-            },
-        )
-        stale_ids.append(task.id)
+                "detection_count": detection_count + 1,
+                "max_detections": max_detections,
+            }
+            stale_ids.append(task.id)
 
-    return {"stale_count": len(stale_ids), "stale_task_ids": stale_ids}
+        await event_store.record(
+            db,
+            event_type=event_type,
+            team_id=team_id,
+            actor_type=ActorType.SYSTEM,
+            actor_id="stale_task_detector",
+            target_type="task",
+            target_id=task.id,
+            payload=payload,
+        )
+
+    return {
+        "stale_count": len(stale_ids),
+        "stale_task_ids": stale_ids,
+        "cancelled_count": len(cancelled_ids),
+        "cancelled_task_ids": cancelled_ids,
+    }
 
 
 async def detect_stale_verifications(

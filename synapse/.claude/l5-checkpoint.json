@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B105→B106 L5 拉通 — P11-B105 上下文按需加载 ✅ + P11-B106 Onboarding PFL-101~107 全量修复 ✅ · 双批联动验证 · 658 tests 零回归 · 零 drift · 计数器复位",
+  "lastL5Batch": "B106→B107 L5 拉通 — CLAUDE.md L5行B103→B107修复 + requirements-log.md B107条目补登记 + pitfalls.md PFL-108入计数17/17 + l5-checkpoint.json 证据更新复位2→0 + 658 tests 零回归 + 零drift",
   "lastL5Timestamp": "2026-07-30",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B105→B106 L5 拉通 — 📄 CLAUDE.md + roadmap.md + requirements-log.md + daily/2026-07-30.md + tracks/synapse.md 全部 B106 ✅ 同步 · 📚 pitfalls.md PFL-101~107 🔴→✅ 全量闭环 · 🧪 658/658 tests 零回归 · 🔍 src/tests 零未提交变更 · 计数器复位",
-  "notes": "B105 session-init.js 拆分 + B106 bootstrap/hook/env/role/verification/JWT/liveness/CLAUDEDIR 九项修复全量拉通 · 下一站 B107 跨客户端架构"
+  "lastL5Evidence": "B106→B107 L5 拉通 — CLAUDE.md L5行B103→B107修复 + requirements-log.md B107条目补登记 + pitfalls.md PFL-108入计数17/17 + l5-checkpoint.json 证据更新复位2→0 + 658 tests 零回归 + 零drift",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

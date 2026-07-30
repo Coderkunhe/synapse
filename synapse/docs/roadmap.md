@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-30（P11-B107 ✅ 跨客户端架构 + SessionStart 等价物）
+> 最后更新：2026-07-30（P11-B108 ✅ 狗粮前置清理）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -178,6 +178,7 @@
 | **P11-B105** | **上下文按需加载** — session-init.js 拆分 protocol cache（essential 18KB + collaboration_norms 独立文件）· SKILL.md 按需查阅表更新 · 启动上下文 56KB→~27KB（-52%）· 3 files · commit 0705b68 | ✅ |
 | **P11-B106** | **Onboarding PFL-101~107 全量修复** — bootstrap 脚本部署+env对齐+role补全+hook修复 · Worker 注册自动分配角色 · Verification 创建端点+自动创建 · JWT_SECRET 模板修复 · key liveness 格式校验 · $CLAUDEDIR 清理 · 15 files · 658 tests 零回归 | ✅ |
 | **P11-B107** | **跨客户端架构 + SessionStart 等价物** — SKILL.md 客户端无关启动自检 · bootstrap 脚本按客户端部署到正确路径 · settings.json 条件化（仅 Claude Code）· PFL-108 闭环 · multi-client-onboarding-spec 更新 · 5 files + 2 dogfood redeploy | ✅ |
+| **P11-B108** | **狗粮前置清理** — stale_task_detector 诊断（1388 stale events 正在工作但被动设计）· auto-cancel 门禁（≥10 次检测→自动取消）· 2 旧 in_progress task 取消 · 3 files · 658 tests 零回归 | ✅ |
 
 ---
 

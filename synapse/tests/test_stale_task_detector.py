@@ -1,4 +1,4 @@
-"""P11-B76/B88: stale task 检测器单元测试 — detect_stale_tasks + detect_stale_verifications。"""
+"""P11-B76/B88/B108: stale task 检测器单元测试 — detect_stale_tasks + detect_stale_verifications + auto-cancel gate。"""
 
 from __future__ import annotations
 
@@ -68,6 +68,8 @@ class TestStaleTaskDetector:
             assert result["stale_count"] == 1
             assert "tsk_stale_001" in result["stale_task_ids"]
             assert "tsk_fresh_001" not in result["stale_task_ids"]
+            assert result["cancelled_count"] == 0
+            assert result["cancelled_task_ids"] == []
 
             await db.rollback()
 
@@ -100,6 +102,8 @@ class TestStaleTaskDetector:
             result = await detect_stale_tasks(db, threshold_minutes=60)
             assert result["stale_count"] == 1
             assert "tsk_stale_paused_001" in result["stale_task_ids"]
+            assert result["cancelled_count"] == 0
+            assert result["cancelled_task_ids"] == []
 
             await db.rollback()
 
@@ -130,6 +134,60 @@ class TestStaleTaskDetector:
             result = await detect_stale_tasks(db, threshold_minutes=60)
             assert result["stale_count"] == 0
             assert result["stale_task_ids"] == []
+            assert result["cancelled_count"] == 0
+            assert result["cancelled_task_ids"] == []
+
+            await db.rollback()
+
+    # ── P11-B108: auto-cancel gate ──
+
+    @pytest.mark.asyncio
+    async def test_auto_cancel_after_max_detections(self):
+        """反无限 stale 门禁：≥10 次 stale 检测 → 自动取消。"""
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-autocancel"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-autocancel"))
+            await db.flush()
+
+            task = Task(
+                id="tsk_autocancel_001",
+                project_id=project_id,
+                title="Auto-cancel Task",
+                description="Should be cancelled after max detections",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id="ag_autocancel_001",
+            )
+            task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=5)
+            task.updated_at = datetime.now(timezone.utc) - timedelta(hours=5)
+            db.add(task)
+            await db.flush()
+
+            # Simulate 10 prior stale detections (max_detections default = 10)
+            for i in range(10):
+                await event_store.record(
+                    db,
+                    event_type="task.stale_detected",
+                    team_id=team_id,
+                    actor_type=ActorType.SYSTEM,
+                    actor_id="stale_task_detector",
+                    target_type="task",
+                    target_id=task.id,
+                    payload={"task_id": task.id, "detection_count": i + 1, "max_detections": 10},
+                )
+            await db.flush()
+
+            result = await detect_stale_tasks(db, threshold_minutes=60)
+            # Should be CANCELLED, not just detected
+            assert result["stale_count"] == 0
+            assert result["cancelled_count"] == 1
+            assert "tsk_autocancel_001" in result["cancelled_task_ids"]
+
+            await db.flush()
+            await db.refresh(task)
+            assert task.status == TaskStatus.CANCELLED
 
             await db.rollback()
 
