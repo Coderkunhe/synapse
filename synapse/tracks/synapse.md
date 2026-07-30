@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B100 ✅ Capability 安全命令审计持久化补刀
-last_batch: P11-B100
-next_batch: P11-B101
-description: Synapse 主项目 — B100 ✅ GAP-8 审计持久化全量闭环 · 658 tests 零回归 · ⚠️ L5 计数器=2 需拉通
+phase: P11-B106 ✅ Onboarding PFL-101~107 全量修复
+last_batch: P11-B106
+next_batch: P11-B107
+description: Synapse 主项目 — B106 ✅ Onboarding PFL-101~107 全量修复（9项 PFL 消化 · 15 files · 658 tests）· B107 🔜 跨客户端架构
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B100 ✅ GAP-8 审计持久化全量闭环 ·
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B100 | **P11-B101** 🔜 | B100 ✅ GAP-8 审计持久化全量闭环 · 658 tests 零回归 · ⚠️ L5=2 下次先拉通 |
+| **P11** | P11-B106 | **P11-B107** 🔜 | B106 ✅ Onboarding PFL-101~107 全量修复 · B107 🔜 跨客户端架构 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -278,6 +278,13 @@ description: Synapse 主项目 — B100 ✅ GAP-8 审计持久化全量闭环 ·
 | **P11-B98** | P11-008 | **✅ Worker 角色围栏 require_permission 迁移 Phase 1** — 6 新 PERMISSION_MAP 键 · 7 routers 11 endpoints `require_project_role`→`require_permission` · 复杂 endpoints (need resolve_project_id) → B99 | 🟡 |
 | **P11-B99** | P11-008 | **✅ Worker 角色围栏 require_permission 迁移 Phase 2** — 3 resolve_project_id endpoints · `protection_report:run` 新权限键 · P11-008 GAP-7 全量闭环 | 🟡 |
 | **P11-B100** | P11-009 | **✅ Capability 安全命令审计持久化补刀** — POST capability-audits 端点 · synapse-exec 安全命令持久化 · B57 基础设施上补刀 · 6 files · 658 tests 零回归 | 🟡 |
+| **P11-B101** | — | **✅ DUPLICATE_VERIFICATION 回归修复** — verification.reset 替换 task.rejected · verification_service.py 17行 · 658 tests 零回归 · commit b32474e | 🟡 |
+| **P11-B102** | — | **✅ 七层深度扫描修复验证** — 9 PFL 逐项审计 · 发现 165 行部署漂移 · 纯审计 0 代码文件 | 🟢 |
+| **P11-B102-2** | — | **✅ Worker 重部署** — session-init.js 165行补齐 · ws-daemon.js 部署 · P11 双 Worker 重新部署 · PFL-069/070/099 确认 | 🟢 |
+| **P11-B103** | — | **✅ 狗粮前置环境搭建** — 双 Worker 目录创建 · .env 配置 · session-init.js 部署 · API keys 入 keychain · 14/14 自检全绿 · API 认证双通过 | 🟢 |
+| **P11-B104** | — | **✅ 上下文过载根因分析** — collaboration_norms 29KB 占 `_protocol-cache.json` 73% · Deepseek thinking 模式下分析瘫痪 · 3 PFL 登记（key liveness/跨客户端架构/$CLAUDEDIR 假设）→ B105 上下文按需加载 | 🟡 |
+| **P11-B105** | — | **✅ 上下文按需加载** — session-init.js 拆分 protocol cache（essential 18KB + collaboration_norms 独立文件）· SKILL.md 按需查阅表更新 · 启动上下文 56KB→~27KB（-52%）· 3 files · commit 0705b68 | 🟡 |
+| **P11-B106** | PFL-101~107 | **✅ Onboarding 端到端拉通** — Bootstrap 脚本部署+hook修复+env对齐+role补全 · Worker 注册自动分配角色 · Verification 创建端点+自动创建 · JWT_SECRET 模板修复 · key liveness 校验 · $CLAUDEDIR 清理 · 15 files · 658 tests 零回归 | 🔴→✅ |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 
