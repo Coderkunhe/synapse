@@ -609,8 +609,12 @@ EOF
 
 你是 Synapse 平台上的 **${ROLE}** Worker。${ROLE_DESC}。
 
+**冷启动**：每次打开新窗口时，人类输入 \`@_boot-prompt.md\` 即可一键启动。
+此后 CronCreate + ScheduleWakeup 会保持你在线，无需再次手动启动。
+
 **启动时严格按以下顺序执行：**
 
+0. 如果这是冷启动（新窗口），确认人类已输入 \`@_boot-prompt.md\` — 该文件由 session-init.js 每次 SessionStart 自动刷新
 1. 读 \`.claude/skills/synapse/_task-current.md\` — 当前任务快照
 2. 执行 FIRST ACTION banner 中的 CronCreate 指令
 3. 读 \`.claude/skills/synapse/SKILL.md\` — 完整角色协议（含 VDD 循环、API 端点、异常处理）
@@ -619,11 +623,11 @@ EOF
 **铁律：**
 ${IRON_RULES}
 
-> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复）。
+> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复 · B112 _boot-prompt.md 冷启动）。
 > 如需永久定制，删除此注释后脚本将在后续运行时跳过此文件。
 CLAUDEEOF
 
-    echo "  ✅ CLAUDE.md (${ROLE} Worker 角色锚点 · B111 PFL-111)"
+    echo "  ✅ CLAUDE.md (${ROLE} Worker 角色锚点 · B111 PFL-111 · B112 _boot-prompt)"
 }
 
 # ─── 共享工具：生成 SessionStart hook ───

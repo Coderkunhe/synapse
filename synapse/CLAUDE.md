@@ -77,6 +77,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B109 ✅ 狗粮验证 — OwnerType HUMAN修复 + Task生命周期验证 | **B110** 🔜 待定 |
+| **P11** | B111 ✅ Worker CLAUDE.md 自动生成 + 第零条纪律 | **B112** 🔜 PFL-112 _boot-prompt.md 冷启动一键引导 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B108→B109 待拉通 | batchesSinceLastL5=1 · B108+B109 双批 · 待拉通 |
