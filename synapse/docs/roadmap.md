@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-31（P11-B111 ✅ CLAUDE.md 自动生成 · L5 拉通 B110→B111）
+> 最后更新：2026-07-31（P11-B113 登记 — PFL-113/114/115 + V-030 · 待 L5 拉通 B112→B113）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -181,6 +181,9 @@
 | **P11-B108** | **狗粮前置清理** — stale_task_detector 诊断（1388 stale events 正在工作但被动设计）· auto-cancel 门禁（≥10 次检测→自动取消）· 2 旧 in_progress task 取消 · 3 files · 658 tests 零回归 | ✅ |
 | **P11-B109** | **狗粮验证** — OwnerType 枚举缺 HUMAN 发现并修复（500→200）· Task 生命周期 API 验证（claim→submit→verify guard）· 系统健康确认（3 reaper 运行 + 0 stale task）· 🟢 微型 · 3 files · 659 tests 零回归 | ✅ |
 | **P11-B110** | **Worker 权限三层自动修复** — L1 根 settings.local.json 15→29 条 · L2 session-init.js ensureWorkerSettings() · L3 generate-skill.sh write_settings_local() · 三层幂等 · 3 PFL 登记 (PFL-110/111/112) · 🟡 标准 · 3 files · commit `0d0fe76` | ✅ |
+| **P11-B111** | **Worker CLAUDE.md 自动生成 + 第零条纪律** — generate-skill.sh write_claude_md() 三路径生成 · 幂等跳过 · CLAUDE.md 首条"不回避问题" · 🟢 微型 · 5 files · commit `49875ec` | ✅ |
+| **P11-B112** | **`_boot-prompt.md` 冷启动一键引导** — session-init.js v2 极简模板 · Worker 启动时 @_boot-prompt.md 一键进入 · 🟢 微型 · commit `056ddff` | ✅ |
+| **P11-B113** | **登记** — PFL-113 O 需求接收协议 · PFL-114 O 空闲沉默 · PFL-115 _task-current.md 快照污染 · V-030 God's-eye 改 Worker 文件 · 模板预改 · commit `57ab8bc` | ✅ |
 
 ---
 

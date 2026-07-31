@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P11-B110→B111 L5 拉通 — 📄 roadmap.md reqlog.md daily/2026-07-31.md pitfalls.md 全部更新 · 📚 B110权限+B111锚点叙事连贯无断层 · 🎭 generate-skill.sh 三生成路径+双Worker CLAUDE.md 状态遍历通过 · 第零条纪律写入 CLAUDE.md 首条",
+  "lastL5Batch": "P11-B112→B113 L5 拉通 — 📄 roadmap.md reqlog.md daily/2026-07-31.md pitfalls.md 全部更新 · 📚 B112冷启动引导→B113需求接收协议叙事连贯无断层 · 🎭 PFL-112/113/114/115 全量登记 · 🔍 根因发现: Worker旧目录未清理",
   "lastL5Timestamp": "2026-07-31",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P11-B110→B111 L5 拉通 — 📄 roadmap.md reqlog.md daily/2026-07-31.md pitfalls.md 全部更新 · 📚 B110权限+B111锚点叙事连贯无断层 · 🎭 generate-skill.sh 三生成路径+双Worker CLAUDE.md 状态遍历通过 · 第零条纪律写入 CLAUDE.md 首条",
+  "lastL5Evidence": "P11-B112→B113 L5 拉通 — 📄 roadmap.md reqlog.md daily/2026-07-31.md pitfalls.md 全部更新 · 📚 B112冷启动引导→B113需求接收协议叙事连贯无断层 · 🎭 PFL-112/113/114/115 全量登记 · 🔍 根因发现: Worker旧目录未清理",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
