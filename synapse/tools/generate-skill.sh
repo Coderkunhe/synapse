@@ -394,6 +394,9 @@ generate_claude() {
         echo "   请编辑上述文件，将 {{...}} 替换为实际值。"
     fi
 
+    # ── B111 PFL-111: Generate Worker CLAUDE.md (role anchor) ──
+    write_claude_md "$OUTPUT" "$ROLE"
+
     # ── B110 Layer 3: Generate SessionStart hook + permissions ──
     write_settings_json "$OUTPUT"
     write_settings_local "$OUTPUT"
@@ -533,6 +536,94 @@ copy_scripts() {
         cp -r "$SCRIPTS_SRC" "$DEST_DIR/scripts"
         echo "  ✅ ${LABEL} (api-client + keychain + heartbeat + session-init)"
     fi
+}
+
+# ─── 共享工具：生成 Worker 根目录 CLAUDE.md ───
+#
+# P11-B111 PFL-111: Bootstrap/generate-skill 必须生成 Worker CLAUDE.md。
+# 根因: 没有 CLAUDE.md → Claude Code 把 SKILL.md 当参考文档而非执行指令 →
+#       Worker 冷启动后"卡住"，等人类 prompt。
+# 修复: setup/bootstrap 阶段在 Worker 根目录写入角色锚点 CLAUDE.md，
+#       含启动协议 + 铁律，让 Worker 知道自己该主动干活。
+#
+# 幂等: 如果 CLAUDE.md 已存在则跳过，不覆盖用户手动定制。
+
+write_claude_md() {
+    local WORKER_ROOT="$1"
+    local ROLE="${2:-}"
+
+    local CLAUDE_FILE="$WORKER_ROOT/CLAUDE.md"
+
+    if [[ -f "$CLAUDE_FILE" ]]; then
+        echo "  ⏭️  CLAUDE.md (already exists — skipping)"
+        return
+    fi
+
+    local ROLE_DESC IRON_RULES
+
+    case "$ROLE" in
+        orchestrator)
+            ROLE_DESC="拆解需求、分配任务、写验收条件、验收交付物 — 定义\"做完\"长什么样"
+            IRON_RULES=$(cat <<'EOF'
+- 不要写代码 — 你的工作是拆解、分配、验收
+- 不要认领 task — 那是 Builder 的工作
+- 每次判断前先调 API 获取最新状态（`_task-current.md` 只是启动快照）
+- 退出前必须调 ScheduleWakeup 设闹钟让自己回来
+EOF
+)
+            ;;
+        builder)
+            ROLE_DESC="编码实现、执行任务、收集验证证据、提交验证 — 把任务做成"
+            IRON_RULES=$(cat <<'EOF'
+- 你的工作是编码实现，不是拆解任务 — 那是 Orchestrator 的活
+- 完成任务后调 submit_task 提交验证，不要等别人来问
+- 遇到阻塞不要静默卡住 → 调 API 查状态 → 在 Task 评论区 @Orchestrator
+- 每次判断前先调 API 获取最新状态（`_task-current.md` 只是启动快照）
+- 退出前必须调 ScheduleWakeup 设闹钟让自己回来
+EOF
+)
+            ;;
+        steward)
+            ROLE_DESC="代码审查、安全检查、规范审计、边界条件探测 — 独立复核，质量防线"
+            IRON_RULES=$(cat <<'EOF'
+- 你的工作是审查和挑错，不是写实现 — 那是 Builder 的活
+- 审查完成后在评论区报告发现，不要直接改代码
+- 每次判断前先调 API 获取最新状态
+- 退出前必须调 ScheduleWakeup 设闹钟让自己回来
+EOF
+)
+            ;;
+        *)
+            ROLE_DESC="Synapse Worker — 启动后通过 Protocol API 确定具体角色"
+            IRON_RULES=$(cat <<'EOF'
+- 启动后立即读 `.claude/skills/synapse/SKILL.md` 了解完整协议
+- 每次判断前先调 API 获取最新状态（`_task-current.md` 只是启动快照）
+- 退出前必须调 ScheduleWakeup 设闹钟让自己回来
+EOF
+            )
+            ;;
+    esac
+
+    cat > "$CLAUDE_FILE" << CLAUDEEOF
+# Synapse ${ROLE} Worker
+
+你是 Synapse 平台上的 **${ROLE}** Worker。${ROLE_DESC}。
+
+**启动时严格按以下顺序执行：**
+
+1. 读 \`.claude/skills/synapse/_task-current.md\` — 当前任务快照
+2. 执行 FIRST ACTION banner 中的 CronCreate 指令
+3. 读 \`.claude/skills/synapse/SKILL.md\` — 完整角色协议（含 VDD 循环、API 端点、异常处理）
+4. 按角色指令进入工作循环
+
+**铁律：**
+${IRON_RULES}
+
+> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复）。
+> 如需永久定制，删除此注释后脚本将在后续运行时跳过此文件。
+CLAUDEEOF
+
+    echo "  ✅ CLAUDE.md (${ROLE} Worker 角色锚点 · B111 PFL-111)"
 }
 
 # ─── 共享工具：生成 SessionStart hook ───
@@ -734,6 +825,12 @@ generate_client_claude() {
 
     write_settings_json "$OUTPUT"
     write_settings_local "$OUTPUT"
+
+    # ── B111 PFL-111: Generate Worker CLAUDE.md ──
+    # Client mode may not have --role; try env var, fall back to generic
+    local CLIENT_ROLE="${ROLE:-${SYNAPSE_WORKER_ROLE:-}}"
+    write_claude_md "$OUTPUT" "$CLIENT_ROLE"
+
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
 
@@ -989,6 +1086,9 @@ SKILLEOF
         echo "⚠️  API 报告以下变量未解析: ${UNFILLED}"
         echo "   这些通常是 Task 级变量（TASK_ID/TASK_TITLE/...），需在 _task-current.md 中手动填写。"
     fi
+
+    # ── B111 PFL-111: Generate Worker CLAUDE.md ──
+    write_claude_md "$OUTPUT" "$ROLE"
 
     # ── Generate SessionStart hook ──
     write_settings_json "$OUTPUT"

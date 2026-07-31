@@ -1,8 +1,8 @@
 {
   "lastL5Batch": "P11-B108→B109 L5 拉通 — OwnerType HUMAN修复 + Task生命周期API验证 + pitfalls.md PFL-109入计数18/18 + l5-checkpoint.json 证据更新复位2→0 + 659 tests 零回归 + 零drift",
   "lastL5Timestamp": "2026-07-30",
-  "batchesSinceLastL5": 0,
-  "completedBatches": [],
+  "batchesSinceLastL5": 1,
+  "completedBatches": ["P11-B110"],
   "lastL5Evidence": "P11-B108→B109 L5 拉通 — OwnerType HUMAN修复 + Task生命周期API验证 + pitfalls.md PFL-109入计数18/18 + l5-checkpoint.json 证据更新复位2→0 + 659 tests 零回归 + 零drift",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "notes": "B110 ✅ Worker 权限三层自动修复 (0d0fe76) · batchesSinceLastL5=1 · 下一批后触发 L5 · PFL-110/111/112 已登记未闭环"
 }
