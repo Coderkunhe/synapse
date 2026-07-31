@@ -393,6 +393,10 @@ generate_claude() {
         echo "⚠️  发现 $WARNINGS 个文件含未填充的 {{VAR}} 占位符。"
         echo "   请编辑上述文件，将 {{...}} 替换为实际值。"
     fi
+
+    # ── B110 Layer 3: Generate SessionStart hook + permissions ──
+    write_settings_json "$OUTPUT"
+    write_settings_local "$OUTPUT"
 }
 
 # ─── Codex 输出 ───
@@ -533,6 +537,111 @@ copy_scripts() {
 
 # ─── 共享工具：生成 SessionStart hook ───
 
+# ─── 共享工具：生成 per-Worker settings.local.json ───
+#
+# B110 Layer 3: 在 Worker setup 时直接生成权限文件，消除鸡生蛋问题。
+# 之前的流程: SessionStart hook → session-init.js → ensureWorkerSettings()
+# 问题: 如果 root settings.local.json 阻止 SessionStart hook 执行，session-init.js
+#       永远不会运行，per-Worker settings.local.json 永远不会生成，Worker 永久死锁。
+# 修复: generate-skill.sh 在 setup 阶段直接生成，不依赖任何脚本运行。
+#
+# 此函数与 session-init.js 的 ensureWorkerSettings() 是 belt-and-suspenders 关系:
+#   - generate-skill.sh: 治本 — setup 时创建 (不依赖任何东西运行)
+#   - session-init.js:   兜底 — 如果文件被删除则在下次 SessionStart 重建
+#
+# 幂等: 如果 settings.local.json 已存在则跳过，不覆盖用户手动定制。
+
+write_settings_local() {
+    local WORKER_ROOT="$1"
+    local SETTINGS_FILE="$WORKER_ROOT/.claude/settings.local.json"
+
+    if [[ -f "$SETTINGS_FILE" ]]; then
+        echo "  ⏭️  .claude/settings.local.json (already exists — skipping)"
+        return
+    fi
+
+    # Resolve absolute paths for Read permissions
+    local ABS_WORKER
+    ABS_WORKER="$(cd "$WORKER_ROOT" 2>/dev/null && pwd)" || ABS_WORKER="$WORKER_ROOT"
+
+    # Synapse shared dir: only add if it exists as a sibling
+    local SYNAPSE_ENTRY=""
+    if [[ -d "$WORKER_ROOT/../synapse" ]]; then
+        local ABS_SYNAPSE
+        ABS_SYNAPSE="$(cd "$WORKER_ROOT/../synapse" 2>/dev/null && pwd)" || true
+        if [[ -n "$ABS_SYNAPSE" && "$ABS_SYNAPSE" != "/" ]]; then
+            SYNAPSE_ENTRY="\"Read(${ABS_SYNAPSE}/**)\","
+        fi
+    fi
+
+    local HOME_DIR="$HOME"
+
+    if [[ -n "$SYNAPSE_ENTRY" ]]; then
+    cat > "$SETTINGS_FILE" << SETEOF
+{
+  "permissions": {
+    "allow": [
+      "Read(${ABS_WORKER}/**)",
+      ${SYNAPSE_ENTRY}
+      "Read(${HOME_DIR}/.claude/**)",
+      "Bash(curl -s *)",
+      "Bash(set -a; . ./.claude/.env; set +a; node .claude/skills/synapse/scripts/*)",
+      "Bash(node .claude/skills/synapse/scripts/*)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(git *)",
+      "Bash(env)",
+      "Bash(source .claude/.env *)",
+      "Bash(python3 -c *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(security find-generic-password *)",
+      "CronCreate",
+      "ScheduleWakeup",
+      "Skill(synapse)"
+    ]
+  }
+}
+SETEOF
+    else
+    cat > "$SETTINGS_FILE" << SETEOF
+{
+  "permissions": {
+    "allow": [
+      "Read(${ABS_WORKER}/**)",
+      "Read(${HOME_DIR}/.claude/**)",
+      "Bash(curl -s *)",
+      "Bash(set -a; . ./.claude/.env; set +a; node .claude/skills/synapse/scripts/*)",
+      "Bash(node .claude/skills/synapse/scripts/*)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(git *)",
+      "Bash(env)",
+      "Bash(source .claude/.env *)",
+      "Bash(python3 -c *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(security find-generic-password *)",
+      "CronCreate",
+      "ScheduleWakeup",
+      "Skill(synapse)"
+    ]
+  }
+}
+SETEOF
+    fi
+
+    echo "  ✅ .claude/settings.local.json (Worker permissions · B110 Layer 3)"
+}
+
+# ─── 共享工具：生成 SessionStart hook ───
+
 write_settings_json() {
     local CLIENT_ROOT="$1"
     local CLAUDE_DIR="$CLIENT_ROOT/.claude"
@@ -624,6 +733,7 @@ generate_client_claude() {
     fi
 
     write_settings_json "$OUTPUT"
+    write_settings_local "$OUTPUT"
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
 
@@ -882,6 +992,7 @@ SKILLEOF
 
     # ── Generate SessionStart hook ──
     write_settings_json "$OUTPUT"
+    write_settings_local "$OUTPUT"
 
     echo ""
     echo "✅ 完成。Skill 文件已渲染，0 未填充 VAR（Task 级除外）。"

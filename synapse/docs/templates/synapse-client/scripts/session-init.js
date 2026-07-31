@@ -35,8 +35,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.1.0
- * @file session-init.js
+ * @version 1.2.0 — B110: auto-generate per-Worker settings.local.json (Layer 2 治本)
  */
 
 'use strict';
@@ -48,6 +47,8 @@ const { SynapseClient } = require('./api-client');
 const { getKey } = require('./keychain');
 
 // ── Constants ──────────────────────────────────────────────────────
+const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
+const SETTINGS_LOCAL = path.join(WORKER_ROOT, '.claude', 'settings.local.json');
 const OUTPUT_FILE = path.join(__dirname, '..', '_task-current.md');
 const PROTOCOL_CACHE = path.join(__dirname, '..', '_protocol-cache.json');
 const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norms.md');
@@ -192,6 +193,74 @@ function readRecentWsEvents(n = 5) {
     return recent.map(line => { try { return JSON.parse(line); } catch (_) { return null; } }).filter(Boolean);
   } catch (_) {
     return [];
+  }
+}
+
+/**
+ * Ensure the Worker's .claude/settings.local.json grants necessary permissions.
+ *
+ * B110 root cause: the project root settings.local.json had a restrictive allowlist
+ * that blocked Worker windows from reading their own skill files (synapse-builder/**,
+ * synapse-orchestrator/**), calling curl, or using CronCreate/ScheduleWakeup.
+ *
+ * This function auto-generates a per-Worker settings.local.json during bootstrap
+ * so new Workers don't hit the same permission wall. The per-Worker file merges
+ * additively with parent settings — it only adds, never removes.
+ *
+ * Idempotent: if settings.local.json already exists, it is NOT overwritten.
+ * This preserves any manual customizations the user may have made.
+ */
+function ensureWorkerSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_LOCAL)) {
+      return { created: false, path: SETTINGS_LOCAL, reason: 'already exists' };
+    }
+
+    const permissions = {
+      permissions: {
+        allow: [
+          // Read access to this Worker's own directory plus synapse/ shared resources
+          `Read(${path.join(WORKER_ROOT, '**')})`,
+          `Read(${path.join(path.resolve(WORKER_ROOT, '..'), 'synapse', '**')})`,
+          // Read access to user memory
+          `Read(${path.join(require('os').homedir(), '.claude', '**')})`,
+
+          // API calls to the Synapse server
+          'Bash(curl -s *)',
+
+          // Session scripts (heartbeat.js, ws-daemon.js, session-init.js)
+          'Bash(set -a; . ./.claude/.env; set +a; node .claude/skills/synapse/scripts/*)',
+          'Bash(node .claude/skills/synapse/scripts/*)',
+
+          // Basic shell utilities for operational tasks
+          'Bash(echo *)',
+          'Bash(cat *)',
+          'Bash(ls *)',
+          'Bash(grep *)',
+          'Bash(find *)',
+          'Bash(which *)',
+          'Bash(git *)',
+          'Bash(env)',
+          'Bash(source .claude/.env *)',
+          'Bash(python3 -c *)',
+          'Bash(python3 -m json.tool)',
+          'Bash(security find-generic-password *)',
+
+          // Self-scheduling — without these Workers die after first turn (B82 dogfood)
+          'CronCreate',
+          'ScheduleWakeup',
+
+          // Synapse skill
+          'Skill(synapse)',
+        ],
+      },
+    };
+
+    fs.mkdirSync(path.dirname(SETTINGS_LOCAL), { recursive: true });
+    fs.writeFileSync(SETTINGS_LOCAL, JSON.stringify(permissions, null, 2) + '\n', 'utf-8');
+    return { created: true, path: SETTINGS_LOCAL };
+  } catch (e) {
+    return { created: false, path: SETTINGS_LOCAL, error: e.message };
   }
 }
 
@@ -651,6 +720,12 @@ async function main() {
     console.log(`❌ ${SCRIPT_NAME}: env incomplete — missing: ${envCheck.missing.join(', ')}`);
     writeState(state);
     process.exit(0);
+  }
+
+  // ── Step 1.5: Ensure Worker settings.local.json (B110 · Layer 2) ─
+  const wsResult = ensureWorkerSettings();
+  if (wsResult.created) {
+    console.log(`📝 ${SCRIPT_NAME}: created ${wsResult.path} (per-Worker permissions auto-generated)`);
   }
 
   // ── Step 2: Create client ──────────────────────────────────────
