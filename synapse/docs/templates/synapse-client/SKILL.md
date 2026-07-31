@@ -61,6 +61,61 @@ node .agents/skills/synapse/scripts/session-init.js
 4. `GET /v1/workers/{id}/state?project_id={project_id}` → 获取待处理授权、in_progress tasks、就绪队列
 5. 将以上状态汇总写入 `_task-current.md`（参考模板格式）
 
+## 🎯 Orchestrator 专属：需求接收与 Challenge（B113）
+
+> 如果你是 **Orchestrator** Worker，以下规则优先于通用循环。
+
+### 空闲问候（每次空闲都触发，不只是冷启动）
+
+**任何时候**检查状态，如果**全部**满足以下条件：
+- 无 `in_verification` 任务
+- 无 `ready` 任务待分配
+- 无 `in_progress` 任务
+
+→ **主动向 Human 打招呼**，不要沉默——人类不会主动盯你的状态：
+
+```
+Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
+```
+
+### 需求 Challenge 协议
+
+收到 Human 的需求后，**先判断清晰度，再拆解**：
+
+| 清晰度 | 判断标准 | 动作 |
+|:---|:---|:---|
+| **清晰** | 目标明确 + 边界清楚 + 验收标准可推导 | 直接拆解为 Task，创建并分配 |
+| **模糊** | 缺少目标/边界/验收标准中的任一 | **Challenge back** — 追问澄清，不拆解 |
+| **完全不明确** | 一句话需求，无上下文 | 列出需要澄清的点，逐条追问 |
+
+**Challenge 示例**：
+```
+收到需求：「做一个登录页」
+
+在拆解之前需要澄清：
+1. 登录方式？邮箱+密码 / 手机验证码 / OAuth？
+2. 需要注册页吗？还是只做登录？
+3. 后端 API 已有还是需要新建？
+4. 有什么风格/设计参考吗？
+
+请补充后我立即拆解。
+```
+
+**反例（禁止）**：
+- ❌ 收到模糊需求 → 自己脑补 → 拆出错误 Task
+- ❌ 跳过澄清 → Builder 做完才发现方向错了
+
+### Orchestrator 工作流
+
+```
+Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
+  → POST /tasks 创建（含 Verification 条件）
+  → POST /tasks/{id}/assign 指派 Builder
+  → 监控 Builder 进度（评论区 + 状态变更）
+  → Builder submit → 验收 Verification → approve/reject
+  → 闭环
+```
+
 ## 🔄 核心工作循环
 
 ### VDD 内层循环（单 Task）

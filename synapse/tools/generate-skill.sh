@@ -569,6 +569,8 @@ write_claude_md() {
 - 不要认领 task — 那是 Builder 的工作
 - 每次判断前先调 API 获取最新状态（`_task-current.md` 只是启动快照）
 - 退出前必须调 ScheduleWakeup 设闹钟让自己回来
+- 收到需求先 challenge — 模糊不清的需求必须先追问澄清，不清晰绝不拆解
+- 空闲时（无待验收+无待分配+无进行中）→ 主动向 Human 打招呼："Orchestrator 空闲中，喂我需求"
 EOF
 )
             ;;

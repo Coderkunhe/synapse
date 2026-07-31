@@ -630,133 +630,35 @@ function writeState(state) {
 /**
  * Write _boot-prompt.md at Worker root for cold-start bootstrap (B112 PFL-112).
  *
- * Root cause (PFL-112): CLAUDE.md + SKILL.md + _task-current.md are read by Claude Code
- * as REFERENCE CONTEXT, not executable instructions. The CronCreate FIRST ACTION banner
- * in _task-current.md tells the AI WHAT to do, but without a human prompt, the AI won't
- * actually call CronCreate — it just reads the banner as documentation.
+ * B112 v1 lesson: 64-line markdown with sections/headers/bullets → AI treats it as
+ * a document to analyze and summarize, then stops. It does NOT call CronCreate.
+ * The episodic model's default is "read → understand → summarize → suggest → stop".
  *
- * Fix: Generate _boot-prompt.md at Worker root. The human types `@_boot-prompt.md` in
- * the Worker window → Claude Code reads it as the USER'S MESSAGE (not just context) →
- * AI executes the instructions. This is the "one-click" bootstrap.
- *
- * Content strategy: Self-contained prompt that works even if CLAUDE.md/SKILL.md aren't
- * loaded yet. Role-specific to avoid confusion. Mechanical (no judgment) — script
- * generates, AI executes.
+ * B112 v2: Radically minimal. 3-4 lines, no markdown structure, no explanations.
+ * The AI has nothing to analyze — only one action to take. Imperative, non-negotiable.
  *
  * Idempotent: overwrites on every SessionStart with fresh state.
  */
 function writeBootPrompt(state) {
   const role = state.role || 'worker';
-  const roleEmoji = { builder: '🔵', orchestrator: '🟠', steward: '⚪' }[role] || '⚪';
-  const projectName = state.protocolData?.project_name || 'unknown';
 
-  // Role-specific context
-  const roleContext = {
-    builder: [
-      '你是 Synapse **Builder** Worker。',
-      '职责：认领 ready task → 编码实现 → 收集 evidence → 提交验证。',
-      '边界：不创建 Task、不分配 Task、不验收。',
-      state.activeTaskCount > 0
-        ? `当前有 **${state.activeTaskCount}** 个活跃任务需要关注。`
-        : '当前无活跃任务 — 进入待命循环，等待 Orchestrator 分配。',
-    ],
-    orchestrator: [
-      '你是 Synapse **Orchestrator** Worker。',
-      '职责：拆解需求 → 分配 Builder → 验收交付物 → 闭环 Task。',
-      '边界：不写代码、不认领 Task、不提交 evidence。',
-      state.verificationTotal > 0
-        ? `当前有 **${state.verificationTotal}** 个任务等待验收。`
-        : '当前无待验收任务。',
-      state.readyTotal > 0
-        ? `当前有 **${state.readyTotal}** 个 ready 任务等待分配。`
-        : '当前无待分配任务。',
-    ],
-    steward: [
-      '你是 Synapse **Steward** Worker。',
-      '职责：代码审查 → 安全检查 → 规范审计 → 反馈意见。',
-      '边界：不写代码、不创建 Task、不验收。',
-    ],
-  };
-
-  const ctx = roleContext[role] || roleContext.builder;
+  const roleLine = {
+    builder: 'You are the Builder Worker. Claim ready tasks, execute, collect evidence, submit.',
+    orchestrator: 'You are the Orchestrator Worker. Assign tasks, verify results, close tasks.',
+    steward: 'You are the Steward Worker. Review code, audit security, report findings.',
+  }[role] || `You are a Synapse ${role} Worker.`;
 
   const lines = [
-    `# ${roleEmoji} Synapse ${role.charAt(0).toUpperCase() + role.slice(1)} Worker — 冷启动引导`,
+    `CronCreate({cron: "*/1 * * * *", prompt: "Wake up and check for work. Read _task-current.md. Continue working if active tasks exist, ScheduleWakeup if idle.", recurring: true})`,
     '',
-    '> ⚠️ 本文件由 session-init.js 机械生成（B112 PFL-112 修复）。每次 SessionStart 自动刷新。',
-    '> **你是 Claude Code。你现在读到的是用户的启动指令 — 执行它，不要只是阅读它。**',
+    `Then: read .claude/skills/synapse/_task-current.md → read .claude/skills/synapse/SKILL.md → enter work loop. ${roleLine}`,
     '',
-    '---',
-    '',
-    '## 你的身份',
-    '',
-    ...ctx.map(l => `- ${l}`),
-    '',
-    '---',
-    '',
-    '## 🚨 立即执行（按顺序，不要跳过任何一步）',
-    '',
-    '### 第 1 步：设 CronCreate 安全带（现在立刻做）',
-    '',
-    '在回答任何问题之前，先调用 CronCreate 工具：',
-    '',
-    '```',
-    'CronCreate({',
-    '  cron: "*/1 * * * *",',
-    '  prompt: "Wake up and check for work. Read _task-current.md. If there are active tasks, continue working. If idle, set ScheduleWakeup and wait.",',
-    '  recurring: true',
-    '})',
-    '```',
-    '',
-    '> 🚨 这是你活着的安全带。没有它，退出后就是永久的 — 没有外部触发，你永远不会再醒来。',
-    '> B82 狗粮 3 次复现此问题。不要重蹈覆辙。脚本不会骗你。',
-    '',
-    '### 第 2 步：读取当前状态',
-    '',
-    '读 `.claude/skills/synapse/_task-current.md` — 这是 session-init.js 刚生成的最新状态快照。',
-    '了解：活跃任务、待处理授权、未读消息、连接状态。',
-    '',
-    '### 第 3 步：读取完整角色协议',
-    '',
-    '读 `.claude/skills/synapse/SKILL.md` — 包含 VDD 循环、API 端点、异常处理策略。',
-    `${role === 'builder' ? '读 `.claude/skills/synapse/_collaboration-norms.md` — 协作规范（按需加载）。' : ''}`,
-    '',
-    '### 第 4 步：进入工作循环',
-    '',
-    role === 'builder' ? [
-      '1. 查看 Ready Tasks — `GET /v1/projects/{project_id}/tasks?status=ready`',
-      '2. 有 ready task → claim → execute → collect evidence → submit',
-      '3. 无 ready task → 检查评论区是否有 @Builder 提及',
-      '4. 完全空闲 → ScheduleWakeup 设闹钟，等待新任务',
-    ].join('\n') : role === 'orchestrator' ? [
-      '1. 查看 Verification 队列 — `GET /v1/projects/{project_id}/tasks?status=in_verification`',
-      '2. 有待验收 task → 查询 evidence → 验收 → approve/reject',
-      '3. 查看 Ready Tasks — 有待分配 → assign to Builder',
-      '4. 完全空闲 → ScheduleWakeup 设闹钟，等待新任务',
-    ].join('\n') : [
-      '1. 按 SKILL.md 角色协议进入工作循环',
-      '2. 退出前必须设 ScheduleWakeup',
-    ].join('\n'),
-    '',
-    '---',
-    '',
-    '## ⚡ 关键规则',
-    '',
-    '- **每次判断前先调 API** — `_task-current.md` 只是启动快照，不是实时状态',
-    '- **退出前必须设 ScheduleWakeup** — CronCreate 是安全带，ScheduleWakeup 是主通道',
-    '- **遇到阻塞不要静默卡住** — 调 API 查状态 → Task 评论区 @对应角色',
-    '- **脚本不会骗你** — 如果本文件或 _task-current.md 说了什么，照做',
-    '',
-    '---',
-    '',
-    `*Generated ${now()} by session-init.js · ${projectName} · B112 PFL-112*`,
-    `*在 Worker 窗口输入 @_boot-prompt.md 即可启动 · 此后 CronCreate + ScheduleWakeup 保持在线*`,
+    'Execute the CronCreate call NOW. Do not summarize. Do not analyze. Do not ask questions. Call the tool.',
   ];
 
   try {
     fs.writeFileSync(BOOT_PROMPT_FILE, lines.join('\n') + '\n', 'utf-8');
   } catch (e) {
-    // Non-fatal — _boot-prompt.md is a convenience, Worker can still be started manually
     console.error(`⚠️ ${SCRIPT_NAME}: unable to write _boot-prompt.md — ${e.message}`);
   }
 }
