@@ -78,8 +78,8 @@ async def _stale_task_reaper() -> None:
     stale_threshold = settings.task_stale_threshold_minutes
     verify_timeout = settings.verification_timeout_minutes
     while True:
-        await asyncio.sleep(interval)
         try:
+            await asyncio.sleep(interval)
             async with async_session_factory() as db:
                 # P11-B76: stale in_progress detection
                 result = await detect_stale_tasks(db, threshold_minutes=stale_threshold)
@@ -190,13 +190,23 @@ def create_app() -> FastAPI:
     # Health check (no auth required)
     @app.get("/health")
     async def health():
+        # Health check — reaper status diagnostics (B115 PFL-119)
+        def _reaper_status(task):
+            """Return 'running' | 'not_started' | 'crashed: <reason>'."""
+            if not task:
+                return "not_started"
+            if not task.done():
+                return "running"
+            exc = task.exception()
+            return f"crashed: {exc}" if exc else "completed"
+
         return {
             "status": "ok",
             "ws_connections": ws_manager.connection_count,
             "reapers": {
-                "ws_reaper": not (_reaper_task and _reaper_task.done()),
-                "auth_reaper": not (_expiry_reaper_task and _expiry_reaper_task.done()),
-                "stale_reaper": not (_stale_reaper_task and _stale_reaper_task.done()),
+                "ws_reaper": _reaper_status(_reaper_task),
+                "auth_reaper": _reaper_status(_expiry_reaper_task),
+                "stale_reaper": _reaper_status(_stale_reaper_task),
             },
         }
 

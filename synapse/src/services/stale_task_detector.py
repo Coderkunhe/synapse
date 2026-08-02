@@ -167,7 +167,12 @@ async def detect_stale_verifications(
     reverted_ids: list[str] = []
     cancelled_ids: list[str] = []
     for task in stale_tasks:
-        seconds_stuck = int((now - task.updated_at).total_seconds())
+        # B115 PFL-119: task.updated_at may be naive (SQLite DateTime), but
+        # now is tz-aware. Make them consistent before subtraction.
+        updated = task.updated_at
+        if updated is not None and updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        seconds_stuck = int((now - updated).total_seconds())
         team_id = task.project.team_id if task.project else ""
 
         # 反 ping-pong 门禁：检查历史回退次数，超过阈值 → auto-cancel。

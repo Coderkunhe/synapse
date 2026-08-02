@@ -755,29 +755,25 @@ with open('$SETTINGS_FILE') as f:
     cfg = json.load(f)
 cfg.setdefault('hooks', {})
 hooks = cfg['hooks'].setdefault('SessionStart', [])
-# PFL-076: 检测是否已有 session-init hook（合并后单命令格式）
+# PFL-076/B115: always upgrade to current command (no heartbeat.js &)
+NEW_CMD = 'set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/session-init.js'
 has_synapse = False
 for h in hooks:
     if 'command' in h and 'session-init.js' in h.get('command',''):
-        has_synapse = True; break
+        h['hooks'] = [{'type': 'command', 'command': NEW_CMD}]
+        h.pop('command', None)
+        h.pop('matcher', None)
+        has_synapse = True
     if 'hooks' in h:
         for c in h['hooks']:
             if 'session-init.js' in c.get('command',''):
-                has_synapse = True; break
+                c['command'] = NEW_CMD  # B115: always upgrade
+                has_synapse = True
 if not has_synapse:
     hooks.append({
         'matcher': '',
-        'hooks': [{
-            'type': 'command',
-            'command': 'set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/heartbeat.js & node ./.claude/skills/synapse/scripts/session-init.js'
-        }]
+        'hooks': [{'type': 'command', 'command': NEW_CMD}]
     })
-# PFL-076: 升级旧格式 (matcher+command) → 新格式 (matcher+hooks[])
-for h in hooks:
-    if 'command' in h and 'session-init.js' in h.get('command',''):
-        cmd = h.pop('command')
-        h.pop('matcher', None)
-        h['hooks'] = [{'type': 'command', 'command': cmd}]
 with open('$SETTINGS_FILE', 'w') as f:
     json.dump(cfg, f, indent=2)
     f.write('\\n')
@@ -794,7 +790,7 @@ with open('$SETTINGS_FILE', 'w') as f:
         "hooks": [
           {
             "type": "command",
-            "command": "set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/heartbeat.js & node ./.claude/skills/synapse/scripts/session-init.js"
+            "command": "set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/session-init.js"
           }
         ]
       }
@@ -804,7 +800,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 SETEOF
     fi
 
-    echo "  ✅ .claude/settings.json（SessionStart → .env + heartbeat & + session-init · PFL-076 单命令合并）"
+    echo "  ✅ .claude/settings.json（SessionStart → .env + session-init · PFL-076/B115）"
 }
 
 # ─── Client Skill: Claude Code ───

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/heartbeat.js & node ./.claude/skills/synapse/scripts/session-init.js"
+            "command": "set -a; . ./.claude/.env; set +a; node ./.claude/skills/synapse/scripts/session-init.js"
           }
         ]
       }

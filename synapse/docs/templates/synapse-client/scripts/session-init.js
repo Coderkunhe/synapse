@@ -56,6 +56,16 @@ const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norm
 const BOOT_PROMPT_FILE = path.resolve(__dirname, '..', '..', '..', '..', '_boot-prompt.md');
 const SCRIPT_NAME = 'session-init';
 
+// ── PID files for daemon lifecycle (PFL-116/117/118 · B115) ──────────
+// Each Worker writes its own daemon PIDs to .claude/.daemon-*.pid.
+// On startup, stale PIDs from prior sessions are killed before spawn.
+// This replaces the global pgrep approach which caused cross-worker
+// interference and orphan accumulation.
+// NOTE: WORKER_ROOT is already at .claude/ level (3 dirs up from scripts/),
+// so PID files go directly under WORKER_ROOT, not .claude/.claude/.
+const HEARTBEAT_PID_FILE = path.join(WORKER_ROOT, '.daemon-heartbeat.pid');
+const WS_DAEMON_PID_FILE = path.join(WORKER_ROOT, '.daemon-ws.pid');
+
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /** Current ISO timestamp for output files. */
@@ -64,39 +74,118 @@ function now() {
 }
 
 /**
+ * Read a daemon PID from its PID file.
+ * Returns the PID as a number, or null if the file doesn't exist or is invalid.
+ *
+ * @param {string} pidFile - Path to the PID file
+ * @returns {number|null}
+ */
+function readPidFile(pidFile) {
+  try {
+    if (!fs.existsSync(pidFile)) return null;
+    const raw = fs.readFileSync(pidFile, 'utf-8').trim();
+    const pid = parseInt(raw, 10);
+    if (isNaN(pid) || pid <= 0) return null;
+    return pid;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Write a daemon PID to its PID file.
+ *
+ * @param {string} pidFile - Path to the PID file
+ * @param {number} pid - The daemon PID
+ */
+function writePidFile(pidFile, pid) {
+  try {
+    fs.writeFileSync(pidFile, String(pid), 'utf-8');
+  } catch (_e) {
+    // Best-effort — daemon still runs even if PID file write fails
+  }
+}
+
+/**
+ * Check if a process with the given PID is alive.
+ *
+ * @param {number} pid
+ * @returns {boolean}
+ */
+function isProcessAlive(pid) {
+  try {
+    // signal 0 = existence check, no signal sent
+    process.kill(pid, 0);
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
+ * Kill an old daemon identified by its PID file.
+ * Reads the PID, checks if the process is alive, sends SIGTERM if so,
+ * waits briefly for graceful shutdown, then cleans up the PID file.
+ *
+ * @param {string} pidFile - Path to the PID file
+ * @returns {{ killed: boolean, oldPid: number|null }}
+ */
+function killOldDaemon(pidFile) {
+  const oldPid = readPidFile(pidFile);
+  if (oldPid === null) return { killed: false, oldPid: null };
+
+  if (!isProcessAlive(oldPid)) {
+    // Process already dead — just clean up the stale PID file
+    try { fs.unlinkSync(pidFile); } catch (_e) { /* ok */ }
+    return { killed: false, oldPid };
+  }
+
+  try {
+    process.kill(oldPid, 'SIGTERM');
+    // Give the old daemon up to 1s to shut down gracefully
+    const start = Date.now();
+    while (Date.now() - start < 1000) {
+      if (!isProcessAlive(oldPid)) break;
+      // Busy-wait in 50ms increments
+      const until = Date.now() + 50;
+      while (Date.now() < until) { /* spin */ }
+    }
+    // Force kill if still alive
+    if (isProcessAlive(oldPid)) {
+      try { process.kill(oldPid, 'SIGKILL'); } catch (_e) { /* ok */ }
+    }
+    return { killed: true, oldPid };
+  } catch (_e) {
+    return { killed: false, oldPid };
+  } finally {
+    try { fs.unlinkSync(pidFile); } catch (_e) { /* ok */ }
+  }
+}
+
+/**
  * Check if a heartbeat daemon process is running.
- * Uses pgrep (macOS/Linux) to find node processes running heartbeat.js.
- * Non-blocking — returns false on any error (daemon detection is best-effort).
+ * Uses the per-worker PID file (PFL-117 · B115) — no global pgrep,
+ * so Builder and Orchestrator daemons are independently tracked.
  *
  * @returns {{ running: boolean, pids: string[] }}
  */
 function checkHeartbeatDaemon() {
-  try {
-    const out = execSync('pgrep -f "node.*heartbeat\\.js"', {
-      timeout: 1000,
-      encoding: 'utf-8',
-    }).trim();
-    if (!out) return { running: false, pids: [] };
-    const pids = out.split('\n').filter(Boolean);
-    return { running: pids.length > 0, pids };
-  } catch (e) {
-    // pgrep exits 1 when no match — that's not an error
-    if (e.status === 1) return { running: false, pids: [] };
-    // Any other error (pgrep not found, timeout, etc.) — best-effort, don't block
-    return { running: false, pids: [], error: e.message };
-  }
+  const pid = readPidFile(HEARTBEAT_PID_FILE);
+  if (pid === null) return { running: false, pids: [] };
+  if (isProcessAlive(pid)) return { running: true, pids: [String(pid)] };
+  // Stale PID file — clean up
+  try { fs.unlinkSync(HEARTBEAT_PID_FILE); } catch (_e) { /* ok */ }
+  return { running: false, pids: [] };
 }
 
 /**
  * Start the heartbeat daemon as a detached background process (PFL-083 · B91).
  *
- * Uses child_process.spawn with detached:true + unref() — the daemon survives
- * the parent hook subprocess exit. This is the MECHANICAL guarantee: once spawned,
- * heartbeat.js sends POST /workers/{id}/heartbeat every 55s via setInterval.
+ * PFL-116/117/118 (B115): Before spawning, kills any old heartbeat daemon
+ * tracked by the per-worker PID file. After spawning, writes the new PID.
  *
- * The previous approach (shell `&` in the hook command) was unreliable because
- * Claude Code's hook runner may kill the process group on command completion.
- * detached:true + unref() is the POSIX-compliant daemon pattern.
+ * Uses child_process.spawn with detached:true + unref() — the daemon survives
+ * the parent hook subprocess exit.
  *
  * Returns the daemon PID on success, null on failure.
  */
@@ -112,6 +201,12 @@ function startHeartbeatDaemon() {
       env: { ...process.env },  // inherit SYNAPSE_* vars
     });
     child.unref();  // detach from parent — daemon survives hook exit
+    if (child.pid) {
+      // PFL-116: kill old daemon AFTER new one is confirmed spawned.
+      // If spawn fails, the old daemon is left untouched as fallback.
+      killOldDaemon(HEARTBEAT_PID_FILE);
+      writePidFile(HEARTBEAT_PID_FILE, child.pid);
+    }
     return { started: true, pid: child.pid };
   } catch (e) {
     return { started: false, error: e.message };
@@ -120,27 +215,24 @@ function startHeartbeatDaemon() {
 
 /**
  * Check if the ws-daemon process is running.
- * Uses pgrep to find node processes running ws-daemon.js.
+ * Uses the per-worker PID file (PFL-117 · B115) — no global pgrep.
  *
  * @returns {{ running: boolean, pids: string[] }}
  */
 function checkWsDaemon() {
-  try {
-    const out = execSync('pgrep -f "node.*ws-daemon\\.js"', {
-      timeout: 1000,
-      encoding: 'utf-8',
-    }).trim();
-    if (!out) return { running: false, pids: [] };
-    const pids = out.split('\n').filter(Boolean);
-    return { running: pids.length > 0, pids };
-  } catch (e) {
-    if (e.status === 1) return { running: false, pids: [] };
-    return { running: false, pids: [], error: e.message };
-  }
+  const pid = readPidFile(WS_DAEMON_PID_FILE);
+  if (pid === null) return { running: false, pids: [] };
+  if (isProcessAlive(pid)) return { running: true, pids: [String(pid)] };
+  // Stale PID file — clean up
+  try { fs.unlinkSync(WS_DAEMON_PID_FILE); } catch (_e) { /* ok */ }
+  return { running: false, pids: [] };
 }
 
 /**
  * Start the ws-daemon as a detached background process (PFL-093 · B96).
+ *
+ * PFL-116/117/118 (B115): Before spawning, kills any old ws-daemon
+ * tracked by the per-worker PID file. After spawning, writes the new PID.
  *
  * The ws-daemon maintains a persistent WebSocket connection to the Synapse
  * server for real-time event push. On disconnect, it auto-reconnects with
@@ -173,6 +265,11 @@ function startWsDaemon() {
       env: { ...process.env },  // inherit SYNAPSE_* vars
     });
     child.unref();  // detach from parent — daemon survives hook exit
+    if (child.pid) {
+      // PFL-116: kill old daemon AFTER new one is confirmed spawned
+      killOldDaemon(WS_DAEMON_PID_FILE);
+      writePidFile(WS_DAEMON_PID_FILE, child.pid);
+    }
     return { started: true, pid: child.pid };
   } catch (e) {
     return { started: false, error: e.message };
@@ -773,31 +870,40 @@ async function main() {
   const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
   const client = new SynapseClient(config);
 
-  // ── Step 2.5: Check + start heartbeat daemon (PFL-083 · B91) ──────
-  state.heartbeatDaemon = checkHeartbeatDaemon();
-  if (!state.heartbeatDaemon.running) {
-    const startResult = startHeartbeatDaemon();
-    if (startResult.started) {
-      state.heartbeatDaemon = { running: true, pids: [String(startResult.pid)], startedByUs: true };
-    } else {
+  // ── Step 2.5: Start heartbeat daemon (PFL-083 · B91 · B115 PID files) ──
+  // B115 (PFL-116/118): Always kill old daemon and spawn fresh.
+  // startHeartbeatDaemon() internally calls killOldDaemon() before spawn
+  // and writes the new PID file after. No more "already running" skip.
+  const hbResult = startHeartbeatDaemon();
+  if (hbResult.started) {
+    state.heartbeatDaemon = { running: true, pids: [String(hbResult.pid)], startedByUs: true };
+  } else {
+    // Spawn failed — fall back to checking if a prior daemon still runs
+    state.heartbeatDaemon = checkHeartbeatDaemon();
+    if (!state.heartbeatDaemon.running) {
       state.heartbeatDaemon.startedByUs = false;
-      state.heartbeatDaemon.startError = startResult.error;
+      state.heartbeatDaemon.startError = hbResult.error;
     }
   }
 
-  // ── Step 2.6: Check + start ws-daemon (PFL-093 · B96) ───────────
-  state.wsDaemon = checkWsDaemon();
-  if (!state.wsDaemon.running) {
-    const wsResult = startWsDaemon();
-    if (wsResult.started) {
-      state.wsDaemon = { running: true, pids: [String(wsResult.pid)], startedByUs: true };
-    } else {
+  // ── Step 2.6: Start ws-daemon (PFL-093 · B96 · B115 PID files) ──────
+  // B115 (PFL-116/117/118): Always kill old daemon and spawn fresh.
+  // startWsDaemon() internally calls killOldDaemon() before spawn
+  // and writes the new PID file after. Per-worker PID files eliminate
+  // cross-worker pgrep interference.
+  const wsDaemonResult = startWsDaemon();
+  if (wsDaemonResult.started) {
+    state.wsDaemon = { running: true, pids: [String(wsDaemonResult.pid)], startedByUs: true };
+  } else {
+    // Spawn failed — fall back to checking if a prior daemon still runs
+    state.wsDaemon = checkWsDaemon();
+    if (!state.wsDaemon.running) {
       state.wsDaemon.startedByUs = false;
-      if (wsResult.skippedNodeVersion) {
+      if (wsDaemonResult.skippedNodeVersion) {
         state.wsDaemon.skippedNodeVersion = true;
-        state.wsDaemon.nodeVersionError = wsResult.error;
-      } else if (wsResult.error) {
-        state.wsDaemon.startError = wsResult.error;
+        state.wsDaemon.nodeVersionError = wsDaemonResult.error;
+      } else if (wsDaemonResult.error) {
+        state.wsDaemon.startError = wsDaemonResult.error;
       }
     }
   }
