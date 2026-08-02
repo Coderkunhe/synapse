@@ -871,9 +871,10 @@ async function main() {
   const client = new SynapseClient(config);
 
   // ── Step 2.5: Start heartbeat daemon (PFL-083 · B91 · B115 PID files) ──
-  // B115 (PFL-116/118): Always kill old daemon and spawn fresh.
-  // startHeartbeatDaemon() internally calls killOldDaemon() before spawn
-  // and writes the new PID file after. No more "already running" skip.
+  // B115 (PFL-116/118): Always spawn new daemon → kill old (PID file) → write new PID.
+  // startHeartbeatDaemon() internally spawns first (so old daemon is fallback on failure),
+  // then calls killOldDaemon(), then writes the new PID file.
+  // No more "already running" skip — every SessionStart gets a fresh daemon.
   const hbResult = startHeartbeatDaemon();
   if (hbResult.started) {
     state.heartbeatDaemon = { running: true, pids: [String(hbResult.pid)], startedByUs: true };
@@ -887,10 +888,10 @@ async function main() {
   }
 
   // ── Step 2.6: Start ws-daemon (PFL-093 · B96 · B115 PID files) ──────
-  // B115 (PFL-116/117/118): Always kill old daemon and spawn fresh.
-  // startWsDaemon() internally calls killOldDaemon() before spawn
-  // and writes the new PID file after. Per-worker PID files eliminate
-  // cross-worker pgrep interference.
+  // B115 (PFL-116/117/118): Always spawn new daemon → kill old (PID file) → write new PID.
+  // startWsDaemon() internally spawns first (so old daemon is fallback on failure),
+  // then calls killOldDaemon(), then writes the new PID file.
+  // Per-worker PID files eliminate cross-worker pgrep interference.
   const wsDaemonResult = startWsDaemon();
   if (wsDaemonResult.started) {
     state.wsDaemon = { running: true, pids: [String(wsDaemonResult.pid)], startedByUs: true };

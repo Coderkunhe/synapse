@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-07-31
+> 不存代码，只协调工作。最后更新：2026-08-03
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -77,6 +77,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B111 ✅ Worker CLAUDE.md 自动生成 + 第零条纪律 | **B112** 🔜 PFL-112 _boot-prompt.md 冷启动一键引导 |
+| **P11** | B115 ✅ Daemon 生命周期治理 | **B116** 🔜 待定 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B108→B109 待拉通 | batchesSinceLastL5=1 · B108+B109 双批 · 待拉通 |
+| **L5** | B114→B115 ✅ 已拉通 | batchesSinceLastL5=0 · 计数器已复位 |

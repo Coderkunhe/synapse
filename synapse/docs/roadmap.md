@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-07-31（P11-B113 登记 — PFL-113/114/115 + V-030 · 待 L5 拉通 B112→B113）
+> 最后更新：2026-08-03（P11-B115 — Daemon 生命周期治理 · L5 拉通 B114→B115）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -184,6 +184,8 @@
 | **P11-B111** | **Worker CLAUDE.md 自动生成 + 第零条纪律** — generate-skill.sh write_claude_md() 三路径生成 · 幂等跳过 · CLAUDE.md 首条"不回避问题" · 🟢 微型 · 5 files · commit `49875ec` | ✅ |
 | **P11-B112** | **`_boot-prompt.md` 冷启动一键引导** — session-init.js v2 极简模板 · Worker 启动时 @_boot-prompt.md 一键进入 · 🟢 微型 · commit `056ddff` | ✅ |
 | **P11-B113** | **登记** — PFL-113 O 需求接收协议 · PFL-114 O 空闲沉默 · PFL-115 _task-current.md 快照污染 · V-030 God's-eye 改 Worker 文件 · 模板预改 · commit `57ab8bc` | ✅ |
+| **P11-B114** | **Worker 双窗口验证 + 僵尸踩坑** — 双 Worker 同时运行 daemon 冲突验证 · PFL-116 daemon 孤儿泄漏 · PFL-117 pgrep 跨 Worker 干扰 · PFL-118 无生命周期清理 · PFL-119 stale_reaper 崩溃（初步误诊）· 🟢 纯验证/发现 · 0 code files | ✅ |
+| **P11-B115** | **Daemon 生命周期治理** — session-init.js PID 文件 daemon 生命周期（readPidFile/writePidFile/killOldDaemon）· SessionStart hook 去 heartbeat.js & · stale_task_detector naive→aware datetime 修复 · main.py 健康检查诊断化+sleep-in-try · generate-skill.sh 自动升级旧 hook · PFL-119 🟡 已修复 · 🟡 标准 · commit `a39b573` | ✅ |
 
 ---
 

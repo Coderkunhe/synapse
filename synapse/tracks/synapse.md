@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B108 ✅ 狗粮前置清理
-last_batch: P11-B108
-next_batch: P11-B109
-description: Synapse 主项目 — B108 ✅ 狗粮前置清理（stale auto-cancel 门禁 + 2 旧 task 取消 · 3 files · 658 tests）· B109 🔜 狗粮验证
+phase: P11-B115 ✅ Daemon 生命周期治理
+last_batch: P11-B115
+next_batch: P11-B116
+description: Synapse 主项目 — B115 ✅ Daemon 生命周期治理（PID 文件生命周期 · stale_reaper 修复 · 健康检查诊断化）· B116 🔜 待定
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B108 ✅ 狗粮前置清理（stale auto-canc
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B108 | **P11-B109** 🔜 | B108 ✅ 狗粮前置清理 · B109 🔜 狗粮验证 |
+| **P11** | P11-B115 | **P11-B116** 🔜 | B115 ✅ Daemon 生命周期治理 · B116 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -285,6 +285,15 @@ description: Synapse 主项目 — B108 ✅ 狗粮前置清理（stale auto-canc
 | **P11-B104** | — | **✅ 上下文过载根因分析** — collaboration_norms 29KB 占 `_protocol-cache.json` 73% · Deepseek thinking 模式下分析瘫痪 · 3 PFL 登记（key liveness/跨客户端架构/$CLAUDEDIR 假设）→ B105 上下文按需加载 | 🟡 |
 | **P11-B105** | — | **✅ 上下文按需加载** — session-init.js 拆分 protocol cache（essential 18KB + collaboration_norms 独立文件）· SKILL.md 按需查阅表更新 · 启动上下文 56KB→~27KB（-52%）· 3 files · commit 0705b68 | 🟡 |
 | **P11-B106** | PFL-101~107 | **✅ Onboarding 端到端拉通** — Bootstrap 脚本部署+hook修复+env对齐+role补全 · Worker 注册自动分配角色 · Verification 创建端点+自动创建 · JWT_SECRET 模板修复 · key liveness 校验 · $CLAUDEDIR 清理 · 15 files · 658 tests 零回归 | 🔴→✅ |
+| **P11-B107** | — | **✅ 跨客户端架构 + SessionStart 等价物** — SKILL.md 客户端无关启动自检 · bootstrap 脚本按客户端部署 · settings.json 条件化 · PFL-108 闭环 · 5 files | 🟡 |
+| **P11-B108** | — | **✅ 狗粮前置清理** — stale auto-cancel 门禁（≥10 次检测→自动取消）· 2 旧 task 取消 · 3 files · 658 tests 零回归 | 🟢 |
+| **P11-B109** | — | **✅ 狗粮验证** — OwnerType 枚举缺 HUMAN 发现并修复（500→200）· Task 生命周期 API 验证 · 系统健康确认 · 3 files · 659 tests 零回归 | 🟢 |
+| **P11-B110** | — | **✅ Worker 权限三层自动修复** — L1 根 settings 扩权 + L2 session-init.js ensureWorkerSettings() + L3 generate-skill.sh write_settings_local() · PFL-110/111/112 · commit `0d0fe76` | 🟡 |
+| **P11-B111** | — | **✅ Worker CLAUDE.md 自动生成 + 第零条纪律** — generate-skill.sh write_claude_md() · CLAUDE.md 首条"不回避问题" · commit `49875ec` | 🟢 |
+| **P11-B112** | — | **✅ _boot-prompt.md 冷启动一键引导** — session-init.js v2 极简模板 · commit `056ddff` | 🟢 |
+| **P11-B113** | — | **✅ 登记** — PFL-113/114/115 + V-030 · 模板预改 · commit `57ab8bc` | 🟢 |
+| **P11-B114** | — | **✅ Worker 双窗口验证 + 僵尸踩坑** — PFL-116/117/118/119 发现 · 0 code files · 纯验证 | 🟢 |
+| **P11-B115** | PFL-116~119 | **✅ Daemon 生命周期治理** — PID 文件生命周期 · stale_reaper 修复 · health 诊断化 · hook 自动升级 · commit `a39b573` | 🟡 |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 
