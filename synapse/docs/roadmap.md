@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-03（P11-B125 ✅ — PFL-069/070/072 服务端超时接管 · 三层梯度响应闭环）
+> 最后更新：2026-08-03（P11-B126 ✅ — PFL-084 daemon 自动升级 + JS 指纹 · 升级链全量闭环）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -197,6 +197,7 @@
 | **P11-B123** | **PFL-116 孤儿泄漏收尾 — daemon 自检层 + 四层纵深防御闭环** — heartbeat.js + ws-daemon.js `--session-pid` 父 session 存活检查 · session-init.js 传递 process.ppid · pitfalls.md PFL-116 🟡→✅ · L5 拉通 · 3 code files + docs | ✅ |
 | **P11-B124** | **PFL-084 Worker 端模板自动升级检测** — heartbeat.js 每 55s 检测 `template_version` 不匹配 → 写 flag · session-init.js `--upgrade` 模式（fetch protocol → 重建 Skill 文件）· `--quick` 注入升级 banner · SKILL.md 升级指令 · 3 code files + docs · 🟡 标准 | ✅ |
 | **P11-B125** | **PFL-069/070/072 服务端超时接管** — 三层梯度响应（回收→告警→取消）· `task_stale_reassign_minutes=15` · SQL scan_window=min(threshold, reassign) · WS broadcast 旧 owner · 670 tests 零回归 · commit `a18f94d` | ✅ |
+| **P11-B126** | **PFL-084 全量闭环** — daemon 自动升级（heartbeat.js spawn `--upgrade --silent`）· JS scripts 版本指纹（`compute_template_versions()` 扩展扫描 5 个 .js）· 两笔 B124 遗留全部消化 · 🟢 微型 · 待commit | ✅ |
 
 ---
 

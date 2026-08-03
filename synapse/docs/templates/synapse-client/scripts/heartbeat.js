@@ -30,6 +30,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const { SynapseClient } = require('./api-client');
 
@@ -114,6 +115,23 @@ function checkTemplateVersion(serverVersion) {
       }, null, 2) + '\n', 'utf-8');
     } catch (_) { /* best-effort */ }
     console.error('heartbeat: WARN template outdated (local: ' + localVersion.slice(0, 16) + '..., server: ' + serverVersion.slice(0, 16) + '...)');
+
+    // P11-B126 (PFL-084): auto-upgrade — spawn upgrade immediately instead of
+    // waiting for Worker AI to notice the flag and run --upgrade manually.
+    // Fire-and-forget: detached + unref() — daemon does not wait for completion.
+    try {
+      const upgradeScript = path.join(__dirname, 'session-init.js');
+      const child = spawn(process.execPath, [upgradeScript, '--upgrade', '--silent'], {
+        detached: true,
+        stdio: 'ignore',
+        env: { ...process.env },
+      });
+      child.unref();
+      console.error('heartbeat: auto-upgrade spawned — ' +
+        'local: ' + localVersion.slice(0, 16) + '... → server: ' + serverVersion.slice(0, 16) + '...');
+    } catch (_) {
+      console.error('heartbeat: auto-upgrade spawn FAILED — flag file written, Worker AI must upgrade manually');
+    }
   } else {
     // Versions match — clear stale flag if it exists (upgrade was done)
     try {

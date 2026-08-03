@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B124 ✅ PFL-084 Worker 端模板自动升级检测
-last_batch: P11-B124
-next_batch: P11-B125
-description: Synapse 主项目 — B124 ✅ PFL-084 Worker 端模板自动升级检测（三层架构 · 零 Python 源码变更 · L5 拉通）
+phase: P11-B126 ✅ PFL-084 daemon 自动升级 + JS 指纹 · 升级链全量闭环
+last_batch: P11-B126
+next_batch: P11-B127
+description: Synapse 主项目 — B126 ✅ PFL-084 全量闭环（daemon 自动升级 + JS 指纹 · B124 两笔遗留全部消化）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B124 ✅ PFL-084 Worker 端模板自动升级
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B124 | **P11-B125** 🔜 | B124 ✅ PFL-084 Worker 端模板自动升级检测 (三层架构+零 Python 变更+L5拉通) · B125 🔜 待定 |
+| **P11** | P11-B126 | **P11-B127** 🔜 | B126 ✅ PFL-084 全量闭环 (daemon自动升级+JS指纹+B124遗留消化) · B127 🔜 PFL收尾审计 |
 
 ## P11 路线图：多 Agent 接入战
 

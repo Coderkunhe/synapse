@@ -6,9 +6,10 @@ Variable resolution from four sources:
 - Worker's Team (team_name via relationship)
 - Project record (name, description, git_repo_url + metadata_ JSON)
 
-Template version tracking (P11-B94 · PFL-084):
+Template version tracking (P11-B94 · PFL-084 · B126):
 - ``compute_template_versions()`` — SHA256 hash of every .md file in docs/templates/
-  produces a single version fingerprint that changes when any template changes.
+  plus JS scripts in docs/templates/synapse-client/scripts/
+  produces a single version fingerprint that changes when any template or script changes.
 - Called by heartbeat endpoint (Worker detects staleness on every beat) and
   ``GET /v1/templates/versions`` (Worker --check-version / --upgrade).
 """
@@ -93,18 +94,21 @@ def load_template(name: str) -> str:
 def compute_template_versions() -> dict:
     """Compute SHA256 version fingerprints for all template files.
 
-    Scans ``docs/templates/`` for every ``.md`` file, computes a per-file
-    SHA256 hash, then derives a combined version by hashing the sorted
-    concatenation of all file hashes.
+    Scans ``docs/templates/`` for every ``.md`` file, plus JS scripts in
+    ``docs/templates/synapse-client/scripts/``, computes a per-file SHA256
+    hash, then derives a combined version by hashing the sorted concatenation
+    of all file hashes.
 
     Returns:
         ``{"version": "sha256:...", "files": {"role-builder.md": "sha256:...", ...}, "updated_at": "2026-07-29T..."}``
 
-    The combined *version* changes when **any** template file changes.
-    Worker clients compare this against their local ``.claude/synapse-version.json``
-    to detect staleness.
+    The combined *version* changes when **any** template file or JS script
+    changes. Worker clients compare this against their local
+    ``.claude/synapse-version.json`` to detect staleness.
     """
     template_files: dict[str, str] = {}
+
+    # Phase 1: .md files in templates root
     if TEMPLATES_DIR.is_dir():
         for path in sorted(TEMPLATES_DIR.iterdir()):
             if path.is_file() and path.suffix == ".md":
@@ -112,7 +116,20 @@ def compute_template_versions() -> dict:
                 file_hash = hashlib.sha256(content.encode()).hexdigest()
                 template_files[path.name] = f"sha256:{file_hash}"
 
-    # Combined version: SHA256 of all file hashes concatenated (sorted by filename)
+    # P11-B126 (PFL-084): Phase 2 — JS scripts in synapse-client/scripts/.
+    # heartbeat.js, session-init.js, ws-daemon.js are Worker runtime daemons
+    # deployed alongside templates. Changes to these scripts must also trigger
+    # template version bumps so the daemon auto-upgrade kicks in.
+    scripts_dir = TEMPLATES_DIR / "synapse-client" / "scripts"
+    if scripts_dir.is_dir():
+        for path in sorted(scripts_dir.iterdir()):
+            if path.is_file() and path.suffix == ".js":
+                content = path.read_text(encoding="utf-8")
+                file_hash = hashlib.sha256(content.encode()).hexdigest()
+                rel_path = str(path.relative_to(TEMPLATES_DIR))
+                template_files[rel_path] = f"sha256:{file_hash}"
+
+    # Combined version: SHA256 of all file hashes concatenated (sorted by key)
     combined_input = "".join(template_files[name] for name in sorted(template_files))
     combined_hash = hashlib.sha256(combined_input.encode()).hexdigest()
 
