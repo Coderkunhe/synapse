@@ -42,15 +42,40 @@ node .agents/skills/synapse/scripts/session-init.js
 
 > 💡 如果你的客户端无法执行 Node.js 脚本，跳过到下方的「手动启动」节。
 
+### 快照新鲜度检查（PFL-110 · B122）
+
+> ⚠️ **`_task-current.md` 是 SessionStart 时的一次性快照，不是实时状态。** 每次从 CronCreate 或 ScheduleWakeup 唤醒后，快照可能已过期数小时。God's-eye 可能在 Worker 休眠期间创建/分配了 Task——快照不会自动更新。
+
+**每次唤醒后，在信任 `_task-current.md` 之前：**
+
+1. **读快照头部的 `Snapshot timestamp`**（位于文件头部 `> **Snapshot timestamp**: ...`）
+2. **计算快照年龄** = 当前时间 − snapshot timestamp
+3. **决策表**：
+
+| 快照年龄 | 动作 |
+|:---|:---|
+| **< 5 分钟** | ✅ 可信任用于初始定位，但具体决策前仍需调 API（循环铁律 #2） |
+| **5–30 分钟** | ⚠️ 快照可能已过期 → 刷新：`node .claude/skills/synapse/scripts/session-init.js --quick`（约 2-3 秒，只刷新 API 状态，不重启 daemon） |
+| **> 30 分钟** | 🚨 **必须刷新** — 世界几乎肯定已变化 → `session-init.js --quick` 或完整重新初始化 |
+
+4. **如果快照显示"队列空"且 > 5 分钟 → 🚨 不要直接 ScheduleWakeup 休眠。** 刷新快照后再判断——"队列空"可能是过期数据，不是真实空闲。
+
+> 📖 **PFL-110 教训（B110 狗粮）**：God's-eye 在 Builder 休眠期间创建了 Task 并分配——Builder 醒来后读取过期快照（"队列空"），直接 ScheduleWakeup 退出。Task 被搁置数小时无人认领。快照是历史的，不是实时的。不检查新鲜度 = 盲区。
+>
+> **`--quick` vs 完整 `session-init.js`**：
+> - `--quick`：跳过 daemon 管理、protocol 拉取、handshake——只刷新 API 状态（2-3 秒）
+> - 完整模式：重新初始化所有组件，包括 daemon 重启
+> - 中session 唤醒用 `--quick`，新 session 启动用完整模式
+
 ### 第二步：读取初始状态
 
 1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）
 2. **如果脚本报错**（env 不完整 / API 不可达）→ **不要直接放弃**（PFL-115）。快照是启动时的瞬时状态——网络波动、服务重启都可能导致快照生成失败。**先主动重试 API**：`curl -s $SYNAPSE_API_URL/health`。如果 API 实际可达 → 重新运行 `node scripts/session-init.js` 刷新快照。如果 API 确实不可达 → ScheduleWakeup 120s 后重试
 3. **如果状态正常** → 输出 `_task-current.md` 中的角色横幅（由脚本生成），开始自主驱动循环
 
-> ⚠️ `_task-current.md` 是**会话启动时的初始快照**，不是实时状态。每次判断"下一步做什么"前，必须重新调用 API 获取最新状态（循环铁律 #2）。
+> ⚠️ `_task-current.md` 是**会话启动时的初始快照**，不是实时状态。每次判断"下一步做什么"前，必须重新调用 API 获取最新状态（循环铁律 #2）。**唤醒时先检查快照新鲜度**（见上方「快照新鲜度检查」PFL-110）。
 >
-> ⚠️ **PFL-115（B117）：快照不可信时主动重试 API。** 快照显示"API 不可达"或"队列空"不代表真实状态——不要因为快照说不可达就放弃。先验证 API 实际状态再决策。快照是参考，不是判决书。
+> ⚠️ **PFL-115（B117）：快照不可信时主动重试 API。** 快照显示"API 不可达"或"队列空"不代表真实状态——不要因为快照说不可达就放弃。先验证 API 实际状态再决策。快照是参考，不是判决书。**PFL-110（B122）：快照过期也属于"不可信"——检查 Snapshot timestamp，> 5 分钟就刷新。**
 
 **不再需要手动执行**：env 检查、protocol 拉取、handshake、state sync —— 这些机械操作已由脚本完成。
 

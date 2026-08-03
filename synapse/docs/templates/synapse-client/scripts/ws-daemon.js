@@ -41,6 +41,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const { getKey } = require('./keychain');
 
 // ── Constants ──────────────────────────────────────────────────────
@@ -51,6 +52,19 @@ const MAX_EVENTS = 50;
 
 // Reconnect backoff (seconds): 1s → 5s → 25s → give up
 const BACKOFF_SCHEDULE = [1, 5, 25];
+
+// B122 PFL-110 direction 2: WS-triggered auto-refresh on task events.
+// When the server broadcasts a task/verification event to this Worker,
+// spawn session-init.js --quick --silent to refresh _task-current.md.
+// Throttled to once per 30s to avoid rapid-fire spawns during batch ops.
+const SESSION_INIT_SCRIPT = path.join(__dirname, 'session-init.js');
+const AUTO_REFRESH_THROTTLE_MS = 30_000;
+
+// ── State ────────────────────────────────────────────────────────────
+
+// B122 PFL-110 direction 2: timestamp of last auto-refresh spawn (ms).
+// Persists across reconnects — don't re-initialize on each connect().
+let lastAutoRefresh = 0;
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -159,6 +173,29 @@ function connect(wsUrl) {
       const payload = JSON.parse(event.data);
       appendEvent(payload);
       touchHealth();
+
+      // ── B122 PFL-110 direction 2: WS-triggered auto-refresh ─────
+      // Detect task/verification events and spawn session-init.js --quick --silent
+      // to refresh _task-current.md. Throttled to once per 30s.
+      // Event types from server use either top-level "event_type" (task_execution,
+      // verification, task_activation) or nested "data.event_type" (task_create).
+      const eventType = payload.event_type || (payload.data && payload.data.event_type) || '';
+      const isTaskEvent =
+        eventType.startsWith('task.') || eventType.startsWith('verification.');
+      if (isTaskEvent) {
+        const now = Date.now();
+        if (now - lastAutoRefresh >= AUTO_REFRESH_THROTTLE_MS) {
+          lastAutoRefresh = now;
+          try {
+            const child = spawn(process.execPath, [SESSION_INIT_SCRIPT, '--quick', '--silent'], {
+              detached: true,
+              stdio: 'ignore',
+              env: { ...process.env },
+            });
+            child.unref();
+          } catch (_) { /* fire-and-forget — best-effort */ }
+        }
+      }
     } catch (_) {
       // Non-JSON message (e.g. plain text) — still record it
       appendEvent({ type: 'unknown', raw: String(event.data).slice(0, 500) });

@@ -1,11 +1,8 @@
 {
-  "lastL5Batch": "B121 L5 拉通 — 📄 pitfalls.md PFL-116 B121纵深防御 + PFL-074 ✅服务端闭环 · 🧪 session-init.js cleanupOrphanDaemons() + conversation_service.py handoff→O skip · 📋 p11.md 暗号→B122",
+  "lastL5Batch": "B121→B122 拉通 — 📄 roadmap.md 新增 B120-B122 条目 · 📋 reqlog.md 新增 B122 需求交付记录 · 📅 daily 2026-08-03.md 新增 B122 实施记录 · 📊 tracks/synapse.md last_batch 更新到 B122 · 📝 pitfalls.md PFL-110 B122 实施记录同步 · 零 drift",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
-  "completedBatches": [
-    "B120",
-    "B121"
-  ],
-  "lastL5Evidence": "B121 L5 拉通 — 📄 pitfalls.md PFL-116 B121纵深防御 (cleanupOrphanDaemons) + PFL-074 ✅服务端闭环 (handoff→Orchestrator跳过auth request) · 🧪 session-init.js +75行 + conversation_service.py +21行 · 📋 p11.md 暗号→B122 · PFL计数 23✅/8🟡",
-  "notes": "B121 双 PFL 闭环 — PFL-116 pre-B115 zombie 自动清理 + PFL-074 handoff→O 跳过悬挂 auth request。batchesSinceLastL5 复位。下一站 B122 (PFL-110 快照不可见)。"
+  "completedBatches": [],
+  "lastL5Evidence": "B121→B122 拉通 — 📄 roadmap.md 新增 B120-B122 条目 · 📋 reqlog.md 新增 B122 需求交付记录 · 📅 daily 2026-08-03.md 新增 B122 实施记录 · 📊 tracks/synapse.md last_batch 更新到 B122 · 📝 pitfalls.md PFL-110 B122 实施记录同步 · 零 drift",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

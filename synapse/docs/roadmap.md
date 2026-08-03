@@ -190,6 +190,10 @@
 | **P11-B117** | **O 需求交互基础设施** — PFL-113 Message proposal_status + POST/tasks 提案门禁 · PFL-114 ⚫ 空闲问候 · PFL-115 session-init.js 快照覆盖保护 + SKILL.md 快照不可信警告 · 3 PFL 闭环 · 9 files · 🟡 标准 · commit `010fc24` | ✅ |
 | **P11-B118** | **双 Worker 冷启动部署验证** — generate-skill.sh 管线验证 · B117 5/5 变更确认部署 · 双 Worker 重新生成+env恢复 · .claude/.claude嵌套不复现（B115修复确认）· 发现 PFL-120（proposal零测试）+ PFL-121（CLAUDE.md路径漂移）· 🟢 纯部署验证 · 0 code files | ✅ |
 | **P11-B119** | **三合一微型批** — PFL-120 proposal 门禁补测试 7 场景（bootstrap/confirmed/pending/null/rejected/跨project隔离/独立判断）· PFL-121 CLAUDE.md 路径漂移修复（write_claude_md 按 target 区分引用）· 422 恢复子协议（role-orchestrator.md 三场景恢复表）· 3 files · 666→673 tests (+7) · 🟢 微型 | ✅ |
+| **P11-B119+** | **session-init.js 嵌套修复 + L5 拉通** — SETTINGS_LOCAL `.claude/.claude` 嵌套路径修复 · L5 B119→B119+ 拉通 · commit `b2d95a9` | ✅ |
+| **P11-B120** | **轻量收尾批** — PFL 状态收尾（PFL-099/100/111/119 header 🟡→✅）· PFL-122 跨 actor 隔离测试（4 场景 · 11 全通）· 审计教训登记（LL22-LL25）· L5 拉通 · commit `0171dd3` | ✅ |
+| **P11-B121** | **PFL-116 zombie 清理纵深防御 + PFL-074 handoff→O 跳过 auth request** — session-init.js cleanupOrphanDaemons() + conversation_service.py _create_handoff_auth_request() O 检测 · commit `4b52717` | ✅ |
+| **P11-B122** | **PFL-110 快照新鲜度三层纵深防御** — session-init.js v1.3.0（snapshot timestamp 元数据 + CronCreate 新鲜度 Banner + `--quick` 刷新模式）· SKILL.md 唤醒新鲜度协议 · 3 files · 🟡 标准 | ✅ |
 
 ---
 

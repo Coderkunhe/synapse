@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P11-B120 ✅ 轻量收尾批
-last_batch: P11-B120
-next_batch: P11-B121
+last_batch: P11-B122
+next_batch: P11-B123
 description: Synapse 主项目 — B120 ✅ 轻量收尾批（PFL header 漂移修正 · PFL-122 跨 actor 测试 · 审计教训 LL22-LL25 登记 · L5 拉通）
 ---
 
