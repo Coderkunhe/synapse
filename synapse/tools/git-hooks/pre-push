@@ -18,16 +18,23 @@ if [[ "$BRANCH" != "main" ]] && [[ "$BRANCH" != "master" ]]; then
     exit 0
 fi
 
-# ── 逃逸通道检测（GAP-6 硬化 · P100-B90）─────────────────
-# git push -o skip-synapse-check → GIT_PUSH_OPTION_0=skip-synapse-check
+# ── 逃逸通道检测（GAP-6 硬化 · P100-B90 · B115 双通道）─────────
+# 通道 1: git push -o skip-synapse-check → GIT_PUSH_OPTION_0=skip-synapse-check
+#          依赖远端 push-option 协商（Gitee 等部分远端不支持，此通道可能不可用）
+# 通道 2: SYNAPSE_PUSH_BYPASS=1 git push → 纯客户端 env var，无条件可靠
 # 未配置 Synapse 且未显式声明跳过 → 硬阻断，不再静默放行
 SKIP_FLAG=""
+# 通道 1: git push-option（依赖远端协商）
 for opt in ${!GIT_PUSH_OPTION_*}; do
     if [[ "${!opt}" == "skip-synapse-check" ]]; then
         SKIP_FLAG="1"
         break
     fi
 done
+# 通道 2: 环境变量 fallback（纯客户端，Gitee 等不协商 push-option 的远端可用）
+if [[ "${SYNAPSE_PUSH_BYPASS:-}" == "1" ]]; then
+    SKIP_FLAG="1"
+fi
 
 if [[ -z "${SYNAPSE_API_URL:-}" ]] || ! command -v synapse-exec &>/dev/null; then
     if [[ -n "$SKIP_FLAG" ]]; then
@@ -45,7 +52,8 @@ if [[ -z "${SYNAPSE_API_URL:-}" ]] || ! command -v synapse-exec &>/dev/null; the
     echo "🔴  推送到 ${BRANCH} 需要经过 Synapse 审批链路。"
     echo "🔴"
     echo "🔴  非 Worker 环境（God's-eye / 非 Synapse 项目）："
-    echo "🔴    git push -o skip-synapse-check"
+    echo "🔴    SYNAPSE_PUSH_BYPASS=1 git push origin master"
+    echo "🔴    (或 git push -o skip-synapse-check — 部分远端可能不支持)"
     echo "🔴"
     echo "🔴  Worker 环境："
     echo "🔴    cd synapse && synapse-exec --install-hook"
