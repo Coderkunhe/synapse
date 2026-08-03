@@ -77,6 +77,6 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B115 ✅ Daemon 生命周期治理 | **B116** 🔜 待定 |
+| **P11** | B117 ✅ O 需求交互基础设施 | **B118** 🔜 待定 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B114→B115 ✅ 已拉通 | batchesSinceLastL5=1 · hook bypass 修复后 · 未达阈值 |
+| **L5** | B115→B116 ✅ | batchesSinceLastL5=1 · B117 后=2→需 L5 拉通 |

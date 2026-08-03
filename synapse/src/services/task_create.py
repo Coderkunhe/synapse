@@ -7,20 +7,76 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import TaskStatus, VerificationStatus
 from src.exceptions import (
     ConflictError,
     NotFoundError,
+    SynapseError,
 )
 from src.models.project import Project
 from src.models.task import Task
+from src.models.task_worker_conversation import TaskWorkerConversation
 from src.models.verification import Verification
 from src.services.event_store import event_store
 from src.services.ws_manager import ws_manager
 from src.utils.id_gen import generate_id
 from src.utils.json_utils import safe_dumps
+
+
+async def _check_proposal_confirmed(
+    db: AsyncSession,
+    *,
+    project_id: str,
+    actor_id: str,
+) -> None:
+    """P11-B117 PFL-113: 校验 O 的最新 proposal 已被 Human 确认。
+
+    查询该项目中 O 发出的最新 proposal 消息：
+    - 无 proposal → 允许（新项目 bootstrap）
+    - 最新 proposal 已 confirmed → 允许
+    - 最新 proposal 为 pending/rejected → 阻断，要求先确认提案
+    """
+    stmt = (
+        select(TaskWorkerConversation)
+        .join(Task, TaskWorkerConversation.task_id == Task.id)
+        .where(
+            Task.project_id == project_id,
+            TaskWorkerConversation.sender_worker_id == actor_id,
+            TaskWorkerConversation.message_type == "proposal",
+        )
+        .order_by(desc(TaskWorkerConversation.created_at))
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    latest = result.scalar_one_or_none()
+
+    if latest is None:
+        # 无历史 proposal → bootstrap 模式，允许创建
+        return
+
+    if latest.proposal_status == "confirmed":
+        return
+
+    if latest.proposal_status == "rejected":
+        raise SynapseError(
+            status_code=422,
+            code="PROPOSAL_REJECTED",
+            message=f"Latest proposal (message {latest.id}) was rejected. "
+                    "Revise and re-propose before creating tasks.",
+            details={"proposal_message_id": latest.id},
+        )
+
+    if latest.proposal_status in (None, "pending"):
+        raise SynapseError(
+            status_code=422,
+            code="PROPOSAL_NOT_CONFIRMED",
+            message=f"Latest proposal (message {latest.id}) has not been confirmed. "
+                    "Wait for Human to confirm the proposal before creating tasks.",
+            details={"proposal_message_id": latest.id},
+        )
 
 
 async def create_task(
@@ -49,6 +105,13 @@ async def create_task(
     project = await db.get(Project, project_id)
     if project is None:
         raise NotFoundError("project", project_id)
+
+    # P11-B117 PFL-113: 校验 O 的最新 proposal 已被 Human 确认
+    await _check_proposal_confirmed(
+        db,
+        project_id=project_id,
+        actor_id=actor_id,
+    )
 
     # P9-B69: verifications 改为创建时可选项（移除 D-003 创建时强制校验）
     # 若指定了父任务则校验

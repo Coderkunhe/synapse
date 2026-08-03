@@ -45,10 +45,12 @@ node .agents/skills/synapse/scripts/session-init.js
 ### 第二步：读取初始状态
 
 1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）
-2. **如果脚本报错**（env 不完整 / API 不可达）→ 根据错误类型提示用户修复，**不继续执行**
+2. **如果脚本报错**（env 不完整 / API 不可达）→ **不要直接放弃**（PFL-115）。快照是启动时的瞬时状态——网络波动、服务重启都可能导致快照生成失败。**先主动重试 API**：`curl -s $SYNAPSE_API_URL/health`。如果 API 实际可达 → 重新运行 `node scripts/session-init.js` 刷新快照。如果 API 确实不可达 → ScheduleWakeup 120s 后重试
 3. **如果状态正常** → 输出 `_task-current.md` 中的角色横幅（由脚本生成），开始自主驱动循环
 
 > ⚠️ `_task-current.md` 是**会话启动时的初始快照**，不是实时状态。每次判断"下一步做什么"前，必须重新调用 API 获取最新状态（循环铁律 #2）。
+>
+> ⚠️ **PFL-115（B117）：快照不可信时主动重试 API。** 快照显示"API 不可达"或"队列空"不代表真实状态——不要因为快照说不可达就放弃。先验证 API 实际状态再决策。快照是参考，不是判决书。
 
 **不再需要手动执行**：env 检查、protocol 拉取、handshake、state sync —— 这些机械操作已由脚本完成。
 

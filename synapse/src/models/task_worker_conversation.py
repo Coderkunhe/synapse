@@ -50,7 +50,7 @@ class TaskWorkerConversation(Base, AuditMixin):
     # ── 消息分类 ──
     message_type: Mapped[str] = mapped_column(
         String(20), nullable=False, index=True,
-        comment="clarification | blocking | review_request | handoff",
+        comment="clarification | blocking | review_request | handoff | proposal",
     )
 
     # ── 消息内容 ──
@@ -73,6 +73,12 @@ class TaskWorkerConversation(Base, AuditMixin):
     authorization_request_id: Mapped[str | None] = mapped_column(
         ForeignKey("authorization_requests.id"), nullable=True,
         comment="handoff 类型时关联的授权请求 ID — 串起审计链",
+    )
+
+    # ── 提案状态 (P11-B117 PFL-113) ──
+    proposal_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, index=True,
+        comment="提案状态 — pending | confirmed | rejected · O 提案→Human 确认的协议追踪",
     )
 
     # ── 解决状态 ──

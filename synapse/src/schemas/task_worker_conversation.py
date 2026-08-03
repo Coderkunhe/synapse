@@ -27,20 +27,22 @@ class ConversationMessageCreate(BaseModel):
     workflow_id: str | None = Field(None, description="可选 Workflow 上下文")
     message_type: str = Field(
         ...,
-        pattern=r"^(clarification|blocking|review_request|handoff)$",
+        pattern=r"^(clarification|blocking|review_request|handoff|proposal)$",
     )
     body: str = Field(..., min_length=1, description="消息正文，支持 @worker:name / @role:rolename 语法")
     in_reply_to_id: str | None = Field(None, description="回复目标消息 ID")
+    proposal_status: str | None = Field(None, pattern=r"^(pending|confirmed|rejected)$", description="提案状态 — O 提案→Human 确认 (P11-B117)")
 
 
 class ConversationMessageUpdate(BaseModel):
     """更新 A2A 消息的请求体（所有字段可选）。
 
-    支持：标记 resolved、编辑正文、更新解决状态。
+    支持：标记 resolved、编辑正文、更新解决状态、更新提案状态。
     """
 
     body: str | None = Field(None, min_length=1)
     is_resolved: bool | None = None
+    proposal_status: str | None = Field(None, pattern=r"^(pending|confirmed|rejected)$", description="更新提案状态 (P11-B117)")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -63,5 +65,6 @@ class ConversationMessageResponse(AuditFields):
     is_resolved: bool
     resolved_at: datetime | None = None
     resolved_by_worker_id: str | None = None
+    proposal_status: str | None = None
 
     model_config = {"from_attributes": True}

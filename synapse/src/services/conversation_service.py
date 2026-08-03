@@ -182,6 +182,7 @@ async def create_message(
     body: str,
     in_reply_to_id: str | None,
     sender_worker_id: str,
+    proposal_status: str | None = None,
     # 事件元数据
     team_id: str,
     actor_type: str,
@@ -192,6 +193,7 @@ async def create_message(
     - 解析 @mention → mentions_json
     - 解析 @mention → worker_id 列表（用于通知/索引）
     - handoff 类型：自动创建 AuthorizationRequest 并链接
+    - proposal 类型：记录 proposal_status 追踪 O 提案→Human 确认 (P11-B117)
 
     Raises:
         NotFoundError: task_id 或 in_reply_to_id 指向不存在的记录
@@ -239,6 +241,7 @@ async def create_message(
         in_reply_to_id=in_reply_to_id,
         authorization_request_id=authorization_request_id,
         is_resolved=False,
+        proposal_status=proposal_status,
     )
     db.add(message)
     await db.flush()
@@ -272,16 +275,18 @@ async def update_message(
     body: str | None = None,
     is_resolved: bool | None = None,
     resolved_by_worker_id: str | None = None,
+    proposal_status: str | None = None,
     # 事件元数据
     team_id: str,
     actor_type: str,
     actor_id: str,
 ) -> TaskWorkerConversation:
-    """更新消息正文 或 标记已解决。
+    """更新消息正文、标记已解决、或更新提案状态。
 
     - body 非 None → 更新正文 + 重新解析 @mentions
     - is_resolved True 且之前为 False → 记录 CONVERSATION_MESSAGE_RESOLVED 事件
     - is_resolved False → 撤销 resolved 状态（重新打开）
+    - proposal_status 非 None → 更新提案状态 (P11-B117 PFL-113)
 
     已 resolved 的消息再次 resolve → idempotent（不重复记录事件）。
 
@@ -296,6 +301,9 @@ async def update_message(
         # 重新解析 @mentions
         mentions = parse_mentions(body)
         message.mentions_json = json.dumps(mentions) if mentions else None
+
+    if proposal_status is not None:
+        message.proposal_status = proposal_status
 
     if is_resolved is not None and is_resolved != was_resolved:
         message.is_resolved = is_resolved

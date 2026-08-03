@@ -45,10 +45,71 @@
 
 ---
 
+## 需求接收协议（P11-B117 PFL-113）
+
+> Human→O→Task 链路的第一段。收到需求后，按三段式处理——不只是"拆"，先确认你理解了。
+
+### 三段式：理解 → 追问 → 提案 → 确认
+
+```
+Human 输入需求
+  │
+  ▼
+Step 1 — 理解（Understand）
+  ├─ 复述你理解的需求（目标 + 边界 + 验收标准）
+  └─ 发现歧义 → 不猜测，进入 Step 2
+  │
+  ▼
+Step 2 — 追问（Challenge）
+  ├─ 列出需要澄清的点（逐条，不是一次问一堆）
+  └─ 等待 Human 回答 → 回到 Step 1 重新理解
+  │
+  ▼
+Step 3 — 提案（Propose）
+  ├─ 需求已清晰 → 写提案消息（message_type=proposal, proposal_status=pending）
+  │   └─ 选择已有 Task（如 project-planning）或在首个 Task 上发消息
+  ├─ 提案内容：你计划拆成哪些 Task、优先级、边界
+  └─ 发评论区 @Human → 等待确认
+  │
+  ▼
+Step 4 — 确认（Confirm）
+  ├─ Human 确认 → 提案消息 proposal_status 更新为 confirmed
+  │   └─ 更新方式：PATCH /projects/{pid}/tasks/{tid}/messages/{mid}
+  │       Body: {"proposal_status": "confirmed"}
+  ├─ Human 驳回 → proposal_status = rejected → 回到 Step 1 重新理解
+  └─ Human 未回复 → 继续等。不跳过提案直接建 Task
+  │
+  ▼
+提案已 confirmed → 拆 Task · 创建 · 分配
+```
+
+### 提案 vs Task 创建
+
+| | 提案（Proposal） | Task 创建 |
+|:---|:---|:---|
+| **是什么** | "我打算这样做，对吗？" | "开始做吧" |
+| **API** | POST message (type=proposal) | POST /tasks |
+| **门禁** | 无前置条件 | **API 强制校验**：O 的最新 proposal 必须已 confirmed |
+| **失败处理** | Human 驳回 → 修订后重新提案 | PROPOSAL_NOT_CONFIRMED 422 → 回去提案 |
+
+### 门禁规则
+
+- **无历史 proposal**（新项目）→ 放行（bootstrap 模式）
+- **最新 proposal 为 confirmed** → 放行
+- **最新 proposal 为 pending** → 422 PROPOSAL_NOT_CONFIRMED → 等 Human 确认
+- **最新 proposal 为 rejected** → 422 PROPOSAL_REJECTED → 修订后重新提案
+
+> ⚠️ **不要跳过提案直接建 Task。** API 层有机械门禁——O 的最新 proposal 未 confirmed 时，POST /tasks 会返回 422。这不是建议，是硬阻断。
+
+---
+
 ## 工作流
 
 ```
 需求输入
+  │
+  ▼
+需求接收协议（三段式：理解→追问→提案→确认）
   │
   ▼
 理解需求 → 拆成 Task（每个 Task 绑定 Verification）
@@ -167,7 +228,7 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 | 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
 | 🔵 全部 in_progress（正常进展）| 监工：先查评论区 → 逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
-| ⚫ 全队列空 | 🚨 先读 `_task-current.md` 顶部活跃任务数（PFL-082 机械告警）。活跃任务数 > 0 → **禁止退出，回到步骤 1**。活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆 + `_task-current.md` 活跃任务数 = 0。**只有这个状态退出循环** | 60s |
+| ⚫ 全队列空 | **先问候 Human**（PFL-114）：输出「Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。」→ 🚨 再读 `_task-current.md` 顶部活跃任务数（PFL-082 机械告警）。活跃任务数 > 0 → **禁止退出，回到步骤 1**。活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆 + `_task-current.md` 活跃任务数 = 0。**只有这个状态退出循环** | 60s |
 | 🔴 有 in_verification 停滞 >15min（PFL-077） | **验收超时策略（双层防御）**：**O 层（15min）**：① `POST /tasks/{id}/messages @Human "请验收 Task #{id}"` 通知 Human。② 继续等待 5 分钟。③ 仍无响应 → `POST /verifications/{id}/verify` 强制 reject（备注 "Auto-rejected: verification timeout >20min, no Human response"）。④ 评论区 @Builder 说明情况。⑤ 将 Task 移回 backlog 或标记 cancelled。**Server 层（30min 安全网 · B88）**：若 O 也崩溃/超时/未执行上述流程，Server 后台任务自动将 in_verification 任务回退到 in_progress（事件类型 `task.verification_timeout_reverted`）。O 在状态同步时发现回退事件 → 优先重新验收（若 Human 已在线）或重新分配。**不要无限等待——O 的职责是推进工作流，不是等 Human 永远不来的回复。** | — |
 
 **验收 vs 对话汇报 — 明确区分**：

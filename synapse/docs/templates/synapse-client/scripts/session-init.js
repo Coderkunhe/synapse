@@ -411,6 +411,31 @@ function checkEnv() {
 }
 
 /**
+ * PFL-115 (B117): Check if existing _task-current.md is from today and healthy.
+ * Returns true if the existing snapshot should be preserved (not overwritten).
+ *
+ * A healthy snapshot means: envOk + protocolOk + handshakeOk, and the
+ * snapshot was generated today (same date in the header).
+ *
+ * @returns {boolean}
+ */
+function isExistingSnapshotHealthy() {
+  try {
+    if (!fs.existsSync(OUTPUT_FILE)) return false;
+    const content = fs.readFileSync(OUTPUT_FILE, 'utf-8');
+    // Check if generated today
+    const today = new Date().toISOString().slice(0, 10);
+    if (!content.includes(today)) return false;
+    // Check for healthy indicators
+    const hasEnvOk = content.includes('API URL') && !content.includes('Environment incomplete');
+    const hasProtocolOk = content.includes('Protocol') && !content.includes('Protocol fetch failed');
+    return hasEnvOk && hasProtocolOk;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
  * Write _task-current.md with structured state.
  */
 function writeState(state) {
@@ -452,6 +477,28 @@ function writeState(state) {
   lines.push('> ');
   lines.push('> **然后**再读下面的状态。本 banner 由 session-init.js 机械生成——脚本不会骗你。');
   lines.push('');
+
+  // ── PFL-115 Stale Snapshot Warning (B117 · 快照可能过期) ──
+  // When the current session-init run has errors/warnings, the snapshot data
+  // may be stale or incomplete. The AI should actively retry API calls rather
+  // than treating the snapshot as authoritative.
+  if ((state.errors && state.errors.length > 0) || (state.warnings && state.warnings.length > 0)) {
+    lines.push('## ⚠️ 快照可能过期 — 主动重试 API（PFL-115 · B117）');
+    lines.push('');
+    lines.push('> ⚠️ **快照不可信警告**：当前会话初始化时部分步骤失败，快照中的数据可能已过期。');
+    lines.push('> ');
+    lines.push('> **不要因为快照显示"API 不可达"或"队列空"就直接退出。** 快照是启动时的瞬时状态——');
+    lines.push('> 网络波动、服务重启、DNS 解析延迟都可能导致快照生成失败。');
+    lines.push('> ');
+    lines.push('> **在做出"无法继续"的判断之前，必须先主动重试 API：**');
+    lines.push('> 1. `curl -s $SYNAPSE_API_URL/health` — 确认 API 可达性');
+    lines.push('> 2. 如果 API 可达 → 重新运行 `node scripts/session-init.js` 刷新快照');
+    lines.push('> 3. 如果 API 仍不可达 → ScheduleWakeup 120s 后重试，不要永久退出');
+    lines.push('> ');
+    lines.push('> **PFL-115 教训**：O 收到需求但快照说"API 不可达"，O 放弃——需求→Task 链路断裂。');
+    lines.push('> 快照是参考，不是判决书。API 的真实状态可能和快照不同。');
+    lines.push('');
+  }
 
   // ── PFL-079/082 Active Task Banner (B84 · 机械告警) ──
   // MUST appear before Connection section — the AI reads this file top-to-bottom.
@@ -1189,8 +1236,16 @@ async function main() {
     state.staleVerificationCount = state.staleVerificationTasks.length;
   }
 
-  // ── Step 6: Write output ──────────────────────────────────────
-  writeState(state);
+  // ── Step 6: Write output (PFL-115 guard: don't overwrite healthy snapshot) ──
+  // PFL-115 (B117): 不覆盖已有成功快照。如果当前快照有错误且已有今日健康快照，保留旧快照。
+  const hasErrors = state.errors && state.errors.length > 0;
+  const existingHealthy = isExistingSnapshotHealthy();
+  if (hasErrors && existingHealthy) {
+    console.log(`⚠️ ${SCRIPT_NAME}: PFL-115 — 保留今日健康快照，当前快照有 ${state.errors.length} 个错误，不覆盖。`);
+    console.log('   旧快照可能已过期——AI 应主动重试 API 确认状态。');
+  } else {
+    writeState(state);
+  }
 
   // B112 PFL-112: Generate _boot-prompt.md for one-click cold-start
   writeBootPrompt(state);
