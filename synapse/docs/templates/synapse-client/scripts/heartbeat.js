@@ -33,6 +33,31 @@ const { SynapseClient } = require('./api-client');
 const HEARTBEAT_INTERVAL_MS = 55_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 
+// PFL-116 (B123): daemon self-check — detect orphaned daemon by checking
+// whether the session that spawned us is still alive.
+// session-init.js passes --session-pid <ppid> when spawning.
+// If session PID is dead (Claude session exited), daemon self-terminates.
+let _sessionPid = 0;
+{
+  const idx = process.argv.indexOf('--session-pid');
+  if (idx >= 0 && idx + 1 < process.argv.length) {
+    const parsed = parseInt(process.argv[idx + 1], 10);
+    if (parsed > 0) _sessionPid = parsed;
+  }
+}
+
+/** Check if a process with the given PID is alive (signal 0 = existence check). */
+function isProcessAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // ESRCH = process not found → dead
+    // EPERM = no permission → assume alive (better false negative than false positive)
+    return e.code === 'EPERM';
+  }
+}
+
 async function sendHeartbeat(client, workerId) {
   const res = await client.post('/v1/workers/' + workerId + '/heartbeat', { current_load: 0 });
   if (res.error) {
@@ -66,6 +91,11 @@ async function daemon() {
   let consecutiveFailures = 0;
 
   async function tick() {
+    // PFL-116 (B123): self-check — if spawning session is dead, daemon is orphaned
+    if (_sessionPid && !isProcessAlive(_sessionPid)) {
+      console.error('heartbeat daemon: session PID ' + _sessionPid + ' is gone — self-terminating (orphan)');
+      process.exit(0);
+    }
     const status = await sendHeartbeat(client, config.workerId);
     if (status) { consecutiveFailures = 0; return true; }
     consecutiveFailures++;

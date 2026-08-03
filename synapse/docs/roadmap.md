@@ -194,6 +194,7 @@
 | **P11-B120** | **轻量收尾批** — PFL 状态收尾（PFL-099/100/111/119 header 🟡→✅）· PFL-122 跨 actor 隔离测试（4 场景 · 11 全通）· 审计教训登记（LL22-LL25）· L5 拉通 · commit `0171dd3` | ✅ |
 | **P11-B121** | **PFL-116 zombie 清理纵深防御 + PFL-074 handoff→O 跳过 auth request** — session-init.js cleanupOrphanDaemons() + conversation_service.py _create_handoff_auth_request() O 检测 · commit `4b52717` | ✅ |
 | **P11-B122** | **PFL-110 快照新鲜度三层纵深防御** — session-init.js v1.3.0（snapshot timestamp 元数据 + CronCreate 新鲜度 Banner + `--quick` 刷新模式）· SKILL.md 唤醒新鲜度协议 · 3 files · 🟡 标准 | ✅ |
+| **P11-B123** | **PFL-116 孤儿泄漏收尾 — daemon 自检层 + 四层纵深防御闭环** — heartbeat.js + ws-daemon.js `--session-pid` 父 session 存活检查 · session-init.js 传递 process.ppid · pitfalls.md PFL-116 🟡→✅ · L5 拉通 · 3 code files + docs | ✅ |
 
 ---
 

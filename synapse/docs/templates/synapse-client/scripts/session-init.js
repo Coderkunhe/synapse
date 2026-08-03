@@ -283,7 +283,9 @@ function startHeartbeatDaemon() {
     if (!fs.existsSync(scriptPath)) {
       return { started: false, error: 'heartbeat.js not found at ' + scriptPath };
     }
-    const child = spawn(process.execPath, [scriptPath], {
+    // PFL-116 (B123): pass session PID so daemon can self-terminate when
+    // the spawning Claude session exits. process.ppid = the Claude process.
+    const child = spawn(process.execPath, [scriptPath, '--session-pid', String(process.ppid)], {
       detached: true,
       stdio: 'ignore',
       env: { ...process.env },  // inherit SYNAPSE_* vars
@@ -347,7 +349,9 @@ function startWsDaemon() {
     if (!fs.existsSync(scriptPath)) {
       return { started: false, error: 'ws-daemon.js not found at ' + scriptPath };
     }
-    const child = spawn(process.execPath, [scriptPath], {
+    // PFL-116 (B123): pass session PID so daemon can self-terminate when
+    // the spawning Claude session exits. process.ppid = the Claude process.
+    const child = spawn(process.execPath, [scriptPath, '--session-pid', String(process.ppid)], {
       detached: true,
       stdio: 'ignore',
       env: { ...process.env },  // inherit SYNAPSE_* vars
