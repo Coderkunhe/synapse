@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B114→B115 L5 拉通 — 📄 roadmap.md+reqlog.md+daily/2026-08-02.md 全量补登记 · 📚 B114验证发现→B115代码修复叙事连贯无断层 · 🎭 PFL-116/117/118 登记+p119 修复全量同步 · 🔧 session-init.js PID生命周期+stale_reaper datetime修复+health诊断化 · 🏷️ tracks/synapse.md last_batch→B115+next_batch→B116 指针更新",
+  "lastL5Batch": "B115→B116 L5 拉通 — 📄 roadmap.md+reqlog.md+pitfalls.md+daily/2026-08-03.md 已同步 · 📚 B115 daemon修复→B116验证确认叙事连贯无断层 · 🎭 zombie残余+PID追踪+stale_reaper三场景全量验证通过 · 🔧 batchesSinceLastL5=2→0 复位",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B114→B115 L5 拉通 — 📄 roadmap.md+reqlog.md+daily/2026-08-02.md 全量补登记 · 📚 B114验证发现→B115代码修复叙事连贯无断层 · 🎭 PFL-116/117/118 登记+p119 修复全量同步 · 🔧 session-init.js PID生命周期+stale_reaper datetime修复+health诊断化 · 🏷️ tracks/synapse.md last_batch→B115+next_batch→B116 指针更新",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: 文档全量刷新+叙事验证+track指针更新"
+  "lastL5Evidence": "B115→B116 L5 拉通 — 📄 roadmap.md+reqlog.md+pitfalls.md+daily/2026-08-03.md 已同步 · 📚 B115 daemon修复→B116验证确认叙事连贯无断层 · 🎭 zombie残余+PID追踪+stale_reaper三场景全量验证通过 · 🔧 batchesSinceLastL5=2→0 复位",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
