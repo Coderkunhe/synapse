@@ -395,7 +395,7 @@ generate_claude() {
     fi
 
     # ── B111 PFL-111: Generate Worker CLAUDE.md (role anchor) ──
-    write_claude_md "$OUTPUT" "$ROLE"
+    write_claude_md "$OUTPUT" "$ROLE" "claude"
 
     # ── B110 Layer 3: Generate SessionStart hook + permissions ──
     write_settings_json "$OUTPUT"
@@ -551,12 +551,21 @@ copy_scripts() {
 write_claude_md() {
     local WORKER_ROOT="$1"
     local ROLE="${2:-}"
+    local TARGET="${3:-claude}"  # P11-B119 PFL-121: target 区分协议文件引用
 
     local CLAUDE_FILE="$WORKER_ROOT/CLAUDE.md"
 
     if [[ -f "$CLAUDE_FILE" ]]; then
         echo "  ⏭️  CLAUDE.md (already exists — skipping)"
         return
+    fi
+
+    # P11-B119 PFL-121: Claude 模式不生成 SKILL.md（分散为 _protocol + role-{ROLE}）
+    local PROTOCOL_STEP
+    if [[ "$TARGET" == "claude" ]]; then
+        PROTOCOL_STEP="3. 读 \`.claude/skills/synapse/_protocol.md\` + \`.claude/skills/synapse/role-${ROLE}.md\` — 完整角色协议（含 VDD 循环、API 端点、异常处理）"
+    else
+        PROTOCOL_STEP="3. 读 \`.claude/skills/synapse/SKILL.md\` — 完整角色协议（含 VDD 循环、API 端点、异常处理）"
     fi
 
     local ROLE_DESC IRON_RULES
@@ -597,9 +606,16 @@ EOF
             ;;
         *)
             ROLE_DESC="Synapse Worker — 启动后通过 Protocol API 确定具体角色"
-            IRON_RULES=$(cat <<'EOF'
-- 启动后立即读 `.claude/skills/synapse/SKILL.md` 了解完整协议
-- 每次判断前先调 API 获取最新状态（`_task-current.md` 只是启动快照）
+            # P11-B119 PFL-121: 默认角色也按 target 区分协议文件引用
+            local DEFAULT_PROTOCOL_REF
+            if [[ "$TARGET" == "claude" ]]; then
+                DEFAULT_PROTOCOL_REF="- 启动后立即读 \`.claude/skills/synapse/_protocol.md\` + \`.claude/skills/synapse/role-${ROLE}.md\`（若存在）了解完整协议"
+            else
+                DEFAULT_PROTOCOL_REF="- 启动后立即读 \`.claude/skills/synapse/SKILL.md\` 了解完整协议"
+            fi
+            IRON_RULES=$(cat <<EOF
+${DEFAULT_PROTOCOL_REF}
+- 每次判断前先调 API 获取最新状态（\`_task-current.md\` 只是启动快照）
 - 退出前必须调 ScheduleWakeup 设闹钟让自己回来
 EOF
             )
@@ -619,17 +635,17 @@ EOF
 0. 如果这是冷启动（新窗口），确认人类已输入 \`@_boot-prompt.md\` — 该文件由 session-init.js 每次 SessionStart 自动刷新
 1. 读 \`.claude/skills/synapse/_task-current.md\` — 当前任务快照
 2. 执行 FIRST ACTION banner 中的 CronCreate 指令
-3. 读 \`.claude/skills/synapse/SKILL.md\` — 完整角色协议（含 VDD 循环、API 端点、异常处理）
+${PROTOCOL_STEP}
 4. 按角色指令进入工作循环
 
 **铁律：**
 ${IRON_RULES}
 
-> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复 · B112 _boot-prompt.md 冷启动）。
+> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复 · B112 _boot-prompt.md 冷启动 · B119 PFL-121 路径修复）。
 > 如需永久定制，删除此注释后脚本将在后续运行时跳过此文件。
 CLAUDEEOF
 
-    echo "  ✅ CLAUDE.md (${ROLE} Worker 角色锚点 · B111 PFL-111 · B112 _boot-prompt)"
+    echo "  ✅ CLAUDE.md (${ROLE} Worker 角色锚点 · B111 PFL-111 · B112 _boot-prompt · B119 PFL-121 target=${TARGET})"
 }
 
 # ─── 共享工具：生成 SessionStart hook ───
@@ -831,7 +847,7 @@ generate_client_claude() {
     # ── B111 PFL-111: Generate Worker CLAUDE.md ──
     # Client mode may not have --role; try env var, fall back to generic
     local CLIENT_ROLE="${ROLE:-${SYNAPSE_WORKER_ROLE:-}}"
-    write_claude_md "$OUTPUT" "$CLIENT_ROLE"
+    write_claude_md "$OUTPUT" "$CLIENT_ROLE" "$TARGET"
 
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
@@ -1090,7 +1106,7 @@ SKILLEOF
     fi
 
     # ── B111 PFL-111: Generate Worker CLAUDE.md ──
-    write_claude_md "$OUTPUT" "$ROLE"
+    write_claude_md "$OUTPUT" "$ROLE" "$TARGET"
 
     # ── Generate SessionStart hook ──
     write_settings_json "$OUTPUT"

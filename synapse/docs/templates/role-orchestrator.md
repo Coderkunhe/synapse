@@ -90,7 +90,7 @@ Step 4 — 确认（Confirm）
 | **是什么** | "我打算这样做，对吗？" | "开始做吧" |
 | **API** | POST message (type=proposal) | POST /tasks |
 | **门禁** | 无前置条件 | **API 强制校验**：O 的最新 proposal 必须已 confirmed |
-| **失败处理** | Human 驳回 → 修订后重新提案 | PROPOSAL_NOT_CONFIRMED 422 → 回去提案 |
+| **失败处理** | Human 驳回 → 修订后重新提案 | PROPOSAL_NOT_CONFIRMED / PROPOSAL_REJECTED 422 → 见下方恢复子协议 |
 
 ### 门禁规则
 
@@ -100,6 +100,18 @@ Step 4 — 确认（Confirm）
 - **最新 proposal 为 rejected** → 422 PROPOSAL_REJECTED → 修订后重新提案
 
 > ⚠️ **不要跳过提案直接建 Task。** API 层有机械门禁——O 的最新 proposal 未 confirmed 时，POST /tasks 会返回 422。这不是建议，是硬阻断。
+
+### 422 恢复子协议（P11-B119）
+
+收到 422 响应后，按 `error.code` 执行对应恢复步骤——不要盲目重试，不要放弃等待，不要找 Human 手动介入。
+
+| 422 code | 含义 | 恢复步骤 |
+|:---|:---|:---|
+| `PROPOSAL_NOT_CONFIRMED` | 最新 proposal 仍为 pending（Human 尚未审批） | ① 读取 `details.proposal_message_id` 确认是哪条 proposal</br>② 调 GET `/messages` 查该 proposal 的 `proposal_status`</br>③ 若仍为 pending → **等待**（ScheduleWakeup 后退，下次循环重检）</br>④ 若已变为 confirmed → **重试** POST /tasks</br>⑤ 最长等待 2 次循环（约 10 分钟）→ 仍未确认 → 在 proposal 评论区 @Human 提醒 |
+| `PROPOSAL_REJECTED` | 最新 proposal 被 Human 驳回 | ① 读取 `details.proposal_message_id` + 调 GET 查看驳回原因（`body` 字段或后续 clarification 消息）</br>② **修订方案**：理解驳回原因 → 调整计划 → 发新 proposal（POST `/messages` message_type=proposal）</br>③ 新 proposal 被 confirmed → 重试 POST /tasks</br>④ **不要**修改被驳回的 proposal 状态——那是 Human 的操作 |
+| 其他 422（如 `MISSING_EXPECTED_VERSION`） | 请求体校验失败 | ① 读 `error.message` 和 `error.details`</br>② 修正请求体 → 重试</br>③ 连错 2 次 → 检查 SKILL.md 中的 API 文档是否过期 |
+
+> **核心原则**：422 不是"出错了"——是"条件不满足"。读懂 `error.code`，执行对应恢复步骤，不要当异常处理。
 
 ---
 
