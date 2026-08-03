@@ -66,6 +66,11 @@ const SCRIPT_NAME = 'session-init';
 //   - God's-eye post-task-creation refresh
 const QUICK_MODE = process.argv.includes('--quick');
 
+// P11-B124 (PFL-084): --upgrade mode — fetch latest templates from server,
+// regenerate all Skill files, update version file, clear upgrade-needed flag.
+// This is the "action" layer of the 3-layer template upgrade architecture.
+const UPGRADE_MODE = process.argv.includes('--upgrade');
+
 // B122 PFL-110 direction 2: --silent suppresses all console output.
 // Used when ws-daemon spawns session-init.js — daemon has no terminal.
 // console.log/console.error are replaced with no-ops rather than conditional
@@ -656,6 +661,38 @@ function writeState(state) {
   lines.push('> The task sat unclaimed for hours. Stale snapshot = blind spot.');
   lines.push('');
 
+  // ── P11-B124 Template Upgrade Detection (PFL-084) ──
+  // heartbeat daemon detects version mismatch → writes flag file →
+  // session-init.js surfaces it here so the Worker AI sees the banner.
+  if (state.templateUpgradeNeeded) {
+    const localV = state.templateUpgradeNeeded.current
+      ? state.templateUpgradeNeeded.current.slice(0, 16) + '...'
+      : 'none';
+    const serverV = state.templateUpgradeNeeded.latest
+      ? state.templateUpgradeNeeded.latest.slice(0, 16) + '...'
+      : 'unknown';
+    lines.push('## ⚠️ TEMPLATE UPGRADE AVAILABLE (P11-B124 · PFL-084)');
+    lines.push('');
+    lines.push('> 🚨 **Your Skill templates are outdated.** Running with stale templates');
+    lines.push('> may cause protocol mismatches, missing rules, or incorrect role instructions.');
+    lines.push('> ');
+    lines.push('> - **Local version**: `' + localV + '`');
+    lines.push('> - **Server version**: `' + serverV + '`');
+    if (state.templateUpgradeNeeded.detected_at) {
+      lines.push('> - **Detected at**: ' + state.templateUpgradeNeeded.detected_at);
+    }
+    lines.push('> ');
+    lines.push('> **Action required — run before continuing:**');
+    lines.push('> ```');
+    lines.push('> node .claude/skills/synapse/scripts/session-init.js --upgrade');
+    lines.push('> ```');
+    lines.push('> ');
+    lines.push('> ⚠️ Upgrade first, then continue working. The upgrade takes ~2-5 seconds');
+    lines.push('> and updates all Skill files to match the server\'s latest templates.');
+    lines.push('> Restart your Claude Code session after upgrading to load the new instructions.');
+    lines.push('');
+  }
+
   // ── PFL-115 Stale Snapshot Warning (B117 · 快照可能过期) ──
   // When the current session-init run has errors/warnings, the snapshot data
   // may be stale or incomplete. The AI should actively retry API calls rather
@@ -1031,7 +1068,135 @@ function roleBanner(state) {
 
 // ── Main ────────────────────────────────────────────────────────────
 
+// P11-B124 (PFL-084): Template upgrade — fetch latest rendered templates
+// from server and regenerate all Skill files.  One-shot operation;
+// exits after completion.
+async function runUpgrade() {
+  const UPGRADE_FLAG = path.join(WORKER_ROOT, 'template-upgrade-needed');
+  const VERSION_FILE_SI = path.join(WORKER_ROOT, 'synapse-version.json');
+  const SKILL_DIR = path.join(__dirname, '..'); // .claude/skills/synapse/
+
+  console.log('┌──────────────────────────────────────────────┐');
+  console.log('│  Synapse Template Upgrade (P11-B124 · PFL-084) │');
+  console.log('└──────────────────────────────────────────────┘');
+  console.log('');
+
+  // Step 1: Check env vars
+  const envCheck = checkEnv();
+  if (!envCheck.ok) {
+    console.error('❌ upgrade: env incomplete — missing: ' + envCheck.missing.join(', '));
+    console.error('   Ensure SYNAPSE_API_URL, SYNAPSE_WORKER_ID, SYNAPSE_API_KEY, SYNAPSE_PROJECT_ID are set.');
+    process.exit(1);
+  }
+
+  const config = SynapseClient.resolveConfig(envCheck.present);
+  const workerId = config.workerId;
+  const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
+  const role = envCheck.present.SYNAPSE_WORKER_ROLE || readRoleFromCache() || 'builder';
+  const client = new SynapseClient(config);
+
+  // Step 2: Get server version
+  console.log('▎ Checking server template version...');
+  const versionRes = await client.get('/v1/templates/versions');
+  if (versionRes.error) {
+    console.error('❌ upgrade: failed to fetch template versions — ' + (versionRes.message || 'unknown error'));
+    process.exit(1);
+  }
+  const serverVersion = versionRes.data.version;
+  const serverVersionShort = serverVersion ? serverVersion.slice(0, 16) + '...' : 'unknown';
+  console.log('  Server version: ' + serverVersionShort);
+
+  // Read local version for comparison display
+  var localVersionShort = 'none';
+  try {
+    if (fs.existsSync(VERSION_FILE_SI)) {
+      var localParsed = JSON.parse(fs.readFileSync(VERSION_FILE_SI, 'utf-8'));
+      if (localParsed.version) {
+        localVersionShort = localParsed.version.slice(0, 16) + '...';
+      }
+    }
+  } catch (_) { /* best-effort */ }
+
+  if (localVersionShort === serverVersionShort) {
+    console.log('  ✅ Templates already up to date.');
+    // Clean up stale flag if it exists
+    try { if (fs.existsSync(UPGRADE_FLAG)) fs.unlinkSync(UPGRADE_FLAG); } catch (_) {}
+    process.exit(0);
+  }
+
+  console.log('  Local: ' + localVersionShort + ' → Server: ' + serverVersionShort);
+
+  // Step 3: Fetch rendered protocol
+  console.log('▎ Fetching rendered templates from server...');
+  var protocolUrl = '/v1/workers/' + workerId + '/protocol?project_id=' + projectId;
+  if (role) protocolUrl += '&role=' + role;
+  const protocolRes = await client.get(protocolUrl);
+  if (protocolRes.error) {
+    console.error('❌ upgrade: failed to fetch protocol — ' + (protocolRes.message || 'unknown error'));
+    process.exit(1);
+  }
+
+  var data = protocolRes.data;
+
+  // Step 4: Write Skill files
+  console.log('▎ Writing Skill files to ' + SKILL_DIR + '...');
+
+  var filesToWrite = [
+    { name: '_protocol.md', content: data.collaboration_norms },
+    { name: '_project.md', content: data.project_context },
+    { name: 'role-' + role + '.md', content: data.role_instructions },
+    { name: '_env.md', content: data.env_template },
+  ];
+
+  for (var i = 0; i < filesToWrite.length; i++) {
+    var f = filesToWrite[i];
+    if (!f.content || f.content === 'null') {
+      console.log('  ⚠️  ' + f.name + ' — empty/null, skipping');
+      continue;
+    }
+    try {
+      fs.writeFileSync(path.join(SKILL_DIR, f.name), f.content, 'utf-8');
+      console.log('  ✅ ' + f.name);
+    } catch (e) {
+      console.error('  ❌ ' + f.name + ' — ' + e.message);
+    }
+  }
+
+  // Step 5: Write version file
+  try {
+    fs.writeFileSync(VERSION_FILE_SI, JSON.stringify({
+      version: serverVersion,
+      files: versionRes.data.files || {},
+      updated_at: versionRes.data.updated_at || new Date().toISOString(),
+    }, null, 2) + '\n', 'utf-8');
+    console.log('  ✅ synapse-version.json updated');
+  } catch (e) {
+    console.error('  ❌ synapse-version.json — ' + e.message);
+  }
+
+  // Step 6: Remove upgrade-needed flag
+  try {
+    if (fs.existsSync(UPGRADE_FLAG)) {
+      fs.unlinkSync(UPGRADE_FLAG);
+      console.log('  ✅ template-upgrade-needed flag cleared');
+    }
+  } catch (_) { /* best-effort */ }
+
+  // Step 7: Summary
+  console.log('');
+  console.log('✅ Template upgrade complete.');
+  console.log('');
+  console.log('⚠️  Skill files have been updated. Restart your Claude Code session');
+  console.log('    to load the latest instructions.');
+}
+
 async function main() {
+  // P11-B124 (PFL-084): --upgrade is a one-shot operation, exit early
+  if (UPGRADE_MODE) {
+    await runUpgrade();
+    return;
+  }
+
   // PFL-110 (B122): Calculate age of existing snapshot before replacing it
   const oldSnapshotAge = getExistingSnapshotAge();
 
@@ -1073,6 +1238,8 @@ async function main() {
     // B122 PFL-110: quick refresh mode + old snapshot staleness context
     quickRefresh: QUICK_MODE,
     oldSnapshotAge: oldSnapshotAge,
+    // P11-B124 (PFL-084): template upgrade flag — set below before writeState
+    templateUpgradeNeeded: null,
   };
 
   // ── Step 1: Check environment ──────────────────────────────────
@@ -1453,6 +1620,17 @@ async function main() {
     }
     state.staleVerificationCount = state.staleVerificationTasks.length;
   }
+
+  // ── P11-B124 (PFL-084): Check for template upgrade flag ──
+  // heartbeat daemon writes .claude/template-upgrade-needed on version mismatch.
+  // Surface this in _task-current.md so the Worker AI sees the upgrade banner.
+  try {
+    const upgradeFlagFile = path.join(WORKER_ROOT, 'template-upgrade-needed');
+    if (fs.existsSync(upgradeFlagFile)) {
+      const raw = fs.readFileSync(upgradeFlagFile, 'utf-8');
+      state.templateUpgradeNeeded = JSON.parse(raw);
+    }
+  } catch (_) { /* best-effort */ }
 
   // ── Step 6: Write output (PFL-115 guard: don't overwrite healthy snapshot) ──
   // PFL-115 (B117): 不覆盖已有成功快照。如果当前快照有错误且已有今日健康快照，保留旧快照。

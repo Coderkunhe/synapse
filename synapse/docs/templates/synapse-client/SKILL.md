@@ -67,6 +67,24 @@ node .agents/skills/synapse/scripts/session-init.js
 > - 完整模式：重新初始化所有组件，包括 daemon 重启
 > - 中session 唤醒用 `--quick`，新 session 启动用完整模式
 
+### 模板升级检测（PFL-084 · P11-B124）
+
+> ⚠️ **心跳守护进程自动检测模板版本过期。** 每次心跳（每 55s）对比本地 `.claude/synapse-version.json` 与 Server 最新模板版本。如果检测到不一致，`_task-current.md` 会在顶部显示升级横幅。
+
+**如果 `_task-current.md` 显示 ⚠️ TEMPLATE UPGRADE AVAILABLE：**
+
+1. **暂停当前工作** — 使用过期模板可能导致协议不匹配、规则缺失或角色指令错误
+2. **运行升级命令**：
+   ```bash
+   node .claude/skills/synapse/scripts/session-init.js --upgrade
+   ```
+3. 升级完成后（约 2-5 秒），所有 Skill 文件已更新到最新版本
+4. **重启 Claude Code 会话**（`/clear` 或新窗口）以加载更新后的指令
+
+> 💡 模板是 Worker 的"操作手册"。当 Server 端更新了角色指令、协作规范或项目配置时，Worker 需要同步更新。心跳守护进程自动检测漂移——你只需要在看到横幅时运行升级命令。
+
+> 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知。全自动升级（daemon 直接触发）留待 B125。
+
 ### 第二步：读取初始状态
 
 1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）

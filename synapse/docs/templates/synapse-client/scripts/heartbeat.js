@@ -28,10 +28,19 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 const { SynapseClient } = require('./api-client');
 
 const HEARTBEAT_INTERVAL_MS = 55_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
+
+// P11-B124 (PFL-084): template upgrade detection paths
+// __dirname = .claude/skills/synapse/scripts/, go up 3 = .claude/
+const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
+const VERSION_FILE = path.join(WORKER_ROOT, 'synapse-version.json');
+const UPGRADE_FLAG_FILE = path.join(WORKER_ROOT, 'template-upgrade-needed');
 
 // PFL-116 (B123): daemon self-check — detect orphaned daemon by checking
 // whether the session that spawned us is still alive.
@@ -58,6 +67,63 @@ function isProcessAlive(pid) {
   }
 }
 
+/**
+ * P11-B124 (PFL-084): Compare server template_version against local
+ * synapse-version.json.  Writes .claude/template-upgrade-needed flag
+ * on mismatch so session-init.js can surface a banner in _task-current.md.
+ *
+ * When versions match and a stale flag exists, the flag is cleared
+ * (the Worker has upgraded).
+ *
+ * @param {string} serverVersion — template_version from heartbeat response
+ */
+function checkTemplateVersion(serverVersion) {
+  if (!serverVersion) return; // pre-B94 server, no version field
+
+  var localVersion = null;
+  try {
+    if (fs.existsSync(VERSION_FILE)) {
+      var raw = fs.readFileSync(VERSION_FILE, 'utf-8');
+      var parsed = JSON.parse(raw);
+      localVersion = parsed.version || null;
+    }
+  } catch (_) {
+    // File missing or corrupt — treat as stale (no local version = needs upgrade)
+  }
+
+  if (!localVersion) {
+    // No local version file — first-time detection or deployment issue
+    try {
+      fs.writeFileSync(UPGRADE_FLAG_FILE, JSON.stringify({
+        current: null,
+        latest: serverVersion,
+        detected_at: new Date().toISOString(),
+        reason: 'no_local_version',
+      }, null, 2) + '\n', 'utf-8');
+    } catch (_) { /* best-effort */ }
+    console.error('heartbeat: WARN template version missing locally (server: ' + serverVersion.slice(0, 16) + '...)');
+    return;
+  }
+
+  if (localVersion !== serverVersion) {
+    try {
+      fs.writeFileSync(UPGRADE_FLAG_FILE, JSON.stringify({
+        current: localVersion,
+        latest: serverVersion,
+        detected_at: new Date().toISOString(),
+      }, null, 2) + '\n', 'utf-8');
+    } catch (_) { /* best-effort */ }
+    console.error('heartbeat: WARN template outdated (local: ' + localVersion.slice(0, 16) + '..., server: ' + serverVersion.slice(0, 16) + '...)');
+  } else {
+    // Versions match — clear stale flag if it exists (upgrade was done)
+    try {
+      if (fs.existsSync(UPGRADE_FLAG_FILE)) {
+        fs.unlinkSync(UPGRADE_FLAG_FILE);
+      }
+    } catch (_) { /* best-effort */ }
+  }
+}
+
 async function sendHeartbeat(client, workerId) {
   const res = await client.post('/v1/workers/' + workerId + '/heartbeat', { current_load: 0 });
   if (res.error) {
@@ -68,7 +134,11 @@ async function sendHeartbeat(client, workerId) {
     }
     return null;
   }
-  return (res.data && res.data.runtime_status) || 'unknown';
+  // P11-B124 (PFL-084): detect template staleness on every successful heartbeat
+  if (res.data && res.data.template_version) {
+    checkTemplateVersion(res.data.template_version);
+  }
+  return res.data || { runtime_status: 'unknown' };
 }
 
 // --once mode (backward compatible)
@@ -78,7 +148,7 @@ async function once() {
   if (!config.apiKey) { console.log('heartbeat: SKIP (no API key)'); process.exit(0); }
   const client = new SynapseClient(config);
   const status = await sendHeartbeat(client, config.workerId);
-  if (status) console.log('heartbeat: ' + status);
+  if (status) console.log('heartbeat: ' + (status.runtime_status || 'ok'));
   process.exit(0);
 }
 

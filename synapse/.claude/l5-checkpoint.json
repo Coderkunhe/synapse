@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B122→B123 L5 拉通 — PFL-116 孤儿泄漏收尾 · daemon自检层闭环 · 📄 roadmap.md 新增 B123 条目 · 📋 reqlog.md 新增 B123 需求交付记录 · 📅 daily/2026-08-03.md 新增 B123 实施记录 · 📊 tracks/synapse.md last_batch→B123 next_batch→B124 · 📝 pitfalls.md PFL-116 🟡→✅ 全量闭环+四层纵深防御记录 · 零 drift",
+  "lastL5Batch": "B123→B124 L5 拉通 — PFL-084 Worker 端模板自动升级检测 · heartbeat.js +74 · session-init.js +178 · SKILL.md +18 · 零 Python 源码变更",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B122→B123 L5 拉通 — PFL-116 孤儿泄漏收尾 · daemon自检层闭环 · 📄 roadmap.md 新增 B123 条目 · 📋 reqlog.md 新增 B123 需求交付记录 · 📅 daily/2026-08-03.md 新增 B123 实施记录 · 📊 tracks/synapse.md last_batch→B123 next_batch→B124 · 📝 pitfalls.md PFL-116 🟡→✅ 全量闭环+四层纵深防御记录 · 零 drift",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "B123→B124 L5 拉通 — roadmap.md 新增 B124 · reqlog.md 新增 B124 · daily/2026-08-03.md 新增 B124 · tracks/synapse.md last_batch→B124 next_batch→B125 · CLAUDE.md 状态表同步 · pitfalls.md PFL-084 B124 记录 · node --check 四文件全通 · 零 drift · 零 Python 源码变更",
+  "notes": "L5 拉通完成，计数器复位。下一站: B125。"
 }

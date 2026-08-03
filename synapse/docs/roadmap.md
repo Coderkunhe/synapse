@@ -195,6 +195,7 @@
 | **P11-B121** | **PFL-116 zombie 清理纵深防御 + PFL-074 handoff→O 跳过 auth request** — session-init.js cleanupOrphanDaemons() + conversation_service.py _create_handoff_auth_request() O 检测 · commit `4b52717` | ✅ |
 | **P11-B122** | **PFL-110 快照新鲜度三层纵深防御** — session-init.js v1.3.0（snapshot timestamp 元数据 + CronCreate 新鲜度 Banner + `--quick` 刷新模式）· SKILL.md 唤醒新鲜度协议 · 3 files · 🟡 标准 | ✅ |
 | **P11-B123** | **PFL-116 孤儿泄漏收尾 — daemon 自检层 + 四层纵深防御闭环** — heartbeat.js + ws-daemon.js `--session-pid` 父 session 存活检查 · session-init.js 传递 process.ppid · pitfalls.md PFL-116 🟡→✅ · L5 拉通 · 3 code files + docs | ✅ |
+| **P11-B124** | **PFL-084 Worker 端模板自动升级检测** — heartbeat.js 每 55s 检测 `template_version` 不匹配 → 写 flag · session-init.js `--upgrade` 模式（fetch protocol → 重建 Skill 文件）· `--quick` 注入升级 banner · SKILL.md 升级指令 · 3 code files + docs · 🟡 标准 | ✅ |
 
 ---
 

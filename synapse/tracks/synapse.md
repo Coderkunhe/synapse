@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B123 ✅ PFL-116 孤儿泄漏收尾
-last_batch: P11-B123
-next_batch: P11-B124
-description: Synapse 主项目 — B123 ✅ PFL-116 孤儿泄漏收尾（daemon 自检层 + 四层纵深防御闭环 + L5 拉通）
+phase: P11-B124 ✅ PFL-084 Worker 端模板自动升级检测
+last_batch: P11-B124
+next_batch: P11-B125
+description: Synapse 主项目 — B124 ✅ PFL-084 Worker 端模板自动升级检测（三层架构 · 零 Python 源码变更 · L5 拉通）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B123 ✅ PFL-116 孤儿泄漏收尾（daemon 
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B123 | **P11-B124** 🔜 | B123 ✅ PFL-116 孤儿泄漏收尾 (daemon自检层+四层纵深防御闭环+L5拉通) · B124 🔜 待定 |
+| **P11** | P11-B124 | **P11-B125** 🔜 | B124 ✅ PFL-084 Worker 端模板自动升级检测 (三层架构+零 Python 变更+L5拉通) · B125 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
