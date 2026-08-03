@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B115→B116 L5 拉通 — 📄 roadmap.md+reqlog.md+pitfalls.md+daily/2026-08-03.md 已同步 · 📚 B115 daemon修复→B116验证确认叙事连贯无断层 · 🎭 zombie残余+PID追踪+stale_reaper三场景全量验证通过 · 🔧 batchesSinceLastL5=2→0 复位",
+  "lastL5Batch": "B116→B117 L5 拉通 — 📄 roadmap+reqlog+pitfalls+daily 四文档已同步 · 📚 B115 daemon→B116验证→B117 O需求接收叙事连贯 · 🔍 深度审计: Model↔Migration一致·Schema三层一致·message_type 5值验证·_check_proposal_confirmed四路径覆盖·create_task调用链完整·conversation_service传递链完整 · 659 tests零回归 · 🔧 batchesSinceLastL5=1→0 复位",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B115→B116 L5 拉通 — 📄 roadmap.md+reqlog.md+pitfalls.md+daily/2026-08-03.md 已同步 · 📚 B115 daemon修复→B116验证确认叙事连贯无断层 · 🎭 zombie残余+PID追踪+stale_reaper三场景全量验证通过 · 🔧 batchesSinceLastL5=2→0 复位",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "B116→B117 L5 拉通 — 深度逻辑审计: ①Model↔Migration VARCHAR(20)+nullable+index一致 ②Schema三层proposal_status=Optional[str]一致 ③message_type pattern 5值正确·invalid rejected ④_check_proposal_confirmed Join链TaskWorkerConversation→Task→project_id+sender+type正确 ⑤create_task调用_check_proposal_confirmed链完整 ⑥conversation_service proposal_status传递完整 ⑦四路径(bootstrap/confirmed/pending/rejected)全覆盖",
+  "notes": "B116→B117 L5 拉通完成，计数器复位 — 用户显式要求拉通 · 深度审计未发现数据流断层"
 }
