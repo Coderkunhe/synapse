@@ -83,7 +83,7 @@ node .agents/skills/synapse/scripts/session-init.js
 
 > 💡 模板是 Worker 的"操作手册"。当 Server 端更新了角色指令、协作规范或项目配置时，Worker 需要同步更新。心跳守护进程自动检测漂移——你只需要在看到横幅时运行升级命令。
 
-> 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知。全自动升级（daemon 直接触发）留待 B125。
+> 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知，B126 实现了 daemon 自动升级 + JS 指纹 · 升级链全量闭环 ✅。
 
 ### 第二步：读取初始状态
 
