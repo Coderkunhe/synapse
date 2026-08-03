@@ -79,4 +79,4 @@ synapse/
 |:---|:---|:---|
 | **P11** | B115 ✅ Daemon 生命周期治理 | **B116** 🔜 待定 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B114→B115 ✅ 已拉通 | batchesSinceLastL5=0 · 计数器已复位 |
+| **L5** | B114→B115 ✅ 已拉通 | batchesSinceLastL5=1 · hook bypass 修复后 · 未达阈值 |
