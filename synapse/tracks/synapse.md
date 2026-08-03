@@ -1,8 +1,8 @@
 ---
 project: synapse
-phase: P11-B115 ✅ Daemon 生命周期治理
-last_batch: P11-B115
-next_batch: P11-B116
+phase: P11-B119 ✅ 三合一微型批
+last_batch: P11-B119
+next_batch: P11-B120
 description: Synapse 主项目 — B115 ✅ Daemon 生命周期治理（PID 文件生命周期 · stale_reaper 修复 · 健康检查诊断化）· B116 🔜 待定
 ---
 
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B115 ✅ Daemon 生命周期治理（PID 文�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B115 | **P11-B116** 🔜 | B115 ✅ Daemon 生命周期治理 · B116 🔜 待定 |
+| **P11** | P11-B119 | **P11-B120** 🔜 | B119 ✅ 三合一微型批 (PFL-120/121+422恢复) · B120 🔜 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -294,6 +294,10 @@ description: Synapse 主项目 — B115 ✅ Daemon 生命周期治理（PID 文�
 | **P11-B113** | — | **✅ 登记** — PFL-113/114/115 + V-030 · 模板预改 · commit `57ab8bc` | 🟢 |
 | **P11-B114** | — | **✅ Worker 双窗口验证 + 僵尸踩坑** — PFL-116/117/118/119 发现 · 0 code files · 纯验证 | 🟢 |
 | **P11-B115** | PFL-116~119 | **✅ Daemon 生命周期治理** — PID 文件生命周期 · stale_reaper 修复 · health 诊断化 · hook 自动升级 · commit `a39b573` | 🟡 |
+| **P11-B116** | — | **✅ B115 修复后首轮验证** — zombie 残余确认 · 659 tests零回归 · commit `994215a` | 🟢 |
+| **P11-B117** | PFL-113~115 | **✅ O 需求交互基础设施** — proposal_status 门禁 · 空闲问候 · 快照保护 · commit `010fc24` | 🟡 |
+| **P11-B118** | — | **✅ 双 Worker 冷启动部署验证** — 5/5 B117 部署确认 · 发现 PFL-120/121 · 0 code files | 🟢 |
+| **P11-B119** | PFL-120~122 | **✅ 三合一微型批** — PFL-120 proposal门禁7场景测试 · PFL-121 CLAUDE.md target感知路径 · 422恢复子协议 · PFL-122 跨actor缺口登记 · commit `342d741` | 🟢 |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 

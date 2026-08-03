@@ -48,7 +48,10 @@ const { getKey } = require('./keychain');
 
 // ── Constants ──────────────────────────────────────────────────────
 const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
-const SETTINGS_LOCAL = path.join(WORKER_ROOT, '.claude', 'settings.local.json');
+// WORKER_ROOT is already at .claude/ level (3 dirs up from scripts/).
+// path.join(WORKER_ROOT, '.claude', ...) would create .claude/.claude/ nesting.
+// Settings go directly under WORKER_ROOT (i.e., .claude/settings.local.json).
+const SETTINGS_LOCAL = path.join(WORKER_ROOT, 'settings.local.json');
 const OUTPUT_FILE = path.join(__dirname, '..', '_task-current.md');
 const PROTOCOL_CACHE = path.join(__dirname, '..', '_protocol-cache.json');
 const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norms.md');
