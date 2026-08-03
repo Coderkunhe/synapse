@@ -1,8 +1,11 @@
 {
-  "lastL5Batch": "B120 L5 拉通 — 📄 pitfalls.md 5 PFL headers 🟡→✅ · 🧪 test_proposal_gate.py +4 跨actor场景 11全通 670tests · 📚 lessons-learned.md LL22-LL25 审计教训 · 📋 roadmap+reqlog+daily+CLAUDE.md+tracks 五同步",
+  "lastL5Batch": "B121 L5 拉通 — 📄 pitfalls.md PFL-116 B121纵深防御 + PFL-074 ✅服务端闭环 · 🧪 session-init.js cleanupOrphanDaemons() + conversation_service.py handoff→O skip · 📋 p11.md 暗号→B122",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
-  "completedBatches": ["B120"],
-  "lastL5Evidence": "B120 L5 拉通 — 📄 pitfalls.md 5 PFL headers 🟡→✅ (099/100/111/119/122) · 🧪 test_proposal_gate.py +4 跨actor场景 11全通 670tests零回归 · 📚 lessons-learned.md LL22-LL25 审计教训登记 · 📋 roadmap+reqlog+daily+CLAUDE.md+tracks 五同步",
-  "notes": "B120 轻量收尾批 — PFL 状态收尾 + PFL-122 跨actor隔离测试 + 审计教训登记 + L5 拉通。batchesSinceLastL5 复位。"
+  "completedBatches": [
+    "B120",
+    "B121"
+  ],
+  "lastL5Evidence": "B121 L5 拉通 — 📄 pitfalls.md PFL-116 B121纵深防御 (cleanupOrphanDaemons) + PFL-074 ✅服务端闭环 (handoff→Orchestrator跳过auth request) · 🧪 session-init.js +75行 + conversation_service.py +21行 · 📋 p11.md 暗号→B122 · PFL计数 23✅/8🟡",
+  "notes": "B121 双 PFL 闭环 — PFL-116 pre-B115 zombie 自动清理 + PFL-074 handoff→O 跳过悬挂 auth request。batchesSinceLastL5 复位。下一站 B122 (PFL-110 快照不可见)。"
 }

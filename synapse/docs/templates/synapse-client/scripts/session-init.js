@@ -166,6 +166,74 @@ function killOldDaemon(pidFile) {
 }
 
 /**
+ * PFL-116 (B121): Find and kill pre-B115 orphan daemon processes.
+ *
+ * B115 introduced per-worker PID files (readPidFile/writePidFile/killOldDaemon).
+ * New daemons are tracked by PID file and killed on next startup. But pre-B115
+ * daemons (spawned with detached:true + unref()) have NO PID file, so
+ * killOldDaemon() can't find them. Each Worker restart accumulates orphans.
+ *
+ * This function bridges the gap: it scans running processes for daemon scripts
+ * matching THIS worker's scripts directory, and kills any that aren't tracked
+ * by a PID file. Post-B115 daemons are left alone (they're tracked).
+ *
+ * Called BEFORE spawning new daemons — cleanup first, then spawn fresh.
+ *
+ * @returns {{ cleaned: number }} — number of orphan processes terminated
+ */
+function cleanupOrphanDaemons() {
+  const knownPids = new Set();
+  for (const pidFile of [HEARTBEAT_PID_FILE, WS_DAEMON_PID_FILE]) {
+    const pid = readPidFile(pidFile);
+    if (pid !== null && isProcessAlive(pid)) knownPids.add(pid);
+  }
+
+  let cleaned = 0;
+  try {
+    const hbScript = path.join(__dirname, 'heartbeat.js');
+    const wsScript = path.join(__dirname, 'ws-daemon.js');
+
+    // Use ps to list all processes, filter in JS to avoid shell escaping issues
+    const output = execSync('ps -eo pid,command', { encoding: 'utf-8' });
+    const lines = output.trim().split('\n');
+
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      const pid = parseInt(parts[0], 10);
+      if (isNaN(pid)) continue;
+      const cmd = parts.slice(1).join(' ');
+
+      // Match this Worker's daemon scripts only (scoped by __dirname)
+      if (!cmd.includes(hbScript) && !cmd.includes(wsScript)) continue;
+      // Skip our own process
+      if (pid === process.pid) continue;
+      // Skip daemons tracked by PID files (post-B115, managed by killOldDaemon)
+      if (knownPids.has(pid)) continue;
+
+      // Pre-B115 orphan: running but no PID file tracks it
+      try {
+        process.kill(pid, 'SIGTERM');
+        // Brief grace period for graceful shutdown
+        const start = Date.now();
+        while (Date.now() - start < 500) {
+          if (!isProcessAlive(pid)) break;
+        }
+        if (isProcessAlive(pid)) {
+          try { process.kill(pid, 'SIGKILL'); } catch (_e) { /* already gone */ }
+        }
+        cleaned++;
+      } catch (_e) {
+        // Process may have exited between ps and kill — not an error
+      }
+    }
+  } catch (_e) {
+    // ps may fail in constrained environments — non-blocking
+  }
+
+  return { cleaned };
+}
+
+/**
  * Check if a heartbeat daemon process is running.
  * Uses the per-worker PID file (PFL-117 · B115) — no global pgrep,
  * so Builder and Orchestrator daemons are independently tracked.
@@ -919,6 +987,13 @@ async function main() {
   const workerId = config.workerId;
   const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
   const client = new SynapseClient(config);
+
+  // ── Step 2.4: Cleanup pre-B115 orphan daemons (PFL-116 · B121) ──
+  // Must run BEFORE spawning new daemons — kills zombies that have no PID file.
+  const orphanResult = cleanupOrphanDaemons();
+  if (orphanResult.cleaned > 0) {
+    console.log(`🧹 ${SCRIPT_NAME}: cleaned ${orphanResult.cleaned} pre-B115 orphan daemon(s)`);
+  }
 
   // ── Step 2.5: Start heartbeat daemon (PFL-083 · B91 · B115 PID files) ──
   // B115 (PFL-116/118): Always spawn new daemon → kill old (PID file) → write new PID.

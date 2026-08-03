@@ -354,10 +354,29 @@ async def _create_handoff_auth_request(
     使用 ``task.assign`` 操作类型 — Worker 请求将任务转交权限。
     不在此处做流控检查；让 AuthorizationRequest 自己的流控逻辑处理。
 
+    PFL-074 (B121): 若 handoff 目标包含 Orchestrator，跳过 auth request。
+    Orchestrator 本就拥有 task assign 权限——创建 auth request 是多余的，
+    且会静默挂起等待 Human 审批（见 PFL-074 14h 悬挂案例）。
+
     Returns:
-        新创建的 authorization_request ID。
+        新创建的 authorization_request ID，或 None（当目标为 Orchestrator 时跳过）。
     """
+    from src.models.project_actor_role import ProjectActorRole
     from src.services.authorization_service import create_authorization_request
+
+    # PFL-074: 若 handoff 目标是 Orchestrator → 跳过 auth request
+    # O 拥有 task assign 权限，创建 auth request 只会产生无人关注的悬挂审批
+    if target_worker_ids:
+        orchestrator_result = await db.execute(
+            select(ProjectActorRole.worker_id).where(
+                ProjectActorRole.project_id == project_id,
+                ProjectActorRole.worker_id.in_(target_worker_ids),
+                ProjectActorRole.role == "orchestrator",
+            ).limit(1)
+        )
+        if orchestrator_result.scalar_one_or_none() is not None:
+            # Target is Orchestrator — O already has assign authority, skip
+            return None
 
     # handoff 的 AuthorizationRequest 参数
     auth_req = await create_authorization_request(
