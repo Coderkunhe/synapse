@@ -29,26 +29,33 @@ from src.task_state_machine import apply_transition
 async def detect_stale_tasks(
     db: AsyncSession,
     threshold_minutes: int = 60,
+    reassign_threshold_minutes: int = 15,
 ) -> dict:
     """扫描 in_progress / paused 且 updated_at 超过阈值的任务。
 
-    检测到 stale task 后记录 ``task.stale_detected`` 事件供审计。
-    同一任务被重复检测超过 ``task_stale_max_detections`` 次后
-    (P11-B108)：自动取消——打破"永久 stale 但无人处理"的死循环。
+    三层梯度响应（P11-B125）：
+    ① 回收 — in_progress > reassign_threshold → unclaim → READY（可被重新认领）
+    ② 告警 — 仅记录 ``task.stale_detected`` 事件供审计
+    ③ 取消 — 超过 ``task_stale_max_detections`` 次 → CANCELLED
 
-    覆盖 PAUSED 状态（P11-B90）：PAUSED 任务若无 Worker 恢复，
-    永久卡死在暂停态，Server 需检测并告警。
+    PAUSED 任务不做 reassign（主动暂停≠被遗弃），维持原有检测+告警行为。
 
     Args:
         db: 数据库会话（调用方持有事务）。
         threshold_minutes: 无更新多久后视为 stale（默认 60 分钟）。
+        reassign_threshold_minutes: 无更新多久后自动 unclaim→READY（默认 15 分钟）。
 
     Returns:
         ``{"stale_count": N, "stale_task_ids": [...],
-           "cancelled_count": N, "cancelled_task_ids": [...]}``。
+           "cancelled_count": N, "cancelled_task_ids": [...],
+           "reassigned_count": N, "reassigned_task_ids": [...],
+           "reassigned_tasks": [...]}``。
     """
     now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(minutes=threshold_minutes)
+    # P11-B125: 扫描窗口取两阈值较小者，确保 reassign 在配置的分钟数生效
+    # 而非被 threshold_minutes（60min）延后。
+    scan_window = min(threshold_minutes, reassign_threshold_minutes)
+    cutoff = now - timedelta(minutes=scan_window)
 
     stmt = select(Task).options(selectinload(Task.project)).where(
         Task.status.in_([TaskStatus.IN_PROGRESS, TaskStatus.PAUSED]),
@@ -61,6 +68,8 @@ async def detect_stale_tasks(
 
     stale_ids: list[str] = []
     cancelled_ids: list[str] = []
+    reassigned_ids: list[str] = []
+    reassigned_tasks: list[dict[str, str | None]] = []
     for task in stale_tasks:
         team_id = task.project.team_id if task.project else ""
 
@@ -93,20 +102,62 @@ async def detect_stale_tasks(
             )
             cancelled_ids.append(task.id)
         else:
-            # 正常 stale 检测：仅记录事件
-            event_type = "task.stale_detected"
-            payload = {
-                "task_id": task.id,
-                "current_status": task.status,
-                "owner_type": task.owner_type,
-                "owner_id": task.owner_id,
-                "claimed_at": task.claimed_at.isoformat() if task.claimed_at else None,
-                "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-                "stale_threshold_minutes": threshold_minutes,
-                "detection_count": detection_count + 1,
-                "max_detections": max_detections,
-            }
-            stale_ids.append(task.id)
+            # P11-B125: 在"仅记日志"和"auto-cancel"之间加回收层
+            # 如果 in_progress 任务超过 reassign_threshold → unclaim + READY
+            updated = task.updated_at
+            if updated is not None and updated.tzinfo is None:
+                updated = updated.replace(tzinfo=timezone.utc)
+            stale_minutes = (
+                (now - updated).total_seconds() / 60
+                if updated is not None
+                else float("inf")
+            )
+            if (
+                task.status == TaskStatus.IN_PROGRESS
+                and stale_minutes >= reassign_threshold_minutes
+            ):
+                # 回收：unclaim + 归还到 ready 池
+                old_owner_type = task.owner_type
+                old_owner_id = task.owner_id
+                task.owner_type = None
+                task.owner_id = None
+                task.claimed_at = None
+                target_status = TaskStatus.READY
+                event_type, payload = apply_transition(
+                    task,
+                    target_status,
+                    actor_type=ActorType.SYSTEM,
+                    actor_id="stale_task_detector",
+                    context={
+                        "reason": "stale_reassign",
+                        "stale_minutes": round(stale_minutes, 1),
+                        "reassign_threshold_minutes": reassign_threshold_minutes,
+                        "old_owner_type": old_owner_type,
+                        "old_owner_id": old_owner_id,
+                        "detection_count": detection_count + 1,
+                    },
+                )
+                reassigned_ids.append(task.id)
+                reassigned_tasks.append({
+                    "task_id": task.id,
+                    "old_owner_type": old_owner_type,
+                    "old_owner_id": old_owner_id,
+                })
+            else:
+                # 正常 stale 检测：仅记录事件
+                event_type = "task.stale_detected"
+                payload = {
+                    "task_id": task.id,
+                    "current_status": task.status,
+                    "owner_type": task.owner_type,
+                    "owner_id": task.owner_id,
+                    "claimed_at": task.claimed_at.isoformat() if task.claimed_at else None,
+                    "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+                    "stale_threshold_minutes": threshold_minutes,
+                    "detection_count": detection_count + 1,
+                    "max_detections": max_detections,
+                }
+                stale_ids.append(task.id)
 
         await event_store.record(
             db,
@@ -124,6 +175,9 @@ async def detect_stale_tasks(
         "stale_task_ids": stale_ids,
         "cancelled_count": len(cancelled_ids),
         "cancelled_task_ids": cancelled_ids,
+        "reassigned_count": len(reassigned_ids),
+        "reassigned_task_ids": reassigned_ids,
+        "reassigned_tasks": reassigned_tasks,
     }
 
 

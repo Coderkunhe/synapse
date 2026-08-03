@@ -26,7 +26,12 @@ class TestStaleTaskDetector:
 
     @pytest.mark.asyncio
     async def test_detect_stale_in_progress_tasks(self):
-        """扫描过期 in_progress 任务并记录 stale 事件。"""
+        """P11-B125: in_progress > reassign_threshold → unclaim + READY（回收层）。
+
+        旧行为（B76）仅记 stale_detected 事件。B125 新增回收层：
+        in_progress 任务超过 reassign_threshold（默认 15min）→ 自动 unclaim
+        归还到 READY 池。PAUSED 任务不受影响（主动暂停≠被遗弃）。
+        """
         async with async_session_factory() as db:
             team_id = generate_id("team")
             project_id = generate_id("project")
@@ -34,7 +39,7 @@ class TestStaleTaskDetector:
             db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-stale"))
             await db.flush()
 
-            # Create a stale task (updated_at far in the past)
+            # Create a stale task (updated_at 2 hours ago → should be reassigned)
             stale_task = Task(
                 id="tsk_stale_001",
                 project_id=project_id,
@@ -48,7 +53,7 @@ class TestStaleTaskDetector:
             stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
             db.add(stale_task)
 
-            # Create a fresh task (updated_at recently)
+            # Create a fresh task (updated_at recently → no action)
             fresh_task = Task(
                 id="tsk_fresh_001",
                 project_id=project_id,
@@ -63,13 +68,29 @@ class TestStaleTaskDetector:
             db.add(fresh_task)
             await db.flush()
 
-            # Run detector with 60 min threshold
-            result = await detect_stale_tasks(db, threshold_minutes=60)
-            assert result["stale_count"] == 1
-            assert "tsk_stale_001" in result["stale_task_ids"]
-            assert "tsk_fresh_001" not in result["stale_task_ids"]
+            # Run detector — stale task should be reassigned (not just logged)
+            result = await detect_stale_tasks(
+                db, threshold_minutes=60, reassign_threshold_minutes=15,
+            )
+            # stale_count=0 because the task was reassigned, not just logged
+            assert result["stale_count"] == 0
+            assert result["reassigned_count"] == 1
+            assert "tsk_stale_001" in result["reassigned_task_ids"]
+            assert "tsk_fresh_001" not in result["reassigned_task_ids"]
             assert result["cancelled_count"] == 0
             assert result["cancelled_task_ids"] == []
+
+            # Verify task was actually unclaimed and returned to READY
+            await db.flush()
+            await db.refresh(stale_task)
+            assert stale_task.status == TaskStatus.READY
+            assert stale_task.owner_type is None
+            assert stale_task.owner_id is None
+            assert stale_task.claimed_at is None
+
+            # Fresh task unaffected
+            await db.refresh(fresh_task)
+            assert fresh_task.status == TaskStatus.IN_PROGRESS
 
             await db.rollback()
 
@@ -102,6 +123,9 @@ class TestStaleTaskDetector:
             result = await detect_stale_tasks(db, threshold_minutes=60)
             assert result["stale_count"] == 1
             assert "tsk_stale_paused_001" in result["stale_task_ids"]
+            # P11-B125: PAUSED tasks are NOT reassigned (active pause ≠ abandonment)
+            assert result["reassigned_count"] == 0
+            assert result["reassigned_task_ids"] == []
             assert result["cancelled_count"] == 0
             assert result["cancelled_task_ids"] == []
 

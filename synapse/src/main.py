@@ -70,24 +70,63 @@ async def _stale_task_reaper() -> None:
     """Periodically scan for stale in_progress tasks (P11-B76)
     and timed-out in_verification tasks (P11-B88).
 
+    P11-B125: adds reassign tier — abandoned in_progress tasks are
+    unclaimed and returned to READY so another Worker can pick them up.
+
     Calls detect_stale_tasks() and detect_stale_verifications()
     on their own DB session.
     Runs every task_stale_scan_interval_seconds (default 120s).
     """
     interval = settings.task_stale_scan_interval_seconds
     stale_threshold = settings.task_stale_threshold_minutes
+    reassign_threshold = settings.task_stale_reassign_minutes
     verify_timeout = settings.verification_timeout_minutes
     while True:
         try:
             await asyncio.sleep(interval)
             async with async_session_factory() as db:
-                # P11-B76: stale in_progress detection
-                result = await detect_stale_tasks(db, threshold_minutes=stale_threshold)
+                # P11-B76 + P11-B125: stale in_progress detection + reassign
+                result = await detect_stale_tasks(
+                    db,
+                    threshold_minutes=stale_threshold,
+                    reassign_threshold_minutes=reassign_threshold,
+                )
                 # P11-B88: verification timeout auto-reclaim
                 verify_result = await detect_stale_verifications(
                     db, threshold_minutes=verify_timeout,
                 )
                 await db.commit()
+
+                # ── WS broadcast for reassigned tasks (P11-B125) ──
+                reassigned = result.get("reassigned_tasks", [])
+                if reassigned:
+                    import logging
+                    logger = logging.getLogger("synapse")
+                    logger.info(
+                        "Reassigned %d abandoned task(s): %s",
+                        len(reassigned),
+                        [t["task_id"] for t in reassigned],
+                    )
+                    for rt in reassigned:
+                        # Notify old owner that their task was reclaimed
+                        old_owner = rt.get("old_owner_id")
+                        if old_owner:
+                            await ws_manager.broadcast_to_actor(
+                                old_owner,
+                                {
+                                    "type": "event",
+                                    "data": {
+                                        "event_type": "task.lease_expired",
+                                        "task_id": rt["task_id"],
+                                        "reason": "stale_reassign",
+                                        "message": (
+                                            "Task was unclaimed due to inactivity. "
+                                            "It has been returned to the ready pool."
+                                        ),
+                                    },
+                                },
+                            )
+
                 if result["stale_count"] > 0 or result.get("cancelled_count", 0) > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
                     import logging
                     logger = logging.getLogger("synapse")

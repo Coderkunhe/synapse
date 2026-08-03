@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-03（P11-B119 ✅ — PFL-120/121 闭环 + 422 恢复子协议）
+> 最后更新：2026-08-03（P11-B125 ✅ — PFL-069/070/072 服务端超时接管 · 三层梯度响应闭环）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -196,6 +196,7 @@
 | **P11-B122** | **PFL-110 快照新鲜度三层纵深防御** — session-init.js v1.3.0（snapshot timestamp 元数据 + CronCreate 新鲜度 Banner + `--quick` 刷新模式）· SKILL.md 唤醒新鲜度协议 · 3 files · 🟡 标准 | ✅ |
 | **P11-B123** | **PFL-116 孤儿泄漏收尾 — daemon 自检层 + 四层纵深防御闭环** — heartbeat.js + ws-daemon.js `--session-pid` 父 session 存活检查 · session-init.js 传递 process.ppid · pitfalls.md PFL-116 🟡→✅ · L5 拉通 · 3 code files + docs | ✅ |
 | **P11-B124** | **PFL-084 Worker 端模板自动升级检测** — heartbeat.js 每 55s 检测 `template_version` 不匹配 → 写 flag · session-init.js `--upgrade` 模式（fetch protocol → 重建 Skill 文件）· `--quick` 注入升级 banner · SKILL.md 升级指令 · 3 code files + docs · 🟡 标准 | ✅ |
+| **P11-B125** | **PFL-069/070/072 服务端超时接管** — 三层梯度响应（回收→告警→取消）· `task_stale_reassign_minutes=15` · SQL scan_window=min(threshold, reassign) · WS broadcast 旧 owner · 670 tests 零回归 · commit `a18f94d` | ✅ |
 
 ---
 

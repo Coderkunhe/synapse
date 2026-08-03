@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B123→B124 L5 拉通 — PFL-084 Worker 端模板自动升级检测 · heartbeat.js +74 · session-init.js +178 · SKILL.md +18 · 零 Python 源码变更",
+  "lastL5Batch": "B125 — PFL-069/070/072 服务端超时接管 · 三层梯度响应闭环 · 📄 roadmap+reqlog+daily已更新 · 📚 叙事一致 · 670t零回归",
   "lastL5Timestamp": "2026-08-03",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B123→B124 L5 拉通 — roadmap.md 新增 B124 · reqlog.md 新增 B124 · daily/2026-08-03.md 新增 B124 · tracks/synapse.md last_batch→B124 next_batch→B125 · CLAUDE.md 状态表同步 · pitfalls.md PFL-084 B124 记录 · node --check 四文件全通 · 零 drift · 零 Python 源码变更",
-  "notes": "L5 拉通完成，计数器复位。下一站: B125。"
+  "lastL5Evidence": "B125 — PFL-069/070/072 服务端超时接管 · 三层梯度响应闭环 · 📄 roadmap+reqlog+daily已更新 · 📚 叙事一致 · 670t零回归",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

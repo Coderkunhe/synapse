@@ -111,7 +111,9 @@ class Settings(BaseSettings):
     auth_expiry_interval_seconds: int = 30
 
     # Task staleness detection (P11-B76) + auto-cancel gate (P11-B108)
+    # + reassign tier (P11-B125): reclaim abandoned in_progress → READY
     task_stale_threshold_minutes: int = 60
+    task_stale_reassign_minutes: int = 15  # unclaim+READY after this many min stale
     task_stale_scan_interval_seconds: int = 120
     task_stale_max_detections: int = 10  # auto-cancel after N stale detections
 
