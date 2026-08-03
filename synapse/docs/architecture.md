@@ -1,6 +1,6 @@
 # Synapse 系统架构
 
-> 版本：v2.2 · 2026-07-30（P11-B105 上下文按需加载 · B104 过载诊断闭环）
+> 版本：v2.2 · 2026-08-03（P11-B127 PFL 收尾审计 · 31/31 🟡 清零）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md

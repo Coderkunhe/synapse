@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B126 ✅ PFL-084 daemon 自动升级 + JS 指纹 · 升级链全量闭环
-last_batch: P11-B126
-next_batch: P11-B127
-description: Synapse 主项目 — B126 ✅ PFL-084 全量闭环（daemon 自动升级 + JS 指纹 · B124 两笔遗留全部消化）
+phase: P11-B127 ✅ PFL-061/075/112 收尾审计 · 31/31 🟡 清零 🎉
+last_batch: P11-B127
+next_batch: 🐶 新一轮狗粮
+description: Synapse 主项目 — B127 ✅ PFL 收尾审计（31/31 PFL 全量闭环 · 🟡 清零）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B126 ✅ PFL-084 全量闭环（daemon 自动
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B126 | **P11-B127** 🔜 | B126 ✅ PFL-084 全量闭环 (daemon自动升级+JS指纹+B124遗留消化) · B127 🔜 PFL收尾审计 |
+| **P11** | P11-B127 | **🐶 狗粮** 🔜 | B127 ✅ PFL-061/075/112 收尾审计 · 31/31 🟡 清零 🎉 |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -299,6 +299,13 @@ description: Synapse 主项目 — B126 ✅ PFL-084 全量闭环（daemon 自动
 | **P11-B118** | — | **✅ 双 Worker 冷启动部署验证** — 5/5 B117 部署确认 · 发现 PFL-120/121 · 0 code files | 🟢 |
 | **P11-B119** | PFL-120~122 | **✅ 三合一微型批** — PFL-120 proposal门禁7场景测试 · PFL-121 CLAUDE.md target感知路径 · 422恢复子协议 · PFL-122 跨actor缺口登记 · commit `342d741` | 🟢 |
 | **P11-B120** | PFL-122 | **✅ 轻量收尾批** — PFL-099/100/111/119 header 漂移修正 · PFL-122 跨actor隔离4场景测试 · 审计教训LL22-LL25登记 · L5拉通 | 🟢 |
+| **P11-B121** | PFL-074/116 | **✅ PFL-074 handoff→O 跳过 auth request + PFL-116 zombie 纵深防御** — handoff 检测 Orchestrator 角色跳过 auth · zombie reaper PID 文件检测 · commit `4b52717` | 🟡 |
+| **P11-B122** | PFL-110 | **✅ 快照新鲜度五层纵深防御** — WS-triggered auto-refresh · `--quick --silent` 模式 · 30s 节流 · commit `10f4eab` | 🟡 |
+| **P11-B123** | PFL-116 | **✅ 孤儿泄漏收尾 — daemon 自检层** — heartbeat.js + ws-daemon.js `--session-pid` 父 session 存活检查 · PFL-116 🟡→✅ · commit `23f90d3` | 🟢 |
+| **P11-B124** | PFL-084 | **✅ Worker 端模板自动升级检测** — heartbeat.js `checkTemplateVersion()` + flag · session-init.js `--upgrade` 模式 · commit `afc5e6f` | 🟡 |
+| **P11-B125** | PFL-069/070/072 | **✅ 服务端超时接管（一笔关三）** — 三层梯度响应（回收→告警→取消）· `task_stale_reassign_minutes=15` · 670 tests 零回归 · commit `a18f94d` | 🟡 |
+| **P11-B126** | PFL-084 | **✅ PFL-084 全量闭环** — daemon 自动升级（heartbeat.js spawn `--upgrade --silent`）· JS scripts 版本指纹（5 daemon .js）· 两笔遗留全部消化 · commit `742b60d` | 🟢 |
+| **P11-B127** | PFL-061/075/112 | **✅ PFL 收尾审计** — 3 项 🟡→✅ · 31/31 PFL 全量闭环 · 🟡 清零 · 纯文档审计 | 🟢 |
 
 ### P100 断裂点审计新增（2026-07-29 · P100 重开）
 
@@ -670,10 +677,10 @@ pitfalls + lessons +             + CLAUDE.md §15 流程紧急修复
               **P9-B80** ✅（Dogfooding v8 修复验证 · 5/5 全绿 · L5 B78→B80 拉通 · B77 v7 质量闭环 🎉）
                     ↓
               **P100-B31** ✅（系统健康 Sprint · CLAUDE.md 481→400 + backlog 402→298 + 远期项 20→12）
-122	                    ↓
-123	              **P100-B32** ✅（glossary.md + agent-comparison.md · M-006/M-007 补齐 · P0 清零 🎉）
-123	                    ↓
-124	              **P100-B33** ✅（产品健康审视 · S-035 + PRD 刷新 + P9-B81→B90 路线校准）
+                    ↓
+              **P100-B32** ✅（glossary.md + agent-comparison.md · M-006/M-007 补齐 · P0 清零 🎉）
+                    ↓
+              **P100-B33** ✅（产品健康审视 · S-035 + PRD 刷新 + P9-B81→B90 路线校准）
                     ↓
               **P100-B34** ▶️（方向待定：违纪闭环 或 P9-B81 主线恢复）
 ```
