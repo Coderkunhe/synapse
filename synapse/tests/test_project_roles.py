@@ -518,3 +518,188 @@ async def test_require_project_role_custom_param_name():
     from src.dependencies import require_project_role
     guard = require_project_role("admin", project_id_param="pid")
     assert callable(guard)
+
+
+# ═══════════════════════════════════════════════════════════════
+# PFL-125: Orchestrator Role Assignment 500 Fix (B130)
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_1o_constraint_handles_multi_orch_residue(seed: SeedData):
+    """PFL-125: 多 orch 残留时 set_project_role 应返回 ConflictError 而非 500。
+
+    狗粮场景：DB 绕过直接插入多条 orchestrator 记录后，
+    API 调用 set_project_role 时 scalar_one_or_none() 遇 MultipleResultsFound → 500。
+    修复后 .limit(1) 确保只取一条，正常走 ConflictError 逻辑。
+    """
+    from src.db import async_session_factory
+    from src.utils.id_gen import generate_id
+    from src.services.project_role_service import set_project_role
+    from src.constants import ActorType, WorkerActorType, WorkerStatus, ProjectStatus
+    from src.models.project import Project
+    from src.models.worker import Worker
+    from src.models.project_actor_role import ProjectActorRole
+
+    project_id = generate_id("project")
+    w1_id = generate_id("worker")
+    w2_id = generate_id("worker")
+    w3_id = generate_id("worker")
+
+    async with async_session_factory() as db:
+        project = Project(
+            id=project_id, team_id=seed.team_id,
+            name="Multi Orch Test", slug=f"multi-{project_id[-8:]}",
+            status=ProjectStatus.ACTIVE,
+        )
+        w1 = Worker(id=w1_id, name="Orch1", team_id=seed.team_id,
+                     actor_type=WorkerActorType.HUMAN, status=WorkerStatus.ACTIVE)
+        w2 = Worker(id=w2_id, name="Orch2", team_id=seed.team_id,
+                     actor_type=WorkerActorType.HUMAN, status=WorkerStatus.ACTIVE)
+        w3 = Worker(id=w3_id, name="Orch3", team_id=seed.team_id,
+                     actor_type=WorkerActorType.HUMAN, status=WorkerStatus.ACTIVE)
+        db.add_all([project, w1, w2, w3])
+        await db.flush()
+
+        # Simulate dogfood DB bypass: directly insert two orchestrator records
+        db.add(ProjectActorRole(id=generate_id("project_actor_role"),
+                                 project_id=project_id, worker_id=w1_id,
+                                 role="orchestrator"))
+        db.add(ProjectActorRole(id=generate_id("project_actor_role"),
+                                 project_id=project_id, worker_id=w2_id,
+                                 role="orchestrator"))
+        await db.flush()
+
+        # Verify pre-existing state: 2 orchestrator records
+        result = await db.execute(
+            select(ProjectActorRole).where(
+                ProjectActorRole.project_id == project_id,
+                ProjectActorRole.role == "orchestrator",
+            )
+        )
+        assert len(result.scalars().all()) == 2
+
+        # After fix: should raise ConflictError (409), NOT MultipleResultsFound (500)
+        from src.exceptions import ConflictError
+        with pytest.raises(ConflictError) as exc_info:
+            await set_project_role(
+                db, project_id=project_id, worker_id=w3_id, role="orchestrator",
+                team_id=seed.team_id, actor_type=ActorType.HUMAN, actor_id=w3_id,
+            )
+        assert exc_info.value.code == "ONE_ORCHESTRATOR_PER_PROJECT"
+
+        await db.rollback()
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_first_assignment_succeeds(seed: SeedData):
+    """PFL-125: 无已有 orch 时，set_project_role(role='orchestrator') 应成功。"""
+    from src.db import async_session_factory
+    from src.utils.id_gen import generate_id
+    from src.services.project_role_service import set_project_role
+    from src.constants import ActorType, WorkerActorType, WorkerStatus, ProjectStatus
+    from src.models.project import Project
+    from src.models.worker import Worker
+
+    project_id = generate_id("project")
+    worker_id = generate_id("worker")
+
+    async with async_session_factory() as db:
+        project = Project(
+            id=project_id, team_id=seed.team_id,
+            name="First Orch Test", slug=f"first-{project_id[-8:]}",
+            status=ProjectStatus.ACTIVE,
+        )
+        worker = Worker(id=worker_id, name="First Orch", team_id=seed.team_id,
+                         actor_type=WorkerActorType.HUMAN, status=WorkerStatus.ACTIVE)
+        db.add_all([project, worker])
+        await db.flush()
+
+        record = await set_project_role(
+            db, project_id=project_id, worker_id=worker_id, role="orchestrator",
+            team_id=seed.team_id, actor_type=ActorType.HUMAN, actor_id=worker_id,
+        )
+        assert record.role == "orchestrator"
+        assert record.project_id == project_id
+        assert record.worker_id == worker_id
+
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_assign_orchestrator_role_endpoint(client: AsyncClient, seed: SeedData):
+    """PFL-125: POST /admin/projects/{id}/roles role=orchestrator → 201。"""
+    from src.db import async_session_factory
+    from src.utils.id_gen import generate_id
+    from src.constants import WorkerActorType, WorkerStatus, ProjectStatus
+    from src.models.project import Project
+    from src.models.worker import Worker
+
+    project_id = generate_id("project")
+    worker_id = generate_id("worker")
+
+    async with async_session_factory() as db:
+        project = Project(
+            id=project_id, team_id=seed.team_id,
+            name="HTTP Orch Test", slug=f"http-orch-{project_id[-8:]}",
+            status=ProjectStatus.ACTIVE,
+        )
+        worker = Worker(id=worker_id, name="HTTP Orch Worker",
+                         team_id=seed.team_id, actor_type=WorkerActorType.HUMAN,
+                         status=WorkerStatus.ACTIVE)
+        db.add_all([project, worker])
+        await db.commit()
+
+    resp = await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": worker_id, "role": "orchestrator"},
+        headers=auth_header(seed.token),
+    )
+    assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.text}"
+    data = resp.json()
+    assert data["role"] == "orchestrator"
+    assert data["worker_id"] == worker_id
+
+
+@pytest.mark.asyncio
+async def test_register_worker_with_orchestrator_role(client: AsyncClient, seed: SeedData):
+    """PFL-125: POST /teams/{id}/workers with role=orchestrator → 201。
+
+    验证 worker 创建 + orchestrator 角色分配路径。
+    """
+    from src.db import async_session_factory
+    from src.utils.id_gen import generate_id
+    from src.constants import WorkerActorType, WorkerStatus, ProjectStatus
+    from src.models.project import Project
+    from src.models.worker import Worker
+    from src.services.project_role_service import get_project_role
+
+    project_id = generate_id("project")
+    async with async_session_factory() as db:
+        project = Project(
+            id=project_id, team_id=seed.team_id,
+            name="Reg Orch Test", slug=f"reg-orch-{project_id[-8:]}",
+            status=ProjectStatus.ACTIVE,
+        )
+        db.add(project)
+        await db.commit()
+
+    resp = await client.post(
+        f"/v1/teams/{seed.team_id}/workers",
+        json={
+            "name": "Orch Worker via Register",
+            "provider": "claude",
+            "project_id": project_id,
+            "role": "orchestrator",
+        },
+        headers=auth_header(seed.token),
+    )
+    assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.text}"
+    data = resp.json()
+    assert data["worker"]["name"] == "Orch Worker via Register"
+
+    # Verify the role was assigned in project_actor_roles
+    from src.db import async_session_factory as asf
+    async with asf() as db:
+        role = await get_project_role(db, project_id, data["worker"]["id"])
+        assert role == "orchestrator"

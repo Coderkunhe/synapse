@@ -116,7 +116,7 @@ async def set_project_role(
                 ProjectActorRole.project_id == project_id,
                 ProjectActorRole.role == "orchestrator",
                 ProjectActorRole.worker_id != worker_id,
-            )
+            ).limit(1)  # PFL-125: 防止 MultipleResultsFound（DB 绕过导致的多 orch 残留）
         )
         if existing_orch.scalar_one_or_none():
             raise ConflictError(
