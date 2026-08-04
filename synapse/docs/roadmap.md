@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-04（P11-B128 ✅ — Daemon 存活性自检 · PFL-123 stale reaper 假运行修复 + PFL-126 boot prompt daemon liveness · 670 tests 零回归）
+> 最后更新：2026-08-04（P11-B136 ✅ — PFL-126/127 双闭环 · 36/36 PFL 全量清零 🎉）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -200,6 +200,14 @@
 | **P11-B126** | **PFL-084 全量闭环** — daemon 自动升级（heartbeat.js spawn `--upgrade --silent`）· JS scripts 版本指纹（`compute_template_versions()` 扩展扫描 5 个 .js）· 两笔 B124 遗留全部消化 · 🟢 微型 · commit `742b60d` | ✅ |
 | **P11-B127** | **PFL-061/075/112 收尾审计** — 31/31 🟡 清零 🎉 · commit `ec4f4e4` | ✅ |
 | **P11-B128** | **Daemon 存活性自检** — PFL-123 stale reaper 假运行修复（4 层防御）· PFL-126 boot prompt daemon liveness（3 层覆盖）· 670 tests 零回归 · 6 files | ✅ |
+| **P11-B129** | **PFL-124 Worker 四层身份注入** — `_task-current.md` + `_boot-prompt.md` + `_env.md` + API `(YOU)` · 671 tests · 5 files | ✅ |
+| **P11-B130** | **PFL-125 API 500 orchestrator 角色分配修复** — `scalar_one_or_none()` 遇多 orch 残留 · `.limit(1)` 防御 · 675 tests | ✅ |
+| **P11-B131** | **R5 狗粮重跑 prep** — 5 步 prep · 双 Worker 就位 · DB 回退 · B129 Identity 注入 | ✅ |
+| **P11-B132** | **Daemon liveness .session-alive** — 双通道 heartbeat defense-in-depth · 675 tests · 6 files | ✅ |
+| **P11-B133** | **ws-daemon SyntaxError 修复** — 多余 `}` 导致 await SyntaxError · reconnect 死代码修复 | ✅ |
+| **P11-B134** | **状态复位 + L5 拉通** — 计数器清零 · 纯文档批 | ✅ |
+| **P11-B135** | **PFL-127 三合一修复** — inline-env (L1) + AI daemon spawn (L2) + 模板回退 (L3) · JS syntax ✅ · 5 files · commit `8f51443` | ✅ |
+| **P11-B136** | **PFL-126 daemon 冷启动链闭环** — boot prompt + CronCreate daemon check 对齐 · **36/36 PFL 全量清零 🎉** · 4 files · commit `b830a58` | ✅ |
 
 ---
 

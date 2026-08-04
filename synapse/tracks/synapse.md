@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B133 ✅ ws-daemon 巡检 + proposal_status migration · 675 tests
-last_batch: P11-B133
-next_batch: P11-B134
-description: Synapse 主项目 — B133 ✅ ws-daemon SyntaxError 修复 + PFL-125 验证 + proposal_status stamp · 675 tests 零回归
+phase: P11-B136 ✅ PFL-126/127 双闭环 · 36/36 PFL 全量清零 🎉
+last_batch: P11-B136
+next_batch: P11-B137
+description: Synapse 主项目 — B136 ✅ daemon 冷启动链闭环 · PFL 注册表首次清零 · 36 项全修复
 ---
 
 # Synapse 轨道

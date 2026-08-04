@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B132→B133→B134 L5 拉通完成 — pitfalls.md header 35→36项(🟡0→2) + tracks/synapse.md B128→B133 + synapse-builder/conventions-backend.md 狗粮残留清理 · 纯文档批无代码变更 · 675 tests 零回归",
+  "lastL5Batch": "B135→B136 L5 拉通完成 — PFL-127/126 双闭环 · 36/36 PFL 全量清零 · 📄 roadmap+daily+track 已更新 · 📚 叙事一致 · 纯文档批无代码变更 · JS syntax ✅",
   "lastL5Timestamp": "2026-08-04",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B132→B133→B134 L5 拉通完成 — pitfalls.md header 35→36项(🟡0→2) + tracks/synapse.md B128→B133 + synapse-builder/conventions-backend.md 狗粮残留清理 · 纯文档批无代码变更 · 675 tests 零回归",
+  "lastL5Evidence": "B135→B136 L5 拉通完成 — PFL-127/126 双闭环 · 36/36 PFL 全量清零 · 📄 roadmap+daily+track 已更新 · 📚 叙事一致 · 纯文档批无代码变更 · JS syntax ✅",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
