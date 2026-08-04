@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B128 ✅ Daemon 存活性自检 · PFL-123 + PFL-126
-last_batch: P11-B130
-next_batch: P11-B131
-description: Synapse 主项目 — B128 ✅ PFL-123 stale reaper 假运行修复 + PFL-126 boot prompt daemon liveness · 670 tests 零回归
+phase: P11-B133 ✅ ws-daemon 巡检 + proposal_status migration · 675 tests
+last_batch: P11-B133
+next_batch: P11-B134
+description: Synapse 主项目 — B133 ✅ ws-daemon SyntaxError 修复 + PFL-125 验证 + proposal_status stamp · 675 tests 零回归
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B128 ✅ PFL-123 stale reaper 假运行修复
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B128 | **P11-B129** 🔜 | B128 ✅ Daemon 存活性自检 · PFL-123+126 · 670 tests |
+| **P11** | P11-B133 | **P11-B134** 🔜 | B133 ✅ ws-daemon 巡检 + proposal_status · 675 tests |
 
 ## P11 路线图：多 Agent 接入战
 
