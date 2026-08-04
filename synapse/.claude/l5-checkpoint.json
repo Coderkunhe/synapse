@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B135→B137 L5 拉通完成 — 📄 roadmap.md B135/B136/B137 登记 · requirements-log.md B135/B136/B137 补登记 · daily/2026-08-04.md B137 节补全 · 📚 pitfalls.md 时间戳同步 B137 · CLAUDE.md+tracks/synapse.md 指针同步 P11-B137 → P12-B1 · 🎭 纯 Harness/Docs 批（无状态机变更·跳过）· P11 137 批全量闭环 🎉",
+  "lastL5Batch": "B1→B2 L5 拉通完成 — 📄 roadmap.md B1/B2 登记 · requirements-log.md B1/B2 补登记 · daily/2026-08-04.md B1/B2 节补全 · 🎭 纯 Docs 批（无状态机变更·跳过）· P12 开局双批闭环",
   "lastL5Timestamp": "2026-08-04",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B135→B137 L5 拉通完成 — 📄 roadmap.md B135/B136/B137 登记 · requirements-log.md B135/B136/B137 补登记 · daily/2026-08-04.md B137 节补全 · 📚 pitfalls.md 时间戳同步 B137 · CLAUDE.md+tracks/synapse.md 指针同步 P11-B137 → P12-B1 · 🎭 纯 Harness/Docs 批（无状态机变更·跳过）· P11 137 批全量闭环 🎉",
-  "notes": "L5 B135→B137 ✅ · P12-B1 开局复位（doc-only 提交不计数）· 计数器从 2→0"
+  "lastL5Evidence": "B1→B2 L5 拉通完成 — 📄 roadmap.md B1/B2 登记 · requirements-log.md B1/B2 补登记 · daily/2026-08-04.md B1/B2 节补全 · 🎭 纯 Docs 批（无状态机变更·跳过）· P12 开局双批闭环",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
