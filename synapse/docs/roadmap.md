@@ -804,8 +804,9 @@
 
 ## Phase 12：Harness-Driven Worker ▶️
 
-> **唯一目标**：达成 P11 未竟的原始目标 — **1 Orchestrator + 2 Builder 通过 Synapse 协作开发一个真实功能，全程不需要 God's-eye 干预。**
+> **唯一目标**：达成 P11 未竟的原始目标 — **1 Orchestrator + 2 Builder（= 3 个 Worker）通过 Synapse 协作开发一个真实功能，全程不需要 God's-eye 干预。**
 >
+> **客户端类型**：Claude Code + Codex CLI（Cursor IDE 🔪 P12 移除）。3 个 Worker 可以是同类型或不同类型混搭。
 > **启动条件**：P11 全量闭环 + L5 复位 ✅
 > **方法论**：LLM 是 judgment 插件，不是决策者。脚本闭环 → 单测 2s 验证 → 狗粮验证时序交互。
 > **核心原则**：收缩 LLM 决策面，将可靠性从 prompt 转移到 harness。

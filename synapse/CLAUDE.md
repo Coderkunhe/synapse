@@ -95,5 +95,6 @@ synapse/
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
 | **P12** | B2 ✅ 跨客户端自治 · Codex ✅ · launchd ⭐ | **P12-B3** 🔜 launchd 落地 + Codex live 验证 |
+| 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B135→B137 ✅ | batchesSinceLastL5=0 |
