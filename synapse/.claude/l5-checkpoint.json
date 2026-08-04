@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B129→B130 L5 拉通 — 📄 pitfalls.md PFL-124/125 ✅ 35/35 🎉 · session-init.js/tasks.py/task_core.py 身份注入 · project_role_service.py .limit(1) · test_project_roles.py +4 tests · 675 tests 零回归",
+  "lastL5Batch": "B132 ✅ daemon liveness .session-alive + dual-channel heartbeat · 675 tests 零回归 · daemon 35+ 秒存活",
   "lastL5Timestamp": "2026-08-04",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B129→B130 L5 拉通 — 📄 pitfalls.md PFL-124/125 ✅ 35/35 🎉 · session-init.js/tasks.py/task_core.py 身份注入 · project_role_service.py .limit(1) · test_project_roles.py +4 tests · 675 tests 零回归",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "lastL5Evidence": "heartbeat.js/ws-daemon.js: isProcessAlive→isSessionAlive(.session-alive) · session-init.js: .session-alive write + cron heartbeat · SKILL.md: Dual-Channel · 675 tests · R5 <3s→B132 >35s",
+  "notes": "L5 B131→B132 拉通完成，计数器复位"
 }
