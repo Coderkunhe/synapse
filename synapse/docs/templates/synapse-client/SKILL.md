@@ -67,9 +67,9 @@ node .agents/skills/synapse/scripts/session-init.js
 > - 完整模式：重新初始化所有组件，包括 daemon 重启
 > - 中session 唤醒用 `--quick`，新 session 启动用完整模式
 
-### 模板升级检测（PFL-084 · P11-B124）
+### 模板升级检测（PFL-084 · P11-B124 · B132 双通道）
 
-> ⚠️ **心跳守护进程自动检测模板版本过期。** 每次心跳（每 55s）对比本地 `.claude/synapse-version.json` 与 Server 最新模板版本。如果检测到不一致，`_task-current.md` 会在顶部显示升级横幅。
+> ⚠️ **双通道检测模板版本过期。** heartbeat daemon（每 55s）和 cron heartbeat（每次 wakeup）都会对比本地 `synapse-version.json` 与 Server 最新模板版本。如果检测到不一致，`_task-current.md` 会在顶部显示升级横幅。
 
 **如果 `_task-current.md` 显示 ⚠️ TEMPLATE UPGRADE AVAILABLE：**
 
@@ -81,30 +81,24 @@ node .agents/skills/synapse/scripts/session-init.js
 3. 升级完成后（约 2-5 秒），所有 Skill 文件已更新到最新版本
 4. **重启 Claude Code 会话**（`/clear` 或新窗口）以加载更新后的指令
 
-> 💡 模板是 Worker 的"操作手册"。当 Server 端更新了角色指令、协作规范或项目配置时，Worker 需要同步更新。心跳守护进程自动检测漂移——你只需要在看到横幅时运行升级命令。
+> 💡 模板是 Worker 的"操作手册"。当 Server 端更新了角色指令、协作规范或项目配置时，Worker 需要同步更新。双通道心跳自动检测漂移——你只需要在看到横幅时运行升级命令。
 
 > 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知，B126 实现了 daemon 自动升级 + JS 指纹 · 升级链全量闭环 ✅。
 
-## 🩺 Daemon Liveness（P11-B128 · PFL-126）
+## 🫀 Dual-Channel Heartbeat（P11-B132 · Defense in Depth）
 
-> ⚠️ **CronCreate 唤醒你，但不唤醒你的 daemon。** heartbeat.js 和 ws-daemon.js 是独立进程——你休眠时它们可能因 crash/OOM/session 结束而死亡。没有 heartbeat = Server 认为你 offline。没有 WS daemon = 没有实时推送。
+Worker 有心跳双通道，任一通道存活就能保持在线：
 
-**每次唤醒时（CronCreate / ScheduleWakeup），在执行任何工作之前：**
+| 通道 | 机制 | 间隔 | 独立性 |
+|:---|:---|:---|:---|
+| **Layer 1: Daemon** | `heartbeat.js` 后台进程 | 每 55s | 进程级，独立于 AI 行为 |
+| **Layer 2: Cron** | `session-init.js --quick` | 每 60s（CronCreate） | AI 级，每次唤醒触发 |
 
-1. **读 `_task-current.md` 的 `🔌 Connection` 节** → 检查 **Heartbeat daemon** 和 **WS Daemon** 状态行
-2. **决策表**：
+**每次 CronCreate wakeup 时**：CronCreate prompt 已经包含 `session-init.js --quick` 指令——它会发送心跳 + 刷新 `_task-current.md`。你不需要额外检查 daemon 状态。Daemon 通过 `.session-alive` 文件自行管理存活性。
 
-| Daemon 状态 | 动作 |
-|:---|:---|
-| ✅ running | 正常，继续工作循环 |
-| ⚠️ NOT RUNNING / 🔴 FAILED | 重启 daemon：`node .claude/skills/synapse/scripts/session-init.js` |
-| 状态行不存在 | `_task-current.md` 可能过期 → 运行 `session-init.js --quick` 刷新 |
+**只有当 `_task-current.md` 的 Connection 节显示 daemon FAILED 时**，才需要手动运行完整 `session-init.js`（不用 `--quick`）重建 daemon。
 
-3. **两个 daemon 都必须 ✅ 才能继续。** 缺一个 = 残血状态。不要"先干活，等会再修"——残血状态下你的工作不会被 Server 正确追踪。
-
-**为什么 CronCreate 不够**：CronCreate 每分钟触发一次 prompt 注入，但只在 REPL 空闲时触发。如果你正在执行 Task，cron 不会打断你——但 daemon 可能在 Task 执行期间死亡。所以 cron wakeup 时检查 + SKILL.md 启动时检查，双重保障。
-
-> 📖 **PFL-126 教训（B128 狗粮 R5）**：S1 冷启动时双 Worker 都调用了 CronCreate ✅，但 heartbeat/WS daemon 从未运行 🔴。Worker 依赖 cron 轮询 API（每分钟一次），没有实时推送。心跳时间戳停留在 Phase 1 手动握手时刻。根因：`_boot-prompt.md` 只设了 CronCreate，没启动 daemon——两个独立进程，互不感知。
+> 📖 **B132 背景**：R5 狗粮发现 daemon 因 `process.ppid` 指向 hook shell（非 Claude）而持续自毁（955 WS/40min）。根因修复：daemon 改为读 `.session-alive` 文件时间戳判活，session-init.js 每次运行都更新该文件。Cron heartbeat 作为第二通道确保 AI wakeup 时立即 heartbeat，不依赖 daemon 是否存活。
 
 ### 第二步：读取初始状态
 

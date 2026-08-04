@@ -60,29 +60,42 @@ const BACKOFF_SCHEDULE = [1, 5, 25];
 const SESSION_INIT_SCRIPT = path.join(__dirname, 'session-init.js');
 const AUTO_REFRESH_THROTTLE_MS = 30_000;
 
+// P11-B132: daemon liveness signal — session-init.js writes/updates
+// .session-alive on each run (full init + --quick on CronCreate wakeup).
+// Daemon checks this file timestamp instead of parent PID.
+// This fixes the R5 death loop: process.ppid in SessionStart hook context
+// was the hook shell (not Claude), which exits immediately.
+
+// WORKER_ROOT for .session-alive file (same as heartbeat.js)
+const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
+const SESSION_ALIVE_FILE = path.join(WORKER_ROOT, '.session-alive');
+const SESSION_ALIVE_TIMEOUT_MS = 120_000; // 2 min — 2× CronCreate interval
+
 // PFL-116 (B123): daemon self-check interval (every 60s).
 // Independently of reconnect cycle — a stable WS connection can last days.
 const SESSION_CHECK_INTERVAL_MS = 60_000;
 
-// PFL-116 (B123): session PID passed by session-init.js on spawn.
-// If the session that spawned us is dead, this daemon is orphaned → self-exit.
+/**
+ * Check if the session that spawned us is still alive by reading
+ * the .session-alive file timestamp written by session-init.js.
+ */
+function isSessionAlive() {
+  try {
+    const stat = fs.statSync(SESSION_ALIVE_FILE);
+    const age = Date.now() - stat.mtimeMs;
+    return age < SESSION_ALIVE_TIMEOUT_MS;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Keep --session-pid parsing for backward compatibility (ignored in B132)
 let _sessionPid = 0;
 {
   const idx = process.argv.indexOf('--session-pid');
   if (idx >= 0 && idx + 1 < process.argv.length) {
     const parsed = parseInt(process.argv[idx + 1], 10);
     if (parsed > 0) _sessionPid = parsed;
-  }
-}
-
-/** Check if a process with the given PID is alive (signal 0 = existence check). */
-function isProcessAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    // EPERM = no permission → assume alive (false negative > false positive)
-    return e.code === 'EPERM';
   }
 }
 
@@ -327,18 +340,19 @@ async function main() {
   // ── Initial connect ──────────────────────────────────────────
   let ws = connect(getWsUrl());
 
-  // ── Session-alive check (PFL-116 · B123) ─────────────────────
-  // Periodic self-check: if the spawning session is dead, this
-  // daemon is orphaned → write status + clean exit.
+  // ── Session-alive check (P11-B132) ──────────────────────────
+  // Periodic self-check: uses .session-alive file timestamp instead
+  // of parent PID. session-init.js updates this file on every run
+  // (full init + --quick on CronCreate wakeup). If stale (>2 min)
+  // the Claude session is gone → daemon is orphaned → clean exit.
   // Independent of reconnect cycle — stable connections can last days.
   let sessionCheckInterval = null;
-  if (_sessionPid) {
-    sessionCheckInterval = setInterval(() => {
-      if (!isProcessAlive(_sessionPid)) {
-        log(`session PID ${_sessionPid} is gone — self-terminating (orphan)`);
+  sessionCheckInterval = setInterval(() => {
+      if (!isSessionAlive()) {
+        log('session alive file stale/missing — self-terminating (orphan)');
         try {
           fs.writeFileSync(STATUS_FILE, JSON.stringify({
-            status: 'orphaned', since: now(), sessionPid: _sessionPid
+            status: 'orphaned', since: now()
           }) + '\n', 'utf-8');
         } catch (_) { /* best-effort */ }
         if (sessionCheckInterval) clearInterval(sessionCheckInterval);

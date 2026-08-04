@@ -91,11 +91,66 @@ if (SILENT_MODE) {
 const HEARTBEAT_PID_FILE = path.join(WORKER_ROOT, '.daemon-heartbeat.pid');
 const WS_DAEMON_PID_FILE = path.join(WORKER_ROOT, '.daemon-ws.pid');
 
+// P11-B132: daemon liveness signal — written/updated on every session-init run.
+// heartbeat.js and ws-daemon.js check this file's timestamp instead of parent PID.
+// Fixes R5 death loop where process.ppid pointed to hook shell (not Claude).
+const SESSION_ALIVE_FILE = path.join(WORKER_ROOT, '.session-alive');
+
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /** Current ISO timestamp for output files. */
 function now() {
   return new Date().toISOString();
+}
+
+/**
+ * P11-B132: Check template version from heartbeat response.
+ * Compares server version against local synapse-version.json.
+ * Writes .claude/template-upgrade-needed flag on mismatch.
+ *
+ * This replaces the daemon-side check in heartbeat.js's checkTemplateVersion()
+ * for the cron heartbeat path. The daemon still does its own check every 55s.
+ *
+ * @param {string} serverVersion — template_version from heartbeat response
+ * @param {object} state — mutated: state.templateUpgradeNeeded set if mismatch
+ */
+function checkTemplateVersionInHeartbeat(serverVersion, state) {
+  const UPGRADE_FLAG = path.join(WORKER_ROOT, 'template-upgrade-needed');
+  const VERSION_FILE_SI = path.join(WORKER_ROOT, 'synapse-version.json');
+
+  var localVersion = null;
+  try {
+    if (fs.existsSync(VERSION_FILE_SI)) {
+      var raw = fs.readFileSync(VERSION_FILE_SI, 'utf-8');
+      var parsed = JSON.parse(raw);
+      localVersion = parsed.version || null;
+    }
+  } catch (_) { /* non-critical */ }
+
+  if (!localVersion) {
+    try {
+      fs.writeFileSync(UPGRADE_FLAG, JSON.stringify({
+        current: null, latest: serverVersion,
+        detected_at: new Date().toISOString(), reason: 'no_local_version',
+      }, null, 2) + '\n', 'utf-8');
+    } catch (_) { /* best-effort */ }
+    return;
+  }
+
+  if (localVersion !== serverVersion) {
+    try {
+      fs.writeFileSync(UPGRADE_FLAG, JSON.stringify({
+        current: localVersion, latest: serverVersion,
+        detected_at: new Date().toISOString(),
+      }, null, 2) + '\n', 'utf-8');
+    } catch (_) { /* best-effort */ }
+    state.templateUpgradeNeeded = { current: localVersion, latest: serverVersion, detected_at: new Date().toISOString() };
+  } else {
+    // Clear stale flag if versions match
+    try {
+      if (fs.existsSync(UPGRADE_FLAG)) fs.unlinkSync(UPGRADE_FLAG);
+    } catch (_) { /* best-effort */ }
+  }
 }
 
 /**
@@ -678,10 +733,10 @@ function writeState(state) {
   lines.push('```');
   lines.push('CronCreate({');
   lines.push('  cron: "*/1 * * * *",');
-  // P11-B128 (PFL-126): daemon liveness check added to cron prompt.
-  // Worker must verify heartbeat/ws-daemon are alive on every wakeup —
-  // daemons can die while Worker sleeps (process crash, OOM, session end).
-  lines.push('  prompt: "Wake up. ① Check daemon liveness: read _task-current.md daemon status lines. If heartbeat or ws-daemon dead, run: node .claude/skills/synapse/scripts/session-init.js ② Read _task-current.md for tasks. ③ Continue working if active tasks exist, ScheduleWakeup if idle.",');
+  // P11-B132: cron-native heartbeat — session-init.js --quick sends heartbeat
+  // on every CronCreate wakeup. No more manual daemon liveness check needed —
+  // daemons manage themselves via .session-alive file.
+  lines.push('  prompt: "Wake up. ① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes state). ② Read _task-current.md for tasks. ③ Continue working if active tasks exist, ScheduleWakeup if idle.",');
   lines.push('  recurring: true');
   lines.push('})');
   lines.push('```');
@@ -713,7 +768,7 @@ function writeState(state) {
   lines.push('> 1. Check the **Snapshot timestamp** above — compute how old it is');
   lines.push('> 2. **Snapshot < 5 min old** → use for orientation, but still call API for real-time decisions（循环铁律 #2）');
   lines.push('> 3. **Snapshot > 5 min old** → **DO NOT TRUST IT BLINDLY** — refresh first:');
-  lines.push('>    - `node .claude/skills/synapse/scripts/session-init.js --quick` (2-3s, skips daemon/protocol/handshake)');
+  lines.push('>    - `node .claude/skills/synapse/scripts/session-init.js --quick` (2-3s, sends heartbeat + skips protocol/handshake)');
   lines.push('>    - OR call API directly: `curl -s $SYNAPSE_API_URL/v1/projects/$SYNAPSE_PROJECT_ID/tasks?status=ready`');
   lines.push('> 4. **Snapshot > 30 min old** → **MUST refresh** — the world has almost certainly changed');
   lines.push('> ');
@@ -842,25 +897,23 @@ function writeState(state) {
     lines.push(`- **Project**: \`${state.env.SYNAPSE_PROJECT_ID}\``);
     lines.push(`- **Role**: \`${state.role || state.env.SYNAPSE_WORKER_ROLE || 'unknown'}\``);
     lines.push(`- **API Key**: from ${state.env._keySource || 'env'}`);
-    // Heartbeat daemon status (A5: SessionStart hook 三阶段无状态协调 · B91: auto-start)
+    // P11-B132: dual-channel heartbeat — daemon (Layer 1) + cron (Layer 2)
+    if (state._heartbeatRuntimeStatus) {
+      lines.push(`- **Cron heartbeat**: ${state._heartbeatRuntimeStatus} (sent on wakeup)`);
+    }
     if (state.heartbeatDaemon) {
       if (state.heartbeatDaemon.running) {
-        const tag = state.heartbeatDaemon.startedByUs ? '🆕 auto-started by session-init' : 'already running';
-        lines.push(`- **Heartbeat daemon**: ✅ running (pid: ${state.heartbeatDaemon.pids.join(', ')}, ${tag})`);
+        lines.push(`- **Heartbeat daemon**: ✅ running (pid: ${state.heartbeatDaemon.pids.join(', ')})`);
       } else if (state.heartbeatDaemon.startError) {
-        lines.push(`- **Heartbeat daemon**: 🔴 FAILED TO START — ${state.heartbeatDaemon.startError}. AI should send manual heartbeat.`);
-      } else if (state.heartbeatDaemon.error) {
-        lines.push(`- **Heartbeat daemon**: ⚠️ unable to check (${state.heartbeatDaemon.error})`);
+        lines.push(`- **Heartbeat daemon**: 🔴 FAILED TO START — ${state.heartbeatDaemon.startError}. Cron heartbeat will keep worker alive.`);
       } else {
-        lines.push('- **Heartbeat daemon**: ⚠️ NOT RUNNING — AI should check before proceeding');
+        lines.push('- **Heartbeat daemon**: ⚠️ NOT RUNNING — cron heartbeat will keep worker alive');
       }
     }
-    // WS daemon status (B96 PFL-093)
+    // WS daemon status (P11-B132: .session-alive keeps it alive)
     if (state.wsDaemon) {
       if (state.wsDaemon.running) {
-        const tag = state.wsDaemon.startedByUs ? '🆕 auto-started by session-init' : 'already running';
-        lines.push(`- **WS Daemon**: ✅ running (pid: ${state.wsDaemon.pids.join(', ')}, ${tag})`);
-        // Recent events
+        lines.push(`- **WS Daemon**: ✅ running (pid: ${state.wsDaemon.pids.join(', ')})`);
         if (state.recentWsEvents && state.recentWsEvents.length > 0) {
           lines.push('- **Recent WS events**:');
           for (const evt of state.recentWsEvents) {
@@ -1109,12 +1162,11 @@ function writeBootPrompt(state) {
     steward: `You are the Steward Worker. Your Worker ID is ${workerId}. Review code, audit security, report findings.`,
   }[role] || `You are a Synapse ${role} Worker. Your Worker ID is ${workerId}.`;
 
-  // P11-B128 (PFL-126): CronCreate prompt includes daemon liveness check.
-  // Without this, Worker wakes up but daemons (heartbeat/WS) may have died
-  // while it slept — server sees Worker as offline, no real-time push.
+  // P11-B132: cron-native heartbeat — session-init.js --quick sends heartbeat
+  // on every CronCreate wakeup. Daemons self-manage via .session-alive file.
+  // No manual daemon liveness check needed in the cron prompt.
   const cronPrompt = "Wake up. "
-    + "① Check daemon liveness: read _task-current.md daemon status lines. "
-    + "If heartbeat or ws-daemon dead, run: node .claude/skills/synapse/scripts/session-init.js "
+    + "① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes state). "
     + "② Read _task-current.md for tasks. "
     + "③ Continue working if active tasks exist, ScheduleWakeup if idle.";
 
@@ -1125,7 +1177,7 @@ function writeBootPrompt(state) {
     '',
     `CronCreate({cron: "*/1 * * * *", prompt: "${cronPrompt}", recurring: true})`,
     '',
-    `Then: read .claude/skills/synapse/SKILL.md §Daemon Liveness → check daemons → read _task-current.md → enter work loop.`,
+    `Then: read _task-current.md → enter work loop.`,
     '',
     'Execute the CronCreate call NOW. Do not summarize. Do not analyze. Do not ask questions. Call the tool.',
   ];
@@ -1385,6 +1437,18 @@ async function main() {
   const projectId = envCheck.present.SYNAPSE_PROJECT_ID;
   const client = new SynapseClient(config);
 
+  // ── P11-B132: Write .session-alive BEFORE daemon spawn ──
+  // Daemons check this file's timestamp to decide if the session is alive.
+  // Updated on EVERY session-init run (full + --quick) so CronCreate wakeup
+  // keeps the timestamp fresh, preventing daemon self-destruct.
+  try {
+    fs.writeFileSync(SESSION_ALIVE_FILE, JSON.stringify({
+      updated_at: now(),
+      pid: String(process.pid),
+      mode: QUICK_MODE ? 'quick' : 'full',
+    }), 'utf-8');
+  } catch (_) { /* best-effort */ }
+
   if (!QUICK_MODE) {
   // ── Step 2.4: Cleanup pre-B115 orphan daemons (PFL-116 · B121) ──
   // Must run BEFORE spawning new daemons — kills zombies that have no PID file.
@@ -1557,6 +1621,26 @@ async function main() {
     state.protocolData = { role_source: 'quick_refresh_cached' };
     console.log(`⚡ ${SCRIPT_NAME}: quick refresh — skipping protocol fetch + handshake (role: ${state.role}, old snapshot: ${oldSnapshotAge || 'N/A'})`);
   } // END QUICK_MODE: role from cache
+
+  // ── P11-B132 (cron-native Layer 2): Heartbeat on every wakeup ──
+  // This is defense-in-depth: daemon heartbeat (Layer 1, 55s interval)
+  // plus cron heartbeat (Layer 2, each CronCreate wakeup).
+  // Either channel alone keeps the Worker from going offline.
+  // Runs in both full and --quick mode so CronCreate wakeup triggers it.
+  try {
+    const hbRes = await client.post('/v1/workers/' + workerId + '/heartbeat', { current_load: 0 });
+    if (!hbRes.error && hbRes.data) {
+      state._heartbeatRuntimeStatus = hbRes.data.runtime_status || 'unknown';
+      // PFL-084 template auto-upgrade: check template_version in heartbeat response
+      if (hbRes.data.template_version) {
+        checkTemplateVersionInHeartbeat(hbRes.data.template_version, state);
+      }
+    } else {
+      state.warnings.push('cron heartbeat failed: ' + (hbRes.message || 'unknown'));
+    }
+  } catch (hbErr) {
+    state.warnings.push('cron heartbeat exception: ' + (hbErr.message || String(hbErr)));
+  }
 
   // ── Step 5: State sync ─────────────────────────────────────────
 

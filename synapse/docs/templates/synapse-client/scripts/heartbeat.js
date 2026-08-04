@@ -8,6 +8,11 @@
  *
  * --once mode: sends one heartbeat and exits (backward compatible).
  *
+ * P11-B132: daemon liveness uses .session-alive file (written by session-init.js)
+ * instead of parent PID. session-init.js updates this file on every run
+ * (full init + --quick on CronCreate wakeup). If the file is stale (>2 min),
+ * the daemon self-terminates — the Claude session is gone.
+ *
  * Zero external dependencies — uses Node.js >=18 built-ins only.
  *
  * Usage:
@@ -22,7 +27,7 @@
  * Exit codes:
  *   0 — Always (non-blocking contract for SessionStart hooks)
  *
- * @version 1.1.0
+ * @version 1.2.0
  * @file heartbeat.js
  */
 
@@ -43,28 +48,44 @@ const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
 const VERSION_FILE = path.join(WORKER_ROOT, 'synapse-version.json');
 const UPGRADE_FLAG_FILE = path.join(WORKER_ROOT, 'template-upgrade-needed');
 
-// PFL-116 (B123): daemon self-check — detect orphaned daemon by checking
-// whether the session that spawned us is still alive.
-// session-init.js passes --session-pid <ppid> when spawning.
-// If session PID is dead (Claude session exited), daemon self-terminates.
+// P11-B132: daemon liveness signal — session-init.js writes/updates
+// .session-alive on each run (full init + --quick on CronCreate wakeup).
+// Daemon checks this file timestamp instead of parent PID.
+// This fixes the R5 death loop: process.ppid in SessionStart hook context
+// was the hook shell (not Claude), which exits immediately.
+const SESSION_ALIVE_FILE = path.join(WORKER_ROOT, '.session-alive');
+const SESSION_ALIVE_TIMEOUT_MS = 120_000; // 2 min — 2× CronCreate interval
+
+/**
+ * Check if the session that spawned us is still alive by reading
+ * the .session-alive file timestamp written by session-init.js.
+ *
+ * session-init.js updates this file on every run:
+ *   - Full mode: SessionStart hook (first spawn)
+ *   - --quick mode: CronCreate wakeup (every 60s)
+ *
+ * If the file hasn't been touched in SESSION_ALIVE_TIMEOUT_MS,
+ * the Claude session is gone → daemon self-terminates.
+ */
+function isSessionAlive() {
+  try {
+    const stat = fs.statSync(SESSION_ALIVE_FILE);
+    const age = Date.now() - stat.mtimeMs;
+    return age < SESSION_ALIVE_TIMEOUT_MS;
+  } catch (e) {
+    // File missing — session-init hasn't run yet or was cleaned up
+    return false;
+  }
+}
+
+// Keep --session-pid parsing for backward compatibility (ignored — replaced by .session-alive)
+// session-init.js still passes it; daemon no longer uses it for liveness decisions.
 let _sessionPid = 0;
 {
   const idx = process.argv.indexOf('--session-pid');
   if (idx >= 0 && idx + 1 < process.argv.length) {
     const parsed = parseInt(process.argv[idx + 1], 10);
     if (parsed > 0) _sessionPid = parsed;
-  }
-}
-
-/** Check if a process with the given PID is alive (signal 0 = existence check). */
-function isProcessAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    // ESRCH = process not found → dead
-    // EPERM = no permission → assume alive (better false negative than false positive)
-    return e.code === 'EPERM';
   }
 }
 
@@ -179,9 +200,11 @@ async function daemon() {
   let consecutiveFailures = 0;
 
   async function tick() {
-    // PFL-116 (B123): self-check — if spawning session is dead, daemon is orphaned
-    if (_sessionPid && !isProcessAlive(_sessionPid)) {
-      console.error('heartbeat daemon: session PID ' + _sessionPid + ' is gone — self-terminating (orphan)');
+    // P11-B132: check .session-alive file instead of parent PID.
+    // session-init.js updates this file on every CronCreate wakeup (--quick).
+    // If the file is stale (>2 min), the Claude session is gone → self-terminate.
+    if (!isSessionAlive()) {
+      console.error('heartbeat daemon: session alive file stale/missing — self-terminating (orphan)');
       process.exit(0);
     }
     const status = await sendHeartbeat(client, config.workerId);
