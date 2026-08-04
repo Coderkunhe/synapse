@@ -22,14 +22,28 @@ from src.services.ws_manager import ws_manager
 
 
 async def _ws_reaper() -> None:
-    """Periodically clean up timed-out WebSocket connections."""
+    """Periodically clean up timed-out WebSocket connections.
+
+    P11-B128: aligned to spawn→check pattern — startup log + reap counter
+    so health check can distinguish "never scanned" from "nothing reaped".
+    """
+    import logging
+    _logger = logging.getLogger("synapse.ws_reaper")
+    global _ws_reaper_reap_count
+
     while True:
         await asyncio.sleep(30)
         try:
-            await ws_manager.reap_dead_connections()
+            # P11-B128: startup log on first iteration
+            if _ws_reaper_reap_count == 0:
+                _logger.info("WS reaper started: interval=30s")
+
+            count = await ws_manager.reap_dead_connections()
+            _ws_reaper_reap_count += 1
+            if count > 0:
+                _logger.info("Reaped %d dead WS connection(s)", count)
         except Exception:
-            import logging
-            logging.getLogger("synapse.ws_reaper").warning(
+            _logger.warning(
                 "WS reaper scan failed (will retry in 30s)",
                 exc_info=True,
             )
@@ -43,22 +57,36 @@ async def _auth_expiry_reaper() -> None:
 
     Calls expire_stale_requests() on its own DB session.
     Runs every auth_expiry_interval_seconds (default 30s).
+
+    P11-B128: settings init moved inside try block (was outside, same
+    silent-crash vulnerability as stale_reaper before B128 fix).
+    Added startup log + expiry_counter for health check visibility.
     """
     import logging
     _logger = logging.getLogger("synapse.auth_reaper")
-    interval = settings.auth_expiry_interval_seconds
+    global _auth_reaper_expiry_count
+
     while True:
-        await asyncio.sleep(interval)
         try:
+            # P11-B128 (PFL-123 alignment): settings inside try —
+            # prevents silent coroutine crash before entering the loop.
+            interval = settings.auth_expiry_interval_seconds
+
+            # P11-B128: startup log on first iteration
+            if _auth_reaper_expiry_count == 0:
+                _logger.info("Auth expiry reaper started: interval=%ds", interval)
+
+            await asyncio.sleep(interval)
             async with async_session_factory() as db:
                 count = await expire_stale_requests(db)
                 await db.commit()
+                _auth_reaper_expiry_count += 1
                 if count > 0:
                     _logger.info("Expired %d stale authorization request(s)", count)
         except Exception:
             _logger.warning(
                 "Auth expiry reaper scan failed (will retry in %ds)",
-                interval,
+                settings.auth_expiry_interval_seconds,
                 exc_info=True,
             )
 
@@ -189,32 +217,167 @@ async def _stale_task_reaper() -> None:
             )
 
 
+# ── Background task: Worker heartbeat monitor (P11-B128 · PFL-126) ──────────
+
+
+async def _worker_heartbeat_monitor() -> None:
+    """Periodically scan for Workers with stale heartbeats → OFFLINE.
+
+    P11-B128 (PFL-126 direction 4): This is the only system-level closed
+    loop for heartbeat monitoring — it doesn't depend on AI prompt compliance.
+
+    Scans all ACTIVE workers whose last_heartbeat_at is older than
+    worker_heartbeat_timeout_seconds, transitions them to OFFLINE runtime
+    status, and records worker.runtime.offline events.
+    """
+    import logging
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select as sa_select
+    from src.constants import ActorType, WorkerRuntimeStatus, WorkerStatus
+    from src.models.worker import Worker
+    from src.services.event_store import event_store
+    from src.worker_state_machine import apply_transition
+
+    _logger = logging.getLogger("synapse.heartbeat_monitor")
+    global _heartbeat_monitor_scan_count
+
+    while True:
+        try:
+            # P11-B128: settings inside try — prevents silent coroutine crash
+            interval = settings.worker_heartbeat_monitor_interval_seconds
+            timeout = settings.worker_heartbeat_timeout_seconds
+
+            if _heartbeat_monitor_scan_count == 0:
+                _logger.info(
+                    "Worker heartbeat monitor started: interval=%ds, timeout=%ds",
+                    interval, timeout,
+                )
+
+            await asyncio.sleep(interval)
+
+            async with async_session_factory() as db:
+                cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout)
+
+                # Find ACTIVE workers with stale heartbeat who aren't already OFFLINE
+                stmt = sa_select(Worker).where(
+                    Worker.status == WorkerStatus.ACTIVE,
+                    Worker.runtime_status != WorkerRuntimeStatus.OFFLINE,
+                    Worker.last_heartbeat_at.is_not(None),
+                    Worker.last_heartbeat_at < cutoff,
+                )
+                result = await db.execute(stmt)
+                stale_workers = result.scalars().all()
+
+                offline_count = 0
+                for worker in stale_workers:
+                    # Normalize SQLite naive UTC → aware for age calculation
+                    last_hb = worker.last_heartbeat_at
+                    if last_hb is None:
+                        continue  # defensive: query filters is_not(None)
+                    if last_hb.tzinfo is None:
+                        last_hb = last_hb.replace(tzinfo=timezone.utc)
+                    age_seconds = int(
+                        (datetime.now(timezone.utc) - last_hb).total_seconds()
+                    )
+
+                    event_type, payload = apply_transition(
+                        worker,
+                        WorkerRuntimeStatus.OFFLINE,
+                        actor_type=ActorType.SYSTEM,
+                        actor_id="system",
+                        context={
+                            "reason": "heartbeat_timeout",
+                            "last_heartbeat_age_seconds": age_seconds,
+                            "timeout_seconds": timeout,
+                        },
+                    )
+                    await event_store.record(
+                        db,
+                        event_type=event_type,
+                        team_id=worker.team_id,
+                        actor_type=ActorType.SYSTEM,
+                        actor_id="system",
+                        target_type="worker",
+                        target_id=worker.id,
+                        payload=payload,
+                    )
+
+                    # WS notify the worker that they're now offline
+                    await ws_manager.broadcast_to_actor(
+                        worker.id,
+                        {
+                            "type": "event",
+                            "data": {
+                                "event_type": "worker.runtime.offline",
+                                "worker_id": worker.id,
+                                "reason": "heartbeat_timeout",
+                                "last_heartbeat_age_seconds": age_seconds,
+                            },
+                        },
+                    )
+
+                    _logger.warning(
+                        "Worker %s (%s) marked OFFLINE: last heartbeat %ds ago",
+                        worker.id, worker.name, age_seconds,
+                    )
+                    offline_count += 1
+
+                await db.commit()
+                _heartbeat_monitor_scan_count += 1
+
+                if offline_count > 0:
+                    _logger.info(
+                        "Heartbeat monitor: marked %d worker(s) OFFLINE (scan #%d)",
+                        offline_count, _heartbeat_monitor_scan_count,
+                    )
+
+        except Exception:
+            _logger.warning(
+                "Heartbeat monitor scan failed (will retry in %ds)",
+                settings.worker_heartbeat_monitor_interval_seconds,
+                exc_info=True,
+            )
+
+
 _reaper_task: asyncio.Task | None = None
 _expiry_reaper_task: asyncio.Task | None = None
 _stale_reaper_task: asyncio.Task | None = None
 _stale_reaper_scan_count: int = 0  # P11-B128 (PFL-123): proves reaper is actually scanning
+_ws_reaper_reap_count: int = 0  # P11-B128: proves WS reaper is actually scanning
+_auth_reaper_expiry_count: int = 0  # P11-B128: proves auth reaper is actually scanning
+_heartbeat_monitor_task: asyncio.Task | None = None  # P11-B128: heartbeat monitor handle
+_heartbeat_monitor_scan_count: int = 0  # P11-B128: proves heartbeat monitor is scanning
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
-    global _reaper_task, _expiry_reaper_task, _stale_reaper_task
+    global _reaper_task, _expiry_reaper_task, _stale_reaper_task, _heartbeat_monitor_task
     _reaper_task = asyncio.create_task(_ws_reaper())
     _expiry_reaper_task = asyncio.create_task(_auth_expiry_reaper())
     _stale_reaper_task = asyncio.create_task(_stale_task_reaper())
-    # P11-B128 (PFL-123): verify the coroutine actually started — if
-    # settings init or any pre-loop code raised, the Task is done() with
+    _heartbeat_monitor_task = asyncio.create_task(_worker_heartbeat_monitor())
+    # P11-B128 (PFL-123): verify all daemon coroutines actually started —
+    # if settings init or any pre-loop code raised, the Task is done() with
     # an exception but health check would report "running" (done()=False
     # only means the coroutine hasn't been awaited, not that it's alive).
     await asyncio.sleep(0.1)
-    if _stale_reaper_task.done():
-        exc = _stale_reaper_task.exception()
-        if exc:
-            import logging
-            logging.getLogger("synapse").error(
-                "Stale task reaper crashed on startup: %s", exc,
-                exc_info=True,
-            )
+    daemon_tasks = [
+        ("ws_reaper", _reaper_task),
+        ("auth_reaper", _expiry_reaper_task),
+        ("stale_reaper", _stale_reaper_task),
+        ("heartbeat_monitor", _heartbeat_monitor_task),
+    ]
+    for name, task in daemon_tasks:
+        if task.done():
+            exc = task.exception()
+            if exc:
+                import logging
+                logging.getLogger("synapse").error(
+                    "%s crashed on startup: %s", name, exc,
+                    exc_info=True,
+                )
     yield
     # P11-B23: 优雅关闭 — 通知所有 WS 客户端后断开
     await ws_manager.graceful_shutdown()
@@ -234,6 +397,12 @@ async def lifespan(app: FastAPI):
         _stale_reaper_task.cancel()
         try:
             await _stale_reaper_task
+        except asyncio.CancelledError:
+            pass
+    if _heartbeat_monitor_task:
+        _heartbeat_monitor_task.cancel()
+        try:
+            await _heartbeat_monitor_task
         except asyncio.CancelledError:
             pass
 
@@ -283,15 +452,24 @@ def create_app() -> FastAPI:
             "status": "ok",
             "ws_connections": ws_manager.connection_count,
             "reapers": {
-                "ws_reaper": _reaper_status(_reaper_task),
-                "auth_reaper": _reaper_status(_expiry_reaper_task),
-                # P11-B128 (PFL-123): scan_count distinguishes
-                # "never scanned" (0) from "nothing found" (>0).
-                # "running" alone was misleading — a crashed
-                # coroutine also shows "running" if un-awaited.
+                # P11-B128: all daemons expose status + counter —
+                # "running" alone is misleading when a coroutine
+                # crashed silently (un-awaited Task reports done()=False).
+                "ws_reaper": {
+                    "status": _reaper_status(_reaper_task),
+                    "reap_count": _ws_reaper_reap_count,
+                },
+                "auth_reaper": {
+                    "status": _reaper_status(_expiry_reaper_task),
+                    "expiry_count": _auth_reaper_expiry_count,
+                },
                 "stale_reaper": {
                     "status": _reaper_status(_stale_reaper_task),
                     "scan_count": _stale_reaper_scan_count,
+                },
+                "heartbeat_monitor": {
+                    "status": _reaper_status(_heartbeat_monitor_task),
+                    "scan_count": _heartbeat_monitor_scan_count,
                 },
             },
         }

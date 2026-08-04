@@ -54,6 +54,7 @@ class WorkerRuntimeStatus(StrEnum):
     IDLE = "idle"
     BUSY = "busy"
     ERROR = "error"
+    OFFLINE = "offline"  # P11-B128: heartbeat timeout → presumed disconnected
 
 
 

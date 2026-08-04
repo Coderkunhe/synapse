@@ -2,11 +2,12 @@
 
 所有 Worker 运行时状态变更必须通过本模块。禁止直接对 ``worker.runtime_status`` 赋值。
 
-设计（依据 P7 D5 B2）：
-- 3 个运行时状态：IDLE → BUSY → ERROR
+设计（依据 P7 D5 B2 + P11-B128 OFFLINE 扩展）：
+- 4 个运行时状态：IDLE → BUSY → ERROR → OFFLINE
 - IDLE：Worker 空闲，可接受工作（无活跃任务）
 - BUSY：Worker 正在处理任务
 - ERROR：Worker 心跳/进度检查失败（需恢复）
+- OFFLINE：Worker 长时间无心跳，疑似断连（P11-B128 · PFL-126）
 - 每次转换产出 (event_type, payload) 元组供 EventStore 使用
 - 调用方持有 DB 事务
 
@@ -18,7 +19,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from src.constants import ActorType, WorkerRuntimeStatus
+from src.constants import WorkerRuntimeStatus
 from src.exceptions import InvalidStateTransition
 
 if TYPE_CHECKING:
@@ -28,20 +29,25 @@ if TYPE_CHECKING:
 # ── 转换白名单 ──────────────────────────────────────────────────────
 
 _TRANSITIONS: dict[str, frozenset[str]] = {
-    WorkerRuntimeStatus.IDLE:  frozenset({WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR}),
-    WorkerRuntimeStatus.BUSY:  frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR}),
-    WorkerRuntimeStatus.ERROR: frozenset({WorkerRuntimeStatus.IDLE}),
+    WorkerRuntimeStatus.IDLE:    frozenset({WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE}),
+    WorkerRuntimeStatus.BUSY:    frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE}),
+    WorkerRuntimeStatus.ERROR:   frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.OFFLINE}),
+    WorkerRuntimeStatus.OFFLINE: frozenset({WorkerRuntimeStatus.IDLE}),
 }
 
 
 # ── 事件类型映射 ────────────────────────────────────────────────────
 
 _EVENT_TYPE_MAP: dict[tuple[str, str], str] = {
-    (WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.BUSY):   "worker.runtime.busy",
-    (WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR):  "worker.runtime.error",
-    (WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.IDLE):   "worker.runtime.idle",
-    (WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR):  "worker.runtime.error",
-    (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.IDLE):  "worker.runtime.idle",
+    (WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.BUSY):    "worker.runtime.busy",
+    (WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR):   "worker.runtime.error",
+    (WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.OFFLINE): "worker.runtime.offline",
+    (WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.IDLE):    "worker.runtime.idle",
+    (WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR):   "worker.runtime.error",
+    (WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.OFFLINE): "worker.runtime.offline",
+    (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.IDLE):   "worker.runtime.idle",
+    (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE): "worker.runtime.offline",
+    (WorkerRuntimeStatus.OFFLINE, WorkerRuntimeStatus.IDLE): "worker.runtime.idle",
 }
 
 

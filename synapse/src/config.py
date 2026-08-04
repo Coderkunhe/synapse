@@ -121,6 +121,10 @@ class Settings(BaseSettings):
     verification_timeout_minutes: int = 30
     verification_max_auto_reverts: int = 3
 
+    # Worker heartbeat monitor (P11-B128 · PFL-126 direction 4)
+    worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline
+    worker_heartbeat_monitor_interval_seconds: int = 60  # scan every 60s
+
     # Verify idempotent guard (P11-B76)
     verify_idempotent_window_seconds: int = 60
 

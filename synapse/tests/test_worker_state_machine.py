@@ -35,18 +35,23 @@ class TestTransitionWhitelist:
             assert status in ALLOWED_TRANSITIONS, f"缺少 {status} 的转换条目"
 
     def test_idle_transitions(self):
-        """IDLE → BUSY、ERROR。"""
+        """IDLE → BUSY、ERROR、OFFLINE（P11-B128 新增 OFFLINE）。"""
         targets = ALLOWED_TRANSITIONS[WorkerRuntimeStatus.IDLE]
-        assert targets == frozenset({WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR})
+        assert targets == frozenset({WorkerRuntimeStatus.BUSY, WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE})
 
     def test_busy_transitions(self):
-        """BUSY → IDLE、ERROR。"""
+        """BUSY → IDLE、ERROR、OFFLINE（P11-B128 新增 OFFLINE）。"""
         targets = ALLOWED_TRANSITIONS[WorkerRuntimeStatus.BUSY]
-        assert targets == frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR})
+        assert targets == frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE})
 
     def test_error_transitions(self):
-        """ERROR → IDLE 仅此一条（恢复）。"""
+        """ERROR → IDLE、OFFLINE（P11-B128 新增 OFFLINE）。"""
         targets = ALLOWED_TRANSITIONS[WorkerRuntimeStatus.ERROR]
+        assert targets == frozenset({WorkerRuntimeStatus.IDLE, WorkerRuntimeStatus.OFFLINE})
+
+    def test_offline_transitions(self):
+        """OFFLINE → IDLE（恢复心跳/握手后重回 IDLE）。"""
+        targets = ALLOWED_TRANSITIONS[WorkerRuntimeStatus.OFFLINE]
         assert targets == frozenset({WorkerRuntimeStatus.IDLE})
 
     def test_error_cannot_go_to_busy(self):

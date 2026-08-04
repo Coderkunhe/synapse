@@ -161,8 +161,8 @@ async def worker_handshake(
     # 填充反范式化的能力标签（P8-B2：数据驱动，来自真实数据）
     worker.capability_tags = {"names": cap_names, "count": len(cap_names)}
 
-    # 首次握手时初始化运行时字段
-    if worker.runtime_status is None:
+    # 首次握手时初始化运行时字段；OFFLINE 恢复时重置为 IDLE（P11-B128）
+    if worker.runtime_status is None or worker.runtime_status == WorkerRuntimeStatus.OFFLINE:
         worker.runtime_status = WorkerRuntimeStatus.IDLE
 
     # 记录事件
@@ -229,12 +229,16 @@ async def worker_heartbeat(
     worker.metadata_ = safe_dumps(existing_meta)
 
     # 运行时状态转换
-    if worker.runtime_status == WorkerRuntimeStatus.ERROR:
-        # Worker 已恢复 → IDLE
+    if worker.runtime_status in (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE):
+        # Worker 已恢复 → IDLE（ERROR 恢复 or OFFLINE 重连）
         event_type, payload = apply_runtime_transition(
             worker, WorkerRuntimeStatus.IDLE,
             actor_type=ActorType.WORKER, actor_id=worker_id,
-            context={"recovery": True, "current_task_id": current_task_id},
+            context={
+                "recovery": True,
+                "previous_status": worker.runtime_status,
+                "current_task_id": current_task_id,
+            },
         )
         await event_store.record(
             db, event_type=event_type, team_id=worker.team_id,
