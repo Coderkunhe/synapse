@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-04（B137 ✅ — P11 全量闭环）
+> 不存代码，只协调工作。最后更新：2026-08-04（P12-B1 ✅ — D1 Scout · God's-eye 运维操作全量盘点）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -93,6 +93,7 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** 🔜 Harness-Driven Worker |
+| **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
+| **P12** | B1 ✅ D1 Scout · 34 项操作 · 9% 自动化 | **P12-B2** 🔜 Daemon 架构重设计 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B135→B137 ✅ | batchesSinceLastL5=0 |

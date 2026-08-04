@@ -802,7 +802,7 @@
 
 ---
 
-## Phase 12：Harness-Driven Worker 🔜
+## Phase 12：Harness-Driven Worker ▶️
 
 > **唯一目标**：达成 P11 未竟的原始目标 — **1 Orchestrator + 2 Builder 通过 Synapse 协作开发一个真实功能，全程不需要 God's-eye 干预。**
 >
@@ -811,6 +811,10 @@
 > **核心原则**：收缩 LLM 决策面，将可靠性从 prompt 转移到 harness。
 >
 > ⚠️ **以下 4 项是战略方向，不是预定义批次。** 实际批次按规范流程：Scout 调研 → Plan 设计 → 拆 Batch → 执行。每批必须满足 CLAUDE.md §P12 启动约束。
+
+| Batch | 内容 | 状态 |
+|:---|:---|:--:|
+| **P12-B1** | **D1 Scout — God's-eye 运维操作全量盘点** · 34 项操作清单 · 9% 自动化率 · B137 覆盖矩阵 · P0-P2 优先级 · B2 建议：Daemon 架构重设计 · 1 doc | ✅ |
 
 ### 🎯 P12 四大战略方向
 
