@@ -359,7 +359,6 @@ async function main() {
         process.exit(0);
       }
     }, SESSION_CHECK_INTERVAL_MS);
-  }
 
   // ── Event loop: reconnect on disconnect ─────────────────────
   while (!shuttingDown) {
