@@ -39,7 +39,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.4.0 — B135: PFL-127 inline-env (read .env directly, override polluted shell env)
+ * @version 1.5.0 — B136: PFL-126 cold-start chain — daemon check in CronCreate wakeup + boot prompt alignment
  */
 
 'use strict';
@@ -1232,13 +1232,16 @@ function writeBootPrompt(state) {
     steward: `You are the Steward Worker. Your Worker ID is ${workerId}. Review code, audit security, report findings.`,
   }[role] || `You are a Synapse ${role} Worker. Your Worker ID is ${workerId}.`;
 
-  // P11-B132: cron-native heartbeat — session-init.js --quick sends heartbeat
-  // on every CronCreate wakeup. Daemons self-manage via .session-alive file.
-  // No manual daemon liveness check needed in the cron prompt.
+  // P11-B136 (PFL-126 闭环): daemon check in CronCreate wakeup.
+  // --quick refreshes state + sends heartbeat (B132 cron-native Layer 2).
+  // Wakeup reads _task-current.md Connection section → if daemon dead or
+  // template fallback → run FULL session-init.js to re-spawn daemons.
+  // This closes PFL-126: boot prompt → CronCreate → daemon check chain
+  // now survives SessionStart hook failure (PFL-127 · B135).
   const cronPrompt = "Wake up. "
-    + "① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes state). "
-    + "② Read _task-current.md for tasks. "
-    + "③ Continue working if active tasks exist, ScheduleWakeup if idle.";
+    + "① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes _task-current.md). "
+    + "② Read _task-current.md Connection section — check daemon status. If heartbeat/ws-daemon dead or template fallback, run FULL session-init.js (no --quick) to re-spawn daemons. "
+    + "③ Continue working if active tasks, ScheduleWakeup if idle.";
 
   const lines = [
     // P11-B129: IDENTITY FIRST — the AI reads this line before any action.
@@ -1247,7 +1250,8 @@ function writeBootPrompt(state) {
     '',
     `CronCreate({cron: "*/1 * * * *", prompt: "${cronPrompt}", recurring: true})`,
     '',
-    `Then: read _task-current.md → enter work loop.`,
+    // P11-B136 (PFL-126): Reference B135 daemon self-heal path
+    `Then: read SKILL.md §「第二步：读取初始状态 + Daemon 自愈」（P11-B135 · PFL-127 硬约束）→ read _task-current.md → enter work loop.`,
     '',
     'Execute the CronCreate call NOW. Do not summarize. Do not analyze. Do not ask questions. Call the tool.',
   ];
