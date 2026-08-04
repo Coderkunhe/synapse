@@ -63,9 +63,10 @@
 
 ---
 
-## Phase 11：多 Agent 接入战 🔜
+## Phase 11：多 Agent 接入战 ✅ 🎉
 
 > 战略依据：Phase 7 三角色模型（1 Orchestrator + 2 Builder）· 230 批基建后首次实战验证
+> **137 批全量闭环** · 36/36 PFL 清零 · Prompt-Driven → Harness-Driven 方法论转变完成
 > 详细设计：`docs/archive/p11-multi-agent-connect.md`（原始规划，已归档·ADR-006 重拆后路线见 track）
 
 | Batch | 内容 | 状态 |
@@ -700,3 +701,105 @@
 - **P100-B111**：**断裂点审计 ✅ 条目归档** ✅ — ① 9 项 ✅ pitfalls (PFL-085/087/088/091/092/095/096/097/098) → archive · ② 修正 header 计数 18→7 · ③ PFL-084 移入未闭环主段 · pitfalls 368→214 行 · 🟢 微型 · 2 files (+ governance artifacts)
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
+
+---
+
+## Phase 历史
+
+| Phase | 批次范围 | Batch 数 | 状态 |
+|-------|---------|:-------:|:----:|
+| P1 | P1-B1 | 1 | ✅ |
+| P2 | P2-B1→B4 | 4 | ✅ |
+| P3 | P3-B1→B4 | 4 | ✅ |
+| P4 | P4-B1→B5 | 5 | ✅ |
+| P5 | P5-A1 + P5-B1→B9 | 10 | ✅ |
+| P6 | P6-B1→B34 | 34 | ✅ |
+| P7 | D1-D5 | 5 讨论 | ✅ |
+| P8 | P8-B1→B10 | 10 | ✅ |
+| P100 | P100-B1→B111 | 111 | ✅ 治理波全量收尾 🎉 |
+| **P10** | **P10-B1→B47** | **47** | ✅ 议题 ①-⑧ 全部闭环 🎉 |
+| **P9** | **P9-B1→B95** | **95** | ✅ B1-B94 产品主线 · B95+ 产品体验找茬 🔄 |
+| **P11** | **P11-B1→B137** | **137** | ✅ **全量闭环 🎉** · Prompt-Driven→Harness-Driven |
+
+---
+
+## Phase 12：Harness-Driven Worker 🔜
+
+> **启动条件**：P11 全量闭环 + L5 复位 ✅
+> **方法论**：LLM 是 judgment 插件，不是决策者。脚本闭环 → 单测 2s 验证 → 狗粮验证时序交互。
+> **核心原则**：收缩 LLM 决策面，将可靠性从 prompt 转移到 harness。
+
+### 🎯 P12 路线图（待拆批）
+
+#### 一、2-Worker 协作深化（1 Orchestrator + 1 Builder）
+
+> 当前状态：双 Worker 狗粮已验证 5 轮（R1-R5），但每次仍需 God's-eye 手动运维。
+
+| # | 方向 | 说明 | 优先级 |
+|:--:|------|------|:--:|
+| W1 | **God's-eye 退出运维** | Worker 启动/停止/升级全自动，God's-eye 不再手动 spawn daemon、检查 hook、修复 env | 🔴 P0 |
+| W2 | **Worker 自观测 dashboard** | Worker 健康状态、daemon 存活、任务队列长度、最近错误 → Synapse 内可见 | 🔴 P0 |
+| W3 | **Task 依赖链（depends_on）** | G1-G6 六项 GAP 全量闭环（见 B59 Scout）→ Orchestrator 可定义 Task 依赖 DAG | 🔴 P0 |
+| W4 | **跨 Task 状态传播** | depends_on 完成 → WS push → 下游 Worker 自动 claim · 全链路无人干预 | 🟡 P1 |
+| W5 | **Worker 故障恢复** | Worker 宕机 → 自动检测 → Task 自动 reassign → 新 Worker 接手 → 上下文恢复 | 🟡 P1 |
+
+#### 二、3-Worker 协作（1 Orchestrator + 2 Builder）
+
+> 当前状态：架构支持多 Builder（三角色模型），但实战仅验证过 1O+1B。
+
+| # | 方向 | 说明 | 优先级 |
+|:--:|------|------|:--:|
+| T1 | **双 Builder 并发协作** | 1 Orchestrator 拆 Task → 前端 Builder + 后端 Builder 各领任务 → 并行执行 → 结果聚合 | 🔴 P0 |
+| T2 | **Builder 间通信（A2A）** | Builder A 完成 → 通知 Builder B（通过 Task 依赖 + WS push + Conversation） | 🟡 P1 |
+| T3 | **跨 Builder 冲突检测** | 两 Builder 同时修改同一文件 → 冲突检测 → Orchestrator 仲裁 | 🟡 P1 |
+| T4 | **多 Worker 负载均衡** | 同角色多 Worker → Task 分配策略（round-robin / capability-match / least-loaded） | 🟢 P2 |
+| T5 | **三客户端狗粮实战** | 1 Orchestrator + 前端 Builder + 后端 Builder 真实项目协作 · WS 推送贯穿 VDD 循环 | 🟡 P1 |
+
+#### 三、Worker Harness 深化（B137 延续）
+
+> B137 搭建了 Harness 三层骨架，P12 继续加固。
+
+| # | 方向 | 说明 | 优先级 |
+|:--:|------|------|:--:|
+| H1 | **Worker 端测试体系** | 单元测试（lib/*.js）+ 组件测试（daemon 交互）+ E2E（synapse 对接）· 当前仅 11 smoke tests | 🔴 P0 |
+| H2 | **daemon 观测性** | daemon 日志结构化 · metrics 暴露 · alert 规则 · 替代当前 markdown-only 状态 | 🟡 P1 |
+| H3 | **Prompt 版本化 + 回滚** | prompt template version → Worker 自动检测 → 灰度升级 → 异常自动回滚 | 🟡 P1 |
+| H4 | **Worker SDK 化** | 当前 Worker 端代码散落在 synapse-client/scripts/ · 打包为可复用的 npm package | 🟢 P2 |
+
+#### 四、平台能力补缺
+
+> 从 P11 后续方向和 PRD 中提取的未完成平台能力。
+
+| # | 方向 | 说明 | 优先级 |
+|:--:|------|------|:--:|
+| P1 | **Kanban 看板可视化** | Dashboard 4 列看板（backlog/ready/in_progress/in_verification）+ 历史视图 · 实时 WS 更新 · 拖拽改变状态 | 🟡 P1 |
+| P2 | **Capability 模型硬接线** | B95 未完成项 — Task 分配/认领时 Server 侧校验 Worker capability · require_capability 依赖 | 🟡 P1 |
+| P3 | **Session 连续性增强** | B96 未完成项 — stall detection + auto-restart · WS 自动重连 · 订阅集断连恢复 | 🟡 P1 |
+| P4 | **平台狗粮自己** | Synapse 开发运维走 Synapse 平台 — Task 管理+审批+看板 · 当前 God's-eye 手动操作 | 🟢 P2 |
+
+### 📋 depends_on GAP 明细（来自 P11-B59 Scout · 6 项全未闭环）
+
+| # | Gap | 严重度 | 涉及文件 |
+|:--:|------|:--:|------|
+| G1 | Batch create 不传 depends_on → 无法建立 Task 依赖 | 🔴 | batches.py |
+| G2 | depends_on 创建后不可修改 → 依赖关系僵化 | 🟡 | task_service.py |
+| G3 | claim_batch 绕过依赖检查 → 依赖未满足也能 claim | 🔴 | task_service.py |
+| G4 | GET /tasks 可用列表不过滤依赖未就绪 → Worker 看到不该领的 Task | 🟡 | tasks.py |
+| G5 | 依赖完成无 WS 推送 → 下游 Worker 不知道可以开工 | 🟡 | event_store + ws.py |
+| G6 | Worker 模板零提及 depends_on → Worker 不知道依赖概念 | 🟡 | SKILL.md 模板 |
+
+### 📋 关联远景项（从 P10 远景迁移）
+
+> S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · P11-005 跨 Agent 依赖协作
+
+### ⚠️ P11 已知未闭环（非阻塞）
+
+> 以下项目在 P11 中登记但未闭环，P12 按优先级消化。
+
+| # | 来源 | 内容 | 优先级 |
+|:--:|------|------|:--:|
+| — | B95 | Capability 模型硬接线（require_capability 服务端校验） | 🟡 P1 |
+| — | B96 | Session 连续性增强（stall detection + WS 自动重连） | 🟡 P1 |
+| — | B59 | P11-005 跨 Agent 依赖协作 depends_on 全链路 | 🔴 P0 |
+| — | PRD | Kanban 看板（4 列 + 历史视图 + 拖拽） | 🟡 P1 |
+| — | G27 | pitfalls P- → PFL- 前缀迁移（旧 35 条待迁） | 🟢 P2 |
