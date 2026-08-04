@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B136 ✅ PFL-126/127 双闭环 · 36/36 PFL 全量清零 🎉
-last_batch: P11-B136
-next_batch: P11-B137
-description: Synapse 主项目 — B136 ✅ daemon 冷启动链闭环 · PFL 注册表首次清零 · 36 项全修复
+phase: P11-B137 ✅ Worker Harness 三层建设 · P11 全量闭环 🎉
+last_batch: P11-B137
+next_batch: P12-B1
+description: Synapse 主项目 — B137 ✅ Worker Harness 三层建设 · Prompt-Driven→Harness-Driven 方法论转变 · P11 137 批全量闭环
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B136 ✅ daemon 冷启动链闭环 · PFL 注
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B133 | **P11-B134** 🔜 | B133 ✅ ws-daemon 巡检 + proposal_status · 675 tests |
+| **P11** | P11-B137 | **P12-B1** 🔜 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 
 ## P11 路线图：多 Agent 接入战
 

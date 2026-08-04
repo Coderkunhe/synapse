@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-04（P11-B136 ✅ — PFL-126/127 双闭环 · 36/36 PFL 全量清零 🎉）
+> 最后更新：2026-08-04（P11-B137 ✅ — Worker Harness 三层建设 · PFL 注册表首次清零 🎉 · P11 全量闭环）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -208,6 +208,7 @@
 | **P11-B134** | **状态复位 + L5 拉通** — 计数器清零 · 纯文档批 | ✅ |
 | **P11-B135** | **PFL-127 三合一修复** — inline-env (L1) + AI daemon spawn (L2) + 模板回退 (L3) · JS syntax ✅ · 5 files · commit `8f51443` | ✅ |
 | **P11-B136** | **PFL-126 daemon 冷启动链闭环** — boot prompt + CronCreate daemon check 对齐 · **36/36 PFL 全量清零 🎉** · 4 files · commit `b830a58` | ✅ |
+| **P11-B137** | **Worker Harness 三层建设** — L1 `--health` daemon 自愈脚本化 + L2 模块拆分（lib/prompts.js + lib/daemon-manager.js）+ L2 单源 prompt + L3 SKILL.md 清理 daemon 指令 · CronCreate 三源对齐 · 11 smoke tests · 2 commits (`7d2f0ca` + `0cd250a`) | ✅ |
 
 ---
 
