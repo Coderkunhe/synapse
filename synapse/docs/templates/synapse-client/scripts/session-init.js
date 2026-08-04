@@ -39,7 +39,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.5.0 — B136: PFL-126 cold-start chain — daemon check in CronCreate wakeup + boot prompt alignment
+ * @version 1.5.1 — B137: PFL-126 CronCreate prompt 对齐 — _task-current.md 版与 _boot-prompt.md 版统一 daemon check
  */
 
 'use strict';
@@ -803,10 +803,10 @@ function writeState(state) {
   lines.push('```');
   lines.push('CronCreate({');
   lines.push('  cron: "*/1 * * * *",');
-  // P11-B132: cron-native heartbeat — session-init.js --quick sends heartbeat
-  // on every CronCreate wakeup. No more manual daemon liveness check needed —
-  // daemons manage themselves via .session-alive file.
-  lines.push('  prompt: "Wake up. ① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes state). ② Read _task-current.md for tasks. ③ Continue working if active tasks exist, ScheduleWakeup if idle.",');
+  // P11-B132: cron-native heartbeat Layer 2 — session-init.js --quick sends heartbeat
+  // on every CronCreate wakeup. B137 PFL-126 对齐: ② 包含 daemon 存活性检查 —
+  // 中 session 唤醒时若 daemon 孤儿，AI 直接自愈，不再仅依赖 .session-alive 文件
+  lines.push('  prompt: "Wake up. ① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes _task-current.md). ② Read _task-current.md Connection section — check daemon status. If heartbeat/ws-daemon dead or template fallback, run FULL session-init.js (no --quick) to re-spawn daemons. ③ Continue working if active tasks, ScheduleWakeup if idle.",');
   lines.push('  recurring: true');
   lines.push('})');
   lines.push('```');
