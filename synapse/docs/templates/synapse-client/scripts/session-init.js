@@ -617,7 +617,10 @@ function writeState(state) {
   lines.push('```');
   lines.push('CronCreate({');
   lines.push('  cron: "*/1 * * * *",');
-  lines.push('  prompt: "Wake up and check for work. Read _task-current.md. If there are active tasks, continue working. If idle, set another CronCreate and wait.",');
+  // P11-B128 (PFL-126): daemon liveness check added to cron prompt.
+  // Worker must verify heartbeat/ws-daemon are alive on every wakeup —
+  // daemons can die while Worker sleeps (process crash, OOM, session end).
+  lines.push('  prompt: "Wake up. ① Check daemon liveness: read _task-current.md daemon status lines. If heartbeat or ws-daemon dead, run: node .claude/skills/synapse/scripts/session-init.js ② Read _task-current.md for tasks. ③ Continue working if active tasks exist, ScheduleWakeup if idle.",');
   lines.push('  recurring: true');
   lines.push('})');
   lines.push('```');
@@ -1007,10 +1010,19 @@ function writeBootPrompt(state) {
     steward: 'You are the Steward Worker. Review code, audit security, report findings.',
   }[role] || `You are a Synapse ${role} Worker.`;
 
+  // P11-B128 (PFL-126): CronCreate prompt includes daemon liveness check.
+  // Without this, Worker wakes up but daemons (heartbeat/WS) may have died
+  // while it slept — server sees Worker as offline, no real-time push.
+  const cronPrompt = "Wake up. "
+    + "① Check daemon liveness: read _task-current.md daemon status lines. "
+    + "If heartbeat or ws-daemon dead, run: node .claude/skills/synapse/scripts/session-init.js "
+    + "② Read _task-current.md for tasks. "
+    + "③ Continue working if active tasks exist, ScheduleWakeup if idle.";
+
   const lines = [
-    `CronCreate({cron: "*/1 * * * *", prompt: "Wake up and check for work. Read _task-current.md. Continue working if active tasks exist, ScheduleWakeup if idle.", recurring: true})`,
+    `CronCreate({cron: "*/1 * * * *", prompt: "${cronPrompt}", recurring: true})`,
     '',
-    `Then: read .claude/skills/synapse/_task-current.md → read .claude/skills/synapse/SKILL.md → enter work loop. ${roleLine}`,
+    `Then: read .claude/skills/synapse/SKILL.md §Daemon Liveness → check daemons → read _task-current.md → enter work loop. ${roleLine}`,
     '',
     'Execute the CronCreate call NOW. Do not summarize. Do not analyze. Do not ask questions. Call the tool.',
   ];

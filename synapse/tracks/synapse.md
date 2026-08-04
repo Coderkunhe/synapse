@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B127 ✅ PFL-061/075/112 收尾审计 · 31/31 🟡 清零 🎉
-last_batch: P11-B127
-next_batch: 🐶 新一轮狗粮
-description: Synapse 主项目 — B127 ✅ PFL 收尾审计（31/31 PFL 全量闭环 · 🟡 清零）
+phase: P11-B128 ✅ Daemon 存活性自检 · PFL-123 + PFL-126
+last_batch: P11-B128
+next_batch: P11-B129
+description: Synapse 主项目 — B128 ✅ PFL-123 stale reaper 假运行修复 + PFL-126 boot prompt daemon liveness · 670 tests 零回归
 ---
 
 # Synapse 轨道
@@ -15,7 +15,7 @@ description: Synapse 主项目 — B127 ✅ PFL 收尾审计（31/31 PFL 全量�
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B127 | **🐶 狗粮** 🔜 | B127 ✅ PFL-061/075/112 收尾审计 · 31/31 🟡 清零 🎉 |
+| **P11** | P11-B128 | **P11-B129** 🔜 | B128 ✅ Daemon 存活性自检 · PFL-123+126 · 670 tests |
 
 ## P11 路线图：多 Agent 接入战
 

@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-03（P11-B127 ✅ — PFL-061/075/112 收尾审计 · 31/31 🟡 清零 🎉）
+> 最后更新：2026-08-04（P11-B128 ✅ — Daemon 存活性自检 · PFL-123 stale reaper 假运行修复 + PFL-126 boot prompt daemon liveness · 670 tests 零回归）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -198,6 +198,8 @@
 | **P11-B124** | **PFL-084 Worker 端模板自动升级检测** — heartbeat.js 每 55s 检测 `template_version` 不匹配 → 写 flag · session-init.js `--upgrade` 模式（fetch protocol → 重建 Skill 文件）· `--quick` 注入升级 banner · SKILL.md 升级指令 · 3 code files + docs · 🟡 标准 | ✅ |
 | **P11-B125** | **PFL-069/070/072 服务端超时接管** — 三层梯度响应（回收→告警→取消）· `task_stale_reassign_minutes=15` · SQL scan_window=min(threshold, reassign) · WS broadcast 旧 owner · 670 tests 零回归 · commit `a18f94d` | ✅ |
 | **P11-B126** | **PFL-084 全量闭环** — daemon 自动升级（heartbeat.js spawn `--upgrade --silent`）· JS scripts 版本指纹（`compute_template_versions()` 扩展扫描 5 个 .js）· 两笔 B124 遗留全部消化 · 🟢 微型 · commit `742b60d` | ✅ |
+| **P11-B127** | **PFL-061/075/112 收尾审计** — 31/31 🟡 清零 🎉 · commit `ec4f4e4` | ✅ |
+| **P11-B128** | **Daemon 存活性自检** — PFL-123 stale reaper 假运行修复（4 层防御）· PFL-126 boot prompt daemon liveness（3 层覆盖）· 670 tests 零回归 · 6 files | ✅ |
 
 ---
 

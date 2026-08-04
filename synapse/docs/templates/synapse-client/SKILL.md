@@ -85,6 +85,27 @@ node .agents/skills/synapse/scripts/session-init.js
 
 > 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知，B126 实现了 daemon 自动升级 + JS 指纹 · 升级链全量闭环 ✅。
 
+## 🩺 Daemon Liveness（P11-B128 · PFL-126）
+
+> ⚠️ **CronCreate 唤醒你，但不唤醒你的 daemon。** heartbeat.js 和 ws-daemon.js 是独立进程——你休眠时它们可能因 crash/OOM/session 结束而死亡。没有 heartbeat = Server 认为你 offline。没有 WS daemon = 没有实时推送。
+
+**每次唤醒时（CronCreate / ScheduleWakeup），在执行任何工作之前：**
+
+1. **读 `_task-current.md` 的 `🔌 Connection` 节** → 检查 **Heartbeat daemon** 和 **WS Daemon** 状态行
+2. **决策表**：
+
+| Daemon 状态 | 动作 |
+|:---|:---|
+| ✅ running | 正常，继续工作循环 |
+| ⚠️ NOT RUNNING / 🔴 FAILED | 重启 daemon：`node .claude/skills/synapse/scripts/session-init.js` |
+| 状态行不存在 | `_task-current.md` 可能过期 → 运行 `session-init.js --quick` 刷新 |
+
+3. **两个 daemon 都必须 ✅ 才能继续。** 缺一个 = 残血状态。不要"先干活，等会再修"——残血状态下你的工作不会被 Server 正确追踪。
+
+**为什么 CronCreate 不够**：CronCreate 每分钟触发一次 prompt 注入，但只在 REPL 空闲时触发。如果你正在执行 Task，cron 不会打断你——但 daemon 可能在 Task 执行期间死亡。所以 cron wakeup 时检查 + SKILL.md 启动时检查，双重保障。
+
+> 📖 **PFL-126 教训（B128 狗粮 R5）**：S1 冷启动时双 Worker 都调用了 CronCreate ✅，但 heartbeat/WS daemon 从未运行 🔴。Worker 依赖 cron 轮询 API（每分钟一次），没有实时推送。心跳时间戳停留在 Phase 1 手动握手时刻。根因：`_boot-prompt.md` 只设了 CronCreate，没启动 daemon——两个独立进程，互不感知。
+
 ### 第二步：读取初始状态
 
 1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）

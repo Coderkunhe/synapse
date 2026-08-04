@@ -73,16 +73,41 @@ async def _stale_task_reaper() -> None:
     P11-B125: adds reassign tier — abandoned in_progress tasks are
     unclaimed and returned to READY so another Worker can pick them up.
 
+    P11-B128 (PFL-123): settings init moved inside try block — prevents
+    silent coroutine crash where asyncio.create_task() returns a Task
+    that never entered its while loop, fooling health check into
+    reporting "running" when nothing is actually scanning.
+
     Calls detect_stale_tasks() and detect_stale_verifications()
     on their own DB session.
     Runs every task_stale_scan_interval_seconds (default 120s).
     """
-    interval = settings.task_stale_scan_interval_seconds
-    stale_threshold = settings.task_stale_threshold_minutes
-    reassign_threshold = settings.task_stale_reassign_minutes
-    verify_timeout = settings.verification_timeout_minutes
+    import logging
+    _logger = logging.getLogger("synapse.stale_reaper")
+    global _stale_reaper_scan_count
+
     while True:
         try:
+            # P11-B128 (PFL-123): settings init inside try — any config
+            # access error is caught and logged instead of silently
+            # crashing the coroutine before the while loop.
+            interval = settings.task_stale_scan_interval_seconds
+            stale_threshold = settings.task_stale_threshold_minutes
+            reassign_threshold = settings.task_stale_reassign_minutes
+            verify_timeout = settings.verification_timeout_minutes
+
+            # P11-B128 (PFL-123): startup log on first iteration — proves
+            # the reaper actually entered its scan loop. Without this,
+            # zero log lines could mean either "no stale tasks" or
+            # "coroutine never started" — the two are indistinguishable.
+            if _stale_reaper_scan_count == 0:
+                _logger.info(
+                    "Stale task reaper started: interval=%ds, stale=%dmin, "
+                    "reassign=%dmin, verify_timeout=%dmin",
+                    interval, stale_threshold, reassign_threshold,
+                    verify_timeout,
+                )
+
             await asyncio.sleep(interval)
             async with async_session_factory() as db:
                 # P11-B76 + P11-B125: stale in_progress detection + reassign
@@ -97,10 +122,13 @@ async def _stale_task_reaper() -> None:
                 )
                 await db.commit()
 
+                # P11-B128 (PFL-123): increment scan counter so health
+                # check can distinguish "never scanned" from "nothing found"
+                _stale_reaper_scan_count += 1
+
                 # ── WS broadcast for reassigned tasks (P11-B125) ──
                 reassigned = result.get("reassigned_tasks", [])
                 if reassigned:
-                    import logging
                     logger = logging.getLogger("synapse")
                     logger.info(
                         "Reassigned %d abandoned task(s): %s",
@@ -128,7 +156,6 @@ async def _stale_task_reaper() -> None:
                             )
 
                 if result["stale_count"] > 0 or result.get("cancelled_count", 0) > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
-                    import logging
                     logger = logging.getLogger("synapse")
                     if result["stale_count"] > 0:
                         logger.info(
@@ -155,10 +182,9 @@ async def _stale_task_reaper() -> None:
                             verify_result["cancelled_task_ids"],
                         )
         except Exception:
-            _logger = logging.getLogger("synapse.stale_reaper")
             _logger.warning(
                 "Stale task reaper scan failed (will retry in %ds)",
-                interval,
+                settings.task_stale_scan_interval_seconds,
                 exc_info=True,
             )
 
@@ -166,6 +192,7 @@ async def _stale_task_reaper() -> None:
 _reaper_task: asyncio.Task | None = None
 _expiry_reaper_task: asyncio.Task | None = None
 _stale_reaper_task: asyncio.Task | None = None
+_stale_reaper_scan_count: int = 0  # P11-B128 (PFL-123): proves reaper is actually scanning
 
 
 @asynccontextmanager
@@ -175,6 +202,19 @@ async def lifespan(app: FastAPI):
     _reaper_task = asyncio.create_task(_ws_reaper())
     _expiry_reaper_task = asyncio.create_task(_auth_expiry_reaper())
     _stale_reaper_task = asyncio.create_task(_stale_task_reaper())
+    # P11-B128 (PFL-123): verify the coroutine actually started — if
+    # settings init or any pre-loop code raised, the Task is done() with
+    # an exception but health check would report "running" (done()=False
+    # only means the coroutine hasn't been awaited, not that it's alive).
+    await asyncio.sleep(0.1)
+    if _stale_reaper_task.done():
+        exc = _stale_reaper_task.exception()
+        if exc:
+            import logging
+            logging.getLogger("synapse").error(
+                "Stale task reaper crashed on startup: %s", exc,
+                exc_info=True,
+            )
     yield
     # P11-B23: 优雅关闭 — 通知所有 WS 客户端后断开
     await ws_manager.graceful_shutdown()
@@ -245,7 +285,14 @@ def create_app() -> FastAPI:
             "reapers": {
                 "ws_reaper": _reaper_status(_reaper_task),
                 "auth_reaper": _reaper_status(_expiry_reaper_task),
-                "stale_reaper": _reaper_status(_stale_reaper_task),
+                # P11-B128 (PFL-123): scan_count distinguishes
+                # "never scanned" (0) from "nothing found" (>0).
+                # "running" alone was misleading — a crashed
+                # coroutine also shows "running" if un-awaited.
+                "stale_reaper": {
+                    "status": _reaper_status(_stale_reaper_task),
+                    "scan_count": _stale_reaper_scan_count,
+                },
             },
         }
 
