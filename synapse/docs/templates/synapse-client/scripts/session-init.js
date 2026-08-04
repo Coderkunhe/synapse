@@ -26,7 +26,11 @@
  * All errors are captured in the output file — the AI reads and decides.
  *
  * Usage:
- *   node scripts/session-init.js
+ *   node scripts/session-init.js                     # full init (inline-env ON by default)
+ *   node scripts/session-init.js --quick             # quick refresh (skips daemon/protocol/handshake)
+ *   node scripts/session-init.js --upgrade            # template upgrade
+ *   node scripts/session-init.js --no-inline-env     # disable .env auto-load
+ *   node scripts/session-init.js --silent            # suppress console output (for daemon use)
  *
  * Environment:
  *   SYNAPSE_API_URL      — Synapse instance base URL
@@ -35,7 +39,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.3.0 — B122: PFL-110 snapshot freshness infrastructure + --quick mode
+ * @version 1.4.0 — B135: PFL-127 inline-env (read .env directly, override polluted shell env)
  */
 
 'use strict';
@@ -70,6 +74,16 @@ const QUICK_MODE = process.argv.includes('--quick');
 // regenerate all Skill files, update version file, clear upgrade-needed flag.
 // This is the "action" layer of the 3-layer template upgrade architecture.
 const UPGRADE_MODE = process.argv.includes('--upgrade');
+
+// P11-B135 (PFL-127 discovery 2): --inline-env mode — read .env file directly
+// and override process.env SYNAPSE_* values. Fixes env pollution where global
+// shell has old/incorrect API key that takes precedence over .env file.
+// Claude Code Bash tool creates independent shells per call, so `source .env`
+// in one call doesn't carry to the next. This flag makes daemon spawn + API
+// calls independent of shell environment.
+//
+// Default: ON (always attempt .env load). Pass --no-inline-env to disable.
+const INLINE_ENV_MODE = !process.argv.includes('--no-inline-env');
 
 // B122 PFL-110 direction 2: --silent suppresses all console output.
 // Used when ws-daemon spawns session-init.js — daemon has no terminal.
@@ -602,6 +616,62 @@ function ensureWorkerSettings() {
   } catch (e) {
     return { created: false, path: SETTINGS_LOCAL, error: e.message };
   }
+}
+
+/**
+ * P11-B135 (PFL-127 discovery 2): Load and parse .env file.
+ *
+ * Claude Code Bash tool creates independent shells per call. `source .env` in one
+ * call doesn't carry to the next. Global shell may have old/incorrect SYNAPSE_API_KEY
+ * that conflicts with the .env file. This function reads the .env file directly and
+ * returns parsed key=value pairs for SYNAPSE_* vars — making daemon spawn and API
+ * calls independent of shell environment pollution.
+ *
+ * Format: KEY=VALUE, # comments, blank lines ignored.
+ * Handles values with spaces, inline comments, and quoted values.
+ *
+ * @param {string} envPath — path to .env file
+ * @returns {{ vars: object, errors: string[], loaded: boolean }}
+ */
+function loadEnvFile(envPath) {
+  const result = { vars: {}, errors: [], loaded: false };
+  try {
+    if (!fs.existsSync(envPath)) {
+      return result;
+    }
+    const raw = fs.readFileSync(envPath, 'utf-8');
+    const lines = raw.split('\n');
+    let lineNo = 0;
+    for (const line of lines) {
+      lineNo++;
+      const trimmed = line.trim();
+      // Skip blank lines and comments
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      // Parse KEY=VALUE
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) continue;
+      const key = trimmed.substring(0, eqIdx).trim();
+      let value = trimmed.substring(eqIdx + 1).trim();
+      // Remove inline comments (only if outside quotes)
+      // Simple heuristic: if # appears after a space, it's likely a comment
+      const hashIdx = value.indexOf(' #');
+      if (hashIdx !== -1) {
+        value = value.substring(0, hashIdx).trim();
+      }
+      // Strip surrounding quotes (single or double)
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
+      }
+      if (key) {
+        result.vars[key] = value;
+      }
+    }
+    result.loaded = true;
+  } catch (e) {
+    result.errors.push(`Failed to read .env file: ${e.message}`);
+  }
+  return result;
 }
 
 /**
@@ -1408,6 +1478,41 @@ async function main() {
     // P11-B124 (PFL-084): template upgrade flag — set below before writeState
     templateUpgradeNeeded: null,
   };
+
+  // ── Step 0 (P11-B135 · PFL-127): Load .env inline — override polluted shell env ──
+  // Claude Code Bash creates independent shells. `source .env` in one call
+  // doesn't carry to the next. Global shell may have old SYNAPSE_API_KEY.
+  // This reads .env directly and overrides process.env BEFORE checkEnv() runs,
+  // so both the script's API calls and daemon spawn use the correct values.
+  if (INLINE_ENV_MODE) {
+    const envPath = path.join(WORKER_ROOT, '.env');
+    const envResult = loadEnvFile(envPath);
+    if (envResult.loaded) {
+      let overridden = 0;
+      for (const [key, value] of Object.entries(envResult.vars)) {
+        if (key.startsWith('SYNAPSE_') || key === 'DATABASE_URL') {
+          const oldVal = process.env[key];
+          process.env[key] = value;
+          if (oldVal !== value) {
+            overridden++;
+            if (oldVal && key === 'SYNAPSE_API_KEY') {
+              // Log tail of key for debugging without exposing full secret
+              const oldTail = oldVal.slice(-8);
+              const newTail = value.slice(-8);
+              console.log(`🔧 ${SCRIPT_NAME}: SYNAPSE_API_KEY overridden from .env (old tail: ...${oldTail} → new tail: ...${newTail})`);
+            }
+          }
+        }
+      }
+      if (overridden > 0) {
+        console.log(`📝 ${SCRIPT_NAME}: inline-env — ${overridden} var(s) overridden from ${envPath}`);
+      }
+    } else if (envResult.errors.length > 0) {
+      // .env read errors are non-fatal — fall back to process.env
+      console.log(`⚠️ ${SCRIPT_NAME}: inline-env — ${envResult.errors.join('; ')}`);
+    }
+    // If .env doesn't exist, that's fine — process.env is the fallback
+  }
 
   // ── Step 1: Check environment ──────────────────────────────────
   const envCheck = checkEnv();
