@@ -99,6 +99,42 @@ function now() {
 }
 
 /**
+ * P11-B129 (PFL-124 硬加固): Generate deterministic ownership label for a task.
+ *
+ * This is a DATA TRANSFORMATION — not a prompt hint. The script compares
+ * task.owner_id against the Worker's own ID and produces an unambiguous label.
+ * The AI doesn't need to "remember" its identity — the data already tells it.
+ *
+ * Returns one of:
+ *   "🫵 YOU"                        — this task belongs to the current Worker
+ *   "owner: <name> (NOT YOU)"       — belongs to another Worker
+ *   "owner: <name>"                 — belongs to a Human/Member
+ *   "unassigned"                    — no owner
+ *   ""                              — owner data not available
+ *
+ * @param {object} task — task object from API (has owner_id, owner_type, owner_name)
+ * @param {string} myWorkerId — the current Worker's ID (SYNAPSE_WORKER_ID)
+ * @returns {string}
+ */
+function ownerLabel(task, myWorkerId) {
+  if (!task.owner_id) return 'unassigned';
+  if (!myWorkerId) return `owner: ${task.owner_name || task.owner_id}`;
+
+  if (task.owner_id === myWorkerId) {
+    // Layer 4 (API) already appends (YOU) to owner_name when it matches.
+    // Use it if available; otherwise generate our own.
+    return '🫵 YOU';
+  }
+
+  // Belongs to someone else — make it unambiguous
+  const name = task.owner_name || task.owner_id;
+  if (task.owner_type === 'worker') {
+    return `owner: ${name} (NOT YOU)`;
+  }
+  return `owner: ${name}`;
+}
+
+/**
  * Read a daemon PID from its PID file.
  * Returns the PID as a number, or null if the file doesn't exist or is invalid.
  *
@@ -603,6 +639,31 @@ function writeState(state) {
     '',
   ];
 
+  // ── P11-B129 (PFL-124): WHO YOU ARE — FIRST cognitive anchor ──
+  // MUST come before CronCreate. PFL-124 root cause: Worker saw owner_id
+  // matching its own ID but didn't recognize itself. The FIRST thing the AI
+  // encounters must be its own identity — before any action instruction.
+  // "Know who you are" precedes "know what to do."
+  if (state.envOk && state.env.SYNAPSE_WORKER_ID) {
+    const workerId = state.env.SYNAPSE_WORKER_ID;
+    const role = state.role || state.env.SYNAPSE_WORKER_ROLE || 'unknown';
+    lines.push('## 🫵 WHO YOU ARE（P11-B129 · PFL-124 硬锚点）');
+    lines.push('');
+    lines.push(`**Your Worker ID**: \`${workerId}\``);
+    lines.push(`**Your Role**: ${role}`);
+    lines.push('');
+    lines.push('> 🚨 **MEMORIZE THIS.** The ID above is YOU. Not "another Worker." Not "the system." YOU.');
+    lines.push('> ');
+    lines.push('> **Self-check before ANY action below**: When you see `owner_id` or `worker_id` ');
+    lines.push(`> equal to \`${workerId}\` — that task is YOURS. That request is for YOU. `);
+    lines.push('> There is no other entity with this ID. This ID = your identity on this platform.');
+    lines.push('> ');
+    lines.push('> **PFL-124**: Builder saw `owner_id = ag_019fc710cca87488` and said "another Worker ');
+    lines.push('> claimed this task, I am locked out." That WAS the Builder\'s own ID. ');
+    lines.push('> **If you make this mistake, you are repeating a known bug.** Don\'t.');
+    lines.push('');
+  }
+
   // ── PFL-081 CronCreate FIRST ACTION Banner (B85 · 机械生成 · 无条件) ──
   // This is ALWAYS written — before ANY conditional banner. B84 deep-check found
   // that the static template CronCreate banner was overwritten by session-init.js
@@ -851,6 +912,11 @@ function writeState(state) {
     lines.push('⏳ Not attempted');
   }
 
+  // ── P11-B129: Worker identity for ownership labeling ──
+  // Compute once, used by ownerLabel() in every task list below.
+  // This is deterministic — the script compares owner_id against this value.
+  const myId = state.env.SYNAPSE_WORKER_ID || '';
+
   // ── Authorization Requests ──
   lines.push('');
   lines.push('## 🔐 Authorization Requests');
@@ -886,6 +952,7 @@ function writeState(state) {
   }
 
   // ── Active Tasks ──
+  // P11-B129: ownership label added to every task — deterministic data transform
   lines.push('');
   lines.push('## 📝 Active Tasks (in_progress)');
   lines.push('');
@@ -893,7 +960,8 @@ function writeState(state) {
     lines.push('✅ No in-progress tasks.');
   } else if (state.inProgressTotal > 0) {
     for (const t of (state.inProgressTasks || [])) {
-      lines.push(`- **${t.title || t.id}** (\`${t.id}\`) — status: \`${t.status}\``);
+      const own = ownerLabel(t, myId);
+      lines.push(`- **${t.title || t.id}** (\`${t.id}\`) — status: \`${t.status}\` · ${own}`);
     }
   } else {
     lines.push('⏳ Not checked');
@@ -909,7 +977,8 @@ function writeState(state) {
     } else if (state.readyTotal > 0) {
       for (const t of (state.readyTasks || [])) {
         const deps = t.depends_on?.length ? ` (depends: ${t.depends_on.join(', ')})` : '';
-        lines.push(`- **${t.title || t.id}** (\`${t.id}\`)${deps}`);
+        const own = ownerLabel(t, myId);
+        lines.push(`- **${t.title || t.id}** (\`${t.id}\`)${deps} · ${own}`);
       }
     } else {
       lines.push('⏳ Not checked');
@@ -923,7 +992,8 @@ function writeState(state) {
       lines.push('No tasks awaiting verification.');
     } else if (state.verificationTotal > 0) {
       for (const t of (state.verificationTasks || [])) {
-        lines.push(`- 🔴 **${t.title || t.id}** (\`${t.id}\`) — submitted, awaiting review`);
+        const own = ownerLabel(t, myId);
+        lines.push(`- 🔴 **${t.title || t.id}** (\`${t.id}\`) — submitted, awaiting review · ${own}`);
       }
     } else {
       lines.push('⏳ Not checked');
@@ -938,7 +1008,8 @@ function writeState(state) {
     } else if (state.readyTotal > 0) {
       for (const t of (state.readyTasks || [])) {
         const deps = t.depends_on?.length ? ` (depends: ${t.depends_on.join(', ')})` : '';
-        lines.push(`- 🟡 **${t.title || t.id}** (\`${t.id}\`)${deps} — needs assignment`);
+        const own = ownerLabel(t, myId);
+        lines.push(`- 🟡 **${t.title || t.id}** (\`${t.id}\`)${deps} · ${own} — needs assignment`);
       }
     } else {
       lines.push('⏳ Not checked');
@@ -981,16 +1052,35 @@ function writeState(state) {
     }
   }
 
+  // ── P11-B129 Identity Verification Footer ──
+  // Final self-check: the AI confirms ownership understanding before acting.
+  // This is a HARD GATE — the labels above are deterministic, not hints.
+  if (state.envOk && state.env.SYNAPSE_WORKER_ID) {
+    lines.push('');
+    lines.push('## 🫵 Identity Verification（P11-B129 · 硬校验）');
+    lines.push('');
+    lines.push(`> ✅ My Worker ID: **\`${state.env.SYNAPSE_WORKER_ID}\`**`);
+    lines.push('> ');
+    lines.push('> **Ownership rules (deterministic — not up for interpretation):**');
+    lines.push('> - Task labeled `🫵 YOU` above → **MY task**. Claim it. Work on it. Own it.');
+    lines.push('> - Task labeled `owner: <name> (NOT YOU)` → **NOT my task**. Do not touch.');
+    lines.push('> - Task labeled `unassigned` → Available. I may claim it if it matches my role.');
+    lines.push('> ');
+    lines.push('> **PFL-124 self-check**: Before I claim any task, I verify: does `owner_id` ');
+    lines.push('> match my Worker ID? If yes → it\'s already mine, no need to claim. If no → ');
+    lines.push('> it belongs to someone else. This is mechanical — no judgment required.');
+  }
+
   // ── Footer ──
   lines.push('');
   lines.push('---');
-  lines.push(`*Generated ${snapshotTs} by session-init.js (B122 PFL-110${state.quickRefresh ? ' --quick' : ''})*`);
+  lines.push(`*Generated ${snapshotTs} by session-init.js (B122 PFL-110 · B129 PFL-124${state.quickRefresh ? ' --quick' : ''})*`);
 
   fs.writeFileSync(OUTPUT_FILE, lines.join('\n') + '\n', 'utf-8');
 }
 
 /**
- * Write _boot-prompt.md at Worker root for cold-start bootstrap (B112 PFL-112).
+ * Write _boot-prompt.md at Worker root for cold-start bootstrap (B112 PFL-112 · B129 PFL-124).
  *
  * B112 v1 lesson: 64-line markdown with sections/headers/bullets → AI treats it as
  * a document to analyze and summarize, then stops. It does NOT call CronCreate.
@@ -999,16 +1089,25 @@ function writeState(state) {
  * B112 v2: Radically minimal. 3-4 lines, no markdown structure, no explanations.
  * The AI has nothing to analyze — only one action to take. Imperative, non-negotiable.
  *
+ * B129 (PFL-124): Worker ID injected into role identity line. PFL-124 root cause:
+ * Builder saw owner_id matching its own Worker ID but didn't recognize itself.
+ * The boot prompt is the FIRST identity anchor — "You are Worker X, your ID is Y."
+ *
  * Idempotent: overwrites on every SessionStart with fresh state.
  */
 function writeBootPrompt(state) {
   const role = state.role || 'worker';
+  const workerId = state.env?.SYNAPSE_WORKER_ID || 'unknown';
 
-  const roleLine = {
-    builder: 'You are the Builder Worker. Claim ready tasks, execute, collect evidence, submit.',
-    orchestrator: 'You are the Orchestrator Worker. Assign tasks, verify results, close tasks.',
-    steward: 'You are the Steward Worker. Review code, audit security, report findings.',
-  }[role] || `You are a Synapse ${role} Worker.`;
+  // P11-B129 (PFL-124): Identity comes FIRST — before any action instruction.
+  // PFL-124 root cause: Builder didn't recognize its own Worker ID on a task.
+  // The boot prompt's FIRST line establishes identity. Then action follows.
+  // Format: "I am X (ID: Y). Now: CronCreate → work loop."
+  const identityLine = {
+    builder: `You are the Builder Worker. Your Worker ID is ${workerId}. Claim ready tasks, execute, collect evidence, submit.`,
+    orchestrator: `You are the Orchestrator Worker. Your Worker ID is ${workerId}. Assign tasks, verify results, close tasks.`,
+    steward: `You are the Steward Worker. Your Worker ID is ${workerId}. Review code, audit security, report findings.`,
+  }[role] || `You are a Synapse ${role} Worker. Your Worker ID is ${workerId}.`;
 
   // P11-B128 (PFL-126): CronCreate prompt includes daemon liveness check.
   // Without this, Worker wakes up but daemons (heartbeat/WS) may have died
@@ -1020,9 +1119,13 @@ function writeBootPrompt(state) {
     + "③ Continue working if active tasks exist, ScheduleWakeup if idle.";
 
   const lines = [
+    // P11-B129: IDENTITY FIRST — the AI reads this line before any action.
+    // "I am X" must be the FIRST cognitive anchor.
+    identityLine,
+    '',
     `CronCreate({cron: "*/1 * * * *", prompt: "${cronPrompt}", recurring: true})`,
     '',
-    `Then: read .claude/skills/synapse/SKILL.md §Daemon Liveness → check daemons → read _task-current.md → enter work loop. ${roleLine}`,
+    `Then: read .claude/skills/synapse/SKILL.md §Daemon Liveness → check daemons → read _task-current.md → enter work loop.`,
     '',
     'Execute the CronCreate call NOW. Do not summarize. Do not analyze. Do not ask questions. Call the tool.',
   ];

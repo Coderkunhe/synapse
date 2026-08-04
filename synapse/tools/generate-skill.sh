@@ -477,6 +477,18 @@ write_client_env() {
 
 > Agent 启动前配置以下 3 个环境变量。项目上下文通过 B21 Protocol API 在运行时拉取。
 
+## 🫵 Your Identity（P11-B129 · PFL-124 修复）
+
+> 🚨 **This is YOUR identity on the Synapse platform.**
+>
+> Your Worker ID is **`{{SYNAPSE_WORKER_ID}}`**. When you see this ID anywhere —
+> in a task's `owner_id`, in an API response, in a log message — **that means YOU**.
+> There is no "other Worker" with this ID. This is your unique identifier.
+>
+> **PFL-124 lesson**: Builder saw `owner_id` matching its own Worker ID and reported
+> "another Worker claimed this task." The Worker failed to recognize itself.
+> Know your ID. Own your tasks.
+
 ## 必需变量
 
 | 变量 | 说明 | 获取方式 |

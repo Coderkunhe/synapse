@@ -2,6 +2,18 @@
 
 > 本文件由 Synapse 生成。将以下值填入你的环境变量或客户端配置。
 
+## 🫵 Your Identity（P11-B129 · PFL-124 修复）
+
+> 🚨 **This is YOUR identity on the Synapse platform.**
+>
+> Your Worker ID is **`{{SYNAPSE_WORKER_ID}}`**. When you see this ID anywhere —
+> in a task's `owner_id`, in an API response, in a log message — **that means YOU**.
+> There is no "other Worker" with this ID. This is your unique identifier.
+>
+> **PFL-124 lesson**: Builder saw `owner_id` matching its own Worker ID and reported
+> "another Worker claimed this task." The Worker failed to recognize itself.
+> Know your ID. Own your tasks.
+
 ## 必需变量
 
 | 变量 | 说明 | 示例 |

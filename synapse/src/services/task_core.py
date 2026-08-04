@@ -185,8 +185,12 @@ async def _get_verifications(db: AsyncSession, task_id: str) -> list[Verificatio
 
 # ── 响应序列化 ───────────────────────────────────────────
 
-async def task_to_response(task: Task, db: AsyncSession) -> dict:
-    """将 Task ORM 对象转换为响应字典，含 JSON 反序列化和 owner 名称解析。"""
+async def task_to_response(task: Task, db: AsyncSession, *, current_actor_id: str | None = None) -> dict:
+    """将 Task ORM 对象转换为响应字典，含 JSON 反序列化和 owner 名称解析。
+
+    P11-B129 (PFL-124): 当 ``current_actor_id`` 与 ``owner_id`` 匹配时，
+    ``owner_name`` 追加 `` (YOU)`` 标注，让 Worker 认知"这个 Task 是我的"。
+    """
     # ── P11-B14: 解析 owner 名称 ──────────────────────────
     owner_name = None
     if task.owner_type and task.owner_id:
@@ -208,6 +212,13 @@ async def task_to_response(task: Task, db: AsyncSession) -> dict:
                 select(Member.display_name).where(Member.id == task.owner_id)
             )
             owner_name = result.scalar()
+
+    # P11-B129 (PFL-124): annotate (YOU) when the caller IS the owner
+    if current_actor_id and task.owner_id == current_actor_id:
+        if owner_name:
+            owner_name = f"{owner_name} (YOU)"
+        else:
+            owner_name = "(YOU)"
 
     return {
         "id": task.id,
