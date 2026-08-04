@@ -815,8 +815,8 @@
 
 | Batch | 内容 | 状态 |
 |:---|:---|:--:|
-| **P12-B1** | **D1 Scout — God's-eye 运维操作全量盘点** · 34 项操作清单 · 9% 自动化率 · B137 覆盖矩阵 · P0-P2 优先级 · B2 建议：Daemon 架构重设计 · 1 doc | ✅ |
-| **P12-B2** | **跨客户端 Worker 自治架构** — 双客户端能力矩阵 · Codex bootstrap 验证通过 · launchd daemon 方案 A 推荐 · B3 双线并行建议 · 1 doc | ✅ |
+| **P12-B1** | **D1 Scout — God's-eye 运维操作全量盘点** · 34 项操作 · 9% 自动化率 · B137 覆盖矩阵 · P0-P2 优先级 · 1 doc（修订：多客户端盲区修正 + 🔪 Cursor 移除） | ✅ |
+| **P12-B2** | **跨客户端 Worker 自治架构** — 双客户端类型能力矩阵 · Codex bootstrap ✅ · launchd 方案 A ⭐ · B3 双线建议 · 1 doc | ✅ |
 
 ### 🎯 P12 四大战略方向
 
