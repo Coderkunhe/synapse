@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P11-B128 ✅ Daemon 存活性自检 · PFL-123 + PFL-126
-last_batch: P11-B128
-next_batch: P11-B129
+last_batch: P11-B130
+next_batch: P11-B131
 description: Synapse 主项目 — B128 ✅ PFL-123 stale reaper 假运行修复 + PFL-126 boot prompt daemon liveness · 670 tests 零回归
 ---
 
