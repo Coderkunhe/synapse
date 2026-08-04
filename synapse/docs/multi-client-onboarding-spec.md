@@ -44,14 +44,14 @@ Step 4: 开始多客户端协作
 |--------|---------|------|---------|
 | Claude Code | `.claude/skills/synapse/` | `SKILL.md` | 会话启动自动加载 |
 | Codex CLI | `.agents/skills/synapse/` | `SKILL.md` | 会话启动自动加载 |
-| Cursor IDE | `.cursor/rules/` | `synapse-worker.mdc` | `alwaysApply: true` 逐消息加载 |
+| ~~Cursor IDE~~ | ~~`.cursor/rules/`~~ | ~~`synapse-worker.mdc`~~ | ⛔ P12 移除 — 零实战数据 · 未安装 · 待有需求时恢复 |
 
 ## Bootstrap 端点
 
 | 属性 | 值 |
 |:--|------|
 | Endpoint | `GET /v1/bootstrap` |
-| Query params | `worker_id` (required), `project_id` (required), `client` (claude/codex/cursor, default auto), `role` (optional), `format` (sh/json, default sh) |
+| Query params | `worker_id` (required), `project_id` (required), `client` (claude/codex, default auto), `role` (optional), `format` (sh/json, default sh) |
 | Auth | API Key 或 project_key (双路) |
 | `format=sh` | 返回自包含 bash 脚本 (`curl \| bash`) |
 | `format=json` | 返回文件清单 JSON (AI Write 工具写文件) |
@@ -88,7 +88,7 @@ Web UI 创建 Worker 成功后展示的指令文本：
 |--------|---------|------|
 | **Claude Code** | `SessionStart` hook（自动） | `.claude/settings.json` 中的 hook 在新会话启动时自动运行 `session-init.js`。零人工干预。 |
 | **Codex CLI** | SKILL.md 启动指引（手动） | SKILL.md 中的「🚀 启动 — 会话初始化」指示 AI 在首次对话中运行 `node .agents/skills/synapse/scripts/session-init.js`。由 prompt 驱动，非 hook 驱动。 |
-| **Cursor IDE** | `.mdc` 规则 + 启动指引（手动） | `.cursor/rules/synapse-worker.mdc`（`alwaysApply: true`）包含相同的启动指引。AI 在首次对话中运行 `node .cursor/scripts/session-init.js`。 |
+| ~~Cursor IDE~~ | — | ⛔ P12 移除（零实战数据 · 未安装） |
 
 ### 降级路径
 

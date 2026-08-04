@@ -59,7 +59,7 @@ usage() {
     echo "  客户端:"
     echo "    claude   输出到 .claude/skills/synapse/SKILL.md + _env.md（默认）"
     echo "    codex    输出到 .agents/skills/synapse/SKILL.md + _env.md"
-    echo "    cursor   输出到 .cursor/rules/synapse-worker.mdc（alwaysApply 规则）"
+    echo "    cursor   输出到 .cursor/rules/synapse-worker.mdc（⛔ P12 已废弃 — 零实战数据 · 未安装）"
     echo ""
     echo "模式 3 — API 渲染模式（调用 Synapse Protocol API 获取渲染后的 Skill）:"
     echo "  --from-api  从 Synapse 实例拉取已渲染的协议内容（0 未填充 VAR）"
