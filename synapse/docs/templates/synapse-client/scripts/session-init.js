@@ -28,6 +28,7 @@
  * Usage:
  *   node scripts/session-init.js                     # full init (inline-env ON by default)
  *   node scripts/session-init.js --quick             # quick refresh (skips daemon/protocol/handshake)
+ *   node scripts/session-init.js --health            # daemon self-heal + quick refresh (B137)
  *   node scripts/session-init.js --upgrade            # template upgrade
  *   node scripts/session-init.js --no-inline-env     # disable .env auto-load
  *   node scripts/session-init.js --silent            # suppress console output (for daemon use)
@@ -39,7 +40,7 @@
  *   SYNAPSE_API_KEY      — Bearer token (falls back to OS keychain)
  *   SYNAPSE_WORKER_ROLE  — "builder" | "orchestrator" | "steward"
  *
- * @version 1.5.1 — B137: PFL-126 CronCreate prompt 对齐 — _task-current.md 版与 _boot-prompt.md 版统一 daemon check
+ * @version 1.6.0 — B137: Worker harness — lib/prompts.js + lib/daemon-manager.js + --health mode
  */
 
 'use strict';
@@ -49,6 +50,8 @@ const path = require('path');
 const { execSync, spawn } = require('child_process');
 const { SynapseClient } = require('./api-client');
 const { getKey } = require('./keychain');
+const { CRONCREATE_PROMPT } = require('./lib/prompts');
+const { createDaemonManager } = require('./lib/daemon-manager');
 
 // ── Constants ──────────────────────────────────────────────────────
 const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -85,6 +88,12 @@ const UPGRADE_MODE = process.argv.includes('--upgrade');
 // Default: ON (always attempt .env load). Pass --no-inline-env to disable.
 const INLINE_ENV_MODE = !process.argv.includes('--no-inline-env');
 
+// B137: --health mode — daemon self-heal + heartbeat + state refresh.
+// Replaces --quick for CronCreate wakeups. Checks daemon liveness,
+// auto-re-spawns dead daemons, then does quick state refresh.
+// AI reads the REPAIRED state — it never sees "daemon dead."
+const HEALTH_MODE = process.argv.includes('--health');
+
 // B122 PFL-110 direction 2: --silent suppresses all console output.
 // Used when ws-daemon spawns session-init.js — daemon has no terminal.
 // console.log/console.error are replaced with no-ops rather than conditional
@@ -109,6 +118,9 @@ const WS_DAEMON_PID_FILE = path.join(WORKER_ROOT, '.daemon-ws.pid');
 // heartbeat.js and ws-daemon.js check this file's timestamp instead of parent PID.
 // Fixes R5 death loop where process.ppid pointed to hook shell (not Claude).
 const SESSION_ALIVE_FILE = path.join(WORKER_ROOT, '.session-alive');
+
+// B137: Daemon manager — extracted to lib/daemon-manager.js
+const dm = createDaemonManager(WORKER_ROOT, __dirname);
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -203,280 +215,17 @@ function ownerLabel(task, myWorkerId) {
   return `owner: ${name}`;
 }
 
-/**
- * Read a daemon PID from its PID file.
- * Returns the PID as a number, or null if the file doesn't exist or is invalid.
- *
- * @param {string} pidFile - Path to the PID file
- * @returns {number|null}
- */
-function readPidFile(pidFile) {
-  try {
-    if (!fs.existsSync(pidFile)) return null;
-    const raw = fs.readFileSync(pidFile, 'utf-8').trim();
-    const pid = parseInt(raw, 10);
-    if (isNaN(pid) || pid <= 0) return null;
-    return pid;
-  } catch (_e) {
-    return null;
-  }
-}
+// ── Daemon lifecycle (delegated to lib/daemon-manager.js · B137) ──
 
-/**
- * Write a daemon PID to its PID file.
- *
- * @param {string} pidFile - Path to the PID file
- * @param {number} pid - The daemon PID
- */
-function writePidFile(pidFile, pid) {
-  try {
-    fs.writeFileSync(pidFile, String(pid), 'utf-8');
-  } catch (_e) {
-    // Best-effort — daemon still runs even if PID file write fails
-  }
-}
-
-/**
- * Check if a process with the given PID is alive.
- *
- * @param {number} pid
- * @returns {boolean}
- */
-function isProcessAlive(pid) {
-  try {
-    // signal 0 = existence check, no signal sent
-    process.kill(pid, 0);
-    return true;
-  } catch (_e) {
-    return false;
-  }
-}
-
-/**
- * Kill an old daemon identified by its PID file.
- * Reads the PID, checks if the process is alive, sends SIGTERM if so,
- * waits briefly for graceful shutdown, then cleans up the PID file.
- *
- * @param {string} pidFile - Path to the PID file
- * @returns {{ killed: boolean, oldPid: number|null }}
- */
-function killOldDaemon(pidFile) {
-  const oldPid = readPidFile(pidFile);
-  if (oldPid === null) return { killed: false, oldPid: null };
-
-  if (!isProcessAlive(oldPid)) {
-    // Process already dead — just clean up the stale PID file
-    try { fs.unlinkSync(pidFile); } catch (_e) { /* ok */ }
-    return { killed: false, oldPid };
-  }
-
-  try {
-    process.kill(oldPid, 'SIGTERM');
-    // Give the old daemon up to 1s to shut down gracefully
-    const start = Date.now();
-    while (Date.now() - start < 1000) {
-      if (!isProcessAlive(oldPid)) break;
-      // Busy-wait in 50ms increments
-      const until = Date.now() + 50;
-      while (Date.now() < until) { /* spin */ }
-    }
-    // Force kill if still alive
-    if (isProcessAlive(oldPid)) {
-      try { process.kill(oldPid, 'SIGKILL'); } catch (_e) { /* ok */ }
-    }
-    return { killed: true, oldPid };
-  } catch (_e) {
-    return { killed: false, oldPid };
-  } finally {
-    try { fs.unlinkSync(pidFile); } catch (_e) { /* ok */ }
-  }
-}
-
-/**
- * PFL-116 (B121): Find and kill pre-B115 orphan daemon processes.
- *
- * B115 introduced per-worker PID files (readPidFile/writePidFile/killOldDaemon).
- * New daemons are tracked by PID file and killed on next startup. But pre-B115
- * daemons (spawned with detached:true + unref()) have NO PID file, so
- * killOldDaemon() can't find them. Each Worker restart accumulates orphans.
- *
- * This function bridges the gap: it scans running processes for daemon scripts
- * matching THIS worker's scripts directory, and kills any that aren't tracked
- * by a PID file. Post-B115 daemons are left alone (they're tracked).
- *
- * Called BEFORE spawning new daemons — cleanup first, then spawn fresh.
- *
- * @returns {{ cleaned: number }} — number of orphan processes terminated
- */
-function cleanupOrphanDaemons() {
-  const knownPids = new Set();
-  for (const pidFile of [HEARTBEAT_PID_FILE, WS_DAEMON_PID_FILE]) {
-    const pid = readPidFile(pidFile);
-    if (pid !== null && isProcessAlive(pid)) knownPids.add(pid);
-  }
-
-  let cleaned = 0;
-  try {
-    const hbScript = path.join(__dirname, 'heartbeat.js');
-    const wsScript = path.join(__dirname, 'ws-daemon.js');
-
-    // Use ps to list all processes, filter in JS to avoid shell escaping issues
-    const output = execSync('ps -eo pid,command', { encoding: 'utf-8' });
-    const lines = output.trim().split('\n');
-
-    for (const line of lines) {
-      const parts = line.trim().split(/\s+/);
-      const pid = parseInt(parts[0], 10);
-      if (isNaN(pid)) continue;
-      const cmd = parts.slice(1).join(' ');
-
-      // Match this Worker's daemon scripts only (scoped by __dirname)
-      if (!cmd.includes(hbScript) && !cmd.includes(wsScript)) continue;
-      // Skip our own process
-      if (pid === process.pid) continue;
-      // Skip daemons tracked by PID files (post-B115, managed by killOldDaemon)
-      if (knownPids.has(pid)) continue;
-
-      // Pre-B115 orphan: running but no PID file tracks it
-      try {
-        process.kill(pid, 'SIGTERM');
-        // Brief grace period for graceful shutdown
-        const start = Date.now();
-        while (Date.now() - start < 500) {
-          if (!isProcessAlive(pid)) break;
-        }
-        if (isProcessAlive(pid)) {
-          try { process.kill(pid, 'SIGKILL'); } catch (_e) { /* already gone */ }
-        }
-        cleaned++;
-      } catch (_e) {
-        // Process may have exited between ps and kill — not an error
-      }
-    }
-  } catch (_e) {
-    // ps may fail in constrained environments — non-blocking
-  }
-
-  return { cleaned };
-}
-
-/**
- * Check if a heartbeat daemon process is running.
- * Uses the per-worker PID file (PFL-117 · B115) — no global pgrep,
- * so Builder and Orchestrator daemons are independently tracked.
- *
- * @returns {{ running: boolean, pids: string[] }}
- */
-function checkHeartbeatDaemon() {
-  const pid = readPidFile(HEARTBEAT_PID_FILE);
-  if (pid === null) return { running: false, pids: [] };
-  if (isProcessAlive(pid)) return { running: true, pids: [String(pid)] };
-  // Stale PID file — clean up
-  try { fs.unlinkSync(HEARTBEAT_PID_FILE); } catch (_e) { /* ok */ }
-  return { running: false, pids: [] };
-}
-
-/**
- * Start the heartbeat daemon as a detached background process (PFL-083 · B91).
- *
- * PFL-116/117/118 (B115): Before spawning, kills any old heartbeat daemon
- * tracked by the per-worker PID file. After spawning, writes the new PID.
- *
- * Uses child_process.spawn with detached:true + unref() — the daemon survives
- * the parent hook subprocess exit.
- *
- * Returns the daemon PID on success, null on failure.
- */
-function startHeartbeatDaemon() {
-  try {
-    const scriptPath = path.join(__dirname, 'heartbeat.js');
-    if (!fs.existsSync(scriptPath)) {
-      return { started: false, error: 'heartbeat.js not found at ' + scriptPath };
-    }
-    // PFL-116 (B123): pass session PID so daemon can self-terminate when
-    // the spawning Claude session exits. process.ppid = the Claude process.
-    const child = spawn(process.execPath, [scriptPath, '--session-pid', String(process.ppid)], {
-      detached: true,
-      stdio: 'ignore',
-      env: { ...process.env },  // inherit SYNAPSE_* vars
-    });
-    child.unref();  // detach from parent — daemon survives hook exit
-    if (child.pid) {
-      // PFL-116: kill old daemon AFTER new one is confirmed spawned.
-      // If spawn fails, the old daemon is left untouched as fallback.
-      killOldDaemon(HEARTBEAT_PID_FILE);
-      writePidFile(HEARTBEAT_PID_FILE, child.pid);
-    }
-    return { started: true, pid: child.pid };
-  } catch (e) {
-    return { started: false, error: e.message };
-  }
-}
-
-/**
- * Check if the ws-daemon process is running.
- * Uses the per-worker PID file (PFL-117 · B115) — no global pgrep.
- *
- * @returns {{ running: boolean, pids: string[] }}
- */
-function checkWsDaemon() {
-  const pid = readPidFile(WS_DAEMON_PID_FILE);
-  if (pid === null) return { running: false, pids: [] };
-  if (isProcessAlive(pid)) return { running: true, pids: [String(pid)] };
-  // Stale PID file — clean up
-  try { fs.unlinkSync(WS_DAEMON_PID_FILE); } catch (_e) { /* ok */ }
-  return { running: false, pids: [] };
-}
-
-/**
- * Start the ws-daemon as a detached background process (PFL-093 · B96).
- *
- * PFL-116/117/118 (B115): Before spawning, kills any old ws-daemon
- * tracked by the per-worker PID file. After spawning, writes the new PID.
- *
- * The ws-daemon maintains a persistent WebSocket connection to the Synapse
- * server for real-time event push. On disconnect, it auto-reconnects with
- * 1s→5s→25s backoff. Events are written to _ws-events.jsonl.
- *
- * Requires Node.js ≥22 (native WebSocket global). On older Node.js,
- * ws-daemon is skipped gracefully — the Worker falls back to HTTP polling
- * (which was the de-facto behavior before B96 anyway).
- *
- * @returns {{ started: boolean, pid?: number, error?: string, skippedNodeVersion?: boolean }}
- */
-function startWsDaemon() {
-  try {
-    // Version guard: native WebSocket requires Node.js ≥22
-    const nodeVersion = process.versions?.node;
-    if (nodeVersion) {
-      const major = parseInt(String(nodeVersion).split('.')[0], 10);
-      if (major < 22) {
-        return { started: false, skippedNodeVersion: true, error: `Node.js ${nodeVersion} < 22 — WebSocket not available` };
-      }
-    }
-
-    const scriptPath = path.join(__dirname, 'ws-daemon.js');
-    if (!fs.existsSync(scriptPath)) {
-      return { started: false, error: 'ws-daemon.js not found at ' + scriptPath };
-    }
-    // PFL-116 (B123): pass session PID so daemon can self-terminate when
-    // the spawning Claude session exits. process.ppid = the Claude process.
-    const child = spawn(process.execPath, [scriptPath, '--session-pid', String(process.ppid)], {
-      detached: true,
-      stdio: 'ignore',
-      env: { ...process.env },  // inherit SYNAPSE_* vars
-    });
-    child.unref();  // detach from parent — daemon survives hook exit
-    if (child.pid) {
-      // PFL-116: kill old daemon AFTER new one is confirmed spawned
-      killOldDaemon(WS_DAEMON_PID_FILE);
-      writePidFile(WS_DAEMON_PID_FILE, child.pid);
-    }
-    return { started: true, pid: child.pid };
-  } catch (e) {
-    return { started: false, error: e.message };
-  }
-}
+function readPidFile(pidFile) { return dm.readPidFile(pidFile); }
+function writePidFile(pidFile, pid) { dm.writePidFile(pidFile, pid); }
+function isProcessAlive(pid) { return dm.isProcessAlive(pid); }
+function killOldDaemon(pidFile) { return dm.killOldDaemon(pidFile); }
+function cleanupOrphanDaemons() { return dm.cleanupOrphanDaemons(); }
+function checkHeartbeatDaemon() { return dm.checkHeartbeatDaemon(); }
+function startHeartbeatDaemon() { return dm.startHeartbeatDaemon(); }
+function checkWsDaemon() { return dm.checkWsDaemon(); }
+function startWsDaemon() { return dm.startWsDaemon(); }
 
 /**
  * Read recent WS events from _ws-events.jsonl.
@@ -803,10 +552,9 @@ function writeState(state) {
   lines.push('```');
   lines.push('CronCreate({');
   lines.push('  cron: "*/1 * * * *",');
-  // P11-B132: cron-native heartbeat Layer 2 — session-init.js --quick sends heartbeat
-  // on every CronCreate wakeup. B137 PFL-126 对齐: ② 包含 daemon 存活性检查 —
-  // 中 session 唤醒时若 daemon 孤儿，AI 直接自愈，不再仅依赖 .session-alive 文件
-  lines.push('  prompt: "Wake up. ① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes _task-current.md). ② Read _task-current.md Connection section — check daemon status. If heartbeat/ws-daemon dead or template fallback, run FULL session-init.js (no --quick) to re-spawn daemons. ③ Continue working if active tasks, ScheduleWakeup if idle.",');
+  // B137: CRONCREATE_PROMPT from lib/prompts.js — single source of truth
+  // --health replaces --quick: daemon self-heal + heartbeat + refresh
+  lines.push('  prompt: "' + CRONCREATE_PROMPT + '",');
   lines.push('  recurring: true');
   lines.push('})');
   lines.push('```');
@@ -1238,10 +986,8 @@ function writeBootPrompt(state) {
   // template fallback → run FULL session-init.js to re-spawn daemons.
   // This closes PFL-126: boot prompt → CronCreate → daemon check chain
   // now survives SessionStart hook failure (PFL-127 · B135).
-  const cronPrompt = "Wake up. "
-    + "① Run: node .claude/skills/synapse/scripts/session-init.js --quick (sends heartbeat + refreshes _task-current.md). "
-    + "② Read _task-current.md Connection section — check daemon status. If heartbeat/ws-daemon dead or template fallback, run FULL session-init.js (no --quick) to re-spawn daemons. "
-    + "③ Continue working if active tasks, ScheduleWakeup if idle.";
+  // B137: CRONCREATE_PROMPT from lib/prompts.js — single source of truth
+  const cronPrompt = CRONCREATE_PROMPT;
 
   const lines = [
     // P11-B129: IDENTITY FIRST — the AI reads this line before any action.
@@ -1477,7 +1223,7 @@ async function main() {
     // B90: apiUnreachable flag — prevent "0 active tasks" false signal when API is down
     apiUnreachable: false,
     // B122 PFL-110: quick refresh mode + old snapshot staleness context
-    quickRefresh: QUICK_MODE,
+    quickRefresh: QUICK_MODE || HEALTH_MODE,
     oldSnapshotAge: oldSnapshotAge,
     // P11-B124 (PFL-084): template upgrade flag — set below before writeState
     templateUpgradeNeeded: null,
@@ -1528,17 +1274,17 @@ async function main() {
   if (!envCheck.ok) {
     console.log(`❌ ${SCRIPT_NAME}: env incomplete — missing: ${envCheck.missing.join(', ')}`);
     writeState(state);
-    if (!QUICK_MODE) writeBootPrompt(state);
+    if (!QUICK_MODE && !HEALTH_MODE) writeBootPrompt(state);
     process.exit(0);
   }
 
-  if (!QUICK_MODE) {
+  if (!QUICK_MODE && !HEALTH_MODE) {
   // ── Step 1.5: Ensure Worker settings.local.json (B110 · Layer 2) ─
   const wsResult = ensureWorkerSettings();
   if (wsResult.created) {
     console.log(`📝 ${SCRIPT_NAME}: created ${wsResult.path} (per-Worker permissions auto-generated)`);
   }
-  } // END !QUICK_MODE: settings
+  } // END !QUICK_MODE && !HEALTH_MODE: settings
 
   // ── Step 2: Create client ──────────────────────────────────────
   const config = SynapseClient.resolveConfig(envCheck.present);
@@ -1554,11 +1300,11 @@ async function main() {
     fs.writeFileSync(SESSION_ALIVE_FILE, JSON.stringify({
       updated_at: now(),
       pid: String(process.pid),
-      mode: QUICK_MODE ? 'quick' : 'full',
+      mode: HEALTH_MODE ? 'health' : (QUICK_MODE ? 'quick' : 'full'),
     }), 'utf-8');
   } catch (_) { /* best-effort */ }
 
-  if (!QUICK_MODE) {
+  if (!QUICK_MODE && !HEALTH_MODE) {
   // ── Step 2.4: Cleanup pre-B115 orphan daemons (PFL-116 · B121) ──
   // Must run BEFORE spawning new daemons — kills zombies that have no PID file.
   const orphanResult = cleanupOrphanDaemons();
@@ -1606,9 +1352,31 @@ async function main() {
   }
   // Read recent WS events (even if daemon was already running)
   state.recentWsEvents = readRecentWsEvents(5);
-  } // END !QUICK_MODE: daemon management
+  } // END !QUICK_MODE && !HEALTH_MODE: daemon management
 
-  if (!QUICK_MODE) {
+  // B137: --health mode — run daemon self-heal BEFORE state sync
+  // AI reads the REPAIRED state — daemons are already re-spawned if they died
+  if (HEALTH_MODE) {
+    const healthReport = dm.health();
+    state._healthReport = healthReport;
+
+    // Update daemon state for _task-current.md Connection section
+    state.heartbeatDaemon = { running: true, pids: healthReport.heartbeat.pid ? [healthReport.heartbeat.pid] : [], healthMode: true };
+    state.wsDaemon = { running: true, pids: healthReport.wsDaemon.pid ? [healthReport.wsDaemon.pid] : [], healthMode: true };
+
+    if (healthReport.heartbeat.reSpawned) {
+      console.log(`🫀 ${SCRIPT_NAME}: heartbeat daemon RE-SPAWNED (was dead, now pid ${healthReport.heartbeat.pid})`);
+    }
+    if (healthReport.wsDaemon.reSpawned) {
+      console.log(`🔌 ${SCRIPT_NAME}: ws-daemon RE-SPAWNED (was dead, now pid ${healthReport.wsDaemon.pid})`);
+    }
+    if (!healthReport.heartbeat.reSpawned && !healthReport.wsDaemon.reSpawned) {
+      // Silent when healthy — don't spam CronCreate wakeups
+    }
+    console.log(`✅ ${SCRIPT_NAME}: health check complete (hb: ${healthReport.heartbeat.reSpawned ? 're-spawned' : 'healthy'}, ws: ${healthReport.wsDaemon.reSpawned ? 're-spawned' : 'healthy'})`);
+  }
+
+  if (!QUICK_MODE && !HEALTH_MODE) {
   // ── Step 3: Fetch protocol ─────────────────────────────────────
   const protocolRole = state.role || 'builder';
   const protocolRes = await client.get(
@@ -1945,7 +1713,7 @@ async function main() {
   // B122 PFL-110: Quick refresh ALWAYS overwrites — the point is to refresh stale data.
   const hasErrors = state.errors && state.errors.length > 0;
   const existingHealthy = isExistingSnapshotHealthy();
-  if (hasErrors && existingHealthy && !QUICK_MODE) {
+  if (hasErrors && existingHealthy && !QUICK_MODE && !HEALTH_MODE) {
     console.log(`⚠️ ${SCRIPT_NAME}: PFL-115 — 保留今日健康快照，当前快照有 ${state.errors.length} 个错误，不覆盖。`);
     console.log('   旧快照可能已过期——AI 应主动重试 API 确认状态。');
   } else {
@@ -1953,14 +1721,14 @@ async function main() {
   }
 
   // B112 PFL-112: Generate _boot-prompt.md for one-click cold-start
-  // B122 PFL-110: Skip in quick mode — boot prompt is only for cold starts
-  if (!QUICK_MODE) writeBootPrompt(state);
+  // B122 PFL-110: Skip in quick/health mode — boot prompt is only for cold starts
+  if (!QUICK_MODE && !HEALTH_MODE) writeBootPrompt(state);
 
   // ── Step 7: Output banner to stdout ───────────────────────────
   if (state.protocolOk) {
     const banner = roleBanner(state);
     console.log(banner);
-    const modeLabel = QUICK_MODE ? ` (quick refresh, old snapshot was ${oldSnapshotAge || 'unknown'} old)` : '';
+    const modeLabel = HEALTH_MODE ? ' (health — daemon self-heal + refresh)' : (QUICK_MODE ? ` (quick refresh, old snapshot was ${oldSnapshotAge || 'unknown'} old)` : '');
     console.log(`\n📋 状态已写入: _task-current.md${modeLabel}`);
   } else {
     console.log(`⚠️ ${SCRIPT_NAME}: partial success — state written to _task-current.md`);

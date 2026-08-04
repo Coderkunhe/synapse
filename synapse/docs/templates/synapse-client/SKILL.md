@@ -85,42 +85,34 @@ node .agents/skills/synapse/scripts/session-init.js
 
 > 📖 **PFL-084 背景**：B94 建成了 Server 端版本指纹和 API 端点，B124 补齐了 Worker 端自动检测和通知，B126 实现了 daemon 自动升级 + JS 指纹 · 升级链全量闭环 ✅。
 
-## 🫀 Dual-Channel Heartbeat（P11-B132 · Defense in Depth）
+## 🫀 Daemon Health — 自愈（P11-B137）
 
-Worker 有心跳双通道，任一通道存活就能保持在线：
+Worker daemon 由 `session-init.js --health` 机械管理，AI 不参与决策：
 
-| 通道 | 机制 | 间隔 | 独立性 |
-|:---|:---|:---|:---|
-| **Layer 1: Daemon** | `heartbeat.js` 后台进程 | 每 55s | 进程级，独立于 AI 行为 |
-| **Layer 2: Cron** | `session-init.js --quick` | 每 60s（CronCreate） | AI 级，每次唤醒触发 |
+| daemon | 管理方式 |
+|:---|:---|
+| **Heartbeat** | `--health` 检测存活 → 死亡则自动重 spawn · 每 55s 发送 |
+| **WS** | `--health` 检测存活 → 死亡则自动重 spawn · 实时事件推送 |
 
-**每次 CronCreate wakeup 时**：CronCreate prompt 已经包含 `session-init.js --quick` 指令——它会发送心跳 + 刷新 `_task-current.md`。你不需要额外检查 daemon 状态。Daemon 通过 `.session-alive` 文件自行管理存活性。
+**每次 CronCreate wakeup 时**：CronCreate prompt 已包含 `session-init.js --health` — 脚本自动完成 daemon 自愈 + 心跳 + 状态刷新。AI 读到的是修复后的 `_task-current.md`。
 
-**只有当 `_task-current.md` 的 Connection 节显示 daemon FAILED 时**，才需要手动运行完整 `session-init.js`（不用 `--quick`）重建 daemon。
+> 📖 **B135→B137 演变**：daemon 管理从"AI 读 prompt 判断"（PFL-127）→ 脚本机械自愈。AI 的决策面从 80% 缩到 20%。
 
-> 📖 **B132 背景**：R5 狗粮发现 daemon 因 `process.ppid` 指向 hook shell（非 Claude）而持续自毁（955 WS/40min）。根因修复：daemon 改为读 `.session-alive` 文件时间戳判活，session-init.js 每次运行都更新该文件。Cron heartbeat 作为第二通道确保 AI wakeup 时立即 heartbeat，不依赖 daemon 是否存活。
+### 第二步：读取初始状态
 
-### 第二步：读取初始状态 + Daemon 自愈（P11-B135 · PFL-127 发现 3）
+> 💡 **B137：Daemon 管理已脚本化。** `--health` 模式自动检测 daemon 存活性并重 spawn——AI 读到的是修复后的状态，不需要自行判断 daemon 是否存活。
 
-> ⚠️ **PFL-127 发现 3（daemon 孤儿）**：SessionStart hook 产生的 daemon 绑定到 hook shell session，hook 结束后 daemon 可能成孤儿并被 kill。**Daemon 必须由 Claude Code 会话自身 spawn 才能持久存活。** 冷启动时，不要假设 hook 已成功启动 daemon — 必须自行检查并补 spawn。
+1. **如果 `_task-current.md` 不存在或显示模板回退** → 运行完整 `session-init.js`（冷启动）：
+   ```bash
+   node .claude/skills/synapse/scripts/session-init.js
+   ```
+2. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）
+3. **如果脚本报错**（env 不完整 / API 不可达）→ **不要直接放弃**（PFL-115）。先主动重试 API：`curl -s $SYNAPSE_API_URL/health`。API 可达 → 重新运行 `node scripts/session-init.js`。API 不可达 → ScheduleWakeup 120s 后重试
+4. **状态正常** → 输出角色横幅，开始工作循环
 
-1. **读 `_task-current.md`** — 了解初始状态（连接、handshake、待处理授权、活跃 Task、就绪队列）
-2. **🚨 Daemon 存活性自检（PFL-127 硬约束）**：
-   - 检查 Connection 节：**Heartbeat daemon** 和 **WS Daemon** 是否显示 `✅ running`？
-   - 如果显示 `⚠️ NOT RUNNING` / `🔴 FAILED` / 或不存在（模板回退）→ **立即运行完整 `session-init.js`**（不用 `--quick`）：
-     ```bash
-     node .claude/skills/synapse/scripts/session-init.js
-     ```
-     这将补充 spawn daemon（heartbeat + ws-daemon），由 Claude Code session 直接 spawn，不再依赖 hook。
-   - 如果 `_task-current.md` 显示「⚠️ 脚本未执行 — 模板回退」→ 按模板中的三步自检执行
-3. **如果脚本报错**（env 不完整 / API 不可达）→ **不要直接放弃**（PFL-115）。快照是启动时的瞬时状态——网络波动、服务重启都可能导致快照生成失败。**先主动重试 API**：`curl -s $SYNAPSE_API_URL/health`。如果 API 实际可达 → 重新运行 `node scripts/session-init.js` 刷新快照。如果 API 确实不可达 → ScheduleWakeup 120s 后重试
-4. **如果状态正常** → 输出 `_task-current.md` 中的角色横幅（由脚本生成），开始自主驱动循环
-
-> ⚠️ `_task-current.md` 是**会话启动时的初始快照**，不是实时状态。每次判断"下一步做什么"前，必须重新调用 API 获取最新状态（循环铁律 #2）。**唤醒时先检查快照新鲜度**（见上方「快照新鲜度检查」PFL-110）。
+> ⚠️ `_task-current.md` 是快照，不是实时状态。每次判断"下一步做什么"前，重新调用 API（循环铁律 #2）。唤醒时检查快照新鲜度（PFL-110）。
 >
-> ⚠️ **PFL-115（B117）：快照不可信时主动重试 API。** 快照显示"API 不可达"或"队列空"不代表真实状态——不要因为快照说不可达就放弃。先验证 API 实际状态再决策。快照是参考，不是判决书。**PFL-110（B122）：快照过期也属于"不可信"——检查 Snapshot timestamp，> 5 分钟就刷新。**
-
-**不再需要手动执行**：env 检查、protocol 拉取、handshake、state sync —— 这些机械操作已由脚本完成。
+> ⚠️ **PFL-115**：快照显示"API 不可达"不代表真实状态——先验证再决策。**PFL-110（B122）**：快照 > 5 分钟就刷新。
 
 ### 手动启动（scripts/ 目录缺失或 Node.js 不可用时）
 
