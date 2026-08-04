@@ -191,7 +191,7 @@ Admin UI (Conventions Tab)
 源文件（docs/skills/*.md）
   │
   ├─→ .claude/skills/     ← Claude Code 原生
-  ├─→ .cursorrules        ← Cursor
+  ├─→ .cursorrules        ← Cursor（⛔ P12 废弃）
   ├─→ codex-skill.json    ← Codex
   └─→ 其他客户端...
 ```
@@ -488,7 +488,7 @@ graph TB
 
     subgraph Agent交互
         W1[Worker 1<br/>Claude]
-        W2[Worker 2<br/>Codex/Cursor]
+        W2[Worker 2<br/>Codex]
     end
 
     subgraph Synapse核心

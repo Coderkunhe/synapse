@@ -174,10 +174,9 @@ bash tools/generate-skill.sh --client --output .
 
 # Codex CLI
 bash tools/generate-skill.sh --client --target codex --output .
-
-# Cursor IDE
-bash tools/generate-skill.sh --client --target cursor --output .
 ```
+
+> ⛔ `cursor` target 已废弃（P12 移除 — 零实战数据 · 未安装）。代码路径保留但不再维护。
 
 **生成结果**：
 
@@ -185,13 +184,12 @@ bash tools/generate-skill.sh --client --target cursor --output .
 |--------|---------|------|
 | Claude Code | `.claude/skills/synapse/` | `SKILL.md` + `_env.md` |
 | Codex CLI | `.agents/skills/synapse/` | `SKILL.md` + `_env.md` |
-| Cursor IDE | `.cursor/rules/` | `synapse-worker.mdc`（alwaysApply 规则 · env 已内联） |
 
 > 💡 不指定 `--target` 时默认为 `claude`（向后兼容）。
 
 #### Step 4: Agent 启动 → 自动就绪
 
-Agent 启动后，客户端自动加载 Skill/规则文件（Claude Code 加载 `.claude/skills/`、Codex 加载 `.agents/skills/`、Cursor 加载 `.cursor/rules/`）。
+Agent 启动后，客户端自动加载 Skill 文件（Claude Code 加载 `.claude/skills/`、Codex 加载 `.agents/skills/`）。
 Skill 指示 Agent 的第一步操作：
 
 ```

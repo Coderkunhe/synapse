@@ -26,17 +26,15 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 | 状态 | 含义 | 动作 |
 |:---|:---|:---|
 | **存在 + 当日** | SessionStart hook 已自动运行（Claude Code），或你刚才手动运行了脚本 | → 跳到「第二步：读取初始状态」 |
-| **不存在 / 过期** | 脚本未运行（Codex / Cursor / 首次启动） | → 手动运行初始化脚本（见下方） |
+| **不存在 / 过期** | 脚本未运行（Codex / 首次启动） | → 手动运行初始化脚本（见下方） |
 
 **手动运行初始化脚本**：
 
 ```bash
 # 根据你的客户端类型，脚本位于不同路径：
-# Claude Code / Codex CLI:
+# Claude Code:
 node .claude/skills/synapse/scripts/session-init.js
-# 如果上述路径不存在（Cursor 等），尝试:
-node .cursor/scripts/session-init.js
-# 如果以上路径都不存在，尝试:
+# Codex CLI:
 node .agents/skills/synapse/scripts/session-init.js
 ```
 
