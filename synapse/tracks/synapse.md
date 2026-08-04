@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P11-B137 ✅ Worker Harness 三层建设 · P11 全量闭环 🎉
-last_batch: P11-B137
-next_batch: P12-B1
-description: Synapse 主项目 — B137 ✅ Worker Harness 三层建设 · Prompt-Driven→Harness-Driven 方法论转变 · P11 137 批全量闭环
+phase: P12-B3 ✅ launchd daemon 托管落地 + Codex Worker 部署 · B4 🔜 狗粮验证
+last_batch: P12-B3
+next_batch: P12-B4
+description: Synapse 主项目 — P12 三批闭环 · 1O+2B · launchd ✅ · B4 🔜 狗粮验证（daemon 存活 + Codex live + B1 自动化率更新）
 ---
 
 # Synapse 轨道
@@ -15,7 +15,8 @@ description: Synapse 主项目 — B137 ✅ Worker Harness 三层建设 · Promp
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
-| **P11** | P11-B137 | **P12-B1** 🔜 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
+| **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
+| **P12** | P12-B3 | **P12-B4** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd + Codex 部署 · 1O+2B |
 
 ## P11 路线图：多 Agent 接入战
 
@@ -345,6 +346,47 @@ description: Synapse 主项目 — B137 ✅ Worker Harness 三层建设 · Promp
 | G4 | 可用 Task 列表不过滤依赖未就绪 | 🟡 |
 | G5 | 依赖完成无 WS 推送 | 🟡 |
 | G6 | Worker 模板零提及 depends_on | 🟡 |
+
+## P12 路线图：Harness-Driven Worker ▶️
+
+> **唯一目标**：达成 1O+2B=3 Worker 协作，全程零 God's-eye 干预
+> **客户端类型**：Claude Code + Codex CLI（🔪 Cursor 移除）
+> **方法论**：Prompt-Driven → Harness-Driven · LLM 是 judgment 插件，不是决策者
+> **启动**：2026-08-04 · P11 全量闭环 ✅
+
+```
+P12-B1 ✅ D1 Scout — God's-eye 运维操作全量盘点
+  — 34 项操作 · 9% 自动化率 · B137 覆盖率矩阵
+  — P0 阻断 3 项 (daemon 托管 · 冷启动 · hook) · P1 3 项 · P2 3 项
+  — 1 doc: docs/plans/p12-d1-scout.md
+  — 修订：多客户端盲区修正 · 补充 §1.5 双客户端差异矩阵
+    │
+P12-B2 ✅ 跨客户端 Worker 自治架构
+  — 双客户端能力矩阵：Claude Code 13 files · Codex CLI 10 files · scripts 100% 复用
+  — Codex bootstrap 验证：generate-skill.sh --target codex → 10 files · diff 零差异
+  — Daemon 方案 A (launchd) ⭐推荐 · B (MCP) 长期 · C (CronCreate) 保底 · D (inline) ❌
+  — 1 doc: docs/plans/p12-b2-cross-client-autonomy.md
+    │
+P12-B3 ✅ 双线并行
+  — Line A: Claude Code launchd daemon 落地 ✅
+  — Line B: Codex Worker bootstrap 10 files ✅ · live 验证 → B4
+    │
+P12-B4 🔜 狗粮验证
+  — launchd daemon 存活 ≥10min 验证
+  — Codex live 会话验证（三问）
+  — B1 自动化率更新
+    │
+P12-B5+ → 1O+2B 协作开发真实功能 · 零 God's-eye
+```
+
+### 🎯 P12 四大战略方向
+
+| # | 方向 | 状态 |
+|:--:|------|:--:|
+| **D1** | God's-eye 退出运维 | ▶️ B1 ✅ B2 ✅ |
+| **D2** | Worker 端测试体系 | ⬜ 待 D1 推进 |
+| **D3** | depends_on 依赖链 | ⬜ 待 D1 推进 |
+| **D4** | 双 Builder 并发 + 狗粮实战 | ⬜ 待 D1-D3 |
 
 ## 路线图（2026-07-21 更新 · P100/P9 双轨分治）
 

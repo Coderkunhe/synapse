@@ -164,17 +164,31 @@ generate_plist() {
     local stderr_log
     stderr_log="$(error_log_path "$role")"
 
-    # Read env vars from .claude/.env for the plist (belt-and-suspenders:
-    # session-init.js inline-env will also read them, but launchd setting
-    # them as EnvironmentVariables means health() works even if .env drifts).
+    # Read env vars from .claude/.env for the plist.
+    # session-init.js checkEnv() reads process.env only — it does NOT parse the
+    # .env file from disk. All required vars must be passed as EnvironmentVariables.
+    # API key IS passed here because session-init.js has no .env-file reader;
+    # the security stance is: if .env is plaintext on disk anyway, the plist
+    # (same directory, same permissions) adds no material risk.
     local env_file="${project_dir}/.claude/.env"
     local synapse_api_url="http://localhost:8000"
     local synapse_project_id=""
+    local synapse_worker_id=""
+    local synapse_api_key=""
+    local synapse_worker_role=""
+
+    # Helper: extract a value from a KEY=VALUE .env file
+    _env_val() {
+        grep -E "^${1}=" "$env_file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true
+    }
 
     if [[ -f "$env_file" ]]; then
-        # shellcheck source=/dev/null
-        synapse_api_url="$(grep -E '^SYNAPSE_API_URL=' "$env_file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || echo "http://localhost:8000")"
-        synapse_project_id="$(grep -E '^SYNAPSE_PROJECT_ID=' "$env_file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || echo "")"
+        synapse_api_url="$(_env_val 'SYNAPSE_API_URL')"
+        [[ -z "$synapse_api_url" ]] && synapse_api_url="http://localhost:8000"
+        synapse_project_id="$(_env_val 'SYNAPSE_PROJECT_ID')"
+        synapse_worker_id="$(_env_val 'SYNAPSE_WORKER_ID')"
+        synapse_api_key="$(_env_val 'SYNAPSE_API_KEY')"
+        synapse_worker_role="$(_env_val 'SYNAPSE_WORKER_ROLE')"
     fi
 
     cat << PLIST
@@ -200,6 +214,12 @@ generate_plist() {
         <string>${synapse_api_url}</string>
         <key>SYNAPSE_PROJECT_ID</key>
         <string>${synapse_project_id}</string>
+        <key>SYNAPSE_WORKER_ID</key>
+        <string>${synapse_worker_id}</string>
+        <key>SYNAPSE_API_KEY</key>
+        <string>${synapse_api_key}</string>
+        <key>SYNAPSE_WORKER_ROLE</key>
+        <string>${synapse_worker_role}</string>
     </dict>
     <key>StartInterval</key>
     <integer>60</integer>
