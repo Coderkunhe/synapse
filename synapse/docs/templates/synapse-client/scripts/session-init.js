@@ -378,6 +378,59 @@ function ensureWorkerSettings() {
 }
 
 /**
+ * P12-B14 (D1 HK-1/HK-2): Check git hooks integrity and auto-repair.
+ *
+ * Runs check-hooks.sh to verify pre-commit, commit-msg, post-commit exist
+ * and are executable. If hooks are missing or damaged, auto-runs --fix.
+ *
+ * This eliminates the God's-eye manual step of running `synapse-exec --install-hook`
+ * or `make hooks` on every new Worker or template update.
+ *
+ * @returns {{ ok: boolean, fixed: boolean, error: string|null }}
+ */
+function checkGitHooks() {
+  const result = { ok: true, fixed: false, error: null };
+  try {
+    // Find check-hooks.sh — first try synapse/tools in the repo, then fall back to skill scripts
+    const repoRoot = execSync('git rev-parse --show-toplevel 2>/dev/null || echo ""', { encoding: 'utf-8' }).trim();
+    if (!repoRoot) {
+      // Not in a git repo — hook check is not applicable
+      return result;
+    }
+
+    const checkHooksPath = path.join(repoRoot, 'synapse', 'tools', 'check-hooks.sh');
+    if (!fs.existsSync(checkHooksPath)) {
+      // check-hooks.sh not available (e.g., Worker in non-synapse repo)
+      // This is fine — hook management only applies to repos with synapse tooling
+      return result;
+    }
+
+    // Run check (non-fix mode first — only fix if needed, to avoid unnecessary work)
+    const checkResult = execSync(`bash "${checkHooksPath}"`, { encoding: 'utf-8', timeout: 10000 });
+    if (checkResult.includes('ERROR') || checkResult.includes('WARNING')) {
+      console.log(`🔧 ${SCRIPT_NAME}: git hooks need repair — auto-fixing...`);
+      console.log(`   ${checkResult.trim().split('\n').filter(l => l.includes('ERROR') || l.includes('WARNING') || l.includes('缺失')).join('\n   ')}`);
+
+      // Run --fix
+      const fixResult = execSync(`bash "${checkHooksPath}" --fix`, { encoding: 'utf-8', timeout: 30000 });
+      if (fixResult.includes('repair incomplete') || fixResult.includes('still missing')) {
+        result.ok = false;
+        result.error = `Hook auto-repair incomplete: ${fixResult.trim()}`;
+      } else {
+        result.fixed = true;
+        console.log(`   ✅ git hooks auto-repaired`);
+      }
+    }
+  } catch (e) {
+    // Non-fatal — hook check failure shouldn't block Worker startup
+    result.ok = false;
+    result.error = `Hook check failed: ${e.message || String(e)}`;
+    console.log(`⚠️ ${SCRIPT_NAME}: git hook check failed (non-blocking): ${result.error}`);
+  }
+  return result;
+}
+
+/**
  * P11-B135 (PFL-127 discovery 2): Load and parse .env file.
  *
  * Claude Code Bash tool creates independent shells per call. `source .env` in one
@@ -1375,7 +1428,18 @@ async function main() {
   if (wsResult.created) {
     console.log(`📝 ${SCRIPT_NAME}: created ${wsResult.path} (per-Worker permissions auto-generated)`);
   }
-  } // END !QUICK_MODE && !HEALTH_MODE: settings
+
+  // ── Step 1.6: Git hooks self-check (P12-B14 · D1 HK-1/HK-2) ─
+  // Auto-detect and repair missing/damaged git hooks.
+  // Eliminates God's-eye manual `synapse-exec --install-hook` step.
+  var hooksCheck = checkGitHooks();
+  if (hooksCheck.fixed) {
+    state._hooksFixed = true;
+  }
+  if (!hooksCheck.ok) {
+    state.warnings.push('Git hooks: ' + (hooksCheck.error || 'unknown issue'));
+  }
+  } // END !QUICK_MODE && !HEALTH_MODE: settings + hooks
 
   // ── Step 2: Create client ──────────────────────────────────────
   const config = SynapseClient.resolveConfig(envCheck.present);

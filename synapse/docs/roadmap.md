@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B12 ✅ — Codex 三任务全链路闭环 · L5 B12→B13 拉通）
+> 最后更新：2026-08-05（P12-B14 ✅ — D1 HK-1/HK-2 🟢 · 自动化率 44% · L5 B13→B14 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -827,6 +827,8 @@
 | **P12-B10** | **Codex Worker Bootstrap** — git init + pre-push hook + Protocol API 连通验证 (HTTP 200) · D1 Scout §9 能力边界矩阵 · 双客户端差异文档化 · Codex 就绪定义 | ✅ |
 | **P12-B11** | **SKILL.md 模板客户端检测块 · Codex API-first 路由** — 模板新增客户端检测块（Claude Code vs Codex 分派）· Codex API-first 启动路径 · 1 file · +9 lines | ✅ |
 | **P12-B12** | **Codex 狗粮全链路闭环** — Codex Worker 自主拉取并完成 3 tasks · 678 tests green · daemons alive · heartbeat ≤5min · B11→B12 CLAUDE.md 状态更新 · 1 file | ✅ |
+| **P12-B13** | **Codex 启动自动化 + Evidence 协议** — `start-codex-worker.sh` (110行) 一键启动 Codex Worker · SKILL.md 逐项 Evidence 协议（提交前自检清单 + 正/反例 + met+detail+test）· 8 files · +242/-21 | ✅ |
+| **P12-B14** | **D1 HK-1/HK-2 自动化 + B13 狗粮** — `check-hooks.sh --fix` 自愈 + `session-init.js` Step 1.6 启动链 hook 自检 · D1 自动化率 38%→44% · B13 两交付验证通过 · 5 files · +166/-29 | ✅ |
 
 ### 🎯 P12 四大战略方向
 

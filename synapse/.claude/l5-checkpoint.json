@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B12→B13 L5 拉通 — 📄 roadmap.md B11+B12 ✅ 新增行 · 📄 requirements-log.md B11+B12 登记+header 更新 · 📄 daily/2026-08-05.md B11+B12 节新增+治理更新 · 📄 tracks/synapse.md last_batch P12-B10→B12+next_batch P12-B11→B13 · 📄 CLAUDE.md B12→B13 · 叙事链 Codex 狗粮闭环 🎉 · 无新增 PFL/LL",
+  "lastL5Batch": "B13→B14 L5 拉通 — 📄 roadmap B13+B14 ✅ · 📄 daily B14 ✅ · 📄 CLAUDE.md B12→B14 · 📄 D1 Scout 44% · 📄 dogfood checkpoint reset · 叙事链 D1 HK 自动化闭环 · 无新增 PFL/LL",
   "lastL5Timestamp": "2026-08-05",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B12→B13 L5 拉通 — 📄 roadmap.md B11+B12 ✅ 新增行 · 📄 requirements-log.md B11+B12 登记+header 更新 · 📄 daily/2026-08-05.md B11+B12 节新增+治理更新 · 📄 tracks/synapse.md last_batch P12-B10→B12+next_batch P12-B11→B13 · 📄 CLAUDE.md B12→B13 · 叙事链 Codex 狗粮闭环 🎉 · 无新增 PFL/LL",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认 · B11+B12 补登记完成"
+  "lastL5Evidence": "B13→B14 L5 拉通 — roadmap + daily + CLAUDE.md + D1 Scout + dogfood checkpoint 全量同步完成",
+  "notes": "L5 拉通完成，计数器复位 — B15 就绪"
 }
