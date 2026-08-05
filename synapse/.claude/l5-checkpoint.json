@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P12 B4→B5 L5 拉通 — roadmap.md B5 登记 · reqlog B4+B5 闭环 · daily 2026-08-05 B5 同步 · track P12-B5 指针更新 · self-check-P12-B5.md 自检文件 · B4 狗粮发现→B5 沙箱状态通道叙事拉通 · 678 tests 零回归",
+  "lastL5Batch": "B6→B7 L5 拉通 — 📄 roadmap.md B6+B7 登记 · reqlog B6+B7 登记 · daily/2026-08-05.md B6+B7 同步 · track/synapse.md last_batch B7 + next_batch B8 · CLAUDE.md P12 状态刷新 · self-check-P12-B7.md 自检文件 · 678 tests 零回归 · bootstrap-worker.sh 7/7 BOOT dry-run 验证 · Task 生命周期 API 全链路闭环",
   "lastL5Timestamp": "2026-08-05",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P12 B4→B5 L5 拉通 — roadmap.md B5 登记 · reqlog B4+B5 闭环 · daily 2026-08-05 B5 同步 · track P12-B5 指针更新 · self-check-P12-B5.md 自检文件 · B4 狗粮发现→B5 沙箱状态通道叙事拉通 · 678 tests 零回归",
-  "notes": "L5 拉通完成，计数器复位"
+  "lastL5Evidence": "B6→B7 L5 拉通 — 📄 roadmap.md B6+B7 登记 · reqlog B6+B7 登记 · daily/2026-08-05.md B6+B7 同步 · track/synapse.md last_batch B7 + next_batch B8 · CLAUDE.md P12 状态刷新 · self-check-P12-B7.md 自检文件 · 678 tests 零回归 · bootstrap-worker.sh 7/7 BOOT dry-run 验证 · Task 生命周期 API 全链路闭环",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

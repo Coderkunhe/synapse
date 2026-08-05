@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B3 ✅ launchd daemon 托管 + Codex 部署 | **P12-B4** 🔜 狗粮验证（daemon 存活 + Codex live）|
+| **P12** | B7 ✅ L5 拉通 + 狗粮验证 | **P12-B8** 🔜 SessionStart hook + Codex 狗粮 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B1→B2 ✅ P12 开局双批拉通 · track 指针同步 | batchesSinceLastL5=0 |

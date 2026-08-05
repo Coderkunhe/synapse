@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B5 ✅ — Codex 沙箱状态通道 · Server API + session-init 降级 · `_task-current.md` → API 查询）
+> 最后更新：2026-08-05（P12-B7 ✅ — L5 拉通 + 狗粮验证 · bootstrap-worker.sh 验证 · Task 生命周期 API 全链路 · post-commit hook 就位）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -820,6 +820,8 @@
 | **P12-B3** | **launchd daemon 托管落地 + Codex Worker 部署** — synapse-launchd.sh (274行) · generate-skill.sh 集成 · smoke 16/16 · Line A launchd ✅ · Line B Codex bootstrap 10 files ✅ | ✅ |
 | **P12-B4** | **狗粮验证** — launchd plist env fix (🐛 狗粮发现) · 双 Worker daemon 运行 ✅ · B1 自动化率 9→18% · Codex live 验证 (Q2 ✅ · 🚨 sandbox 只读约束发现) · 2 docs 更新 | ✅ |
 | **P12-B5** | **Codex 沙箱状态通道重构** — `GET /v1/workers/me/state` API · session-init.js `--json` 降级 + read-only 容错 · SKILL.md Codex 路径 · +3 tests · 678 tests 零回归 | ✅ |
+| **P12-B6** | **Worker 一键 bootstrap（BOOT-1~7 7→1 命令）** — bootstrap-worker.sh (716行) · 幂等设计 · 双客户端 `--target` · P12-6 对齐（减少 7 项 God's-eye 操作） | ✅ |
+| **P12-B7** | **L5 拉通 + 狗粮验证** — bootstrap-worker.sh dry-run 7/7 ✅ · Task 生命周期 create→ready→claim→submit API 验证 · post-commit hook 安装 · Server 全 reaper 运行 · L5 复位 | ✅ |
 
 ### 🎯 P12 四大战略方向
 
