@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B10 ✅ Codex bootstrap 完成 · Protocol API 连通 | **P12-B11** 🔜 Codex 狗粮验证 + D1 继续 |
+| **P12** | B11 ✅ Codex Worker 再生 · 客户端检测块 · 狗粮 Task ready | **P12-B12** 🔜 狗粮执行 + D1 继续 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B7→B9 ✅ L5 拉通完成 · 计数器复位 | batchesSinceLastL5=0 |
