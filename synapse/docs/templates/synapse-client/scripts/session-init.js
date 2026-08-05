@@ -30,6 +30,7 @@
  *   node scripts/session-init.js --quick             # quick refresh (skips daemon/protocol/handshake)
  *   node scripts/session-init.js --health            # daemon self-heal + quick refresh (B137)
  *   node scripts/session-init.js --upgrade            # template upgrade
+ *   node scripts/session-init.js --json              # output full state JSON to stdout (Codex sandbox)
  *   node scripts/session-init.js --no-inline-env     # disable .env auto-load
  *   node scripts/session-init.js --silent            # suppress console output (for daemon use)
  *
@@ -93,6 +94,11 @@ const INLINE_ENV_MODE = !process.argv.includes('--no-inline-env');
 // auto-re-spawns dead daemons, then does quick state refresh.
 // AI reads the REPAIRED state — it never sees "daemon dead."
 const HEALTH_MODE = process.argv.includes('--health');
+
+// P12-B5: --json outputs full state as JSON to stdout instead of (or in addition to)
+// writing _task-current.md. Designed for Codex workers whose .agents/ directory
+// is read-only — the AI reads stdout instead of the file.
+const JSON_MODE = process.argv.includes('--json');
 
 // B122 PFL-110 direction 2: --silent suppresses all console output.
 // Used when ws-daemon spawns session-init.js — daemon has no terminal.
@@ -947,7 +953,83 @@ function writeState(state) {
   lines.push('---');
   lines.push(`*Generated ${snapshotTs} by session-init.js (B122 PFL-110 · B129 PFL-124${state.quickRefresh ? ' --quick' : ''})*`);
 
-  fs.writeFileSync(OUTPUT_FILE, lines.join('\n') + '\n', 'utf-8');
+  // P12-B5: Graceful degradation for read-only sandboxes (Codex .agents/).
+  // Try file write first — on failure (EROFS/EPERM/EACCES), output JSON to stdout.
+  try {
+    fs.writeFileSync(OUTPUT_FILE, lines.join('\n') + '\n', 'utf-8');
+  } catch (e) {
+    if (e.code === 'EROFS' || e.code === 'EPERM' || e.code === 'EACCES') {
+      console.error(`⚠️ ${SCRIPT_NAME}: read-only filesystem — _task-current.md cannot be written (${e.code}). Outputting state JSON to stdout as fallback.`);
+    } else {
+      console.error(`⚠️ ${SCRIPT_NAME}: _task-current.md write failed — ${e.message}. Outputting state JSON to stdout.`);
+    }
+    // Fallback: output state JSON to stdout so AI can read it
+    if (!SILENT_MODE) {
+      outputStateJson(state);
+    }
+  }
+}
+
+/**
+ * P12-B5: Output full state as JSON to stdout.
+ *
+ * Used when file writes fail (Codex read-only sandbox) or when --json flag
+ * is explicitly requested. The Worker AI reads stdout instead of _task-current.md.
+ *
+ * All API data is already in memory — this is a zero-cost serialization.
+ */
+function outputStateJson(state) {
+  // Build a safe-to-serialize copy — strip internal/transient fields
+  const safe = {
+    generated_at: now(),
+    worker_id: state.env?.SYNAPSE_WORKER_ID || null,
+    role: state.role || null,
+    env_ok: state.envOk,
+    protocol_ok: state.protocolOk,
+    handshake_ok: state.handshakeOk,
+    api_url: state.env?.SYNAPSE_API_URL || null,
+    project_id: state.env?.SYNAPSE_PROJECT_ID || null,
+    connection: {
+      heartbeat_daemon: state.heartbeatDaemon,
+      ws_daemon: state.wsDaemon ? { running: state.wsDaemon.running } : null,
+    },
+    tasks: {
+      active_count: state.activeTaskCount,
+      in_progress: (state.inProgressTasks || []).map(summarizeTask),
+      ready: (state.readyTasks || []).map(summarizeTask),
+      verification: (state.verificationTasks || []).map(summarizeTask),
+    },
+    auth_requests: {
+      total: state.authRequestsTotal,
+      pending: (state.authRequests || []).map(function(ar) {
+        return { id: ar.id, type: ar.request_type, status: ar.status };
+      }),
+    },
+    stale: {
+      verification_count: state.staleVerificationCount,
+      verification_ids: (state.staleVerificationTasks || []).map(function(t) { return t.id; }),
+    },
+    warnings: state.warnings || [],
+    errors: state.errors || [],
+    api_unreachable: state.apiUnreachable || false,
+    template_upgrade_needed: state.templateUpgradeNeeded || null,
+  };
+  console.log('┌──────────────────────────────────────────────┐');
+  console.log('│  Synapse Worker State (JSON · P12-B5)          │');
+  console.log('└──────────────────────────────────────────────┘');
+  console.log(JSON.stringify(safe, null, 2));
+}
+
+/** P12-B5: Minimal task summary for JSON output. */
+function summarizeTask(t) {
+  return {
+    id: t.id,
+    title: t.title || t.id,
+    status: t.status,
+    owner_id: t.owner_id || null,
+    owner_name: t.owner_name || null,
+    depends_on: t.depends_on || [],
+  };
 }
 
 /**
@@ -1718,6 +1800,12 @@ async function main() {
     console.log('   旧快照可能已过期——AI 应主动重试 API 确认状态。');
   } else {
     writeState(state);
+  }
+
+  // P12-B5: --json mode — output full state JSON to stdout for Codex workers
+  // whose .agents/ sandbox prevents _task-current.md file reads.
+  if (JSON_MODE && !SILENT_MODE) {
+    outputStateJson(state);
   }
 
   // B112 PFL-112: Generate _boot-prompt.md for one-click cold-start

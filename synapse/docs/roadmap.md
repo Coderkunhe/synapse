@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B4 ✅ — Codex live 验证闭环 · launchd 双 Worker 运行 · 自动化率 9→18% · Codex 沙箱约束发现）
+> 最后更新：2026-08-05（P12-B5 ✅ — Codex 沙箱状态通道 · Server API + session-init 降级 · `_task-current.md` → API 查询）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -819,6 +819,7 @@
 | **P12-B2** | **跨客户端 Worker 自治架构** — 双客户端类型能力矩阵 · Codex bootstrap ✅ · launchd 方案 A ⭐ · B3 双线建议 · 1 doc | ✅ |
 | **P12-B3** | **launchd daemon 托管落地 + Codex Worker 部署** — synapse-launchd.sh (274行) · generate-skill.sh 集成 · smoke 16/16 · Line A launchd ✅ · Line B Codex bootstrap 10 files ✅ | ✅ |
 | **P12-B4** | **狗粮验证** — launchd plist env fix (🐛 狗粮发现) · 双 Worker daemon 运行 ✅ · B1 自动化率 9→18% · Codex live 验证 (Q2 ✅ · 🚨 sandbox 只读约束发现) · 2 docs 更新 | ✅ |
+| **P12-B5** | **Codex 沙箱状态通道重构** — `GET /v1/workers/me/state` API · session-init.js `--json` 降级 + read-only 容错 · SKILL.md Codex 路径 · +3 tests · 678 tests 零回归 | ✅ |
 
 ### 🎯 P12 四大战略方向
 

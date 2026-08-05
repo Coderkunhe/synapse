@@ -812,3 +812,101 @@ class TestEventStoreCompleteness:
             if event.get("target_type"):
                 assert event["target_type"] in {"task", "batch", "worker", "verification", "project", "project_actor_role"}, (
                     f"未知 target_type: {event['target_type']}")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# P12-B5: Worker State 端点
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestWorkerStateEndpoint:
+    """P12-B5: GET /v1/workers/me/state — Worker 状态快照 API。"""
+
+    @pytest.mark.asyncio
+    async def test_worker_state_returns_identity(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """Worker 认证后查询自身 State — 返回身份信息。"""
+        agent, key = await _register_worker(client, seed, "B5-State-Test")
+        await _worker_handshake(client, agent["id"], key)
+        await _worker_heartbeat(client, agent["id"], key)
+
+        project = await _create_project(client, seed, "B5 State")
+        await ensure_project_role(
+            client, project["id"], agent["id"], "builder", auth_header(seed.token))
+
+        resp = await client.get(
+            f"/v1/workers/me/state?project_id={project['id']}",
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert resp.status_code == 200, f"State 端点失败 [{resp.status_code}]: {resp.text}"
+        state = resp.json()
+
+        # 身份字段
+        assert state["worker_id"] == agent["id"]
+        assert state["worker_name"] == agent["name"]
+        assert state["project_id"] == project["id"]
+        assert state["project_name"] == project["name"]
+        assert "role" in state
+        assert "generated_at" in state
+
+        # 任务列表（应为空 — 尚未创建任务）
+        assert state["in_progress_tasks"] == []
+        assert state["ready_tasks"] == []
+        assert state["verification_tasks"] == []
+        assert state["active_task_count"] == 0
+
+        # 授权请求（应为空）
+        assert state["pending_auth_requests"] == []
+
+        # 停滞检测
+        assert state["stale_verification_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_worker_state_includes_active_tasks(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """Worker 查询 State — 包含进行中和就绪任务。"""
+        agent, key = await _register_worker(client, seed, "B5-State-Tasks")
+        await _worker_handshake(client, agent["id"], key)
+        await _worker_heartbeat(client, agent["id"], key)
+
+        project = await _create_project(client, seed, "B5 State Tasks")
+        await ensure_project_role(
+            client, project["id"], agent["id"], "builder", auth_header(seed.token))
+        batch = await _create_batch(client, seed, project["id"])
+
+        # 创建任务：1 个 in_progress + 1 个 ready
+        t1 = await _create_task_api(client, seed, project["id"], "任务 1", batch["id"])
+        t2 = await _create_task_api(client, seed, project["id"], "任务 2", batch["id"])
+        # 推送分配 t1 给 agent
+        t1 = await _assign_task(
+            client, seed, t1["id"], "worker", agent["id"], t1["version_no"])
+
+        resp = await client.get(
+            f"/v1/workers/me/state?project_id={project['id']}",
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert resp.status_code == 200
+        state = resp.json()
+
+        # t1 应为 in_progress
+        ip_ids = [t["id"] for t in state["in_progress_tasks"]]
+        assert t1["id"] in ip_ids, f"in_progress 中应有 t1"
+
+        # t2 应为 ready
+        ready_ids = [t["id"] for t in state["ready_tasks"]]
+        assert t2["id"] in ready_ids, f"ready 中应有 t2"
+
+        assert state["active_task_count"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_worker_state_requires_auth(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """未认证请求 → 401。"""
+        project = await _create_project(client, seed, "B5 Auth")
+        resp = await client.get(
+            f"/v1/workers/me/state?project_id={project['id']}",
+        )
+        assert resp.status_code == 401, f"期望 401，实际 {resp.status_code}"

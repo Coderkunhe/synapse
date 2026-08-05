@@ -184,3 +184,66 @@ class OrchestratorStatusResponse(BaseModel):
         None,
         description="检测来源: heartbeat | event_activity | None（离线）— B92 双源容错",
     )
+
+
+# ── P12-B5: Worker State Snapshot (Codex sandbox — replace _task-current.md) ──
+
+
+class TaskStateSummary(BaseModel):
+    """Task summary for Worker state snapshot — minimal fields for orientation."""
+    id: str
+    title: str
+    status: str
+    owner_id: str | None = None
+    owner_name: str | None = None
+    owner_type: str | None = None
+    priority: str | None = None
+    batch_id: str | None = None
+    depends_on: list[str] = Field(default_factory=list)
+    updated_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class AuthRequestStateSummary(BaseModel):
+    """Pending authorization request summary for Worker state snapshot."""
+    id: str
+    request_type: str
+    status: str
+    created_at: datetime | None = None
+    capability_name: str | None = None
+
+
+class WorkerStateResponse(BaseModel):
+    """P12-B5: Full Worker state snapshot — replaces _task-current.md for
+    Codex workers whose sandbox prevents local file writes.
+
+    The Worker AI calls ``GET /v1/workers/me/state?project_id={pid}``
+    instead of reading ``_task-current.md``.
+
+    Field semantics match session-init.js's ``state`` object.
+    """
+    # Identity
+    worker_id: str
+    worker_name: str
+    role: str
+    project_id: str
+    project_name: str
+    runtime_status: str | None = None
+    generated_at: datetime
+
+    # Active tasks
+    in_progress_tasks: list[TaskStateSummary] = Field(default_factory=list)
+    ready_tasks: list[TaskStateSummary] = Field(default_factory=list)
+    verification_tasks: list[TaskStateSummary] = Field(default_factory=list)
+    all_active_tasks: list[TaskStateSummary] = Field(default_factory=list)
+    active_task_count: int = 0
+
+    # Authorization
+    pending_auth_requests: list[AuthRequestStateSummary] = Field(default_factory=list)
+
+    # Stale detection
+    stale_verification_count: int = 0
+    stale_verification_task_ids: list[str] = Field(default_factory=list)
+
+    # Warnings — non-empty when state quality is degraded
+    warnings: list[str] = Field(default_factory=list)

@@ -100,6 +100,8 @@ Worker daemon 由 `session-init.js --health` 机械管理，AI 不参与决策�
 
 > 💡 **B137：Daemon 管理已脚本化。** `--health` 模式自动检测 daemon 存活性并重 spawn——AI 读到的是修复后的状态，不需要自行判断 daemon 是否存活。
 
+#### Claude Code Worker（文件路径 · 主通道）
+
 1. **如果 `_task-current.md` 不存在或显示模板回退** → 运行完整 `session-init.js`（冷启动）：
    ```bash
    node .claude/skills/synapse/scripts/session-init.js
@@ -112,14 +114,45 @@ Worker daemon 由 `session-init.js --health` 机械管理，AI 不参与决策�
 >
 > ⚠️ **PFL-115**：快照显示"API 不可达"不代表真实状态——先验证再决策。**PFL-110（B122）**：快照 > 5 分钟就刷新。
 
+#### Codex CLI Worker（API 路径 · P12-B5 沙箱约束）
+
+> ⚠️ **Codex `.agents/` 目录为只读沙箱。** `session-init.js` 无法写入 `_task-current.md`（`fs.writeFileSync` 返回 `EROFS`/`EPERM`）。改用 Server API + stdout 双通道获取状态。
+
+**首选路径（Server API）**：
+```bash
+# 一键获取完整 State 快照（替代 _task-current.md）
+curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+  "$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID"
+```
+
+**备用路径（stdout）**：
+```bash
+# session-init.js --json: 输出完整 State JSON 到 stdout（不写文件）
+node .agents/skills/synapse/scripts/session-init.js --json
+```
+
+**与文件路径的关键差异**：
+- ✅ **无需 `_task-current.md`**：状态直接从 API 或 stdout 获取
+- ✅ **无需快照新鲜度检查**：API 返回的是实时状态，不是快照
+- ✅ **CronCreate banner 已迁移**：改为 SKILL.md 本节直接给出 CronCreate 指令
+- ⚠️ **daemon 不可用**：Codex 无持久进程能力（B2 确认），跳过 heartbeat/WS daemon
+- ⚠️ **`_boot-prompt.md` 不可用**：Codex 无 `@` 文件引用机制，冷启动靠 SKILL.md prompt 驱动
+
 ### 手动启动（scripts/ 目录缺失或 Node.js 不可用时）
 
 如果无法运行 `session-init.js`，按以下顺序手动执行：
+
+**Claude Code / 通用**：
 1. 检查 env vars: `SYNAPSE_API_URL`, `SYNAPSE_API_KEY`, `SYNAPSE_WORKER_ID`, `SYNAPSE_PROJECT_ID`, `SYNAPSE_WORKER_ROLE`
 2. `GET /v1/workers/{id}/protocol?project_id={project_id}&role={role}` → 获取 `project_context` + `role_instructions` + `collaboration_norms`
 3. `POST /v1/workers/{id}/handshake` → 激活 Worker（Body: `{}`）
-4. `GET /v1/workers/{id}/state?project_id={project_id}` → 获取待处理授权、in_progress tasks、就绪队列
+4. `GET /v1/workers/me/state?project_id={project_id}` → P12-B5: 获取待处理授权、in_progress tasks、就绪队列
 5. 将以上状态汇总写入 `_task-current.md`（参考模板格式）
+
+**Codex CLI**（P12-B5 · API-first）：
+1. 检查 env vars（同上）
+2. `curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" "$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID"` → 一步获取全部状态
+3. 无需写文件 — 直接读取 curl 输出中的 JSON 字段即可
 
 ## 🎯 Orchestrator 专属：需求接收与 Challenge（B113）
 
@@ -276,6 +309,7 @@ Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
 
 | 操作 | 端点 |
 |------|------|
+| 🤖 **Worker State（P12-B5）** | `GET /v1/workers/me/state?project_id={pid}` |
 | 查看就绪 Task | `GET /projects/{project_id}/tasks?status=ready` |
 | 查看 Task 详情 | `GET /tasks/{task_id}` |
 | 认领 Task | `POST /tasks/{task_id}/claim` |

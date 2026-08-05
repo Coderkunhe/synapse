@@ -13,11 +13,15 @@ from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_role
 from src.exceptions import AuthenticationError, ForbiddenError, NotFoundError, SynapseError
 from src.models.worker import Worker
-from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, WorkerActorType, WorkerStatus
+from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, TaskStatus, WorkerActorType, WorkerStatus
 from src.models.project import Project
+from src.models.task import Task
+from src.models.authorization_request import AuthorizationRequest
 from src.permissions import require_permission
 from src.schemas.worker import (
     API_KEY_WARNING,
+    AuthRequestStateSummary,
+    TaskStateSummary,
     WorkerCreate,
     WorkerCreateResponse,
     WorkerHandshakeRequest,
@@ -25,6 +29,7 @@ from src.schemas.worker import (
     WorkerHeartbeatResponse,
     WorkerProjectResponse,
     WorkerResponse,
+    WorkerStateResponse,
     OrchestratorStatusResponse,
 )
 from src.schemas.common import CursorPage
@@ -107,6 +112,148 @@ async def get_my_projects(
     """
     projects = await get_worker_projects(db, actor.actor_id)
     return [WorkerProjectResponse(**p) for p in projects]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P12-B5: Worker State Snapshot — Codex sandbox state channel
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/me/state",
+    response_model=WorkerStateResponse,
+)
+async def get_worker_state(
+    project_id: str = Query(..., description="Project ID to load state for"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """P12-B5: Return full Worker state snapshot.
+
+    Replaces ``_task-current.md`` for Workers whose sandbox prevents
+    local file writes (Codex CLI ``.agents/`` read-only).
+
+    Returns identity, active tasks, pending auth requests, stale
+    detection — everything the Worker AI needs to orient itself.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    worker = await _get_worker(db, actor.actor_id)
+
+    # Verify project access
+    project = await db.get(Project, project_id)
+    if project is None:
+        raise NotFoundError("project", project_id)
+    if project.team_id != worker.team_id:
+        raise ForbiddenError(
+            "FORBIDDEN_CROSS_TEAM",
+            "Worker and project belong to different teams",
+        )
+
+    # Resolve role
+    from src.services.template_service import resolve_role
+    resolved_role, _role_source = resolve_role(worker)
+
+    # ── Query tasks by status ──
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    STALE_THRESHOLD_MINUTES = 15
+
+    def _task_summary(t) -> TaskStateSummary:
+        return TaskStateSummary(
+            id=t.id,
+            title=t.title,
+            status=t.status,
+            owner_id=t.owner_id,
+            owner_name=getattr(t, "owner_name", None),
+            owner_type=getattr(t, "owner_type", None),
+            priority=t.priority,
+            batch_id=t.batch_id,
+            depends_on=t.depends_on or [],
+            updated_at=t.updated_at,
+            created_at=t.created_at,
+        )
+
+    # in_progress
+    in_progress_result = await db.execute(
+        select(Task)
+        .where(Task.project_id == project_id, Task.status == TaskStatus.IN_PROGRESS)
+        .order_by(Task.updated_at.desc())
+    )
+    in_progress_tasks = [_task_summary(t) for t in in_progress_result.scalars().all()]
+
+    # ready
+    ready_result = await db.execute(
+        select(Task)
+        .where(Task.project_id == project_id, Task.status == TaskStatus.READY)
+        .order_by(Task.created_at.asc())
+    )
+    ready_tasks = [_task_summary(t) for t in ready_result.scalars().all()]
+
+    # in_verification (Orchestrator view)
+    ver_result = await db.execute(
+        select(Task)
+        .where(Task.project_id == project_id, Task.status == TaskStatus.IN_VERIFICATION)
+        .order_by(Task.updated_at.desc())
+    )
+    verification_tasks = [_task_summary(t) for t in ver_result.scalars().all()]
+
+    # all active (non-completed, non-cancelled)
+    all_active_result = await db.execute(
+        select(Task)
+        .where(
+            Task.project_id == project_id,
+            Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.CANCELLED]),
+        )
+        .order_by(Task.updated_at.desc())
+        .limit(50)
+    )
+    all_active_tasks = [_task_summary(t) for t in all_active_result.scalars().all()]
+
+    active_task_count = len(all_active_tasks)
+
+    # ── Pending authorization requests ──
+    auth_result = await db.execute(
+        select(AuthorizationRequest)
+        .where(
+            AuthorizationRequest.worker_id == actor.actor_id,
+            AuthorizationRequest.status == "pending",
+        )
+        .order_by(AuthorizationRequest.created_at.desc())
+    )
+    pending_auth_requests = [
+        AuthRequestStateSummary(
+            id=ar.id,
+            request_type=ar.request_type,
+            status=ar.status,
+            created_at=ar.created_at,
+            capability_name=ar.operation if ar.request_type == "api_auth" else ar.prompt_type,
+        )
+        for ar in auth_result.scalars().all()
+    ]
+
+    # ── Stale detection: in_verification tasks stuck > 15 min ──
+    stale_cutoff = now - timedelta(minutes=STALE_THRESHOLD_MINUTES)
+    stale_vt = [t for t in verification_tasks
+                if t.updated_at and t.updated_at < stale_cutoff]
+
+    # ── Assemble response ──
+    return WorkerStateResponse(
+        worker_id=worker.id,
+        worker_name=worker.name,
+        role=resolved_role,
+        project_id=project_id,
+        project_name=project.name,
+        runtime_status=getattr(worker, "runtime_status", None),
+        generated_at=now,
+        in_progress_tasks=in_progress_tasks,
+        ready_tasks=ready_tasks,
+        verification_tasks=verification_tasks,
+        all_active_tasks=all_active_tasks,
+        active_task_count=active_task_count,
+        pending_auth_requests=pending_auth_requests,
+        stale_verification_count=len(stale_vt),
+        stale_verification_task_ids=[t.id for t in stale_vt],
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
