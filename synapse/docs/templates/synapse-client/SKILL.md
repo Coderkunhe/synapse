@@ -335,6 +335,26 @@ Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
 5. **完成即 @上游 + 自主轮询** — submit 后发评论 @Orchestrator → 每 15s 轮询验收结果
 6. **身份隔离** — 绝不使用其他 Worker 的 API Key
 
+## 🐛 摩擦点记录（P12-B15）
+
+> 遇到技术摩擦、流程阻塞或异常行为时，使用 `record-pitfall.sh` 脚本化记录，无需手动编辑 pitfalls.md。
+
+```bash
+# 在项目根目录执行：
+bash synapse/tools/record-pitfall.sh \
+  --id PFL-XXX \
+  --title "简短标题" \
+  --desc "现象描述" \
+  --severity 🔴 \
+  --cause "根因分析（可选）" \
+  --fix "修复方向（可选）" \
+  --dry-run  # 先预览再写入（去掉 --dry-run 正式写入）
+```
+
+**规则**：发现问题 → 立即记录 → 不要依赖记忆。`--dry-run` 先预览确保格式正确。
+
+---
+
 ## ❌ 错误处理
 
 ### 核心错误码
