@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P12-B3 ✅ launchd daemon 托管落地 + Codex Worker 部署 · B4 🔜 狗粮验证
-last_batch: P12-B3
-next_batch: P12-B4
-description: Synapse 主项目 — P12 三批闭环 · 1O+2B · launchd ✅ · B4 🔜 狗粮验证（daemon 存活 + Codex live + B1 自动化率更新）
+phase: P12-B5 ✅ Codex 沙箱状态通道重构 · B6 🔜 Worker bootstrap
+last_batch: P12-B5
+next_batch: P12-B6
+description: Synapse 主项目 — P12 五批闭环 · 1O+2B · Server state API ✅ · session-init 降级 ✅ · B6 🔜 Worker 一键 bootstrap
 ---
 
 # Synapse 轨道
@@ -16,7 +16,7 @@ description: Synapse 主项目 — P12 三批闭环 · 1O+2B · launchd ✅ · B
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
-| **P12** | P12-B3 | **P12-B4** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd + Codex 部署 · 1O+2B |
+| **P12** | P12-B5 | **P12-B6** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd · B4 ✅ 狗粮验证 · B5 ✅ Codex 沙箱状态通道 · 1O+2B |
 
 ## P11 路线图：多 Agent 接入战
 
