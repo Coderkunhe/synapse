@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "🔪 Cursor→术语消歧 L5 拉通完成 — 📄 roadmap.md P12 header 明确 3 Worker+2 客户端类型 · CLAUDE.md 新增 🎯 目标行 · p12-d1-scout/p12-b2 加注记 · 🎭 纯 Docs 批（无状态机变更·跳过）",
-  "lastL5Timestamp": "2026-08-04",
+  "lastL5Batch": "P12 B3→B4 L5 拉通 — B3 launchd daemon 托管落地 + Codex Worker 部署 · B4 狗粮验证（plist env fix + 自动化率 9→18% + Codex live 沙箱发现）· 📄 roadmap B3/B4 登记 · 📄 reqlog B3/B4 完整记录 · 📄 daily 2026-08-05 · 📚 双文档叙事一致（B2 三问→B4 验证结果拉通）· 🚨 Codex sandbox 只读约束跨文档登记（B2 + B1 scout）",
+  "lastL5Timestamp": "2026-08-05",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "🔪 Cursor→术语消歧 L5 拉通完成 — 📄 roadmap.md P12 header 明确 3 Worker+2 客户端类型 · CLAUDE.md 新增 🎯 目标行 · p12-d1-scout/p12-b2 加注记 · 🎭 纯 Docs 批（无状态机变更·跳过）",
+  "lastL5Evidence": "P12 B3→B4 L5 拉通 — B3 launchd daemon 托管落地 + Codex Worker 部署 · B4 狗粮验证（plist env fix + 自动化率 9→18% + Codex live 沙箱发现）· 📄 roadmap B3/B4 登记 · 📄 reqlog B3/B4 完整记录 · 📄 daily 2026-08-05 · 📚 双文档叙事一致（B2 三问→B4 验证结果拉通）· 🚨 Codex sandbox 只读约束跨文档登记（B2 + B1 scout）",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
