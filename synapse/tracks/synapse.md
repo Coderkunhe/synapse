@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P12-B8 ✅ SessionStart hook 诊断 + Codex 狗粮 · B9 🔜 L5 拉通
-last_batch: P12-B8
-next_batch: P12-B9
-description: Synapse 主项目 — P12 五批闭环 · 1O+2B · Server state API ✅ · session-init 降级 ✅ · B6 🔜 Worker 一键 bootstrap
+phase: P12-B9 ✅ 狗粮验证完成 · D1 自动化率 18%→38% · Codex 待 B10 bootstrap
+last_batch: P12-B9
+next_batch: P12-B10
+description: Synapse 主项目 — P12 九批闭环 · 1O+2B · B9 狗粮 ✅ · D1 38% · Codex 遗留 B10
 ---
 
 # Synapse 轨道
@@ -16,7 +16,7 @@ description: Synapse 主项目 — P12 五批闭环 · 1O+2B · Server state API
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
-| **P12** | P12-B8 | **P12-B9** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd · B4 ✅ 狗粮验证 · B5 ✅ Codex 沙箱状态通道 · B6 ✅ Worker bootstrap · B7 ✅ L5 拉通 + 狗粮验证 · B8 ✅ SessionStart hook 诊断 + Codex 狗粮 · 1O+2B |
+| **P12** | P12-B9 | **P12-B10** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd · B4 ✅ 狗粮验证 · B5 ✅ Codex 沙箱状态通道 · B6 ✅ Worker bootstrap · B7 ✅ L5 拉通 + 狗粮验证 · B8 ✅ SessionStart hook 诊断 + Codex 狗粮 · B9 ✅ 狗粮验证 + D1 自动化率 38% · 1O+2B |
 
 ## P11 路线图：多 Agent 接入战
 

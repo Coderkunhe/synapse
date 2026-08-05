@@ -1,10 +1,8 @@
 {
-  "lastL5Batch": "B6→B7 L5 拉通 — 📄 roadmap.md B6+B7 登记 · reqlog B6+B7 登记 · daily/2026-08-05.md B6+B7 同步 · track/synapse.md last_batch B7 + next_batch B8 · CLAUDE.md P12 状态刷新 · self-check-P12-B7.md 自检文件 · 678 tests 零回归 · bootstrap-worker.sh 7/7 BOOT dry-run 验证 · Task 生命周期 API 全链路闭环",
+  "lastL5Batch": "B7→B9 L5 拉通 — roadmap.md B8 登记 · reqlog B8 条目+header 更新 · daily 2026-08-05 B8 节 · tracks synapse.md B8 to B9 指针 · CLAUDE.md L5 行修正 · self-check-P12-B8.md 自检 · 678 tests 验证 · L5 复位",
   "lastL5Timestamp": "2026-08-05",
-  "batchesSinceLastL5": 1,
-  "completedBatches": [
-    "P12-B8"
-  ],
-  "lastL5Evidence": "B6→B7 L5 拉通 — 📄 roadmap.md B6+B7 登记 · reqlog B6+B7 登记 · daily/2026-08-05.md B6+B7 同步 · track/synapse.md last_batch B7 + next_batch B8 · CLAUDE.md P12 状态刷新 · self-check-P12-B7.md 自检文件 · 678 tests 零回归 · bootstrap-worker.sh 7/7 BOOT dry-run 验证 · Task 生命周期 API 全链路闭环",
-  "notes": "B8 完成（SessionStart hook 诊断 + Codex 狗粮 Task 创建）· batchesSinceLastL5=1 · B9 触发 L5 拉通"
+  "batchesSinceLastL5": 0,
+  "completedBatches": [],
+  "lastL5Evidence": "B7→B9 L5 拉通 — roadmap.md B8 登记 · reqlog B8 条目+header 更新 · daily 2026-08-05 B8 节 · tracks synapse.md B8 to B9 指针 · CLAUDE.md L5 行修正 · self-check-P12-B8.md 自检 · 678 tests 验证 · L5 复位",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

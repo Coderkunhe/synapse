@@ -1,0 +1,8 @@
+{
+  "lastDogfoodBatch": "P12-B9",
+  "lastDogfoodTimestamp": "2026-08-05T06:35:00Z",
+  "batchesSinceLastDogfood": 0,
+  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9"],
+  "lastDogfoodEvidence": "P12-B9 狗粮验证 — Server 678 tests ✅ · O+B Worker daemon alive + heartbeat fresh + WS connected ✅ · B9 dogfood Task tsk_019fd0a01aba7f49 created ✅ · Codex Worker ❌ (B8 遗留 · 待 B10 bootstrap) · D1 自动化率 18%→38% (B6 bootstrap + B8 sentinel)",
+  "notes": "P12-4 约束复位 — B5-B8 (4 批) + B9 (狗粮) = ≤5 批合规"
+}
