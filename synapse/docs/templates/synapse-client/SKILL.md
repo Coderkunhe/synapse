@@ -238,13 +238,73 @@ Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
 1. 获取 Task（re-fetch API → 从 ready 队列 claim，或继续已有的 in_progress Task）
 2. 读 Verification 条件 → 理解"做完"的标准
 3. 执行 Task
-4. 收集 evidence（对照 Verification 逐条）
-5. POST /tasks/{id}/submit 提交验证（含 evidence + output_access）
-6. 主动轮询验收结果（GET /tasks/{id}/verifications 每 15s）
-7. passed → 进入自主驱动外层循环 / failed → 读反馈 → 返工
+4. 收集 evidence — 逐条对照 Verification 填充（见下方 §逐项 Evidence 协议）
+5. 提交前自检 — 每条 Verification 是否都有对应 evidence？（缺 → 回去补）
+6. POST /tasks/{id}/submit 提交验证（含 evidence + output_access）
+7. 主动轮询验收结果（GET /tasks/{id}/verifications 每 15s）
+8. passed → 进入自主驱动外层循环 / failed → 读反馈 → 返工
 ```
 
 **核心原则**：Verification 条件是合同，不是建议。Task 创建时就已经定义了"什么叫做完"。
+
+### 逐项 Evidence 协议（P12-B13 · 🚨 必读）
+
+> ⚠️ **最常见的 reject 原因：evidence 只有笼统总结，没有逐项对照。**  
+> "test passed, lint ok" → ❌ 必定 reject。每条 verification criterion 都需要独立的、可验证的 evidence。
+
+**提交前自检清单**（submit 前必须全部 ✅）：
+
+| # | 检查项 | 通过标准 |
+|:--|------|------|
+| 1 | 我是否读了所有 verification 条件？ | 列出条件清单 |
+| 2 | 每条 condition 是否有**独立的** evidence？ | 每条都有对应条目 |
+| 3 | evidence 是否**可验证**？（不是"我觉得好了"） | 包含具体数字/路径/输出 |
+| 4 | `output_access` 是否已填？ | `type` + `value` 非空 |
+
+**反例**（❌ 必定被拒）：
+```json
+{
+  "evidence": {
+    "testResults": {"passed": 23, "failed": 0},
+    "output_access": {"type": "git_branch", "value": "..."}
+  }
+}
+```
+问题：只给了笼统结果。"passed 23" 是哪些 tests？是否覆盖了所有 verification 条件？无法验证。
+
+**正例**（✅ 逐项对照）：
+```json
+{
+  "evidence": {
+    "condition_adds_api_endpoint": {
+      "met": true,
+      "detail": "新增 POST /v1/example 端点 · src/api/routers/example.py:42 · curl -X POST localhost:8000/v1/example → 201",
+      "test": "tests/api/test_example.py::test_create_example · 3 cases · 全部通过"
+    },
+    "condition_includes_error_handling": {
+      "met": true,
+      "detail": "422 ValidationError + 404 NotFound + 500 通用 · src/api/routers/example.py:85-110 · 6 error cases tested",
+      "test": "tests/api/test_example.py::test_example_errors · 6/6 passed"
+    },
+    "condition_migration_file": {
+      "met": true,
+      "detail": "alembic/versions/20260805_example_table.py · upgrade()/downgrade() 双方向 · DB apply 成功",
+      "test": "alembic upgrade head && alembic downgrade -1 → 无报错"
+    },
+    "output_access": {
+      "type": "git_branch",
+      "value": "https://github.com/team/repo@feature/example-endpoint",
+      "commit": "abc1234"
+    }
+  }
+}
+```
+
+**关键规则**：
+- evidence key 必须与 verification condition 一一对应
+- 每条 evidence 包含 `met`（boolean）+ `detail`（what was done）+ `test`（how verified）
+- 只填"做过的"不够——必须填"如何验证做对的"
+- `output_access` 是必填项（API 硬门禁）
 
 ### 自主驱动外层循环（GAP-9 · PFL-050）
 
@@ -341,16 +401,26 @@ Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
 | 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST /tasks/{task_id}/blockers` |
 
-**提交验证必须包含 evidence + output_access**：
+**提交验证必须包含 evidence + output_access**（详见 §逐项 Evidence 协议）：
 
 ```json
 {
   "summary": "实现了用户登录 API",
   "evidence": {
-    "testResults": {"passed": 23, "failed": 0},
+    "condition_login_endpoint": {
+      "met": true,
+      "detail": "POST /v1/auth/login · src/api/routers/auth.py:55 · 返回 JWT token",
+      "test": "tests/api/test_auth.py::test_login_success · 3 cases · 全部通过"
+    },
+    "condition_error_handling": {
+      "met": true,
+      "detail": "401 错误密码 · 422 缺少字段 · src/api/routers/auth.py:70-95",
+      "test": "tests/api/test_auth.py::test_login_errors · 4/4 passed"
+    },
     "output_access": {
       "type": "git_branch",
-      "value": "https://github.com/team/repo@feature/login"
+      "value": "https://github.com/team/repo@feature/login",
+      "commit": "def5678"
     }
   }
 }

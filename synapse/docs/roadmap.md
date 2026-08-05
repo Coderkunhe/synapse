@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B10 ✅ — Codex Worker bootstrap 完成 · L5 拉通中）
+> 最后更新：2026-08-05（P12-B12 ✅ — Codex 三任务全链路闭环 · L5 B12→B13 拉通）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -825,6 +825,8 @@
 | **P12-B8** | **SessionStart hook 诊断 + Codex Worker 狗粮** — hook sentinel `.claude/_last-session-init.txt` (HK-3) · SKILL.md sentinel 健康检查 · CronCreate prompt 第①步检查 · Codex dogfood Task 创建 · 678 tests 零回归 | ✅ |
 | **P12-B9** | **狗粮验证 + D1 自动化率更新** — P12-4 ≤5 批狗粮 · Codex Task `tsk_019fd07989ae7ff2` 执行 · D1 覆盖率 B6 bootstrap + B8 sentinel 贡献更新 · 狗粮节奏复位 | ✅ |
 | **P12-B10** | **Codex Worker Bootstrap** — git init + pre-push hook + Protocol API 连通验证 (HTTP 200) · D1 Scout §9 能力边界矩阵 · 双客户端差异文档化 · Codex 就绪定义 | ✅ |
+| **P12-B11** | **SKILL.md 模板客户端检测块 · Codex API-first 路由** — 模板新增客户端检测块（Claude Code vs Codex 分派）· Codex API-first 启动路径 · 1 file · +9 lines | ✅ |
+| **P12-B12** | **Codex 狗粮全链路闭环** — Codex Worker 自主拉取并完成 3 tasks · 678 tests green · daemons alive · heartbeat ≤5min · B11→B12 CLAUDE.md 状态更新 · 1 file | ✅ |
 
 ### 🎯 P12 四大战略方向
 
