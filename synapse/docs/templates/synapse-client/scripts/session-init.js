@@ -66,6 +66,10 @@ const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norm
 // B112 PFL-112: _boot-prompt.md at Worker root — human types @_boot-prompt.md to cold-start
 const BOOT_PROMPT_FILE = path.resolve(__dirname, '..', '..', '..', '..', '_boot-prompt.md');
 const SCRIPT_NAME = 'session-init';
+// P12-B8 (HK-3): hook sentinel — written on every SessionStart hook fire.
+// If this file is missing or > 5 min old, the SessionStart hook isn't firing.
+// Worker SKILL.md should check this file on wakeup as a hook health diagnostic.
+const HOOK_SENTINEL = path.join(__dirname, '..', '..', '_last-session-init.txt');
 
 // ── CLI Flags ──────────────────────────────────────────────────────
 // B122 PFL-110: --quick mode skips daemon spawn, protocol fetch, handshake.
@@ -1260,6 +1264,11 @@ async function runUpgrade() {
 }
 
 async function main() {
+  // P12-B8 (HK-3): Write hook sentinel FIRST — before any potential failure.
+  // If hook fires at all, this file exists. Timestamp enables staleness check.
+  // AI/Worker can check this to diagnose "hook never fires" vs "hook fires but fails."
+  try { fs.writeFileSync(HOOK_SENTINEL, `${new Date().toISOString()}\n`, 'utf-8'); } catch (e) { /* non-blocking */ }
+
   // P11-B124 (PFL-084): --upgrade is a one-shot operation, exit early
   if (UPGRADE_MODE) {
     await runUpgrade();

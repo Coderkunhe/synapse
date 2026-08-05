@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B7 ✅ — L5 拉通 + 狗粮验证 · bootstrap-worker.sh 验证 · Task 生命周期 API 全链路 · post-commit hook 就位）
+> 最后更新：2026-08-05（P12-B8 ✅ — SessionStart hook 诊断 · sentinel 文件 + SKILL.md 健康检查 + Codex 狗粮 Task 创建）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -822,6 +822,7 @@
 | **P12-B5** | **Codex 沙箱状态通道重构** — `GET /v1/workers/me/state` API · session-init.js `--json` 降级 + read-only 容错 · SKILL.md Codex 路径 · +3 tests · 678 tests 零回归 | ✅ |
 | **P12-B6** | **Worker 一键 bootstrap（BOOT-1~7 7→1 命令）** — bootstrap-worker.sh (716行) · 幂等设计 · 双客户端 `--target` · P12-6 对齐（减少 7 项 God's-eye 操作） | ✅ |
 | **P12-B7** | **L5 拉通 + 狗粮验证** — bootstrap-worker.sh dry-run 7/7 ✅ · Task 生命周期 create→ready→claim→submit API 验证 · post-commit hook 安装 · Server 全 reaper 运行 · L5 复位 | ✅ |
+| **P12-B8** | **SessionStart hook 诊断 + Codex Worker 狗粮** — hook sentinel `.claude/_last-session-init.txt` (HK-3) · SKILL.md sentinel 健康检查 · CronCreate prompt 第①步检查 · Codex dogfood Task 创建 · 678 tests 零回归 | ✅ |
 
 ### 🎯 P12 四大战略方向
 

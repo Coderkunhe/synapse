@@ -6,7 +6,7 @@
  *
  * When the CronCreate prompt changes, change it HERE — nowhere else.
  *
- * @version 1.0.0 — B137 structural governance
+ * @version 1.1.0 — B8 HK-3 hook sentinel check
  */
 
 'use strict';
@@ -20,12 +20,16 @@
  *
  * Design principle: shrink LLM decision surface. Daemon management is
  * mechanical — the script does it, the AI only consumes the result.
+ *
+ * P12-B8 (HK-3): Checks .claude/_last-session-init.txt sentinel before
+ * running --health. If sentinel missing (hook never fired), alerts human.
  */
 const CRONCREATE_PROMPT = (
   "Wake up. "
-  + "① Run: node .claude/skills/synapse/scripts/session-init.js --health (daemon self-heal + heartbeat + refresh _task-current.md). "
-  + "② Read _task-current.md — check active tasks. "
-  + "③ Continue working if active tasks exist, ScheduleWakeup if idle."
+  + "① HK-3 check: read .claude/_last-session-init.txt — if missing, SessionStart hook never fired (known Claude Code issue), alert human to type @_boot-prompt.md. "
+  + "② Run: node .claude/skills/synapse/scripts/session-init.js --health (daemon self-heal + heartbeat + refresh _task-current.md). "
+  + "③ Read _task-current.md — check active tasks. "
+  + "④ Continue working if active tasks exist, ScheduleWakeup if idle."
 );
 
 module.exports = { CRONCREATE_PROMPT };

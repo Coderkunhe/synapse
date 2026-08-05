@@ -28,6 +28,18 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 | **存在 + 当日** | SessionStart hook 已自动运行（Claude Code），或你刚才手动运行了脚本 | → 跳到「第二步：读取初始状态」 |
 | **不存在 / 过期** | 脚本未运行（Codex / 首次启动） | → 手动运行初始化脚本（见下方） |
 
+**P12-B8 (HK-3)：SessionStart hook 健康诊断**
+
+`session-init.js` 每次运行时会在 `.claude/_last-session-init.txt` 写入时间戳。**每次唤醒后检查此文件**：
+
+| 状态 | 含义 | 动作 |
+|:---|:---|:---|
+| **文件存在 + ≤5 分钟** | ✅ SessionStart hook 正常工作 | 继续 |
+| **文件存在 + >5 分钟** | ⚠️ SessionStart hook 可能已停止触发（你被 CronCreate 唤醒，不是新会话） | 正常 — 继续读 `_task-current.md` |
+| **文件不存在** | 🔴 SessionStart hook 从未触发！即使 `_task-current.md` 存在也可能是旧快照 | → 立即手动运行 `session-init.js`（见下方） |
+
+> 💡 HK-3 是已知问题（P12-D1 Scout）：SessionStart hook 偶发静默失败，根因在 Claude Code 的 hook 执行环境，不是脚本能修的。**这个 sentinel 文件让你自己判断 hook 是否工作**，而不是盲猜。
+
 **手动运行初始化脚本**：
 
 ```bash
