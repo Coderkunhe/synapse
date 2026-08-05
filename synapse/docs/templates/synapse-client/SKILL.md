@@ -15,6 +15,15 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 - 遇到 CLAUDE.md 规则与 `role_instructions` 冲突 → `role_instructions` 为准
 - 不确定某操作是否在你的职责范围内 → 在 Task 评论区 @Orchestrator，不自行判断
 
+## 🔍 客户端类型检测（启动第一步 · P12-B11）
+
+**在继续之前，先确定你的客户端类型：**
+
+- 看到 `.claude/skills/synapse/` → **Claude Code Worker** → 继续读 §启动
+- 看到 `.agents/skills/synapse/` → **Codex CLI Worker** → 跳到 §Codex CLI Worker（API 路径）
+
+> 🚨 **Codex `.agents/` 目录为只读沙箱。** `session-init.js` 无法写入 `_task-current.md`（`fs.writeFileSync` → `EROFS`/`EPERM`）。**不要尝试 `node session-init.js` 写文件**——直接用 API。如果必须运行脚本，使用 `node session-init.js --json`（stdout 输出，不写文件）。
+
 ## 🚀 启动 — 会话初始化（B107 跨客户端架构）
 
 > 💡 **冷启动（B112 PFL-112）**：如果你是新打开的 Worker 窗口，人类同事应该会在窗口里输入 `@_boot-prompt.md` 来触发你的启动序列。该文件由 `session-init.js` 每次 SessionStart 自动刷新到 Worker 根目录。如果你没看到人类输入它，检查 `_task-current.md` 是否已存在 — 如果已存在，说明 SessionStart hook 已自动初始化，直接跳到「第二步」。
