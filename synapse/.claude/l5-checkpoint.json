@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B13→B14 L5 拉通 — 📄 roadmap B13+B14 ✅ · 📄 daily B14 ✅ · 📄 CLAUDE.md B12→B14 · 📄 D1 Scout 44% · 📄 dogfood checkpoint reset · 叙事链 D1 HK 自动化闭环 · 无新增 PFL/LL",
+  "lastL5Batch": "B14→B15 L5 拉通完成 — roadmap.md B15 登记 ✅ · requirements-log.md B15 全量 L1-L4 自检 ✅ · daily/2026-08-05.md B15 节 ✅ · CLAUDE.md B15 状态同步 ✅ · D1 Scout §10 B15 章节 ✅ · 叙事链 D1 自动化 44%→50% HK-4+DG-4 脚本化闭环",
   "lastL5Timestamp": "2026-08-05",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B13→B14 L5 拉通 — roadmap + daily + CLAUDE.md + D1 Scout + dogfood checkpoint 全量同步完成",
-  "notes": "L5 拉通完成，计数器复位 — B15 就绪"
+  "lastL5Evidence": "B14→B15 L5 拉通完成 — roadmap.md B15 登记 ✅ · requirements-log.md B15 全量 L1-L4 自检 ✅ · daily/2026-08-05.md B15 节 ✅ · CLAUDE.md B15 状态同步 ✅ · D1 Scout §10 B15 章节 ✅ · 叙事链 D1 自动化 44%→50% HK-4+DG-4 脚本化闭环",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
