@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-06（P12-B16 ✅ — D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→100%）
+> 最后更新：2026-08-06（P12-B16 ✅ — D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→75%）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
