@@ -101,9 +101,6 @@ async def submit_task(
     all_task_vers_list = all_task_vers.scalars().all()
     ver_by_id = {v.id: v for v in all_task_vers_list}
 
-    # 构建 Worker 传入的 verification_id 集合（用于后续 evidence 匹配）
-    submitted_ver_ids = {vr["verification_id"] for vr in verification_results}
-
     # 第一阶段：全量 reset — 将该 Task 下所有非 PENDING 的 Verification 重置
     # 确保即使 Worker 的 submit 请求遗漏了某个 verification，reset 仍会触发
     for ver in all_task_vers_list:
