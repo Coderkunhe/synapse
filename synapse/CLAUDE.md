@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-05（P12-B15 ✅ — D1 自动化率 50% · Dogfood/Monitoring 域 0%→25% · HK-4+DG-4 脚本化）
+> 不存代码，只协调工作。最后更新：2026-08-06（P12-B16 ✅ — D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→75%）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B15 ✅ D1 自动化率 50% · HK-4 dogfood gate + DG-4 摩擦点记录脚本化 | **P12-B16** 🔜 DG-1~DG-3 Dogfood/Monitoring 域持续推进 |
+| **P12** | B16 ✅ D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→75% | **P12-B17** 🔜 DG-3 or Server Ops |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
 | **L5** | B7→B9 ✅ L5 拉通完成 · 计数器复位 | batchesSinceLastL5=0 |

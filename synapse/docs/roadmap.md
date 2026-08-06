@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-05（P12-B15 ✅ — D1 自动化率 50% · HK-4+DG-4 脚本化 · L5 B14→B15 拉通）
+> 最后更新：2026-08-06（P12-B16 ✅ — D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→100%）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -831,6 +831,7 @@
 | **P12-B14** | **D1 HK-1/HK-2 自动化 + B13 狗粮** — `check-hooks.sh --fix` 自愈 + `session-init.js` Step 1.6 启动链 hook 自检 · D1 自动化率 38%→44% · B13 两交付验证通过 · 5 files · +166/-29 | ✅ |
 
 | **P12-B15** | **D1 自动化率 50% · Dogfood/Monitoring 域启动** — `dogfood-gate.sh` (64行) HK-4 🔴→🟢 · `record-pitfall.sh` (142行) DG-4 🔴→🟢 · D1 Scout §10 · SKILL.md 摩擦点记录 · 4 files · +263/-10 | ✅ |
+| **P12-B16** | **DG-1/DG-2 Worker 进度面板** — `worker-dashboard.sh` (364行) DG-1 🔴→🟢 · DG-2 🔴→🟢 · 单命令全景视图+卡住自动诊断 · D1 Scout §11 · D1 自动化率 50%→56% · Dogfood/Monitoring 域 50%→75% | ✅ |
 
 ### 🎯 P12 四大战略方向
 
