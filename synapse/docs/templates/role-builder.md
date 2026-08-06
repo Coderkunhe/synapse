@@ -182,8 +182,11 @@ POST /tasks/{id}/submit（附 evidence）
 │     └─ O 沉默 >5min → 启用 Pull fallback（步骤 2）    │
 │                                                      │
 │  2. Pull fallback（仅 O 沉默时启用）                   │
-│     └─ GET /projects/{id}/tasks?status=ready          │
-│        └─ 有 ready → claim → 进入执行                  │
+│     ├─ GET /projects/{id}/tasks?status=ready          │
+│     ├─ Capability 自检（P12-B19）：                     │
+│     │   task.required_capabilities 非空 → 检查是否      │
+│     │   ⊆ 自 capability_tags.names。不匹配 → 跳过       │
+│     └─ 有 ready + Cap 匹配 → claim → 进入执行           │
 │                                                      │
 │  3. 执行 → submit → poll 验收 → 回到步骤 1             │
 │                                                      │
@@ -206,6 +209,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
 | **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
+| **Capability 自检（P12-B19）** | Pull fallback 时检查 Task 的 `required_capabilities` 是否 ⊆ 自身的 `capability_tags.names`。不匹配 → 跳过该 Task（这是 O 的匹配职责，claim 只是 fallback——跳过不报错）。匹配 → claim 正常执行 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
 
@@ -464,10 +468,17 @@ Batch 启动时逐项确认：
 ### 返工规程
 
 ```
-Orchestrator 打回 Task（verification failed）
+Orchestrator 打回 Task（verification failed → 状态变为 rejected）
   │
   ▼
 读评论区 → 确认哪些 Verification 条件 failed + 为什么
+  │
+  ▼
+⚠️ 重新认领 Task（P12-B14 HK-2 · B17 发现 #5 修复）：
+  Task 被 rejected 后状态为 REJECTED。必须先 POST /tasks/{id}/claim
+  （REJECTED→IN_PROGRESS）才能重新进入执行。Server 状态机不允许
+  从 REJECTED 直接 submit——必须先 claim 回到 in_progress。
+  └─ claim 返回 409 → Task 可能已被 O 重新分配，确认后再操作
   │
   ▼
 按反馈修正 → 只修改 failed 的部分，不重做已通过的
@@ -476,7 +487,7 @@ Orchestrator 打回 Task（verification failed）
 重新跑完整自验证流程（不只跑修的那一项 — 确保修改未引入新问题）
   │
   ▼
-确认全部 Verification 条件满足 → 重新 POST /tasks/{id}/submit
+确认全部 Verification 条件满足 → POST /tasks/{id}/submit
   │
   └─ 返工超过 2 次 → 评论区 @Orchestrator 讨论 Verification 条件是否合理
 ```

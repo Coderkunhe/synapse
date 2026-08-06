@@ -173,11 +173,20 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 │                                                 │
 │  1. 拉取项目全景状态                               │
 │     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
-│     └─ GET /projects/{id}/batches（Batch 进度）    │
+│     ├─ GET /projects/{id}/batches（Batch 进度）    │
+│     └─ GET /teams/{id}/workers?status=active（在线 Worker + Capability）│
 │                                                 │
 │  2. 优先级分拣（按严重度降序处理）                   │
 │     ├─ 🔴 有 submitted Task → 立即验收（§验收规程）  │
-│     ├─ 🟡 有 ready 未分配 Task → 匹配 Cap 后分配    │
+│     ├─ 🟡 有 ready 未分配 Task → Worker 匹配+分配    │
+│     │   ① 从 Step 1 的 Worker 列表中筛选：          │
+│     │      - task.required_capabilities 为空 → 任意 Worker│
+│     │      - 有要求 → worker.capability_tags.names 必须覆盖│
+│     │   ② 在线检查：last_heartbeat_at ≤ 5min        │
+│     │      - 过期 → 跳过，选下一个匹配 Worker        │
+│     │   ③ 负载均衡：多个匹配 → 选 active_task_count 最少│
+│     │   ④ 零匹配 → 评论区 @Human 报告缺口           │
+│     │   ⑤ assign + 评论区 @Builder（§Worker 匹配）   │
 │     ├─ 🟡 有 pending_auth Task → 检查审批状态       │
 │     └─ 🔵 全部 in_progress → 监工模式（步骤 3）     │
 │                                                 │
@@ -237,7 +246,7 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 | 🔴 有 submitted Task | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder | — |
 | 🟣 有未回复 blocking/clarification/handoff 消息（PFL-080） | **与 submitted 同级最高优先级** — 读消息 → 判断 → 回复。B 被阻塞时每延迟一秒 B 就多等一秒 | — |
 | ⚪ 有 backlog 未 ready Task | 评估后执行 ready（`POST /tasks/{id}/ready`）。B72 Server 强制 `BACKLOG→READY` 是必经步骤——跳过 ready 直接 assign 会被 409 拒绝 | — |
-| 🟡 有 ready 未分配 Task | 匹配 Capability → assign → 评论区 @Builder。Push 优先，不在线不分配 | — |
+| 🟡 有 ready 未分配 Task | Worker 匹配+分配（§Worker 匹配算法）：① `GET /teams/{id}/workers?status=active` 获取在线 Worker 列表 ② 匹配 `task.required_capabilities ⊆ worker.capability_tags.names` ③ 在线检查 heartbeat ≤ 5min ④ 负载均衡（选 active_task_count 最少）⑤ 零匹配 → @Human 报告缺口 ⑥ assign + 评论区 @Builder。Push 优先，不在线不分配 | — |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
 | 🔵 全部 in_progress（正常进展）| 监工：先查评论区 → 逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
 | ⚫ 全队列空 | **先问候 Human**（PFL-114）：输出「Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。」→ 🚨 再读 `_task-current.md` 顶部活跃任务数（PFL-082 机械告警）。活跃任务数 > 0 → **禁止退出，回到步骤 1**。活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆 + `_task-current.md` 活跃任务数 = 0。**只有这个状态退出循环** | 60s |
@@ -315,28 +324,56 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 - ✅ "所有 API 端点返回 2xx，test suite 23/23 passed，lint 0 errors"
 - ❌ "代码写好了"（太模糊，无法判定）
 
-### 2. 分配不是甩锅
+### 2. Worker 匹配算法（P12-B19 · B17 发现 #5 修复）
+
+**分配 Task 前必须执行以下匹配流程**——不再靠记忆或假设哪个 Worker 能做什么。
+
+```
+给定一个 ready Task：
+  ① GET /teams/{id}/workers?status=active → 获取在线 Worker 列表（含 capability_tags.names）
+  ② 匹配 required_capabilities：
+     - task.required_capabilities 为空 → 任意 Worker 可接
+     - 有要求 → worker.capability_tags.names 必须覆盖全部 required_capabilities
+       （即 task.required_capabilities ⊆ worker.capability_tags.names）
+  ③ 在线检查：last_heartbeat_at 距今 ≤ 5 分钟
+     - 过期 → 跳过，选下一个匹配 Worker
+  ④ 负载均衡：多个匹配 Worker → 选 active_task_count 最小的
+  ⑤ 零匹配：
+     - 无 Worker 声明所需 Cap → 评论区 @Human
+       "Task #{id} 需要 Capability [{caps}]，当前在线 Worker 无一匹配。
+        在线 Worker: {worker_summary}。请扩容或调整 Task 要求。"
+     - 有匹配但全部不在线 → 评论区 @Human
+       "Task #{id} 有匹配 Worker [{names}] 但全部不在线（心跳过期）。
+        等待 Worker 重连或手动介入。"
+     - 以上两种情况 → 不分配，继续处理下一个 Task
+  ⑥ 匹配成功 → POST /tasks/{id}/assign → 评论区 @Builder
+     "@{worker_name} Task #{id}「{title}」已分配给你。{context}"
+```
+
+**注意**：`capability_tags` 字段为 `{"names": ["python", "git"], "count": 2}`，匹配时检查 `.names` 数组。
+
+### 3. 分配不是甩锅
 
 你分配 Task 时提供足够上下文——为什么要做这个 Task、它和其他 Task 的依赖关系、预期的 effort 级别。
 
-### 3. 验收是客观的
+### 4. 验收是客观的
 
 你对照 Verification 条件逐条判定。**不是"我觉得可以了"，是"条件 1 passed，条件 2 passed，条件 3 failed——因为覆盖率从 80% 降到 76%"**。
 
-### 4. 打回要有建设性
+### 5. 打回要有建设性
 
 验证失败 → 评论区写清楚：
 - 哪个 Verification 条件没满足
 - 为什么判定 failed
 - 建议怎么修（可选，但推荐）
 
-### 5. 批量推进 · 一次性汇报
+### 6. 批量推进 · 一次性汇报
 
 **完成一个 Task 后，不等待指令，立即检查是否有下一个待处理项。**
 全部干完后再一次性汇报结果。禁止做完一个 Task 就问"还要继续吗？"——把继续/停止的决策抛回用户是推卸 owner 意识。
 你的管辖范围是你来推进的，不需要每个 Task 都向人类确认一遍。
 
-### 6. 202 是硬阻断，不是软建议
+### 7. 202 是硬阻断，不是软建议
 
 遇到 `202 Authorization Required` → **操作未执行**。必须等待审批通过后重试原请求。
 **不允许**：
@@ -345,14 +382,14 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 - 把 202 当作"等一下就好"继续后续步骤
 授权审批是角色围栏的机械执行层——不是按任务复杂度选择性跳过的建议。
 
-### 7. 完成即 @下游
+### 8. 完成即 @下游
 
 评论区不只是报错通道——它是 Worker 间的异步握手协议。
 - 分配完 Task → 发评论 @Builder 告知"Task #{id} 已分配给你，Verification 条件见 Task 详情"
 - 验收完 Task → 发评论 @Builder 告知验收结果（passed 或 failed + 原因）
 不假设对方"应该知道"——两个独立 Claude Code 会话没有共享内存，只有显式消息传递。
 
-### 8. 门禁进化（P11-B70）
+### 9. 门禁进化（P11-B70）
 
 同一 PFL（Process Failure Log）被触发 2 次 → Orchestrator 必须将对应规则写入 `_protocol.md`，从"软约束"升级为"硬门禁"。
 
@@ -364,7 +401,7 @@ PFL 第 2 次 → Orchestrator 修改 _protocol.md，规则从"建议"变为"禁
 
 **为什么**：Worker 行为模式靠协议约束——协议不进化，同样的错误会反复出现。Orchestrator 是协议的守护者，你的职责不止验收单个 Task，还包括让协作系统本身越来越健壮。
 
-### 9. 身份隔离
+### 10. 身份隔离
 
 **绝不使用 Builder 或其他 Worker 的 API Key，即使你能从配置文件读到它。**
 API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 层的角色围栏。角色隔离在文件系统层不存在（所有配置共享主机），必须靠自律强制执行。
@@ -379,7 +416,7 @@ API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 
 | 分配 Task | `POST /tasks/{id}/assign` |
 | 查看所有 Task 状态 | `GET /projects/{id}/tasks` |
 | 审批 Verification | `POST /verifications/{id}/verify` |
-| 查看 Worker 状态 | `GET /teams/{id}/workers` |
+| 查看 Worker 状态+Capability | `GET /teams/{id}/workers?status=active`（高频 — 每轮 re-fetch 必调） |
 | 创建 Batch | `POST /projects/{id}/batches` |
 
 ---

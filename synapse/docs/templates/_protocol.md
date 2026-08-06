@@ -255,11 +255,17 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 │  1. 拉取项目全景状态                               │
 │     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
 │     ├─ GET /projects/{id}/batches（Batch 进度）    │
+│     ├─ GET /teams/{id}/workers?status=active（在线 Worker + Capability）│
 │     └─ 恢复中断状态（上次会话验收到一半 → 继续）     │
 │                                                 │
 │  2. 优先级分拣（按严重度降序 — 刚性执行）            │
 │     ├─ 🔴 有 submitted Task → 立即验收（最高优先级） │
-│     ├─ 🟡 有 ready 未分配 Task → 匹配 Cap 后分配    │
+│     ├─ 🟡 有 ready 未分配 Task → Worker 匹配+分配    │
+│     │   ① 从 Step 1 的 Worker 列表中匹配 Capability：│
+│     │      task.required_capabilities ⊆ worker.capability_tags.names│
+│     │   ② 在线检查 heartbeat ≤ 5min                 │
+│     │   ③ 负载均衡：选 active_task_count 最小        │
+│     │   ④ 零匹配 → @Human · 有匹配 → assign + @Builder│
 │     ├─ 🟡 有 pending_auth Task → 检查审批状态       │
 │     └─ 🔵 全部 in_progress → 监工模式（步骤 3）     │
 │                                                 │
@@ -305,6 +311,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 | **空队列 = 检查需求** | 无活跃 Task + 无 ready Task → 检查是否有未拆解的 backlog 需求**需创建新 Task**。只有 backlog 也为空时才报告"项目工作队列为空" |
 | **中断可恢复** | 会话中断后，下次启动时自动拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
+| **Worker 匹配（P12-B19）** | 分配前必调 `GET /teams/{id}/workers?status=active` 获取在线 Worker 及其 `capability_tags.names`。匹配规则：`task.required_capabilities ⊆ worker.capability_tags.names`。零匹配 → @Human 报告缺口，不强行分配。多匹配 → 选 active_task_count 最少的（负载均衡）。heartbeat > 5min → 视为不在线 |
 
 **验收 vs 对话汇报 — 明确区分**：
 
@@ -502,7 +509,8 @@ Worker 在 handshake 时声明 `capability_tags`，格式约定：
 ```json
 {
   "capability_tags": {
-    "skills": ["code-generation", "frontend", "data-analysis"],
+    "names": ["code-generation", "frontend", "data-analysis"],
+    "count": 3,
     "description": "Full-stack developer with vision capabilities",
     "model": "claude-sonnet-5",
     "strengths": ["backend", "api-design"],
@@ -519,7 +527,7 @@ Task 需求由 Orchestrator 在 `tags` 中标注：
 }
 ```
 
-匹配 = Worker `capability_tags.skills` ∩ Task `tags` 中的 `skill:*` → 选最佳适配。
+匹配 = `task.required_capabilities ⊆ worker.capability_tags.names`（Task 要求的全部 Cap 必须被 Worker 声明的 `.names` 数组覆盖）。另 Task `tags` 中 `skill:*` 标记作为补充提示——O 可参考但分配 guard 以 `required_capabilities` 为准。
 
 ### 5.1d Push/Pull 协作模型（P11-B70）
 
