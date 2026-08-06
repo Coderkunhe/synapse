@@ -1,11 +1,15 @@
 """Stale task 检测器 — 发现并标记长时间无更新的 in_progress 任务 (P11-B76)
-+ verification 超时自动回收 (P11-B88)。
++ verification 超时自动回收 (P11-B88) + READY task 无人认领检测 (P12-B25 · PFL-128)。
 
 PFL-072 修复：Worker 可能遗弃 in_progress 任务（context 过期 / crash / token 耗尽），
 Server 需要主动检测而非依赖 Agent 自报告。
 
 PFL-077 修复：in_verification 任务等待 Human 验收超时 → 自动回退到 in_progress，
 防止 O 崩溃/超时/卡住导致 Task 永久卡死在 in_verification。
+
+PFL-128 修复：READY task 无自动恢复机制 — B23 狗粮发现 zombie Worker 阻断
+O 匹配算法和 B pull fallback 后，READY task 永远无人认领。B24 模板层防御已落地，
+本模块新增 Server 层安全网。
 
 本模块提供扫描函数；调度由 main.py 后台任务 (_stale_task_reaper) 负责。
 """
@@ -293,4 +297,76 @@ async def detect_stale_verifications(
         "reverted_task_ids": reverted_ids,
         "cancelled_count": len(cancelled_ids),
         "cancelled_task_ids": cancelled_ids,
+    }
+
+
+async def detect_unclaimed_ready_tasks(
+    db: AsyncSession,
+    threshold_minutes: int = 30,
+) -> dict:
+    """扫描 READY 状态但长时间无人认领的任务（P12-B25 · PFL-128）。
+
+    B23 狗粮发现：zombie Worker（session 退出但心跳 daemon 持续运行）会阻断
+    O 匹配算法和 B pull fallback 两条认领路径，导致 READY task 永远无人认领。
+
+    B24 已落地模板层防御（O-silence ``last_assignment_at``、zombie Worker
+    防御行、Cap mismatch 上报），本函数是 Server 层安全网——检测并记录长时间
+    无人认领的 READY task，通过 system_interventions 计数器暴露趋势。
+
+    设计决策：
+    - 不做 auto-reassign — READY task 的分配是 O 匹配算法的职责
+    - 不做 task message 推送 — conversation_service 集成是后续优化
+    - 仅记录事件 + 累加计数器 — 趋势上升 → God's-eye 调查根因
+
+    Args:
+        db: 数据库会话（调用方持有事务）。
+        threshold_minutes: READY 多久无人认领视为异常（默认 30 分钟）。
+
+    Returns:
+        ``{"unclaimed_count": N, "unclaimed_task_ids": [...]}``。
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=threshold_minutes)
+
+    stmt = select(Task).options(selectinload(Task.project)).where(
+        Task.status == TaskStatus.READY,
+        Task.updated_at < cutoff,
+    )
+    result = await db.execute(stmt)
+    unclaimed_tasks = result.scalars().all()
+
+    unclaimed_ids: list[str] = []
+    for task in unclaimed_tasks:
+        team_id = task.project.team_id if task.project else ""
+
+        updated = task.updated_at
+        if updated is not None and updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        unclaimed_minutes = (
+            (now - updated).total_seconds() / 60
+            if updated is not None
+            else float("inf")
+        )
+
+        await event_store.record(
+            db,
+            event_type="task.ready_unclaimed",
+            team_id=team_id,
+            actor_type=ActorType.SYSTEM,
+            actor_id="stale_task_detector",
+            target_type="task",
+            target_id=task.id,
+            payload={
+                "task_id": task.id,
+                "current_status": task.status,
+                "unclaimed_minutes": round(unclaimed_minutes, 1),
+                "threshold_minutes": threshold_minutes,
+                "required_capabilities": task.required_capabilities,
+            },
+        )
+        unclaimed_ids.append(task.id)
+
+    return {
+        "unclaimed_count": len(unclaimed_ids),
+        "unclaimed_task_ids": unclaimed_ids,
     }

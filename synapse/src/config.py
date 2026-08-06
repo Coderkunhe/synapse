@@ -113,13 +113,14 @@ class Settings(BaseSettings):
     # Task staleness detection (P11-B76) + auto-cancel gate (P11-B108)
     # + reassign tier (P11-B125): reclaim abandoned in_progress → READY
     task_stale_threshold_minutes: int = 60
-    task_stale_reassign_minutes: int = 15  # unclaim+READY after this many min stale
+    task_stale_reassign_minutes: int = 45  # B22: 15→45 — 狗粮发现 rework 超过 15min 被误回收
     task_stale_scan_interval_seconds: int = 120
     task_stale_max_detections: int = 10  # auto-cancel after N stale detections
+    task_ready_unclaimed_timeout_minutes: int = 30  # PFL-128: READY task 无人认领超时 — Server 层安全网
 
     # Verification timeout auto-reclaim (P11-B88)
-    verification_timeout_minutes: int = 30
-    verification_max_auto_reverts: int = 3
+    verification_timeout_minutes: int = 120  # B22: 30→120 — 狗粮发现人工审批 30min 不够
+    verification_max_auto_reverts: int = 5  # B22: 3→5 — 更多 rework 容错空间
 
     # Worker heartbeat monitor (P11-B128 · PFL-126 direction 4)
     worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline

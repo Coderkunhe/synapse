@@ -14,7 +14,11 @@ from src.config import limiter, settings  # P100-B105: limiter for rate limiting
 from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
 from src.services.authorization_service import expire_stale_requests
-from src.services.stale_task_detector import detect_stale_tasks, detect_stale_verifications
+from src.services.stale_task_detector import (
+    detect_stale_tasks,
+    detect_stale_verifications,
+    detect_unclaimed_ready_tasks,
+)
 from src.services.ws_manager import ws_manager
 
 
@@ -148,11 +152,30 @@ async def _stale_task_reaper() -> None:
                 verify_result = await detect_stale_verifications(
                     db, threshold_minutes=verify_timeout,
                 )
+                # P12-B25 (PFL-128): READY task unclaimed watchdog
+                ready_result = await detect_unclaimed_ready_tasks(
+                    db,
+                    threshold_minutes=settings.task_ready_unclaimed_timeout_minutes,
+                )
                 await db.commit()
 
                 # P11-B128 (PFL-123): increment scan counter so health
                 # check can distinguish "never scanned" from "nothing found"
                 _stale_reaper_scan_count += 1
+
+                # B22: accumulate system intervention counters
+                global _system_intervention_stale_detected, \
+                    _system_intervention_stale_reassigned, \
+                    _system_intervention_stale_cancelled, \
+                    _system_intervention_verify_reverted, \
+                    _system_intervention_verify_cancelled, \
+                    _system_intervention_ready_unclaimed
+                _system_intervention_stale_detected += result["stale_count"]
+                _system_intervention_stale_reassigned += result.get("reassigned_count", 0)
+                _system_intervention_stale_cancelled += result.get("cancelled_count", 0)
+                _system_intervention_verify_reverted += verify_result["reverted_count"]
+                _system_intervention_verify_cancelled += verify_result.get("cancelled_count", 0)
+                _system_intervention_ready_unclaimed += ready_result["unclaimed_count"]
 
                 # ── WS broadcast for reassigned tasks (P11-B125) ──
                 reassigned = result.get("reassigned_tasks", [])
@@ -349,6 +372,16 @@ _auth_reaper_expiry_count: int = 0  # P11-B128: proves auth reaper is actually s
 _heartbeat_monitor_task: asyncio.Task | None = None  # P11-B128: heartbeat monitor handle
 _heartbeat_monitor_scan_count: int = 0  # P11-B128: proves heartbeat monitor is scanning
 
+# B22: system intervention counters — emergency system actions that indicate
+# potential DB bypass risk. Accumulated across server lifetime, reported in
+# /health for monitoring trend (rising = more problems = more bypass needed).
+_system_intervention_stale_detected: int = 0
+_system_intervention_stale_reassigned: int = 0
+_system_intervention_stale_cancelled: int = 0
+_system_intervention_verify_reverted: int = 0
+_system_intervention_verify_cancelled: int = 0
+_system_intervention_ready_unclaimed: int = 0  # P12-B25 (PFL-128)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -471,6 +504,16 @@ def create_app() -> FastAPI:
                     "status": _reaper_status(_heartbeat_monitor_task),
                     "scan_count": _heartbeat_monitor_scan_count,
                 },
+            },
+            # B22: system intervention counters — accumulated across server
+            # lifetime. Rising trends correlate with God's-eye DB bypass risk.
+            "system_interventions": {
+                "stale_detected": _system_intervention_stale_detected,
+                "stale_reassigned": _system_intervention_stale_reassigned,
+                "stale_cancelled": _system_intervention_stale_cancelled,
+                "verify_reverted": _system_intervention_verify_reverted,
+                "verify_cancelled": _system_intervention_verify_cancelled,
+                "ready_unclaimed": _system_intervention_ready_unclaimed,
             },
         }
 

@@ -1,10 +1,14 @@
-"""P11-B76/B88/B108: stale task 检测器单元测试 — detect_stale_tasks + detect_stale_verifications + auto-cancel gate。"""
+"""P11-B76/B88/B108: stale task 检测器单元测试 — detect_stale_tasks + detect_stale_verifications + auto-cancel gate。
+P12-B25 (PFL-128): READY task 无人认领检测测试。
+"""
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import ActorType, TaskStatus
@@ -17,6 +21,7 @@ from src.services.event_store import event_store
 from src.services.stale_task_detector import (
     detect_stale_tasks,
     detect_stale_verifications,
+    detect_unclaimed_ready_tasks,
 )
 from src.utils.id_gen import generate_id
 
@@ -272,7 +277,7 @@ class TestStaleTaskDetector:
 
     @pytest.mark.asyncio
     async def test_detect_stale_verifications_ping_pong_gate(self):
-        """反 ping-pong 门禁：≥3 次 auto-revert → auto-cancel。"""
+        """反 ping-pong 门禁：≥5 次 auto-revert → auto-cancel。"""
         async with async_session_factory() as db:
             team_id = generate_id("team")
             project_id = generate_id("project")
@@ -293,8 +298,9 @@ class TestStaleTaskDetector:
             db.add(task)
             await db.flush()
 
-            # Simulate 3 prior auto-reverts (pre-existing events)
-            for i in range(3):
+            # Simulate 5 prior auto-reverts (pre-existing events)
+            # B22: verification_max_auto_reverts=5 → need ≥5 prior reverts to trigger cancel
+            for i in range(5):
                 await event_store.record(
                     db,
                     event_type="task.verification_timeout_reverted",
@@ -316,5 +322,76 @@ class TestStaleTaskDetector:
             await db.flush()
             await db.refresh(task)
             assert task.status == TaskStatus.CANCELLED
+
+            await db.rollback()
+
+    # ── P12-B25 (PFL-128): READY task 无人认领检测 ──
+
+    @pytest.mark.asyncio
+    async def test_detect_unclaimed_ready_tasks(self):
+        """READY task 超过阈值无人认领 → 检测到并记录事件。"""
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-ready-unclaimed"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-ready"))
+            await db.flush()
+
+            # READY task 60 分钟未更新 — 远超 30min 阈值
+            task = Task(
+                id="tsk_ready_unclaimed_001",
+                project_id=project_id,
+                title="Unclaimed READY Task",
+                description="Sitting ready for too long",
+                status=TaskStatus.READY,
+                required_capabilities='["code-generation"]',
+            )
+            task.updated_at = datetime.now(timezone.utc) - timedelta(minutes=60)
+            db.add(task)
+            await db.flush()
+
+            result = await detect_unclaimed_ready_tasks(db, threshold_minutes=30)
+            assert result["unclaimed_count"] == 1
+            assert "tsk_ready_unclaimed_001" in result["unclaimed_task_ids"]
+
+            # 验证事件已记录
+            events_result = await db.execute(
+                select(Event).where(
+                    Event.event_type == "task.ready_unclaimed",
+                    Event.target_id == "tsk_ready_unclaimed_001",
+                )
+            )
+            events = events_result.scalars().all()
+            assert len(events) == 1
+            payload = json.loads(events[0].payload)
+            assert payload["required_capabilities"] == '["code-generation"]'
+            assert payload["unclaimed_minutes"] >= 59
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_no_unclaimed_when_ready_is_fresh(self):
+        """Fresh READY task → 不误报。"""
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-ready-fresh"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-fresh"))
+            await db.flush()
+
+            # Fresh READY task
+            task = Task(
+                id="tsk_ready_fresh_001",
+                project_id=project_id,
+                title="Fresh READY Task",
+                description="Just became ready",
+                status=TaskStatus.READY,
+            )
+            db.add(task)
+            await db.flush()
+
+            result = await detect_unclaimed_ready_tasks(db, threshold_minutes=30)
+            assert result["unclaimed_count"] == 0
+            assert len(result["unclaimed_task_ids"]) == 0
 
             await db.rollback()
