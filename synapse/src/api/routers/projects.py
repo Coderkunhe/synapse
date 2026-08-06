@@ -14,6 +14,7 @@ from src.schemas.common import CursorPage
 from src.schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectProtectionUpdate, ProjectResponse,
 )
+from src.services.project_role_service import get_project_role
 from src.services.project_service import (
     archive_project as _archive_project,
     create_project as _create_project,
@@ -133,6 +134,24 @@ async def get_project(
     if project.team_id != actor.team_id:
         raise NotFoundError("project", project_id)
     return ProjectResponse.model_validate(project_to_response(project))
+
+
+@router.get("/projects/{project_id}/my-role")
+async def my_project_role(
+    project_id: str,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current actor's role in the specified project.
+
+    P12-B18: Frontend uses this for canVerify/canEdit checks instead of
+    the team-level role from AuthContext, which doesn't reflect project_actor_roles.
+    Super admins get "admin" returned regardless of project role assignment.
+    """
+    if actor.is_super_admin:
+        return {"role": "admin", "is_super_admin": True}
+    role = await get_project_role(db, project_id, actor.actor_id)
+    return {"role": role, "is_super_admin": False}
 
 
 @router.patch(

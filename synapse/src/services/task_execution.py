@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import ActorType, OwnerType, TaskStatus, VerificationStatus
@@ -92,18 +93,20 @@ async def submit_task(
             "output_access.value is required and must be a non-empty string.",
         )
 
-    # 处理 owner 提交的验证结果
-    for vr in verification_results:
-        ver = await db.get(Verification, vr["verification_id"])
-        if ver is None:
-            raise NotFoundError("verification", vr["verification_id"])
-        if ver.task_id != task_id:
-            raise ConflictError(
-                "VERIFICATION_TASK_MISMATCH",
-                f"Verification {vr['verification_id']} does not belong to task {task_id}",
-            )
-        # 重做时重置验证：清除之前的裁决以便验证者重新评估
-        # P8-B8: 当之前已执行的验证在任务重新提交时被重置，写入 verification.reset 事件。
+    # P12-B18: 先拉取该 Task 的全部 Verification，确保 rework 时全量 reset，
+    # 不依赖 Worker 在 verification_results 中列出所有 verification。
+    all_task_vers = await db.execute(
+        select(Verification).where(Verification.task_id == task_id)
+    )
+    all_task_vers_list = all_task_vers.scalars().all()
+    ver_by_id = {v.id: v for v in all_task_vers_list}
+
+    # 构建 Worker 传入的 verification_id 集合（用于后续 evidence 匹配）
+    submitted_ver_ids = {vr["verification_id"] for vr in verification_results}
+
+    # 第一阶段：全量 reset — 将该 Task 下所有非 PENDING 的 Verification 重置
+    # 确保即使 Worker 的 submit 请求遗漏了某个 verification，reset 仍会触发
+    for ver in all_task_vers_list:
         if ver.status != VerificationStatus.PENDING:
             previous_ver_status = ver.status
             ver.status = VerificationStatus.PENDING
@@ -124,6 +127,17 @@ async def submit_task(
                     "new_status": VerificationStatus.PENDING,
                     "reason": "task_resubmitted",
                 },
+            )
+
+    # 第二阶段：处理 Worker 提交的 evidence（仅匹配 Worker 传入的 verification）
+    for vr in verification_results:
+        ver = ver_by_id.get(vr["verification_id"])
+        if ver is None:
+            raise NotFoundError("verification", vr["verification_id"])
+        if ver.task_id != task_id:
+            raise ConflictError(
+                "VERIFICATION_TASK_MISMATCH",
+                f"Verification {vr['verification_id']} does not belong to task {task_id}",
             )
         # Owner 可提交自评证据，但最终状态由验证者设定
         if vr.get("evidence"):

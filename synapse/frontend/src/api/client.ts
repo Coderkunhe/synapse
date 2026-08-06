@@ -205,6 +205,14 @@ export function fetchProjectRoles(projectId: string, token: string) {
   )
 }
 
+/** Get the current actor's role in a project (P12-B18: for frontend permission checks). */
+export function fetchMyProjectRole(projectId: string, token: string) {
+  return request<{ role: string | null; is_super_admin: boolean }>(
+    `/v1/projects/${projectId}/my-role`,
+    { token },
+  )
+}
+
 /** Assign (or update) a worker's role in a project (team admin only). */
 export function assignProjectRole(projectId: string, workerId: string, role: string, token: string) {
   return request<ProjectRoleEntry>(

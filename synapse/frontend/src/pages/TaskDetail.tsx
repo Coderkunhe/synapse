@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
-import { fetchTask, fetchTeamEvents, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker } from '../api/client'
+import { fetchTask, fetchTeamEvents, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
 import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -52,6 +52,9 @@ export default function TaskDetail() {
   const [dismissedGuidance, setDismissedGuidance] = useState(false)
 
   const { token, teamId, role } = useAuth()
+
+  // P12-B18: project-level role for permission checks (not team-level role from AuthContext)
+  const [projectRole, setProjectRole] = useState<string | null>(null)
 
   const STATUS_LABELS: Record<string, string> = {
     backlog: t('tasks.columns.backlog'),
@@ -111,6 +114,12 @@ export default function TaskDetail() {
           fetchWorker(tk.owner_id, token)
             .then(w => setOwnerName(w.name))
             .catch((err) => { console.error('Failed to fetch worker name', err) /* Non-critical: worker name enrichment */ })
+        }
+        // P12-B18: fetch current actor's project role for permission checks
+        if (tk.project_id) {
+          fetchMyProjectRole(tk.project_id, token)
+            .then(r => setProjectRole(r.role))
+            .catch((err) => { console.error('Failed to fetch project role', err) /* Non-critical: degrades to team role */ })
         }
       })
       .catch(err => { setError(err.message); setLoading(false) })
@@ -181,7 +190,9 @@ export default function TaskDetail() {
   }
 
   // ── Edit handlers ──────────────────────────────────────
-  const canEdit = role === 'admin' || role === 'lead'
+  // P12-B18: use project-level role for permission checks, fall back to team role
+  const effectiveRole = projectRole ?? role
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'lead' || effectiveRole === 'orchestrator'
 
   const handleStartEdit = () => {
     if (!task) return
@@ -240,7 +251,7 @@ export default function TaskDetail() {
   }
 
   // ── Role check for verify buttons ───────────────────────
-  const canVerify = role === 'admin' || role === 'lead'
+  const canVerify = effectiveRole === 'admin' || effectiveRole === 'lead' || effectiveRole === 'orchestrator'
 
   // ── Lifecycle stepper ───────────────────────────────────
   const LIFECYCLE = ['backlog', 'ready', 'in_progress', 'in_verification', 'completed']

@@ -91,6 +91,21 @@ async def _check_verify_idempotent(
     if reset_result.scalars().first() is not None:
         return  # 合法 rework → Verification 被显式 reset
 
+    # P12-B18: 防御纵深 — 若 verification.reset 事件缺失（如 Worker 提交遗漏），
+    # 检查 task.rejected 事件作为合法 rework 的补充信号。
+    # 如果 Task 在上次 verification.executed 后被拒绝过，说明经历了
+    # "验证失败→返工→重新提交" 的合法周期，应放行。
+    rejected_result = await db.execute(
+        select(Event).where(
+            Event.event_type == "task.rejected",
+            Event.target_type == "task",
+            Event.target_id == task_id,
+            Event.created_at >= prev.created_at,
+        ).limit(1)
+    )
+    if rejected_result.scalars().first() is not None:
+        return  # 合法 rework → Task 在上次 verify 后被拒绝（防御纵深）
+
     raise ConflictError(
         "DUPLICATE_VERIFICATION",
         f"Verification {verification_id} was already executed by {actor_id} "

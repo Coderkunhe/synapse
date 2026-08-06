@@ -16,7 +16,7 @@ description: Synapse 主项目 — P12 十二批闭环 · 1O+2B · B12 Codex 狗
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
-| **P12** | P12-B12 | **P12-B13** 🔜 | B1 ✅ D1 Scout · B2 ✅ 跨客户端自治架构 · B3 ✅ launchd · B4 ✅ 狗粮验证 · B5 ✅ Codex 沙箱状态通道 · B6 ✅ Worker bootstrap · B7 ✅ L5 拉通 + 狗粮验证 · B8 ✅ SessionStart hook 诊断 + Codex 狗粮 · B9 ✅ 狗粮验证 + D1 自动化率 38% · B10 ✅ Codex Worker bootstrap · B11 ✅ SKILL.md 客户端检测块 · B12 ✅ Codex 狗粮全链路闭环 🎉 · 1O+2B |
+| **P12** | P12-B18 | **P12-B19** 🔜 | B1-B18 ✅ · B18 ✅ B17 狗粮发现 #1/#3 修复 · D1 56% · B19 待定 |
 
 ## P11 路线图：多 Agent 接入战
 
