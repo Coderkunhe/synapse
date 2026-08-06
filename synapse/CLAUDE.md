@@ -97,4 +97,4 @@ synapse/
 | **P12** | B19 ✅ Worker 配对断裂修复 · D1 56% · B17 发现 3/7 🔴 消化 | **P12-B20** 🔜 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | B17→B18 ✅ L5 拉通完成 · 计数器复位 | batchesSinceLastL5=0 |
+| **L5** | B17→B18 ✅ L5 拉通完成 · B19 累积 1/2 | batchesSinceLastL5=1 |
