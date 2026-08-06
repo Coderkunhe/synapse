@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-06（P12-B16 ✅ — D1 自动化率 56% · DG-1/DG-2 Worker 进度面板 · Dogfood/Monitoring 域 50%→75%）
+> 最后更新：2026-08-06（P12-B18 ✅ — B17 狗粮发现 #1/#3 修复 · D1 56% · B19 待定）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -832,6 +832,8 @@
 
 | **P12-B15** | **D1 自动化率 50% · Dogfood/Monitoring 域启动** — `dogfood-gate.sh` (64行) HK-4 🔴→🟢 · `record-pitfall.sh` (142行) DG-4 🔴→🟢 · D1 Scout §10 · SKILL.md 摩擦点记录 · 4 files · +263/-10 | ✅ |
 | **P12-B16** | **DG-1/DG-2 Worker 进度面板** — `worker-dashboard.sh` (364行) DG-1 🔴→🟢 · DG-2 🔴→🟢 · 单命令全景视图+卡住自动诊断 · D1 Scout §11 · D1 自动化率 50%→56% · Dogfood/Monitoring 域 50%→75% | ✅ |
+| **P12-B17** | **狗粮验证 — 7 项发现** — DUPLICATE_VERIFICATION guard 误杀合法 rework (#1) · canVerify project role 缺失 (#3) · Worker 配对断裂 (#5) · 前端分页盲区 (#2) · Stale detector 竞态 (#4) · O SKILL.md 缺 verification 轮询 (#6) · God's-eye DB bypass (#7) · 🟢 微型 · 纯狗粮 | ✅ |
+| **P12-B18** | **B17 发现 #1/#3 修复** — submit_task 全量 verification reset · guard 防御纵深 task.rejected fallback · GET /projects/{id}/my-role 端点 · TaskDetail project role 权限检查 · 2/7 🔴 消化 · D1 56% · 5 files | ✅ |
 
 ### 🎯 P12 四大战略方向
 

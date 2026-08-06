@@ -322,14 +322,19 @@ async def claim_task(
                         f"(status: {dep_task.status}, need: completed)",
                     )
 
-    # P11-B72: 必须处于 ready — 不可从 backlog 直接认领（绕过 decidability gate）
-    if task.status != TaskStatus.READY:
+    # P11-B72: 必须处于 ready 或 rejected — 不可从 backlog 直接认领（绕过 decidability gate）
+    # P12-B14 (HK-2): rejected 状态的 task 可以被 builder reclaim — state machine
+    # 允许 REJECTED → IN_PROGRESS 转换（event: task.claimed），但此 guard 之前只允许
+    # READY，导致 rejected task 死锁（O 调用 /ready → rejected→ready 不被 state machine
+    # 允许；B 调用 /claim → rejected→in_progress 被此 guard 拦截）。
+    if task.status not in (TaskStatus.READY, TaskStatus.REJECTED):
         raise ConflictError(
             "TASK_NOT_READY",
-            f"Task must be in 'ready' status to be claimed. "
+            f"Task must be in 'ready' or 'rejected' status to be claimed. "
             f"Current status: {task.status}. "
-            f"Wait for an orchestrator to run POST /v1/tasks/{task_id}/ready first.",
-            {"taskId": task.id, "currentStatus": task.status, "requiredStatus": TaskStatus.READY},
+            f"Wait for an orchestrator to run POST /v1/tasks/{task_id}/ready first, "
+            f"or retry after task is rejected back to you.",
+            {"taskId": task.id, "currentStatus": task.status, "requiredStatus": [TaskStatus.READY, TaskStatus.REJECTED]},
         )
 
     _validate_transition(task, TaskStatus.IN_PROGRESS)
