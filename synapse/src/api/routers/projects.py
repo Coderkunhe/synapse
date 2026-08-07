@@ -9,7 +9,7 @@ from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_role
 from src.permissions import require_permission
-from src.exceptions import NotFoundError
+from src.exceptions import ForbiddenError, NotFoundError
 from src.schemas.common import CursorPage
 from src.schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectProtectionUpdate, ProjectResponse,
@@ -46,6 +46,12 @@ async def resolve_project(
     P9-B1: Task 入口放松 — Project 退化为可选标签。
     用户输入 project name → 前端调用此端点解析为 project_id。
     """
+    # P12-B35: 防御 — 未加入 team 的 actor 无法创建 project
+    if not actor.team_id:
+        raise ForbiddenError(
+            "NO_TEAM_MEMBERSHIP",
+            "You must be a member of a team to create or resolve projects",
+        )
     project = await _find_or_create_by_name(
         db,
         team_id=actor.team_id,

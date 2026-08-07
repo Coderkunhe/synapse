@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import EventType
-from src.exceptions import ConflictError
+from src.exceptions import ConflictError, NotFoundError
 from src.models.project import Project
 from src.models.project_actor_role import ProjectActorRole
 from src.models.worker import Worker
@@ -135,6 +135,11 @@ async def set_project_role(
     existing = result.scalar_one_or_none()
 
     if existing is None:
+        # P12-B35: 防御 — 验证 worker 存在，避免 FK 约束失败 → IntegrityError → 500
+        worker = await db.get(Worker, worker_id)
+        if worker is None:
+            raise NotFoundError("worker", worker_id)
+
         # 新建
         record = ProjectActorRole(
             id=generate_id("project_actor_role"),

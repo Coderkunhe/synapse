@@ -927,3 +927,21 @@ class TestProjectResolve:
             headers=headers,
         )
         assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_find_or_create_by_name_empty_team_raises_value_error(self, seed: SeedData):
+        """P12-B35: 空 team_id 应提前 raise ValueError，避免 FK 约束失败 → 500。"""
+        from src.db import async_session_factory
+        from src.services.project_service import find_or_create_by_name
+        from src.constants import ActorType
+
+        async with async_session_factory() as db:
+            with pytest.raises(ValueError, match="team_id must not be empty"):
+                await find_or_create_by_name(
+                    db,
+                    team_id="",
+                    name="TestProject",
+                    actor_type=ActorType.HUMAN,
+                    actor_id=seed.worker_id,
+                )
+            await db.rollback()

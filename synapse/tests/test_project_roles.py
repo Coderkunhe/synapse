@@ -703,3 +703,42 @@ async def test_register_worker_with_orchestrator_role(client: AsyncClient, seed:
     async with asf() as db:
         role = await get_project_role(db, project_id, data["worker"]["id"])
         assert role == "orchestrator"
+
+
+# ═══════════════════════════════════════════════════════════════
+# P12-B35: Project Creation 500 Fix — set_project_role worker existence check
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_set_project_role_nonexistent_worker_raises_not_found(seed: SeedData):
+    """P12-B35: set_project_role with non-existent worker raises NotFoundError (not 500)."""
+    from src.db import async_session_factory
+    from src.utils.id_gen import generate_id
+    from src.services.project_role_service import set_project_role
+    from src.exceptions import NotFoundError
+    from src.constants import ActorType, ProjectStatus
+    from src.models.project import Project
+
+    project_id = generate_id("project")
+    nonexistent_worker_id = generate_id("worker")
+
+    async with async_session_factory() as db:
+        project = Project(
+            id=project_id, team_id=seed.team_id,
+            name="Missing Worker Test", slug=f"no-worker-{project_id[-8:]}",
+            status=ProjectStatus.ACTIVE,
+        )
+        db.add(project)
+        await db.flush()
+
+        with pytest.raises(NotFoundError) as exc_info:
+            await set_project_role(
+                db, project_id=project_id, worker_id=nonexistent_worker_id,
+                role="admin", team_id=seed.team_id,
+                actor_type=ActorType.HUMAN, actor_id=nonexistent_worker_id,
+            )
+        assert exc_info.value.details["entityType"] == "worker"
+        assert exc_info.value.details["entityId"] == nonexistent_worker_id
+
+        await db.rollback()

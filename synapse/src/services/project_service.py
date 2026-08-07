@@ -425,7 +425,13 @@ async def find_or_create_by_name(
 
     P9-B1: Task 入口放松 — Project 退化为可选标签。
     用户输入 project name → resolve 为 project_id，首次自动创建。
+
+    P12-B35: Raises ValueError if team_id is empty, preventing FK constraint
+    failures on ``Project.team_id``.
     """
+    # P12-B35: 防御 — 空 team_id 会导致 FK 约束失败 → IntegrityError → 500
+    if not team_id:
+        raise ValueError("team_id must not be empty")
     # 精确名称匹配
     result = await db.execute(
         select(Project).where(

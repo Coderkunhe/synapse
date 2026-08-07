@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B33→B34 L5 拉通 — B33 G5+G4 depends_on闭环 · B34 D4狗粮就位 · roadmap+reqlog+daily+CLAUDE.md+p12.md 全量同步 · 0 src变更",
+  "lastL5Batch": "B34+B35→B36 L5 拉通 — 📄 projects.py+project_role_service.py+project_service.py 三层防御 · 🧪 test_project_roles.py+test_task_flow.py +2 tests · 📚 p12.md+CLAUDE.md+MEMORY.md 同步 · 698+189=887 零回归",
   "lastL5Timestamp": "2026-08-07",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B33→B34 L5 拉通 — B33 G5+G4 depends_on闭环 · B34 D4狗粮就位 · roadmap+reqlog+daily+CLAUDE.md+p12.md 全量同步 · 0 src变更",
+  "lastL5Evidence": "B34+B35→B36 L5 拉通 — 📄 projects.py+project_role_service.py+project_service.py 三层防御 · 🧪 test_project_roles.py+test_task_flow.py +2 tests · 📚 p12.md+CLAUDE.md+MEMORY.md 同步 · 698+189=887 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
