@@ -1,8 +1,8 @@
 {
-  "lastDogfoodBatch": "P12-B23",
-  "lastDogfoodTimestamp": "2026-08-06T07:30:00Z",
+  "lastDogfoodBatch": "P12-B30",
+  "lastDogfoodTimestamp": "2026-08-07T06:06:00Z",
   "batchesSinceLastDogfood": 0,
-  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14", "P12-B20", "P12-B23"],
-  "lastDogfoodEvidence": "P12-B23 dogfood: B18-B22 修复实战检验. Server 健康 (4 reaper running). B22 system_interventions 计数器验证 (0=预期). B103 双 Worker 活跃 handshake. Heartbeat 监控 4 offline 检测. uvicorn --reload 自动加载 B22 config 变更. 1430 历史 stale_detected → B22 45min 阈值预期大幅降低.",
-  "notes": "P12-4 constraint: B20→B23 3批狗粮复位. batchesSinceLastDogfood=0. Next dogfood due by P12-B28."
+  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14", "P12-B20", "P12-B23", "P12-B30"],
+  "lastDogfoodEvidence": "P12-B30 dogfood: Server 8001 🟢 4 reapers running. WS 2 connections (O+B). Dual Worker heartbeats 200 OK (Orchestrator ag_019fb0b7849b77b6 + Builder ag_019fb0b784a57a9a). Counters all 0. Python 680 tests ✅. JS 91 tests ✅. P12-4 batch threshold (B24-B28=5) → B30 dogfood gate executed.",
+  "notes": "P12-4 constraint: B23→B28 5批已达阈值 · B30 纯狗粮验证复位. batchesSinceLastDogfood=0. Next dogfood due by P12-B35."
 }
