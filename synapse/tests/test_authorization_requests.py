@@ -461,6 +461,61 @@ class TestListAuthRequests:
         assert resp.status_code == 200
         assert len(resp.json()) == 1
 
+    async def test_list_exclude_expired_pending(
+        self, client: AsyncClient, seed, test_project, test_worker
+    ):
+        """P12-B39: 默认排除已过期的 pending 请求."""
+        # 创建一个已过期的 pending 请求
+        resp = await client.post(
+            f"/v1/projects/{test_project}/authorization-requests",
+            json={
+                "project_id": test_project,
+                "worker_id": test_worker,
+                "request_type": "api_auth",
+                "operation": "test.expired",
+            },
+            headers=auth_header(seed.token),
+        )
+        assert resp.status_code == 201
+        expired_id = resp.json()["id"]
+
+        # 手动将 expires_at 设为过去时间
+        from src.models.authorization_request import AuthorizationRequest
+        async with async_session_factory() as db:
+            from sqlalchemy import update as sql_update
+            from datetime import datetime, timedelta, timezone
+            await db.execute(
+                sql_update(AuthorizationRequest)
+                .where(AuthorizationRequest.id == expired_id)
+                .values(expires_at=datetime.now(timezone.utc) - timedelta(hours=1))
+            )
+            await db.commit()
+
+        # 默认 include_expired=false → 不返回过期请求
+        resp = await client.get(
+            f"/v1/projects/{test_project}/authorization-requests?status=pending",
+            headers=auth_header(seed.token),
+        )
+        assert resp.status_code == 200
+        ids = [r["id"] for r in resp.json()]
+        assert expired_id not in ids, "过期请求不应出现在默认 pending 列表中"
+
+        # include_expired=true → 返回过期请求
+        resp = await client.get(
+            f"/v1/projects/{test_project}/authorization-requests?status=pending&include_expired=true",
+            headers=auth_header(seed.token),
+        )
+        assert resp.status_code == 200
+        ids = [r["id"] for r in resp.json()]
+        assert expired_id in ids, "include_expired=true 时应返回过期请求"
+
+        # Cleanup: delete expired request to avoid polluting other tests
+        async with async_session_factory() as db:
+            from src.models.authorization_request import AuthorizationRequest as AR
+            from sqlalchemy import delete as sql_delete
+            await db.execute(sql_delete(AR).where(AR.id == expired_id))
+            await db.commit()
+
     async def test_list_pagination(
         self, client: AsyncClient, seed, test_project, test_worker
     ):

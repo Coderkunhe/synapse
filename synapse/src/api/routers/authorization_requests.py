@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
@@ -139,6 +139,7 @@ async def list_auth_requests(
     status: str = Query("pending", pattern=r"^(pending|approved|denied|expired|cancelled|all)$"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    include_expired: bool = Query(False, description="Include expired pending requests"),
     actor: ActorInfo = Depends(require_permission("authorization:read")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -146,12 +147,16 @@ async def list_auth_requests(
 
     支持分页（limit/offset）和状态筛选。
     status=all 返回所有非 pending 状态（P11-B44: 审批历史）。
+    P12-B39: include_expired=false（默认）时过滤已过期的 pending 请求。
     """
     project = await get_project_or_404(db, project_id)
 
     conditions = [AuthorizationRequest.project_id == project_id]
     if status != "all":
         conditions.append(AuthorizationRequest.status == status)
+        # P12-B39: 默认排除已过期的 pending 请求
+        if status == "pending" and not include_expired:
+            conditions.append(AuthorizationRequest.expires_at > func.now())
     else:
         # history tab: exclude pending
         conditions.append(AuthorizationRequest.status != "pending")

@@ -8,7 +8,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ShieldCheck, Clock, Check, X, History } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ShieldCheck, Clock, Check, X, History, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import {
@@ -69,6 +70,193 @@ function humanizeOperation(op: string | null): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+{/* ── P12-B39: AuthRequestModal — read-only detail modal for history items ── */}
+
+interface AuthRequestModalProps {
+  isOpen: boolean
+  item: ApprovalItem | null
+  onClose: () => void
+}
+
+function AuthRequestModal({ isOpen, item, onClose }: AuthRequestModalProps) {
+  // Lock body scroll
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  // ESC dismiss
+  const overlayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (isOpen && overlayRef.current) {
+      overlayRef.current.focus()
+    }
+  }, [isOpen])
+
+  if (!isOpen || !item) return null
+
+  return createPortal(
+    <div
+      className={styles.modalOverlay}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose()
+      }}
+      tabIndex={-1}
+      ref={overlayRef}
+    >
+      <div
+        className={styles.modalCard}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
+        <div className={styles.modalHeader}>
+          <span className={`${styles.typeBadge} ${
+            item.request_type === 'api_auth'
+              ? styles.typeApiAuth
+              : styles.typeInteractive
+          }`}>
+            {item.request_type === 'api_auth'
+              ? 'API Auth'
+              : item.request_type === 'capability_exec'
+                ? 'Capability'
+                : 'Interactive'}
+          </span>
+          <span className={statusBadgeSimpleClass(item.status)}>
+            {item.status}
+          </span>
+          <span className={styles.projectName}>{item.projectName}</span>
+          <button
+            type="button"
+            className={styles.modalCloseBtn}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className={styles.modalBody}>
+          {item.operation && (
+            <div className={styles.modalRow}>
+              <span className={styles.detailLabel}>Operation</span>
+              <span className={styles.detailValue}>{humanizeOperation(item.operation)}</span>
+            </div>
+          )}
+          <div className={styles.modalRow}>
+            <span className={styles.detailLabel}>Worker</span>
+            <span className={styles.workerName}>{item.worker_name || item.worker_id}</span>
+          </div>
+          {item.target_resource_type && (
+            <div className={styles.modalRow}>
+              <span className={styles.detailLabel}>Resource</span>
+              <span className={styles.detailValue}>
+                {item.target_resource_type}
+                {item.target_resource_id && ` / ${item.target_resource_id}`}
+              </span>
+            </div>
+          )}
+          {item.capability_id && (
+            <div className={styles.modalRow}>
+              <span className={styles.detailLabel}>Capability</span>
+              <span className={styles.detailValue}>{item.capability_id}</span>
+            </div>
+          )}
+          {item.prompt_message && (
+            <div className={styles.modalRow}>
+              <span className={styles.detailLabel}>Message</span>
+              <span className={styles.detailValue}>{item.prompt_message}</span>
+            </div>
+          )}
+          <div className={styles.modalRow}>
+            <span className={styles.detailLabel}>Created</span>
+            <span className={styles.detailValue}>
+              {new Date(item.created_at).toLocaleString()}
+            </span>
+          </div>
+          <div className={styles.modalRow}>
+            <span className={styles.detailLabel}>Expires</span>
+            <span className={styles.detailValue}>
+              {new Date(item.expires_at).toLocaleString()}
+              {isExpired(item.expires_at) && (
+                <span className={styles.expiredLabel}>
+                  <AlertTriangle size={12} /> Expired
+                </span>
+              )}
+            </span>
+          </div>
+          {item.responded_by_worker_id && (
+            <>
+              <div className={styles.modalDivider} />
+              <div className={styles.modalRow}>
+                <span className={styles.detailLabel}>Responded by</span>
+                <span className={styles.workerName}>
+                  {item.responded_by_worker_name || item.responded_by_worker_id}
+                </span>
+              </div>
+              {item.responded_at && (
+                <div className={styles.modalRow}>
+                  <span className={styles.detailLabel}>Responded at</span>
+                  <span className={styles.detailValue}>
+                    {new Date(item.responded_at).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {item.response_note && (
+                <div className={styles.modalRow}>
+                  <span className={styles.detailLabel}>Note</span>
+                  <span className={styles.detailValue}>"{item.response_note}"</span>
+                </div>
+              )}
+            </>
+          )}
+          {item.outcome && (
+            <div className={styles.modalRow}>
+              <span className={styles.detailLabel}>Outcome</span>
+              <span className={styles.detailValue}>
+                {item.outcome === 'success' ? '✅' : '❌'} {item.outcome}
+                {item.exit_code != null && ` (exit ${item.exit_code})`}
+                {item.duration_ms != null && ` · ${item.duration_ms}ms`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className={styles.modalFooter}>
+          <button
+            type="button"
+            className={styles.modalCloseAction}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+/** P12-B39: Simple status badge class helper (used outside main component). */
+function statusBadgeSimpleClass(status: string): string {
+  const map: Record<string, string> = {
+    approved: styles.statusApproved,
+    denied: styles.statusDenied,
+    expired: styles.statusExpired,
+    cancelled: styles.statusCancelled,
+    pending: styles.statusApproved, // fallback — pending shouldn't appear in history
+  }
+  return `${styles.statusBadge} ${map[status] || styles.statusCancelled}`
+}
+
 export default function Approvals() {
   const { token, teamId } = useAuth()
   const { t } = useI18n()
@@ -78,6 +266,7 @@ export default function Approvals() {
   const [error, setError] = useState<string | null>(null)
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({})
+  const [cardErrors, setCardErrors] = useState<Record<string, string>>({})
 
   // ── P11-B44: Tab + History state ──────────────────────────────────────
   const [viewTab, setViewTab] = useState<'pending' | 'history'>('pending')
@@ -86,6 +275,9 @@ export default function Approvals() {
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all')
   const [historyLoaded, setHistoryLoaded] = useState(false)
+
+  // ── P12-B39: Detail modal state ──────────────────────────────────────
+  const [selectedItem, setSelectedItem] = useState<ApprovalItem | null>(null)
 
   const load = useCallback(() => {
     if (!token || !teamId) return
@@ -216,6 +408,12 @@ export default function Approvals() {
   const handleRespond = async (requestId: string, status: 'approved' | 'denied') => {
     if (!token) return
     setRespondingId(requestId)
+    // Clear previous error for this card
+    setCardErrors((prev) => {
+      const next = { ...prev }
+      delete next[requestId]
+      return next
+    })
     try {
       await respondToAuthRequest(requestId, {
         status,
@@ -228,9 +426,12 @@ export default function Approvals() {
         delete next[requestId]
         return next
       })
-    } catch {
-      // Show inline error — the request may have expired
-      alert(t('approvals.respondError'))
+    } catch (err: any) {
+      // P12-B39: inline error instead of alert
+      setCardErrors((prev) => ({
+        ...prev,
+        [requestId]: err.message || String(err),
+      }))
     } finally {
       setRespondingId(null)
     }
@@ -271,6 +472,11 @@ export default function Approvals() {
     if (!type) return ''
     const label = type.charAt(0).toUpperCase() + type.slice(1)
     return id ? `${label} ${id}` : label
+  }
+
+  /** P12-B39: Check if a pending request has expired. */
+  function isExpired(expiresAt: string): boolean {
+    return new Date(expiresAt).getTime() <= Date.now()
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -422,6 +628,15 @@ export default function Approvals() {
 
                   {/* ── Card footer: actions ── */}
                   <div className={styles.cardFooter}>
+                    {cardErrors[item.id] && (
+                      <span className={styles.cardError}>{cardErrors[item.id]}</span>
+                    )}
+                    {isExpired(item.expires_at) && (
+                      <span className={styles.expiredLabel}>
+                        <AlertTriangle size={12} />
+                        {t('approvals.expiredLabel')}
+                      </span>
+                    )}
                     <input
                       type="text"
                       className={styles.noteInput}
@@ -430,14 +645,14 @@ export default function Approvals() {
                       onChange={(e) =>
                         setNoteInputs((prev) => ({ ...prev, [item.id]: e.target.value }))
                       }
-                      disabled={respondingId === item.id}
+                      disabled={respondingId === item.id || isExpired(item.expires_at)}
                     />
                     <div className={styles.actions}>
                       <button
                         type="button"
                         className={`${styles.actionBtn} ${styles.denyBtn}`}
                         onClick={() => handleRespond(item.id, 'denied')}
-                        disabled={respondingId !== null}
+                        disabled={respondingId !== null || isExpired(item.expires_at)}
                       >
                         {respondingId === item.id ? (
                           t('approvals.denying')
@@ -451,7 +666,7 @@ export default function Approvals() {
                         type="button"
                         className={`${styles.actionBtn} ${styles.approveBtn}`}
                         onClick={() => handleRespond(item.id, 'approved')}
-                        disabled={respondingId !== null}
+                        disabled={respondingId !== null || isExpired(item.expires_at)}
                       >
                         {respondingId === item.id ? (
                           t('approvals.approving')
@@ -510,7 +725,19 @@ export default function Approvals() {
           {!historyError && !historyLoading && historyItems.length > 0 && (
             <div className={styles.list}>
               {historyItems.map((item) => (
-                <div key={item.id} className={styles.card}>
+                <div
+                  key={item.id}
+                  className={`${styles.card} ${styles.cardClickable}`}
+                  onClick={() => setSelectedItem(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedItem(item)
+                    }
+                  }}
+                >
                   {/* ── Card header: status badge + project + time ── */}
                   <div className={styles.cardHeader}>
                     <span className={statusBadgeClass(item.status)}>
@@ -632,6 +859,13 @@ export default function Approvals() {
           )}
         </>
       )}
+
+      {/* ── P12-B39: Detail modal ─────────────────────────────────── */}
+      <AuthRequestModal
+        isOpen={selectedItem !== null}
+        item={selectedItem}
+        onClose={() => setSelectedItem(null)}
+      />
     </div>
   )
 }

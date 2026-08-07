@@ -1220,12 +1220,13 @@ export interface AuthRequestSummary {
 export function fetchAuthRequests(
   projectId: string,
   token: string,
-  params?: { status?: string; limit?: number; offset?: number },
+  params?: { status?: string; limit?: number; offset?: number; include_expired?: boolean },
 ) {
   const searchParams = new URLSearchParams()
   if (params?.status) searchParams.set('status', params.status)
   if (params?.limit) searchParams.set('limit', String(params.limit))
   if (params?.offset) searchParams.set('offset', String(params.offset))
+  if (params?.include_expired !== undefined) searchParams.set('include_expired', String(params.include_expired))
   const qs = searchParams.toString()
   return request<AuthRequestSummary[]>(
     `/v1/projects/${projectId}/authorization-requests${qs ? `?${qs}` : ''}`,
