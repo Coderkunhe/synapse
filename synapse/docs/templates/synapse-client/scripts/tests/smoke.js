@@ -133,9 +133,13 @@ if (onMacOS) {
     assert(plistOutput.includes('--silent'), 'plist must include --silent flag');
   });
 
-  test('plist does NOT contain SYNAPSE_API_KEY', () => {
-    // API key is resolved at runtime by session-init.js from .env or OS keychain
-    assert(!plistOutput.includes('SYNAPSE_API_KEY'), 'plist must not contain plaintext API key');
+  test('plist SYNAPSE_API_KEY env var is placeholder (no secret leaked)', () => {
+    // The plist defines SYNAPSE_API_KEY as an EnvironmentVariable placeholder
+    // with an empty value — session-init.js resolves the real key at runtime.
+    // Security: the actual secret MUST NOT be embedded in the plist.
+    const match = plistOutput.match(/<key>SYNAPSE_API_KEY<\/key>\s*<string>([^<]*)<\/string>/);
+    assert(match !== null, 'plist must define SYNAPSE_API_KEY env var');
+    assert(match[1] === '', 'SYNAPSE_API_KEY value must be empty (placeholder, not secret)');
   });
 
   test('plist contains StartInterval of 60 seconds', () => {

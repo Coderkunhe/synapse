@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution test-js setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -44,6 +44,7 @@ help: ## 显示所有可用 target
 	@echo "    make check-checkpoint-freshness  Checkpoint 新鲜度门禁（GAP-3 — 今日更新检查）"
 	@echo "    make check-batch-sequence  批次顺序机械校验（GAP-4 — track 指针一致性）"
 	@echo "    make check-tests         测试门禁（pytest）"
+	@echo "    make test-js            Worker JS 单元测试（P12-B27 · D2 Foundation）"
 	@echo "    make check-types         Python 类型检查（mypy — V-004 防呆）"
 	@echo "    make check-frontend      前端门禁（oxlint + tsc typecheck）"
 	@echo ""
@@ -208,6 +209,11 @@ check-frontend: ## 前端门禁（oxlint + tsc typecheck）
 	@echo "--- 前端 typecheck ---"
 	@cd frontend && npx tsc -b 2>&1 || { echo "❌ 前端 typecheck 未通过"; exit 1; }
 	@echo "✅ 前端 typecheck 通过"
+
+test-js: ## Worker JS 单元测试（P12-B27 · D2 Foundation）
+	@echo "--- Worker JS 测试 ---"
+	@cd docs/templates/synapse-client && node scripts/tests/run-tests.js 2>&1 || { echo "❌ Worker JS 测试未通过"; exit 1; }
+	@echo "✅ Worker JS 测试通过"
 
 # ── 基础设施 ──────────────────────────────────────────────
 
