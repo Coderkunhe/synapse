@@ -254,12 +254,13 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 │                                                 │
 │  1. 拉取项目全景状态                               │
 │     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
+│     ├─ GET /projects/{id}/tasks?status=in_verification（待验收 Task — B17 #6: O 必须显式拉取，不能只靠缓存判断）│
 │     ├─ GET /projects/{id}/batches（Batch 进度）    │
 │     ├─ GET /teams/{id}/workers?status=active（在线 Worker + Capability）│
 │     └─ 恢复中断状态（上次会话验收到一半 → 继续）     │
 │                                                 │
 │  2. 优先级分拣（按严重度降序 — 刚性执行）            │
-│     ├─ 🔴 有 submitted Task → 立即验收（最高优先级） │
+│     ├─ 🔴 有 in_verification Task → 立即验收（最高优先级）。⚠️ B submit 后 Task API status 变为 in_verification，不是 submitted — 必须用 `?status=in_verification` 过滤 │
 │     ├─ 🟡 有 ready 未分配 Task → Worker 匹配+分配    │
 │     │   ① 从 Step 1 的 Worker 列表中匹配 Capability：│
 │     │      task.required_capabilities ⊆ worker.capability_tags.names│
@@ -312,6 +313,7 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/handshake
 | **中断可恢复** | 会话中断后，下次启动时自动拉取全景 → 发现 submitted Task → 继续验收。不依赖人类提醒"Builder 已经提交了，你去验收" |
 | **评论区异步握手** | 验收/打回后必须发评论 @Builder。分配 Task 后发评论通知。两个独立 Claude Code 会话没有共享内存——评论区是唯一的状态传递通道 |
 | **Worker 匹配（P12-B19）** | 分配前必调 `GET /teams/{id}/workers?status=active` 获取在线 Worker 及其 `capability_tags.names`。匹配规则：`task.required_capabilities ⊆ worker.capability_tags.names`。零匹配 → @Human 报告缺口，不强行分配。多匹配 → 选 active_task_count 最少的（负载均衡）。heartbeat > 5min → 视为不在线 |
+| **Zombie Worker 检测（P12-B24）** | ⚠️ 心跳正常 ≠ Worker 在工作。Worker session 退出后 daemon 继续心跳 → Worker 看起来在线但实际是 zombie（不 claim task、不响应 assign）。检测：① O 侧 — assign 后 task 仍 ready > 10min → 疑似 zombie → 换 Worker 重分配 ② B 侧 — 每轮循环检查 O 的 `last_assignment_at`（非 `last_heartbeat_at`）→ > 5min 无分配 → O 沉默 → 启用 Pull fallback。核心原则：**用行为信号（分配/认领）判断活性，不只用保活信号（心跳）** |
 
 **验收 vs 对话汇报 — 明确区分**：
 
@@ -564,6 +566,8 @@ Task 状态的任何变更必须通过对应的 API 端点，不在本地脑补�
 POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 ```
 60 秒无心跳 → 你的状态自动变为 `paused`，不再接收新 Task。
+
+> ⚠️ **注意（P12-B24 doc-code 对齐）**：Server 端 `worker_heartbeat_timeout_seconds` 实际配置为 300 秒（5 分钟），非 60 秒。本文档心跳超时描述以 Server 配置为准。Worker 心跳间隔建议 ≤ 60s（远低于 300s 阈值，留足安全边际）。
 
 ### 5.5 能力边界
 

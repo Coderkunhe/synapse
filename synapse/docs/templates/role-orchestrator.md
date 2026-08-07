@@ -173,11 +173,12 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 │                                                 │
 │  1. 拉取项目全景状态                               │
 │     ├─ GET /projects/{id}/tasks（所有活跃 Task）   │
+│     ├─ GET /projects/{id}/tasks?status=in_verification（待验收 Task — 最高优先级）│
 │     ├─ GET /projects/{id}/batches（Batch 进度）    │
 │     └─ GET /teams/{id}/workers?status=active（在线 Worker + Capability）│
 │                                                 │
 │  2. 优先级分拣（按严重度降序处理）                   │
-│     ├─ 🔴 有 submitted Task → 立即验收（§验收规程）  │
+│     ├─ 🔴 有 in_verification Task（API status）→ 立即验收（§验收规程）。⚠️ B submit 后 Task 状态变为 in_verification，不是 submitted — 用 `?status=in_verification` 过滤 │
 │     ├─ 🟡 有 ready 未分配 Task → Worker 匹配+分配    │
 │     │   ① 从 Step 1 的 Worker 列表中筛选：          │
 │     │      - task.required_capabilities 为空 → 任意 Worker│
@@ -243,14 +244,17 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
 
 | 系统状态 | O 动作 | 间隔 |
 |---------|--------|:--:|
-| 🔴 有 submitted Task | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder | — |
+| 🔴 有 in_verification Task（Builder 已 submit） | 立即验收 — output_access 检查 → 逐条对照 Verification → verify passed/failed → 评论区 @Builder。⚠️ API 状态名为 `in_verification`，不是 `submitted` — `GET /projects/{id}/tasks?status=in_verification` | — |
 | 🟣 有未回复 blocking/clarification/handoff 消息（PFL-080） | **与 submitted 同级最高优先级** — 读消息 → 判断 → 回复。B 被阻塞时每延迟一秒 B 就多等一秒 | — |
 | ⚪ 有 backlog 未 ready Task | 评估后执行 ready（`POST /tasks/{id}/ready`）。B72 Server 强制 `BACKLOG→READY` 是必经步骤——跳过 ready 直接 assign 会被 409 拒绝 | — |
 | 🟡 有 ready 未分配 Task | Worker 匹配+分配（§Worker 匹配算法）：① `GET /teams/{id}/workers?status=active` 获取在线 Worker 列表 ② 匹配 `task.required_capabilities ⊆ worker.capability_tags.names` ③ 在线检查 heartbeat ≤ 5min ④ 负载均衡（选 active_task_count 最少）⑤ 零匹配 → @Human 报告缺口 ⑥ assign + 评论区 @Builder。Push 优先，不在线不分配 | — |
+| 🟠 有 ready Task 卡住 > 10min（P12-B24 · zombie Worker 防御） | **assign 后 task 仍 ready 超过 10min → Worker 可能是 zombie**（心跳正常但不 claim）。动作：① 重新 `GET /teams/{id}/workers?status=active` 刷新 Worker 列表 ② 换一个匹配 Worker 重分配 ③ 原 Worker 标记为「疑似 zombie」— 下次匹配降低优先级 ④ 无其他匹配 Worker → @Human 报告"Task #{id} 分配后 {minutes}min 未被认领，唯一匹配 Worker {name} 可能离线" | 10min |
 | 🟡 有 pending_auth Task | 检查审批状态。approved → 告知 Builder 重试。denied → 评论区告知 | 10s |
 | 🔵 全部 in_progress（正常进展）| 监工：先查评论区 → 逐项检查更新时间和逾期。>30min 无更新 → 评论区 @Builder。正常 → 继续 | 30s |
 | ⚫ 全队列空 | **先问候 Human**（PFL-114）：输出「Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。」→ 🚨 再读 `_task-current.md` 顶部活跃任务数（PFL-082 机械告警）。活跃任务数 > 0 → **禁止退出，回到步骤 1**。活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=60）→ 然后退出。**禁止不设闹钟直接退出——这是硬性前置条件。** 无活跃 + 无 ready + backlog 无待拆 + `_task-current.md` 活跃任务数 = 0。**只有这个状态退出循环** | 60s |
 | 🔴 有 in_verification 停滞 >15min（PFL-077） | **验收超时策略（双层防御）**：**O 层（15min）**：① `POST /tasks/{id}/messages @Human "请验收 Task #{id}"` 通知 Human。② 继续等待 5 分钟。③ 仍无响应 → `POST /verifications/{id}/verify` 强制 reject（备注 "Auto-rejected: verification timeout >20min, no Human response"）。④ 评论区 @Builder 说明情况。⑤ 将 Task 移回 backlog 或标记 cancelled。**Server 层（30min 安全网 · B88）**：若 O 也崩溃/超时/未执行上述流程，Server 后台任务自动将 in_verification 任务回退到 in_progress（事件类型 `task.verification_timeout_reverted`）。O 在状态同步时发现回退事件 → 优先重新验收（若 Human 已在线）或重新分配。**不要无限等待——O 的职责是推进工作流，不是等 Human 永远不来的回复。** | — |
+
+**⚠️ API 状态名 vs 概念名**：Builder submit 后 Task 的 API `status` 变为 `in_verification`（不是 `submitted`）。本文中"submitted Task"均指 `status=in_verification`。拉取待验收 Task 必须用 `GET /projects/{id}/tasks?status=in_verification`，不能用不存在的 `status=submitted`。
 
 **验收 vs 对话汇报 — 明确区分**：
 
@@ -345,7 +349,11 @@ Step 0 — O 自检心跳（PFL-070 · B89）🚨 进入循环前必执行
      - 有匹配但全部不在线 → 评论区 @Human
        "Task #{id} 有匹配 Worker [{names}] 但全部不在线（心跳过期）。
         等待 Worker 重连或手动介入。"
-     - 以上两种情况 → 不分配，继续处理下一个 Task
+     - 以上两种情况 → 不分配，但记录卡住时间（P12-B24）
+     - 🔄 超时重试（P12-B24）：ready task 卡住 > 10min →
+         重新 GET /teams/{id}/workers?status=active（Worker 可能已恢复）
+         → 重新匹配 → 仍零匹配 → 再次 @Human（附"已等待 {minutes}min"）
+         → 继续每 10min 重试直到解决或 Task 被取消
   ⑥ 匹配成功 → POST /tasks/{id}/assign → 评论区 @Builder
      "@{worker_name} Task #{id}「{title}」已分配给你。{context}"
 ```

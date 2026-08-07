@@ -179,13 +179,25 @@ POST /tasks/{id}/submit（附 evidence）
 │  1. 等待 O 分配（主通道）                              │
 │     ├─ 轮询 GET /projects/{id}/tasks?assigned_to=me   │
 │     │   └─ 检查是否有 O assign 的 in_progress Task     │
-│     └─ O 沉默 >5min → 启用 Pull fallback（步骤 2）    │
+│     └─ O 沉默检测（P12-B24 · zombie Worker 防御）：     │
+     │     ├─ 每轮循环调 GET /teams/{id}/orchestrator-status │
+     │     ├─ 检查 last_assignment_at（非 last_heartbeat_at）│
+     │     │   └─ 心跳正常 ≠ O 在工作 — zombie O 心跳但不分配  │
+     │     └─ last_assignment_at > 5min 或 无记录             │
+     │         → O 沉默 → 启用 Pull fallback（步骤 2）       │
 │                                                      │
 │  2. Pull fallback（仅 O 沉默时启用）                   │
 │     ├─ GET /projects/{id}/tasks?status=ready          │
+│     ├─ O-liveness 重检（P12-B24 · 每轮）：              │
+│     │   GET /teams/{id}/orchestrator-status            │
+│     │   └─ O 恢复分配（last_assignment_at < 5min）      │
+│     │       → 放弃 pull，回到步骤 1 等待 push assign     │
 │     ├─ Capability 自检（P12-B19）：                     │
 │     │   task.required_capabilities 非空 → 检查是否      │
-│     │   ⊆ 自 capability_tags.names。不匹配 → 跳过       │
+│     │   ⊆ 自 capability_tags.names。不匹配 →            │
+│     │   POST /tasks/{id}/messages @O 报告能力缺口       │
+│     │   （不再静默跳过 — B23 教训：Cap 不匹配无上报      │
+│     │     导致 ready task 无人认领）                    │
 │     └─ 有 ready + Cap 匹配 → claim → 进入执行           │
 │                                                      │
 │  3. 执行 → submit → poll 验收 → 回到步骤 1             │
@@ -208,8 +220,8 @@ POST /tasks/{id}/submit（附 evidence）
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
 | **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
-| **被动响应者（P11-B74）** | O assign 是主通道——等待 O 分配 Task 是正常流程。只有 O 沉默 >5min 且队列有 ready Task 时，才自行 claim（Pull fallback）。不主动推进工作流——O 是连续引擎，你是响应者 |
-| **Capability 自检（P12-B19）** | Pull fallback 时检查 Task 的 `required_capabilities` 是否 ⊆ 自身的 `capability_tags.names`。不匹配 → 跳过该 Task（这是 O 的匹配职责，claim 只是 fallback——跳过不报错）。匹配 → claim 正常执行 |
+| **被动响应者（P11-B74 · P12-B24 强化）** | O assign 是主通道——等待 O 分配 Task 是正常流程。O 沉默判定标准（P12-B24）：每轮循环调 `GET /teams/{id}/orchestrator-status` 检查 `last_assignment_at`（非 `last_heartbeat_at`）。`last_assignment_at` > 5min 或无记录 → O 沉默 → 启用 Pull fallback。⚠️ 心跳正常 ≠ O 在工作 — zombie O（心跳但从不分配）会导致 B 无限等待 |
+| **Capability 自检（P12-B19 · P12-B24 强化）** | Pull fallback 时检查 Task 的 `required_capabilities` 是否 ⊆ 自身的 `capability_tags.names`。不匹配 → **不再静默跳过**（B23 教训：静默跳过导致 ready task 无人认领且无人知晓）→ `POST /tasks/{id}/messages` @O 报告能力缺口："Task #{id} 需要 [{caps}]，我只有 [{my_caps}]，无法认领。" 匹配 → claim 正常执行 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
 
