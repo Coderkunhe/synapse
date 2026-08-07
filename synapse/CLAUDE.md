@@ -97,4 +97,4 @@ synapse/
 | **P12** | B28 ✅ D2 Core Modules · 91 tests · D2 ~30% | **P12-B30** 🔜 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B113 ✅ P12 质量债务全量审计 · GO for P12-B30 · check-l5-consistency 探针清零 | — |
-| **L5** | batchesSinceLastL5=1（B27+B28 联合 L5 已拉通 · checkpoint 为源） | 🟢 正常 |
+| **L5** | batchesSinceLastL5=0（B28→B113 L5 已拉通复位 · P12-B30 ready） | 🟢 正常 |
