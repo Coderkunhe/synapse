@@ -657,6 +657,8 @@
 | **P12-B35** | **Project 创建 500 修复 · 三层防御** — ① `resolve_project`: team_id 空值检查 → 403 ForbiddenError · ② `find_or_create_by_name`: team_id 空值提前 raise ValueError · ③ `set_project_role`: worker 存在性验证 → 404 NotFoundError · +2 tests (nonexistent worker + empty team_id) · 698+189=887 零回归 · 🟢 微型 · 1 commit | ✅ |
 | **P12-B36** | **Codex 混搭** — D4 狗粮多 Worker 协作验证 · 2/3 Task 完成 · 13 PFLs | ✅ |
 | **P12-B37** | **PFL 消化波 1** — PFL-131 session-init 路径修复 · PFL-139 role pattern · PFL-142 claim 项目隔离 · 3/13 PFL 闭环 · PFL-143 撤回 B38 | ✅ |
+| **P12-B38** | **文档残留全量同步** — 16 files · 11 docs + pitfalls AP-B37 登记 + B36 Codex 混搭计划 · violations + bypass 同步 | ✅ |
+| **P12-B39** | **审批 UI 三位一体闭环** — PFL-136 include_expired API · PFL-137 过期过滤纵深防御 · PFL-140 内联错误 + Modal 替代 alert · 702+189 tests 零回归 | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

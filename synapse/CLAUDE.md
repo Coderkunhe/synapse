@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-08（L5 B36→B37 拉通 · P12-B37 ✅ PFL 消化波 1 · 3/13 PFL 闭环 · AP-B37 拆批违规已登记）
+> 不存代码，只协调工作。最后更新：2026-08-08（L5 B38→B39 拉通 · P12-B39 ✅ 审批 UI 三位一体 · PFL-136/137/140 闭环 · 6/13 PFL）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B37 ✅ PFL 消化波 1 · PFL-131/139/142 闭环 · 3/13 PFL · 701+189=890 tests | **P12-B38** 🔜 PFL 消化波 2
+| **P12** | B39 ✅ 审批 UI 三位一体 · PFL-136/137/140 闭环 · 6/13 PFL · 702+189=891 tests | **P12-B40** 🔜
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · L5 counter=0 | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=0（B36+B37→L5 拉通完成）| 🟢 正常 |
+| **L5** | batchesSinceLastL5=0（B38+B39→L5 拉通完成）| 🟢 正常 |
