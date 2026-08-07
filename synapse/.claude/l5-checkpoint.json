@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B116 — 文档全量刷新 · 13 docs 日期同步 · Roadmap B67/B68/B69/B29 补全 · Reqlog B112 补全 · check-l5-consistency.sh Gate 1: 28→24 warning (4/4 可修复已闭环 · 其余 P100 早期治理微批历史债务) · Gate 4+5 全绿 · L5 counter=0",
-  "lastL5Timestamp": "2026-08-07",
-  "batchesSinceLastL5": 1,
-  "completedBatches": ["P12-B36", "P12-B37"],
-  "lastL5Evidence": "P100-B116 — 文档全量刷新 · 13 docs 日期同步 · Roadmap B67/B68/B69/B29 补全 · Reqlog B112 补全 · check-l5-consistency.sh Gate 1: 28→24 warning (4/4 可修复已闭环 · 其余 P100 早期治理微批历史债务) · Gate 4+5 全绿 · L5 counter=0",
-  "notes": "B37 PFL 消化波 1 — PFL-131 session-init 路径修复 · PFL-139 role pattern · PFL-142 claim 项目隔离 · 701+189 tests 零回归"
+  "lastL5Batch": "P12-B37 L5 拉通 — B36 狗粮 + B37 消化波 1 · reqlog 补登 B36+B37 · CLAUDE.md 状态表同步 · checkpoint B36 狗粮标注 · 701+189 tests 零回归",
+  "lastL5Timestamp": "2026-08-08",
+  "batchesSinceLastL5": 0,
+  "completedBatches": [],
+  "lastL5Evidence": "P12-B37 L5 拉通 — B36 狗粮 + B37 消化波 1 · reqlog 补登 B36+B37 · CLAUDE.md 状态表同步 · checkpoint B36 狗粮标注 · 701+189 tests 零回归",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
