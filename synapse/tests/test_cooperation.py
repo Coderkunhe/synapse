@@ -23,6 +23,7 @@ from src.models.worker import Worker
 from src.models.batch import Batch
 from src.models.member import Member
 from src.models.project import Project
+from src.models.project_actor_role import ProjectActorRole
 from src.models.task import Task
 from src.models.team import Team
 from src.services.lease_detector import release_expired_leases
@@ -70,7 +71,8 @@ async def seeded(db: AsyncSession) -> dict:
         registered_by=None, api_key_hash="test-hash", api_key_prefix="sk-test",
     )
     batch = Batch(id=batch_id, project_id=project_id, name="Test Batch", status="open")
-    db.add_all([team, project, member, agent, batch])
+    role = ProjectActorRole(id=generate_id("project_actor_role"), project_id=project_id, worker_id=agent_id, role="builder")
+    db.add_all([team, project, member, agent, batch, role])
     await db.flush()
     return {
         "team_id": team_id, "project_id": project_id,
@@ -148,6 +150,11 @@ class TestSingleClaim:
             registered_by=None, api_key_hash="hash2", api_key_prefix="sk-2",
         )
         db.add(agent2)
+        agent2_role = ProjectActorRole(
+            id=generate_id("project_actor_role"),
+            project_id=seeded["project_id"], worker_id=agent2_id, role="builder",
+        )
+        db.add(agent2_role)
         await db.flush()
 
         with pytest.raises(ConflictError, match="TASK_ALREADY_CLAIMED"):
@@ -444,6 +451,11 @@ class TestLeaseExpiry:
             registered_by=None, api_key_hash="hash2", api_key_prefix="sk-2",
         )
         db.add(agent2)
+        agent2_role = ProjectActorRole(
+            id=generate_id("project_actor_role"),
+            project_id=seeded["project_id"], worker_id=agent2_id, role="builder",
+        )
+        db.add(agent2_role)
         await db.flush()
 
         # Worker 2 重新认领

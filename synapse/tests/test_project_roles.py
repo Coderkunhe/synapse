@@ -338,14 +338,14 @@ async def test_assign_project_role_endpoint(client: AsyncClient, seed: SeedData)
 
     resp = await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "admin"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(seed.token),
     )
     assert resp.status_code == 201
     data = resp.json()
     assert data["worker_id"] == worker_id
     assert data["worker_name"] == "Target Worker"
-    assert data["role"] == "admin"
+    assert data["role"] == "builder"
 
 
 @pytest.mark.asyncio
@@ -354,21 +354,21 @@ async def test_assign_project_role_upserts(client: AsyncClient, seed: SeedData):
     project_id = await _ensure_test_project(seed)
     worker_id = await _ensure_test_worker(seed)
 
-    # First assign as member
+    # First assign as builder
     await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "member"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(seed.token),
     )
 
-    # Then update to admin
+    # Then update to orchestrator
     resp = await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "admin"},
+        json={"worker_id": worker_id, "role": "orchestrator"},
         headers=auth_header(seed.token),
     )
     assert resp.status_code == 201
-    assert resp.json()["role"] == "admin"
+    assert resp.json()["role"] == "orchestrator"
 
 
 @pytest.mark.asyncio
@@ -380,7 +380,7 @@ async def test_list_project_roles_endpoint(client: AsyncClient, seed: SeedData):
     # Assign a role first
     await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "admin"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(seed.token),
     )
 
@@ -393,8 +393,7 @@ async def test_list_project_roles_endpoint(client: AsyncClient, seed: SeedData):
     assert data["project_id"] == project_id
     assert len(data["roles"]) == 1
     assert data["roles"][0]["worker_id"] == worker_id
-    assert data["roles"][0]["role"] == "admin"
-
+    assert data["roles"][0]["role"] == "builder"
 
 @pytest.mark.asyncio
 async def test_revoke_project_role_endpoint(client: AsyncClient, seed: SeedData):
@@ -405,7 +404,7 @@ async def test_revoke_project_role_endpoint(client: AsyncClient, seed: SeedData)
     # Assign first
     await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "member"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(seed.token),
     )
 
@@ -445,7 +444,7 @@ async def test_assign_project_role_forbidden_for_non_admin(
 
     resp = await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "admin"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(member_token),
     )
     assert resp.status_code == 403
@@ -473,7 +472,7 @@ async def test_assign_project_role_super_admin_bypass(
 
     resp = await client.post(
         f"/v1/admin/projects/{project_id}/roles",
-        json={"worker_id": worker_id, "role": "admin"},
+        json={"worker_id": worker_id, "role": "builder"},
         headers=auth_header(super_token),
     )
     assert resp.status_code == 201
@@ -742,3 +741,50 @@ async def test_set_project_role_nonexistent_worker_raises_not_found(seed: SeedDa
         assert exc_info.value.details["entityId"] == nonexistent_worker_id
 
         await db.rollback()
+
+
+# ═══════════════════════════════════════════════════════════════
+# P12-B37: PFL-139 — ProjectRoleAssign role pattern validation
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_assign_project_role_rejects_invalid_role_member(client: AsyncClient, seed: SeedData):
+    """P12-B37 (PFL-139): 'member' is a team-level role, not valid for project assignment."""
+    project_id = await _ensure_test_project(seed)
+    worker_id = await _ensure_test_worker(seed)
+
+    resp = await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": worker_id, "role": "member"},
+        headers=auth_header(seed.token),
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_assign_project_role_rejects_invalid_role_lead(client: AsyncClient, seed: SeedData):
+    """P12-B37 (PFL-139): 'lead' is a team-level role, not valid for project assignment."""
+    project_id = await _ensure_test_project(seed)
+    worker_id = await _ensure_test_worker(seed)
+
+    resp = await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": worker_id, "role": "lead"},
+        headers=auth_header(seed.token),
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_assign_project_role_accepts_valid_role_builder(client: AsyncClient, seed: SeedData):
+    """P12-B37 (PFL-139): 'builder' is a valid project role — should still work."""
+    project_id = await _ensure_test_project(seed)
+    worker_id = await _ensure_test_worker(seed)
+
+    resp = await client.post(
+        f"/v1/admin/projects/{project_id}/roles",
+        json={"worker_id": worker_id, "role": "builder"},
+        headers=auth_header(seed.token),
+    )
+    assert resp.status_code == 201

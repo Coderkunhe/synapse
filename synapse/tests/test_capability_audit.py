@@ -441,8 +441,8 @@ class TestListCapabilityAudits:
             headers=worker_headers,
         )
 
-        # 只分配 member 角色（不足够 capability_audit:read 需要的 admin）
-        await ensure_project_role(client, project_id, worker_id, "member", headers)
+        # P12-B37 (PFL-139): 不分配任何 project role — Worker 无权限应触发 202
+        # （之前用 "member" role，但 member 已不再是有效 project role）
 
         resp = await client.get(
             f"/v1/projects/{project_id}/capability-audits",

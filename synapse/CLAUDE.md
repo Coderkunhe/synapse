@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-07（P100-B115 🔜 L5 五关脚本化 · P12-B35 ✅ · L5 counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-07（P100-B116 ✅ · P12-B37 ✅ · L5 counter=1）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -96,5 +96,5 @@ synapse/
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
 | **P12** | B35 ✅ Project 创建 500 三层防御 · 698+189=887 零回归 · D4 双 Builder 狗粮闭环 | **P12-B36** 🔜 Codex 混搭 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
-| **P100** | B114 ✅ 治理清理 · 12 modified→3 commits + 35 untracked 清理 + gitignore 补全 · P12-B30 阻断已解 | **P100-B115** 🔜 L5 五关脚本化 |
-| **L5** | batchesSinceLastL5=1（B34+B35→B36 L5 拉通完成）| 🟢 正常 |
+| **P100** | B115 ✅ L5 五关一致性脚本化 · check-l5-consistency.sh 完整五关 lattice · D-P100-040 闭环 | **P100-B116** 🔜 下一站 |
+| **L5** | batchesSinceLastL5=0（B114+B115→B116 L5 拉通完成）| 🟢 正常 |

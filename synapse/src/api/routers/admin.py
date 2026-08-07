@@ -58,7 +58,7 @@ async def system_info(
 class ProjectRoleAssign(BaseModel):
     """Request body for assigning a project role to a worker."""
     worker_id: str = Field(..., min_length=1, max_length=40)
-    role: str = Field(..., min_length=1, max_length=20)
+    role: str = Field(..., min_length=1, max_length=20, pattern=r"^(builder|orchestrator|steward|admin)$")
 
 
 class ProjectRoleEntry(BaseModel):

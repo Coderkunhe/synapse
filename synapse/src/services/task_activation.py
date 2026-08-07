@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import ActorType, OwnerType, TaskStatus, WorkerStatus
 from src.exceptions import (
     ConflictError,
+    ForbiddenError,
     NotFoundError,
 )
 from src.models.task import Task
@@ -351,6 +353,31 @@ async def claim_task(
                 f"Worker {worker_id} is not active (status: {worker.status}). "
                 f"Activate the worker via POST /v1/workers/{worker_id}/handshake",
             )
+
+        # P12-B37 (PFL-142): 纵深防御 — 若 Project 已有角色分配，则 Worker 必须有角色。
+        # Router 层 require_permission 已做校验，但 stale role record 可绕过。
+        # 条件检查：仅在 Project 有 project_actor_roles 记录时才要求 Worker 有角色，
+        # 避免对无角色管理的隔离测试 Project 造成向后兼容破坏。
+        from src.models.project_actor_role import ProjectActorRole
+        project_has_roles = await db.scalar(
+            select(ProjectActorRole).where(
+                ProjectActorRole.project_id == task.project_id,
+            ).limit(1)
+        )
+        if project_has_roles is not None:
+            worker_has_role = await db.scalar(
+                select(ProjectActorRole).where(
+                    ProjectActorRole.project_id == task.project_id,
+                    ProjectActorRole.worker_id == worker_id,
+                )
+            )
+            if worker_has_role is None:
+                raise ForbiddenError(
+                    "WORKER_NOT_IN_PROJECT",
+                    f"Worker {worker_id} has no role in project {task.project_id}. "
+                    "The project has role assignments, so the worker must have one to claim tasks.",
+                    {"workerId": worker_id, "projectId": task.project_id},
+                )
 
     previous_status = task.status
     now = datetime.now(timezone.utc)

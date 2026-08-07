@@ -63,7 +63,9 @@ const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
 // path.join(WORKER_ROOT, '.claude', ...) would create .claude/.claude/ nesting.
 // Settings go directly under WORKER_ROOT (i.e., .claude/settings.local.json).
 const SETTINGS_LOCAL = path.join(WORKER_ROOT, 'settings.local.json');
-const OUTPUT_FILE = path.join(__dirname, '..', '_task-current.md');
+// P12-B37 (PFL-131): 4 levels up = Worker root, matching _boot-prompt.md.
+// Previously 1 level up (__dirname/..) = .claude/skills/synapse/ — wrong layer.
+const OUTPUT_FILE = path.resolve(__dirname, '..', '..', '..', '..', '_task-current.md');
 const PROTOCOL_CACHE = path.join(__dirname, '..', '_protocol-cache.json');
 const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norms.md');
 // B112 PFL-112: _boot-prompt.md at Worker root — human types @_boot-prompt.md to cold-start
@@ -72,7 +74,9 @@ const SCRIPT_NAME = 'session-init';
 // P12-B8 (HK-3): hook sentinel — written on every SessionStart hook fire.
 // If this file is missing or > 5 min old, the SessionStart hook isn't firing.
 // Worker SKILL.md should check this file on wakeup as a hook health diagnostic.
-const HOOK_SENTINEL = path.join(__dirname, '..', '..', '_last-session-init.txt');
+// P12-B37 (PFL-131): 3 levels up = .claude/, matching SKILL.md docs.
+// Previously 2 levels up (__dirname/../..) = .claude/skills/ — wrong layer.
+const HOOK_SENTINEL = path.join(__dirname, '..', '..', '..', '_last-session-init.txt');
 
 // ── CLI Flags ──────────────────────────────────────────────────────
 // B122 PFL-110: --quick mode skips daemon spawn, protocol fetch, handshake.
@@ -881,12 +885,17 @@ function writeState(state) {
   lines.push(`*Generated ${snapshotTs} by session-init.js (B122 PFL-110 · B129 PFL-124${state.quickRefresh ? ' --quick' : ''})*`);
 
   // P12-B5: Graceful degradation for read-only sandboxes (Codex .agents/).
-  // Try file write first — on failure (EROFS/EPERM/EACCES), output JSON to stdout.
+  // P12-B37 (PFL-131): ensure parent directory exists before write (ENOENT was silent).
+  // Try file write first — on failure (EROFS/EPERM/EACCES/ENOENT), output JSON to stdout.
   try {
+    fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
     fs.writeFileSync(OUTPUT_FILE, lines.join('\n') + '\n', 'utf-8');
+    if (!SILENT_MODE) {
+      console.error(`[${SCRIPT_NAME}] State written to ${OUTPUT_FILE}`);
+    }
   } catch (e) {
-    if (e.code === 'EROFS' || e.code === 'EPERM' || e.code === 'EACCES') {
-      console.error(`⚠️ ${SCRIPT_NAME}: read-only filesystem — _task-current.md cannot be written (${e.code}). Outputting state JSON to stdout as fallback.`);
+    if (e.code === 'EROFS' || e.code === 'EPERM' || e.code === 'EACCES' || e.code === 'ENOENT') {
+      console.error(`⚠️ ${SCRIPT_NAME}: cannot write _task-current.md (${e.code}). Outputting state JSON to stdout as fallback.`);
     } else {
       console.error(`⚠️ ${SCRIPT_NAME}: _task-current.md write failed — ${e.message}. Outputting state JSON to stdout.`);
     }

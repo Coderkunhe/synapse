@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-07（P12-B32 ✅ D2 四阶段全量闭环 · D1 62% · D2 ~55% · 189 total tests）
+> 最后更新：2026-08-07（P12-B35 ✅ · P100-B115 ✅ · D1-D4 四方向推进中 · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -300,7 +300,10 @@
 | **P100-B58** | **G1 httpOnly cookie** — JWT localStorage→httpOnly cookie · 8 files · P100 全量闭环 🎉 | ✅ |
 | **P100-B59** | **遗留 doc 清理** — P100-B57 防呆 doc 提交（7 项违纪 🟡→🟢 闭环）· 3 files | ✅ |
 | **P100-B60** | **分页常量收敛** — DEFAULT_PAGE_SIZE + MAX_PAGE_SIZE · 13 处 → 常量 · 11 files | ✅ |
-| **P100-B61→B69** | **审计项全量闭环** — B61 enum→docstring · B62-B64 schemas enum 迁移（auth/status/actor_type）· B65-B66 services 层（ws/lease_detector）· B67-B68 routers（tasks/events/token_usage/ws）· B69 审计收尾 · 全量 300+ 枚举同步 | ✅ |
+| **P100-B61→B66** | **审计项前半** — B61 enum→docstring · B62-B64 schemas enum 迁移（auth/status/actor_type）· B65-B66 services 层（ws/lease_detector）· 全量 300+ 枚举同步 | ✅ |
+| **P100-B67** | **审计项 — routers 层枚举迁移** — tasks/events 路由 actor_type/owner_type 枚举同步 · 审计收尾 | ✅ |
+| **P100-B68** | **审计项 — routers 层收尾** — token_usage/ws 路由枚举同步 · B95 审计收尾 | ✅ |
+| **P100-B69** | **审计项 — V-023 防呆落地** — l5-reset.sh 增加 --yes 强制确认 + L5 检查清单打印 + 证据字段 · 审计全量闭环 | ✅ |
 | **P100-B70** | **流程瓶颈修复** — L5 单 commit 工作流 · 同议题连续层合并豁免 · PI-16 登记 · 7 files | ✅ |
 | **P100-B71** | **V-023 防呆 v2 + V-024 P1** — l5-reset.sh 三关证据质量门禁 · session-checkpoint.sh L5 状态输出 | ✅ |
 | **P100-B72** | **G25 文档膨胀治理 + G26 议题编号自洽** — methodology.md §5.6 文档生命周期 · check-docs.sh 文档行数扫描 · check-issue-numbers.sh | ✅ |
@@ -578,7 +581,7 @@
 - **P100-B112**：**L5 从人因戏变成机械校验** ✅ — check-l5-consistency.sh 五关机械校验（batchesSinceLastL5 一致性 · lastL5Batch 引用一致性 · roadmap↔requirements-log 覆盖 · 时间戳新鲜度 · 证据完整性）· 🟢 微型 · 1 file (new script)
 - **P100-B113**：**P12 质量债务全量审计** ✅ — ① L5 一致性: B13/B14/B15 reqlog 缺漏修复 (3→0 warning) · ② roadmap 行数超限修复 (895→692 · Phase 10/11 归档) · ③ P12 七大约束全量合规检查 · ④ uncommitted changes 审计 · ⑤ 审计结论: GO for P12-B30 · 🟢 微型 · 3 files (requirements-log + roadmap + archive)
 - **P100-B114**：**治理清理 · uncommitted changes 全量处置** ✅ — ① Modified files: 12→3 分组 commit · ② Untracked: 35 文件删除 · ③ .gitignore 补全 (5 patterns) · ④ 幽灵引用修复 · ⑤ DB 备份保留 · ⑥ Bypass 日志审计→删除 · ⑦ 狗粮门禁临时解除→恢复 · 🟢 微型 · 16 files · 4 commits
-- **P100-B115**：**L5 五关一致性脚本化** 🔜 — check-l5-consistency.sh 从手工五关→完整五关双向 lattice（Gate 1-5）· Phase-agnostic · 活跃 Phase 自动检测 · D-P100-040 闭环 · 🟢 微型 · 1 file (~300行)
+- **P100-B115**：**L5 五关一致性脚本化** ✅ — check-l5-consistency.sh 从手工五关→完整五关双向 lattice（Gate 1-5）· Phase-agnostic · 活跃 Phase 自动检测 · D-P100-040 闭环 · 🟢 微型 · 1 file (~300行)
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
@@ -645,11 +648,15 @@
 | **P12-B26** | **ENV-1 环境变量污染检测+自愈** — `check-env-pollution.sh` (~240行) 双维度检测（当前 shell + profile 文件）· SHA-256 安全比对 · `--fix` 自动注释 profile 污染行（反向序 · 幂等）· `--strict` 模式 · Makefile `make check` 链入（警告级）· D1 自动化率 59%→62% · Environment 域 50%→75% · 🟢 微型 · 2 files (1 new script + Makefile) | ✅ |
 | **P12-B27** | **D2 Foundation — Worker JS Test Infra** — `test-api-client.js` (16 tests · api-client.js ~85% 覆盖) + `run-tests.js` 自动发现聚合运行器 · `smoke.js` plist fix · `make test-js` Makefile target · pre-commit Stage 9 JS 变更自动触发 · D2 覆盖率 ~5%→~15% · 🟢 微型 · 4 files (3 new + 1 smoke fix + Makefile) | ✅ |
 | **P12-B28** | **D2 Core Modules — keychain+daemon-manager 单元测试** — `test-keychain.js` (28 tests — detectPlatform 三平台+fallback · get/store/delete/has 全 API + 输入校验 · B100-A1 stdin pipe 安全验证) · `test-daemon-manager.js` (31 tests — PID file CRUD · isProcessAlive · killOldDaemon SIGTERM→SIGKILL 升级 · check/start heartbeat+WS daemon · cleanupOrphanDaemons 孤儿清理 · health 自愈+双 daemon re-spawn) · D2 覆盖率 ~15%→~30% · 91 total tests (B27:32→B28:+59) · 🟢 微型 · 2 files (new tests only) | ✅ |
+| **P12-B29** | **L5 一致性检查脚本初版** — check-l5-consistency.sh 原始版（5 零散 check + P12-hardcoded）· P100-B115 已升级为完整五关 lattice 版 · 🟢 微型 · 1 file | ✅ |
 | **P12-B30** | **狗粮验证复位 · P12-4 计数器清零** — Python 680 tests ✅ · JS 91 tests ✅ · Synapse Server :8001 🟢 · 双 Worker heartbeats ✅ · System Interventions 全零 · P12-4 节奏复位 (batchesSinceLastDogfood=0) · 🟢 微型 · 纯狗粮 | ✅ |
 | **P12-B31** | **D2 Phase 3 集成测试 — ws-daemon + heartbeat 模块提取与测试** — `lib/ws-daemon-core.js` (新建 · toWsUrl/isSessionAlive/resolveConfig/writeStatus/appendEvent/touchHealth/now) · `lib/heartbeat-core.js` (新建 · isSessionAlive/checkTemplateVersion/sendHeartbeat) · `ws-daemon.js` 重构 (删除 70 行内联 → import lib) · `heartbeat.js` 重构 (删除 70 行 → import lib) · `test-ws-daemon.js` (28 tests) · `test-heartbeat.js` (20 tests) · D2 覆盖率 ~30%→~45% · 139 total tests · 🟢 微型 · 4 new + 2 refactor | ✅ |
 | **P12-B32** | **D2 Phase 4 E2E — session-core 模块提取 + E2E smoke** — `lib/session-core.js` (新建 · 286行 · now/ownerLabel/summarizeTask/roleBanner/loadEnvFile/readRoleFromCache/getExistingSnapshotAge/isExistingSnapshotHealthy/readRecentWsEvents) · `test-session-core.js` (46 tests · 全函数覆盖) · `test-e2e.js` (4 tests · E2E smoke health×3 + template versions×1 · 无服务器时优雅跳过) · `session-init.js` 重构 (-174行/-9% · 委托到 sessionCore + heartbeat-core · 删除 9 daemon 透传包装器) · `checkTemplateVersionInHeartbeat` 与 heartbeat-core.js 消除重复 · D2 覆盖率 ~45%→~55% · 189 total tests · D2 四阶段全量闭环 🎉 · 🟢 微型 · 4 new + 2 refactor | ✅ |
 | **P12-B33** | **D3 depends_on 依赖链 G5+G4 闭环** — `_unblock_downstream_tasks()` Task 完成后自动解除下游依赖阻断 · G5 WS `broadcast_to_team` `task.dependencies_met` 实时推送 · G4 `GET /tasks/available` 自动过滤 `blocked` 状态 · `available` filter 新增 `blocked` + `dependencies_met` · depends_on 实体约束 `ondelete="CASCADE"` · +3 tests (unblock single dep · multi-dependency converge · available filter blocked) · 683 tests 零回归 · 🟢 微型 · 4 files (task_service + task_execution + ws + tasks router) | ✅ |
-| **P12-B34** | **D4 双 Builder 狗粮就位** — `docs/plans/p12-b34-d4-dogfood.md` 十节计划（战略定位 · 角色拓扑 · 狗粮场景 dependency-graph · 前置条件 · 验收标准 V1-V10 · 失败模式预案 · 执行步骤 Phase A-D · God's-eye 行为边界 · 就位信号 · 用户协助清单）· `tests/dogfood/d4/` 目录就位 · 1O+2B 全 Claude Code · 🟢 微型 · 纯文档+目录 | 🔜 |
+| **P12-B34** | **D4 双 Builder 狗粮闭环** — ① Plan: `docs/plans/p12-b34-d4-dogfood.md` 十节计划 + `tests/dogfood/d4/` 目录就位 · ② 实现: dependency-graph API + 前端可视化 + 三 Task 依赖链全链路 · ③ 发现登记: PFL-129 launchd plist 冲突 + PFL-130 TaskUpdate 缺 depends_on · 🟢 微型 · 4 commits (2 plan + 1 feat + 1 chore) | ✅ |
+| **P12-B35** | **Project 创建 500 修复 · 三层防御** — ① `resolve_project`: team_id 空值检查 → 403 ForbiddenError · ② `find_or_create_by_name`: team_id 空值提前 raise ValueError · ③ `set_project_role`: worker 存在性验证 → 404 NotFoundError · +2 tests (nonexistent worker + empty team_id) · 698+189=887 零回归 · 🟢 微型 · 1 commit | ✅ |
+| **P12-B36** | **Codex 混搭** — D4 狗粮多 Worker 协作验证 · 2/3 Task 完成 · 13 PFLs | ✅ |
+| **P12-B37** | **PFL 消化波 1** — PFL-131 session-init 路径修复 · PFL-139 role pattern · PFL-142 claim 项目隔离 · 3/13 PFL 闭环 · PFL-143 撤回 B38 | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|
