@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-06（P12-B19 ✅ — Worker 配对断裂修复 · D1 56% · B17 发现 3/7 🔴 消化）
+> 最后更新：2026-08-06（P12-B25 ✅ — PFL-128 Server 端 READY task 看门狗 · PFL 37/37 全量清零 · D1 59%）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -835,8 +835,13 @@
 | **P12-B17** | **狗粮验证 — 7 项发现** — DUPLICATE_VERIFICATION guard 误杀合法 rework (#1) · canVerify project role 缺失 (#3) · Worker 配对断裂 (#5) · 前端分页盲区 (#2) · Stale detector 竞态 (#4) · O SKILL.md 缺 verification 轮询 (#6) · God's-eye DB bypass (#7) · 🟢 微型 · 纯狗粮 | ✅ |
 | **P12-B18** | **B17 发现 #1/#3 修复** — submit_task 全量 verification reset · guard 防御纵深 task.rejected fallback · GET /projects/{id}/my-role 端点 · TaskDetail project role 权限检查 · 2/7 🔴 消化 · D1 56% · 5 files | ✅ |
 | **P12-B19** | **B17 发现 #5 Worker 配对断裂修复** — O 循环新增 Worker 拉取+Capability 匹配算法 · _protocol.md `.skills`→`.names` 修正 · B 侧 Capability 自检+rejected→reclaim 文档化 · 3/7 🔴 消化 · 3 files 纯模板 | ✅ |
-
-### 🎯 P12 四大战略方向
+| **P12-B20** | **狗粮验证 — B19 Worker 配对修复实战验证** — 狗粮门禁激活 · API 级 Worker 匹配算法验证 · 测试 Task 创建 (required_capabilities 匹配) · B19 模板一致性审计 · L5 B19→B20 拉通 · P12-4 狗粮节奏复位 · 3/7 🔴 消化 (维持) · 1 task · 零 src/ 变更 | ✅ |
+| **P12-B21** | **B17 发现 #2/#6 消化** — #2 前端分页盲区：client.ts cursor 分页 + Tasks.tsx Load More 按钮 + i18n/CSS · #6 O SKILL.md verification 轮询显式化：role-orchestrator.md + _protocol.md API status 名修正（submitted→in_verification）· 4/7 消化 (2 🔴+2 🟡) · 5 files (2 code + 2 template + 1 CSS) · 零 src/ 变更 | ✅ |
+| **P12-B22** | **B17 发现 #4/#7 消化 🎉** — #4 Stale detector 竞态修复：task_stale_reassign 15→45min + verification_timeout 30→120min + max_reverts 3→5 · #7 DB bypass 监控：health 端点 system_interventions 计数器（stale detected/reassigned/cancelled + verify reverted/cancelled）· 7/7 消化 🎉 · D1 56% · batchesSinceLastDogfood=2 · 2 files · 🟢 微型 | ✅ |
+| **P12-B23** | **狗粮验证 — B18-B22 修复实战检验** — Server 健康确认（4 reaper running）· B22 system_interventions 计数器验证 · B103 双 Worker 活跃 handshake · Heartbeat 监控 4 offline 检测 · config reload 生效 · P12-4 狗粮复位 · D1 56% · 0 code files · 🟢 微型 · 纯狗粮 | ✅ |
+| **P12-B24** | **Zombie-Worker 模板防御 + ENV-2 密钥一致性** — B23 狗粮发现根因修复：role-builder.md O-silence 操作性定义（last_assignment_at 替代 last_heartbeat_at）+ per-loop liveness 重检 + Cap mismatch 上报 · role-orchestrator.md zombie Worker 防御行 + 零匹配超时重试 · _protocol.md 心跳 doc-code 对齐（60s→300s）+ zombie 检测规则 · `check-env-consistency.sh` ENV-2 .env↔keychain↔launchd 三向比对 + `--fix` 自愈 + Makefile 集成 · PFL-128 READY-task watchdog 登记 · D1 56%→59% · batchesSinceLastDogfood=1 · 🟢 微型 · 0 src/ 变更 | ✅ |
+| **P12-B25** | **PFL-128 闭环 — Server 端 READY task 看门狗** — `detect_unclaimed_ready_tasks()` 扫描 READY 超时未认领 task · 记录 `task.ready_unclaimed` 事件 + `system_interventions.ready_unclaimed` 计数器 + `/health` 暴露 · `config.py` 新增 `task_ready_unclaimed_timeout_minutes=30` · +2 tests · 680 tests 零回归 · PFL 37/37 全量清零 🎉 · 🟢 微型 · 4 files (3 src + 1 test) | ✅ |
+| **P12-B26** | **ENV-1 环境变量污染检测+自愈** — `check-env-pollution.sh` (~240行) 双维度检测（当前 shell + profile 文件）· SHA-256 安全比对 · `--fix` 自动注释 profile 污染行（反向序 · 幂等）· `--strict` 模式 · Makefile `make check` 链入（警告级）· D1 自动化率 59%→62% · Environment 域 50%→75% · 🟢 微型 · 2 files (1 new script + Makefile) | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

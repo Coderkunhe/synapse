@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -35,6 +35,8 @@ help: ## 显示所有可用 target
 	@echo "    make check-issue-numbers  议题编号自洽校验（G26，警告级）"
 	@echo "    make check-db-consistency  DB ↔ docs 一致性检查（警告级）"
 	@echo "    make check-role-isolation  角色隔离观测门禁（ADR-006 S1-S3/S7，警告级）"
+	@echo "    make check-env-consistency .env ↔ Keychain ↔ launchd 密钥一致性（ENV-2 · P12-B24）"
+	@echo "    make check-env-pollution   Shell 环境变量污染检测（ENV-1 · P12-B26）"
 	@echo "    make check-hooks         Git hooks 完整性检测（V-028 防呆 — 新 clone 后必检）"
 	@echo "    make check-template-drift  模板→部署 drift 检测（P100-B105 — SHA256 对比）"
 	@echo "    make check-db-migration  DB schema ↔ model 一致性检测（alembic check · P100-B106 · ⑲）"
@@ -52,7 +54,7 @@ help: ## 显示所有可用 target
 	@echo "    make db-sync     从 DB 导出 Batch 状态到 docs/batch-status.md"
 	@echo ""
 
-check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-batch-sequence check-quality-gate check-checkpoint-freshness check-template-drift check-db-migration check-types check-tests ## 完整门禁
+check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-env-consistency check-env-pollution check-batch-sequence check-quality-gate check-checkpoint-freshness check-template-drift check-db-migration check-types check-tests ## 完整门禁
 	@echo ""
 	@echo "✅ 门禁全部通过"
 
@@ -156,6 +158,20 @@ check-db-consistency: ## DB ↔ docs 一致性检查（警告级）
 
 check-role-isolation: ## 角色隔离观测门禁（ADR-006 S1-S3/S7，警告级，不阻断）
 	@bash tools/check-role-isolation.sh
+
+
+check-env-consistency: ## .env ↔ Keychain ↔ launchd 密钥一致性（ENV-2 · P12-B24）
+	@bash tools/check-env-consistency.sh
+
+check-env-pollution: ## Shell 环境变量污染检测（ENV-1 · P12-B26 · 警告级）
+	@bash tools/check-env-pollution.sh; EXIT=$$?; \
+	if [ $$EXIT -eq 1 ]; then \
+		echo ""; \
+		echo "⚠️  检测到 SYNAPSE_* 环境变量污染（警告级，不阻断）"; \
+		echo "   → session-init.js (B135) 会在启动时以 .env 覆盖"; \
+		echo "   → 建议: make check-env-pollution ARGS='--fix' 清理或 bash tools/check-env-pollution.sh --fix"; \
+	fi; \
+	exit 0
 
 check-hooks: ## Git hooks 完整性检测（V-028 防呆 — 新 clone/迁库后首次 make check 即可发现）
 	@bash tools/check-hooks.sh
