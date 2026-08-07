@@ -465,6 +465,7 @@ const en: TranslationMap = {
     batchAssignError: 'Batch assign failed',
     batchReadyTooltip: 'Set selected backlog tasks to Ready',
     assignWorkerPlaceholder: 'Select…',
+    loadMore: 'Load more tasks',
   },
 
   // ── Task Detail ───────────────────────────────────────────────────────
@@ -1284,6 +1285,7 @@ const zh: TranslationMap = {
     batchAssignError: '批量分配失败',
     batchReadyTooltip: '将选中的backlog任务设为Ready',
     assignWorkerPlaceholder: '选择…',
+    loadMore: '加载更多任务',
   },
 
   taskDetail: {

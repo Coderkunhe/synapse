@@ -31,6 +31,8 @@ interface DependsOnInput {
 export default function Tasks() {
   const { t } = useI18n()
   const [tasks, setTasks] = useState<TaskSummary[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ message: string; status?: number } | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
@@ -133,7 +135,7 @@ export default function Tasks() {
     setLoading(true)
     setError(null)
     fetchTasks(projectId, token, filterOpts)
-      .then(res => setTasks(res.items))
+      .then(res => { setTasks(res.items); setNextCursor(res.next_cursor) })
       .catch(err => {
         const status = err instanceof ApiError ? err.status : undefined
         // 404 likely means stale project_id in localStorage — clear and re-resolve
@@ -372,7 +374,7 @@ export default function Tasks() {
       setCreatedTask(task)
       // Reload the board (preserve active filters)
       fetchTasks(projectId, token, filterOpts)
-        .then(res => setTasks(res.items))
+        .then(res => { setTasks(res.items); setNextCursor(res.next_cursor) })
         .catch(err => setError({
           message: err.message,
           status: err instanceof ApiError ? err.status : undefined,
@@ -452,6 +454,7 @@ export default function Tasks() {
       try {
         const res = await fetchTasks(projectId, token, filterOpts)
         setTasks(res.items)
+        setNextCursor(res.next_cursor)
       } catch (err) { console.error('Failed to refresh tasks after batch operation', err) /* Non-critical: UI refresh after batch op already showed result */ }
     }
   }
@@ -463,7 +466,19 @@ export default function Tasks() {
     try {
       const res = await fetchTasks(projectId, token, filterOpts)
       setTasks(res.items)
+      setNextCursor(res.next_cursor)
     } catch { /* ignore */ }
+  }
+
+  const handleLoadMore = async () => {
+    if (!projectId || !token || !nextCursor) return
+    setLoadingMore(true)
+    try {
+      const res = await fetchTasks(projectId, token, { ...filterOpts, cursor: nextCursor })
+      setTasks(prev => [...prev, ...res.items])
+      setNextCursor(res.next_cursor)
+    } catch { /* ignore */ }
+    finally { setLoadingMore(false) }
   }
 
 
@@ -543,6 +558,7 @@ export default function Tasks() {
       await readyTask(taskId, version, token)
       const res = await fetchTasks(projectId, token, filterOpts)
       setTasks(res.items)
+      setNextCursor(res.next_cursor)
     } catch (err: unknown) {
       setQuickActionError(quickActionErrorMsg(err))
       setTimeout(() => setQuickActionError(null), 5000)
@@ -556,6 +572,7 @@ export default function Tasks() {
       await claimTask(taskId, version, token)
       const res = await fetchTasks(projectId, token, filterOpts)
       setTasks(res.items)
+      setNextCursor(res.next_cursor)
     } catch (err: unknown) {
       setQuickActionError(quickActionErrorMsg(err))
       setTimeout(() => setQuickActionError(null), 5000)
@@ -1237,6 +1254,19 @@ export default function Tasks() {
                   onClaim={handleClaim}
                 />
               ))}
+            </div>
+          )}
+          {/* ── Load More ─────────────────────────────── */}
+          {nextCursor && (
+            <div className={styles.loadMoreBar}>
+              <button
+                type="button"
+                className={styles.loadMoreBtn}
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? t('common.loading') : t('tasks.loadMore')}
+              </button>
             </div>
           )}
           {/* ── View history cross-link ────────────────── */}

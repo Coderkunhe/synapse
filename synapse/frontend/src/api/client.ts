@@ -375,13 +375,16 @@ export function fetchTasks(projectId: string, token: string, opts?: {
   batchId?: string
   search?: string
   status?: string
+  cursor?: string
+  limit?: number
 }) {
-  const params = new URLSearchParams({ limit: '100' })
+  const params = new URLSearchParams({ limit: String(opts?.limit ?? 100) })
   if (opts?.ownerId) params.set('owner_id', opts.ownerId)
   if (opts?.batchId) params.set('batch_id', opts.batchId)
   if (opts?.search) params.set('search', opts.search)
   if (opts?.status) params.set('status', opts.status)
-  return request<{ items: TaskSummary[]; total: number }>(
+  if (opts?.cursor) params.set('cursor', opts.cursor)
+  return request<{ items: TaskSummary[]; total: number; next_cursor: string | null }>(
     `/v1/projects/${projectId}/tasks?${params}`,
     { token },
   )
