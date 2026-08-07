@@ -2,7 +2,7 @@
 
 > 版本：v1.0 · 2026-07-18（P100-B79 从 onboarding.md 拆分）
 > 父文档：[`docs/onboarding.md`](onboarding.md) — 核心接入流程（快速开始·人类 Web UI·自助接入·Task 生命周期）
-> 最后更新：2026-07-18
+> 最后更新：2026-08-07（P100-B116 文档全量刷新）
 
 本文档承载 onboarding.md 中 Agent API 接入的详细参考内容：
 - §1 前置条件与注册
