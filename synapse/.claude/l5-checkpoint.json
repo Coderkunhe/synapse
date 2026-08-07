@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B114 L5 拉通 — 📄 CLAUDE.md P100 B113→B114 状态更新 · 📄 requirements-log.md B114 全量条目 · 📄 MEMORY.md+p100.md 暗号更新 · 📄 .gitignore 5 patterns 补全 · ✅ P12-B30 阻断已解",
+  "lastL5Batch": "B30→B32 L5 拉通 — 📄 roadmap.md B30+B31+B32 登记 · 📄 requirements-log.md B30+B31+B32 全量条目 · 📄 CLAUDE.md P12 状态更新 B28→B32 · 📄 daily/2026-08-07.md B30-B32 节追加 · 📚 D2 四阶段叙事闭环 (B27+B28+B31+B32) · 🎭 189 tests 零回归验证通过 · tracks/synapse.md B18→B32 指针追平",
   "lastL5Timestamp": "2026-08-07",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B114 L5 拉通 — 📄 CLAUDE.md P100 B113→B114 状态更新 · 📄 requirements-log.md B114 全量条目 · 📄 MEMORY.md+p100.md 暗号更新 · 📄 .gitignore 5 patterns 补全 · ✅ P12-B30 阻断已解",
+  "lastL5Evidence": "B30→B32 L5 拉通 — 📄 roadmap.md B30+B31+B32 登记 · 📄 requirements-log.md B30+B31+B32 全量条目 · 📄 CLAUDE.md P12 状态更新 B28→B32 · 📄 daily/2026-08-07.md B30-B32 节追加 · 📚 D2 四阶段叙事闭环 (B27+B28+B31+B32) · 🎭 189 tests 零回归验证通过 · tracks/synapse.md B18→B32 指针追平",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

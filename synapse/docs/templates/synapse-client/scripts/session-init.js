@@ -53,6 +53,9 @@ const { SynapseClient } = require('./api-client');
 const { getKey } = require('./keychain');
 const { CRONCREATE_PROMPT } = require('./lib/prompts');
 const { createDaemonManager } = require('./lib/daemon-manager');
+const sessionCore = require('./lib/session-core');
+// P12-B32: consolidate template version check — use heartbeat-core's injectable version
+const { checkTemplateVersion } = require('./lib/heartbeat-core');
 
 // ── Constants ──────────────────────────────────────────────────────
 const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -136,16 +139,12 @@ const dm = createDaemonManager(WORKER_ROOT, __dirname);
 
 /** Current ISO timestamp for output files. */
 function now() {
-  return new Date().toISOString();
+  return sessionCore.now();
 }
 
 /**
- * P11-B132: Check template version from heartbeat response.
- * Compares server version against local synapse-version.json.
- * Writes .claude/template-upgrade-needed flag on mismatch.
- *
- * This replaces the daemon-side check in heartbeat.js's checkTemplateVersion()
- * for the cron heartbeat path. The daemon still does its own check every 55s.
+ * P11-B132 (PFL-084): Check template version from heartbeat response.
+ * P12-B32: Delegates to lib/heartbeat-core.js checkTemplateVersion (consolidated).
  *
  * @param {string} serverVersion — template_version from heartbeat response
  * @param {object} state — mutated: state.templateUpgradeNeeded set if mismatch
@@ -154,38 +153,18 @@ function checkTemplateVersionInHeartbeat(serverVersion, state) {
   const UPGRADE_FLAG = path.join(WORKER_ROOT, 'template-upgrade-needed');
   const VERSION_FILE_SI = path.join(WORKER_ROOT, 'synapse-version.json');
 
-  var localVersion = null;
-  try {
-    if (fs.existsSync(VERSION_FILE_SI)) {
-      var raw = fs.readFileSync(VERSION_FILE_SI, 'utf-8');
-      var parsed = JSON.parse(raw);
-      localVersion = parsed.version || null;
-    }
-  } catch (_) { /* non-critical */ }
+  const result = checkTemplateVersion(serverVersion, {
+    versionFile: VERSION_FILE_SI,
+    upgradeFlagFile: UPGRADE_FLAG,
+  });
 
-  if (!localVersion) {
-    try {
-      fs.writeFileSync(UPGRADE_FLAG, JSON.stringify({
-        current: null, latest: serverVersion,
-        detected_at: new Date().toISOString(), reason: 'no_local_version',
-      }, null, 2) + '\n', 'utf-8');
-    } catch (_) { /* best-effort */ }
-    return;
-  }
-
-  if (localVersion !== serverVersion) {
-    try {
-      fs.writeFileSync(UPGRADE_FLAG, JSON.stringify({
-        current: localVersion, latest: serverVersion,
-        detected_at: new Date().toISOString(),
-      }, null, 2) + '\n', 'utf-8');
-    } catch (_) { /* best-effort */ }
-    state.templateUpgradeNeeded = { current: localVersion, latest: serverVersion, detected_at: new Date().toISOString() };
-  } else {
-    // Clear stale flag if versions match
-    try {
-      if (fs.existsSync(UPGRADE_FLAG)) fs.unlinkSync(UPGRADE_FLAG);
-    } catch (_) { /* best-effort */ }
+  // Map heartbeat-core result back to session-init state mutation
+  if (result && result.action === 'flag_written') {
+    state.templateUpgradeNeeded = {
+      current: result.localVersion || null,
+      latest: result.serverVersion,
+      detected_at: new Date().toISOString(),
+    };
   }
 }
 
@@ -208,34 +187,11 @@ function checkTemplateVersionInHeartbeat(serverVersion, state) {
  * @returns {string}
  */
 function ownerLabel(task, myWorkerId) {
-  if (!task.owner_id) return 'unassigned';
-  if (!myWorkerId) return `owner: ${task.owner_name || task.owner_id}`;
-
-  if (task.owner_id === myWorkerId) {
-    // Layer 4 (API) already appends (YOU) to owner_name when it matches.
-    // Use it if available; otherwise generate our own.
-    return '🫵 YOU';
-  }
-
-  // Belongs to someone else — make it unambiguous
-  const name = task.owner_name || task.owner_id;
-  if (task.owner_type === 'worker') {
-    return `owner: ${name} (NOT YOU)`;
-  }
-  return `owner: ${name}`;
+  return sessionCore.ownerLabel(task, myWorkerId);
 }
 
 // ── Daemon lifecycle (delegated to lib/daemon-manager.js · B137) ──
-
-function readPidFile(pidFile) { return dm.readPidFile(pidFile); }
-function writePidFile(pidFile, pid) { dm.writePidFile(pidFile, pid); }
-function isProcessAlive(pid) { return dm.isProcessAlive(pid); }
-function killOldDaemon(pidFile) { return dm.killOldDaemon(pidFile); }
-function cleanupOrphanDaemons() { return dm.cleanupOrphanDaemons(); }
-function checkHeartbeatDaemon() { return dm.checkHeartbeatDaemon(); }
-function startHeartbeatDaemon() { return dm.startHeartbeatDaemon(); }
-function checkWsDaemon() { return dm.checkWsDaemon(); }
-function startWsDaemon() { return dm.startWsDaemon(); }
+// P12-B32: Removed 9 pass-through wrappers — callers use dm.* directly.
 
 /**
  * Read recent WS events from _ws-events.jsonl.
@@ -245,15 +201,7 @@ function startWsDaemon() { return dm.startWsDaemon(); }
  * @returns {Array<Object>}
  */
 function readRecentWsEvents(n = 5) {
-  const eventsFile = path.join(__dirname, '..', '_ws-events.jsonl');
-  try {
-    const raw = fs.readFileSync(eventsFile, 'utf-8');
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const recent = lines.slice(-n);
-    return recent.map(line => { try { return JSON.parse(line); } catch (_) { return null; } }).filter(Boolean);
-  } catch (_) {
-    return [];
-  }
+  return sessionCore.readRecentWsEvents(n, path.join(__dirname, '..', '_ws-events.jsonl'));
 }
 
 /**
@@ -267,23 +215,7 @@ function readRecentWsEvents(n = 5) {
  * @returns {string|null} — e.g. "5 min" or "2.3 hr" or null
  */
 function getExistingSnapshotAge() {
-  try {
-    if (!fs.existsSync(OUTPUT_FILE)) return null;
-    const content = fs.readFileSync(OUTPUT_FILE, 'utf-8');
-    const match = content.match(/^# Session State — (.+)$/m);
-    if (!match) return null;
-    const oldTs = new Date(match[1]);
-    if (isNaN(oldTs.getTime())) return null;
-    const ageMs = Date.now() - oldTs.getTime();
-    if (ageMs < 0) return null; // clock skew — treat as fresh
-    const ageMin = Math.round(ageMs / 60000);
-    if (ageMin < 1) return '<1 min';
-    if (ageMin < 60) return `${ageMin} min`;
-    const ageHr = (ageMs / 3600000).toFixed(1);
-    return `${ageHr} hr`;
-  } catch (_e) {
-    return null;
-  }
+  return sessionCore.getExistingSnapshotAge(OUTPUT_FILE);
 }
 
 /**
@@ -293,20 +225,7 @@ function getExistingSnapshotAge() {
  * @returns {string|null}
  */
 function readRoleFromCache() {
-  try {
-    if (!fs.existsSync(PROTOCOL_CACHE)) return null;
-    const raw = fs.readFileSync(PROTOCOL_CACHE, 'utf-8');
-    const cache = JSON.parse(raw);
-    // role_instructions is keyed by role ("builder"/"orchestrator"/"steward")
-    if (cache.role_instructions) {
-      const roles = Object.keys(cache.role_instructions);
-      if (roles.length === 1) return roles[0];
-      // Multiple roles — can't disambiguate without protocol fetch
-    }
-    return null;
-  } catch (_e) {
-    return null;
-  }
+  return sessionCore.readRoleFromCache(PROTOCOL_CACHE);
 }
 
 /**
@@ -446,44 +365,7 @@ function checkGitHooks() {
  * @returns {{ vars: object, errors: string[], loaded: boolean }}
  */
 function loadEnvFile(envPath) {
-  const result = { vars: {}, errors: [], loaded: false };
-  try {
-    if (!fs.existsSync(envPath)) {
-      return result;
-    }
-    const raw = fs.readFileSync(envPath, 'utf-8');
-    const lines = raw.split('\n');
-    let lineNo = 0;
-    for (const line of lines) {
-      lineNo++;
-      const trimmed = line.trim();
-      // Skip blank lines and comments
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      // Parse KEY=VALUE
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      const key = trimmed.substring(0, eqIdx).trim();
-      let value = trimmed.substring(eqIdx + 1).trim();
-      // Remove inline comments (only if outside quotes)
-      // Simple heuristic: if # appears after a space, it's likely a comment
-      const hashIdx = value.indexOf(' #');
-      if (hashIdx !== -1) {
-        value = value.substring(0, hashIdx).trim();
-      }
-      // Strip surrounding quotes (single or double)
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.substring(1, value.length - 1);
-      }
-      if (key) {
-        result.vars[key] = value;
-      }
-    }
-    result.loaded = true;
-  } catch (e) {
-    result.errors.push(`Failed to read .env file: ${e.message}`);
-  }
-  return result;
+  return sessionCore.loadEnvFile(envPath);
 }
 
 /**
@@ -543,19 +425,7 @@ function checkEnv() {
  * @returns {boolean}
  */
 function isExistingSnapshotHealthy() {
-  try {
-    if (!fs.existsSync(OUTPUT_FILE)) return false;
-    const content = fs.readFileSync(OUTPUT_FILE, 'utf-8');
-    // Check if generated today
-    const today = new Date().toISOString().slice(0, 10);
-    if (!content.includes(today)) return false;
-    // Check for healthy indicators
-    const hasEnvOk = content.includes('API URL') && !content.includes('Environment incomplete');
-    const hasProtocolOk = content.includes('Protocol') && !content.includes('Protocol fetch failed');
-    return hasEnvOk && hasProtocolOk;
-  } catch (_e) {
-    return false;
-  }
+  return sessionCore.isExistingSnapshotHealthy(OUTPUT_FILE);
 }
 
 /**
@@ -1077,16 +947,9 @@ function outputStateJson(state) {
   console.log(JSON.stringify(safe, null, 2));
 }
 
-/** P12-B5: Minimal task summary for JSON output. */
+/** P12-B5/P12-B32: Minimal task summary for JSON output. Delegates to session-core. */
 function summarizeTask(t) {
-  return {
-    id: t.id,
-    title: t.title || t.id,
-    status: t.status,
-    owner_id: t.owner_id || null,
-    owner_name: t.owner_name || null,
-    depends_on: t.depends_on || [],
-  };
+  return sessionCore.summarizeTask(t);
 }
 
 /**
@@ -1152,44 +1015,7 @@ function writeBootPrompt(state) {
  * Generate role banner text for the AI to display.
  */
 function roleBanner(state) {
-  const roleColors = { builder: '🔵', orchestrator: '🟠', steward: '⚪' };
-  const emoji = roleColors[state.role] || '⚪';
-  const roleName = state.role || 'unknown';
-  const projectName = state.protocolData?.project_name || 'unknown';
-
-  const roleBanners = {
-    builder: [
-      `${emoji} Synapse Worker 已连接`,
-      `   角色: Builder`,
-      `   项目: ${projectName}`,
-      `   职责: 接 Task · 执行 · 收集 evidence · 提交验证`,
-      `   边界: 不创建 Task · 不分配 Task · 不验收`,
-    ],
-    orchestrator: [
-      `${emoji} Synapse Worker 已连接`,
-      `   角色: Orchestrator`,
-      `   项目: ${projectName}`,
-      `   职责: 拆解 Task · 分配 Builder · 验收结果`,
-      `   边界: 不写代码 · 不认领 Task · 不提交 evidence`,
-    ],
-    steward: [
-      `${emoji} Synapse Worker 已连接`,
-      `   角色: Steward`,
-      `   项目: ${projectName}`,
-      `   职责: 审查代码 · 安全检查 · 反馈意见`,
-      `   边界: 不写代码 · 不创建 Task · 不验收`,
-    ],
-  };
-
-  const lines = roleBanners[state.role] || roleBanners.builder;
-
-  if (state.protocolData?.role_source === 'default_fallback') {
-    lines.push('');
-    lines.push('⚠️ 你的角色未在 Worker 元数据中配置，已默认分配为 Builder。');
-    lines.push('如果这不是你的预期角色，请联系 Admin 更新 Worker 配置。');
-  }
-
-  return lines.join('\n');
+  return sessionCore.roleBanner(state);
 }
 
 // ── Main ────────────────────────────────────────────────────────────
@@ -1462,7 +1288,7 @@ async function main() {
   if (!QUICK_MODE && !HEALTH_MODE) {
   // ── Step 2.4: Cleanup pre-B115 orphan daemons (PFL-116 · B121) ──
   // Must run BEFORE spawning new daemons — kills zombies that have no PID file.
-  const orphanResult = cleanupOrphanDaemons();
+  const orphanResult = dm.cleanupOrphanDaemons();
   if (orphanResult.cleaned > 0) {
     console.log(`🧹 ${SCRIPT_NAME}: cleaned ${orphanResult.cleaned} pre-B115 orphan daemon(s)`);
   }
@@ -1472,12 +1298,12 @@ async function main() {
   // startHeartbeatDaemon() internally spawns first (so old daemon is fallback on failure),
   // then calls killOldDaemon(), then writes the new PID file.
   // No more "already running" skip — every SessionStart gets a fresh daemon.
-  const hbResult = startHeartbeatDaemon();
+  const hbResult = dm.startHeartbeatDaemon();
   if (hbResult.started) {
     state.heartbeatDaemon = { running: true, pids: [String(hbResult.pid)], startedByUs: true };
   } else {
     // Spawn failed — fall back to checking if a prior daemon still runs
-    state.heartbeatDaemon = checkHeartbeatDaemon();
+    state.heartbeatDaemon = dm.checkHeartbeatDaemon();
     if (!state.heartbeatDaemon.running) {
       state.heartbeatDaemon.startedByUs = false;
       state.heartbeatDaemon.startError = hbResult.error;
@@ -1489,12 +1315,12 @@ async function main() {
   // startWsDaemon() internally spawns first (so old daemon is fallback on failure),
   // then calls killOldDaemon(), then writes the new PID file.
   // Per-worker PID files eliminate cross-worker pgrep interference.
-  const wsDaemonResult = startWsDaemon();
+  const wsDaemonResult = dm.startWsDaemon();
   if (wsDaemonResult.started) {
     state.wsDaemon = { running: true, pids: [String(wsDaemonResult.pid)], startedByUs: true };
   } else {
     // Spawn failed — fall back to checking if a prior daemon still runs
-    state.wsDaemon = checkWsDaemon();
+    state.wsDaemon = dm.checkWsDaemon();
     if (!state.wsDaemon.running) {
       state.wsDaemon.startedByUs = false;
       if (wsDaemonResult.skippedNodeVersion) {

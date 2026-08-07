@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-07（P12-B28 ✅ · P100-B113 审计中 · D1 62% · D2 ~30% · 91 total tests）
+> 最后更新：2026-08-07（P12-B32 ✅ D2 四阶段全量闭环 · D1 62% · D2 ~55% · 189 total tests）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -643,6 +643,9 @@
 | **P12-B26** | **ENV-1 环境变量污染检测+自愈** — `check-env-pollution.sh` (~240行) 双维度检测（当前 shell + profile 文件）· SHA-256 安全比对 · `--fix` 自动注释 profile 污染行（反向序 · 幂等）· `--strict` 模式 · Makefile `make check` 链入（警告级）· D1 自动化率 59%→62% · Environment 域 50%→75% · 🟢 微型 · 2 files (1 new script + Makefile) | ✅ |
 | **P12-B27** | **D2 Foundation — Worker JS Test Infra** — `test-api-client.js` (16 tests · api-client.js ~85% 覆盖) + `run-tests.js` 自动发现聚合运行器 · `smoke.js` plist fix · `make test-js` Makefile target · pre-commit Stage 9 JS 变更自动触发 · D2 覆盖率 ~5%→~15% · 🟢 微型 · 4 files (3 new + 1 smoke fix + Makefile) | ✅ |
 | **P12-B28** | **D2 Core Modules — keychain+daemon-manager 单元测试** — `test-keychain.js` (28 tests — detectPlatform 三平台+fallback · get/store/delete/has 全 API + 输入校验 · B100-A1 stdin pipe 安全验证) · `test-daemon-manager.js` (31 tests — PID file CRUD · isProcessAlive · killOldDaemon SIGTERM→SIGKILL 升级 · check/start heartbeat+WS daemon · cleanupOrphanDaemons 孤儿清理 · health 自愈+双 daemon re-spawn) · D2 覆盖率 ~15%→~30% · 91 total tests (B27:32→B28:+59) · 🟢 微型 · 2 files (new tests only) | ✅ |
+| **P12-B30** | **狗粮验证复位 · P12-4 计数器清零** — Python 680 tests ✅ · JS 91 tests ✅ · Synapse Server :8001 🟢 · 双 Worker heartbeats ✅ · System Interventions 全零 · P12-4 节奏复位 (batchesSinceLastDogfood=0) · 🟢 微型 · 纯狗粮 | ✅ |
+| **P12-B31** | **D2 Phase 3 集成测试 — ws-daemon + heartbeat 模块提取与测试** — `lib/ws-daemon-core.js` (新建 · toWsUrl/isSessionAlive/resolveConfig/writeStatus/appendEvent/touchHealth/now) · `lib/heartbeat-core.js` (新建 · isSessionAlive/checkTemplateVersion/sendHeartbeat) · `ws-daemon.js` 重构 (删除 70 行内联 → import lib) · `heartbeat.js` 重构 (删除 70 行 → import lib) · `test-ws-daemon.js` (28 tests) · `test-heartbeat.js` (20 tests) · D2 覆盖率 ~30%→~45% · 139 total tests · 🟢 微型 · 4 new + 2 refactor | ✅ |
+| **P12-B32** | **D2 Phase 4 E2E — session-core 模块提取 + E2E smoke** — `lib/session-core.js` (新建 · 286行 · now/ownerLabel/summarizeTask/roleBanner/loadEnvFile/readRoleFromCache/getExistingSnapshotAge/isExistingSnapshotHealthy/readRecentWsEvents) · `test-session-core.js` (46 tests · 全函数覆盖) · `test-e2e.js` (4 tests · E2E smoke health×3 + template versions×1 · 无服务器时优雅跳过) · `session-init.js` 重构 (-174行/-9% · 委托到 sessionCore + heartbeat-core · 删除 9 daemon 透传包装器) · `checkTemplateVersionInHeartbeat` 与 heartbeat-core.js 消除重复 · D2 覆盖率 ~45%→~55% · 189 total tests · D2 四阶段全量闭环 🎉 · 🟢 微型 · 4 new + 2 refactor | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

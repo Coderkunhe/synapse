@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-07（P12-B28 ✅ D2 Core Modules · P100-B114 ✅ 治理清理 · 91 total tests · D2 ~30%）
+> 不存代码，只协调工作。最后更新：2026-08-07（P12-B32 ✅ D2 四阶段全量闭环 · 189 tests · D2 ~55% · L5 待拉通）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B28 ✅ D2 Core Modules · 91 tests · D2 ~30% | **P12-B30** 🔜 |
+| **P12** | B32 ✅ D2 四阶段全量闭环 · 189 tests · D2 ~55% | **P12-B33** 🔜 D3 Scout |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B114 ✅ 治理清理 · 12 modified→3 commits + 35 untracked 清理 + gitignore 补全 · P12-B30 阻断已解 | — |
-| **L5** | batchesSinceLastL5=0（B28→B113 L5 已拉通复位 · P12-B30 ready） | 🟢 正常 |
+| **L5** | batchesSinceLastL5=2 🚨（B31+B32 · B33 前必须先 L5 拉通）| 🔴 需拉通 |
