@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-07（P12-B28 ✅ — D2 Core Modules 单元测试 · 91 total tests · D2 ~30%）
+> 不存代码，只协调工作。最后更新：2026-08-07（P12-B28 ✅ D2 Core Modules · P100-B113 ✅ P12 质量债务全量审计 · 91 total tests · D2 ~30%）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B28 ✅ D2 Core Modules 单元测试 · 91 tests · D2 ~30% | **P12-B29** 🔜 |
+| **P12** | B28 ✅ D2 Core Modules · 91 tests · D2 ~30% | **P12-B30** 🔜 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
-| **P100** | B111 ✅ 治理波全量收尾 | — |
+| **P100** | B113 ✅ P12 质量债务全量审计 · GO for P12-B30 · check-l5-consistency 探针清零 | — |
 | **L5** | batchesSinceLastL5=1（B27+B28 联合 L5 已拉通 · checkpoint 为源） | 🟢 正常 |
