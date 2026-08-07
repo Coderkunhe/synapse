@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B113→B114 L5 拉通 — 📄 .gitignore 补全 *.db/.DS_Store/backups · 📄 CLAUDE.md+requirements-log.md 幽灵 check-l5-consistency.sh 引用修复 · 📄 daily/2026-08-06.md+P12-B20~B25 文档同步 · 🗑️ 35 untracked 文件清理 · ✅ check-env-consistency.sh P12-B24 交付件补提交",
   "lastL5Timestamp": "2026-08-07",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B113→B114 L5 拉通 — 📄 .gitignore 补全 *.db/.DS_Store/backups · 📄 CLAUDE.md+requirements-log.md 幽灵 check-l5-consistency.sh 引用修复 · 📄 daily/2026-08-06.md+P12-B20~B25 文档同步 · 🗑️ 35 untracked 文件清理 · ✅ check-env-consistency.sh P12-B24 交付件补提交",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
