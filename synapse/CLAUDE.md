@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-07（P12-B32 ✅ D2 四阶段全量闭环 · 189 tests · D2 ~55% · L5 ✅）
+> 不存代码，只协调工作。最后更新：2026-08-07（P100-B115 🔜 L5 五关脚本化 · P12-B35 ✅ · L5 counter=1）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -26,7 +26,7 @@
 | # | 触发条件 | 动作 |
 |:--|:--------|:-----|
 | 1 | commit 前 | `git diff --stat` → >8 src files → 拆批（9-12 且全部 ≤3 行机械变更可豁免） |
-| 2 | batchesSinceLastL5 ≥ 2 | 先 L5 拉通再开新批 → `bash tools/l5-reset.sh --yes "..."` 复位 · L5 一致性手工五关校验（roadmap↔reqlog↔commit↔checkpoint↔CLAUDE.md）|
+| 2 | batchesSinceLastL5 ≥ 2 | 先 L5 拉通再开新批 → `bash tools/l5-reset.sh --yes "..."` 复位 · L5 一致性五关校验 → `bash tools/check-l5-consistency.sh`（roadmap↔reqlog↔commit↔checkpoint↔CLAUDE.md）|
 | 3 | 编码前 | Scout 三问（数据流/同类参照/用户一句话）未答完 → 不写代码 |
 | 4 | commit 前 | 自检四问（乐观路径/边界状态/对比同类/变更口播）未过 → 不 commit |
 | 5 | 每批完成 | roadmap + reqlog + daily 三同步 |
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B34 就位 · B33 ✅ D3 depends_on G5+G4 · 683 tests · D4 双 Builder 狗粮 | **P12-B34** 🔜 D4 Phase A 环境就位 |
+| **P12** | B35 ✅ Project 创建 500 三层防御 · 698+189=887 零回归 · D4 双 Builder 狗粮闭环 | **P12-B36** 🔜 Codex 混搭 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
-| **P100** | B114 ✅ 治理清理 · 12 modified→3 commits + 35 untracked 清理 + gitignore 补全 · P12-B30 阻断已解 | — |
-| **L5** | batchesSinceLastL5=0（B30→B32 L5 拉通完成 · P12-B33 ready）| 🟢 正常 |
+| **P100** | B114 ✅ 治理清理 · 12 modified→3 commits + 35 untracked 清理 + gitignore 补全 · P12-B30 阻断已解 | **P100-B115** 🔜 L5 五关脚本化 |
+| **L5** | batchesSinceLastL5=1（B34+B35→B36 L5 拉通完成）| 🟢 正常 |

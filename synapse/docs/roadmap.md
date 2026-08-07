@@ -577,6 +577,8 @@
 - **P100-B111**：**断裂点审计 ✅ 条目归档** ✅ — ① 9 项 ✅ pitfalls (PFL-085/087/088/091/092/095/096/097/098) → archive · ② 修正 header 计数 18→7 · ③ PFL-084 移入未闭环主段 · pitfalls 368→214 行 · 🟢 微型 · 2 files (+ governance artifacts)
 - **P100-B112**：**L5 从人因戏变成机械校验** ✅ — check-l5-consistency.sh 五关机械校验（batchesSinceLastL5 一致性 · lastL5Batch 引用一致性 · roadmap↔requirements-log 覆盖 · 时间戳新鲜度 · 证据完整性）· 🟢 微型 · 1 file (new script)
 - **P100-B113**：**P12 质量债务全量审计** ✅ — ① L5 一致性: B13/B14/B15 reqlog 缺漏修复 (3→0 warning) · ② roadmap 行数超限修复 (895→692 · Phase 10/11 归档) · ③ P12 七大约束全量合规检查 · ④ uncommitted changes 审计 · ⑤ 审计结论: GO for P12-B30 · 🟢 微型 · 3 files (requirements-log + roadmap + archive)
+- **P100-B114**：**治理清理 · uncommitted changes 全量处置** ✅ — ① Modified files: 12→3 分组 commit · ② Untracked: 35 文件删除 · ③ .gitignore 补全 (5 patterns) · ④ 幽灵引用修复 · ⑤ DB 备份保留 · ⑥ Bypass 日志审计→删除 · ⑦ 狗粮门禁临时解除→恢复 · 🟢 微型 · 16 files · 4 commits
+- **P100-B115**：**L5 五关一致性脚本化** 🔜 — check-l5-consistency.sh 从手工五关→完整五关双向 lattice（Gate 1-5）· Phase-agnostic · 活跃 Phase 自动检测 · D-P100-040 闭环 · 🟢 微型 · 1 file (~300行)
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

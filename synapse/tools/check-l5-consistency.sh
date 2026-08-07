@@ -1,26 +1,22 @@
 #!/usr/bin/env bash
-# check-l5-consistency.sh — L5 跨文档一致性机械校验
+# check-l5-consistency.sh — L5 五关双向 lattice 机械校验
 #
-# P12-B29: 替代 L5 "人因检查"的表面文章。不依赖 AI 自觉，用机械规则验证
-# 文档间的一致性。发现的每一个 drift 都是 L5 流程失灵的物证。
-#
-# 检查项:
-#   1. batchesSinceLastL5 在多文件间是否一致
-#   2. lastL5Batch 引用是否与 checkpoint 同步
-#   3. 批次数自洽（roadmap 中 P12 batch 数 vs l5 累积计数）
-#   4. 关键文档的"最后更新"时间戳是否新鲜
-#   5. roadmap 和 requirements-log 的双向覆盖
+# P100-B115: 替代手工五关校验。实现 CLAUDE.md Rule #2 定义的完整五关:
+#   Gate 1: roadmap ↔ reqlog       (双向批覆盖 · 仅活跃 Phase)
+#   Gate 2: reqlog ↔ commit        (批→commit 可追溯 · 仅 L5 周期内)
+#   Gate 3: commit ↔ checkpoint    (commit 计数 vs batchesSinceLastL5)
+#   Gate 4: checkpoint ↔ CLAUDE.md (计数器+引用一致性)
+#   Gate 5: CLAUDE.md ↔ roadmap    (Phase 状态+批号对齐)
 #
 # Usage:
 #   bash tools/check-l5-consistency.sh [--strict]
 #
 # Exit codes:
-#   0 — 全部一致
-#   1 — 发现不一致（--strict 模式，或 batchesSinceLastL5 ≥ 2 时）
+#   0 — 五关全部通过
+#   1 — 发现不一致（--strict 模式，或 batchesSinceLastL5 ≥ 2 时硬错误）
 #   2 — 脚本自身错误
 
 set -o pipefail
-# Note: not using set -e or set -u — the script handles all error cases explicitly
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -40,195 +36,397 @@ CHECKPOINT="$PROJECT_DIR/.claude/l5-checkpoint.json"
 CLAUDE_MD="$PROJECT_DIR/CLAUDE.md"
 ROADMAP="$PROJECT_DIR/docs/roadmap.md"
 REQLOG="$PROJECT_DIR/docs/requirements-log.md"
-MEMORY_DIR="${HOME}/.claude/projects/-Users-hunter-projects-personal-ai-ai-synapse/memory"
+TRACK="$PROJECT_DIR/tracks/synapse.md"
 
-red() { echo -e "\033[31m$*\033[0m"; }
-green() { echo -e "\033[32m$*\033[0m"; }
+red()    { echo -e "\033[31m$*\033[0m"; }
+green()  { echo -e "\033[32m$*\033[0m"; }
 yellow() { echo -e "\033[33m$*\033[0m"; }
+bold()   { echo -e "\033[1m$*\033[0m"; }
 
 die() { red "FATAL: $*"; exit 2; }
+warn() { yellow "  ⚠️  $*"; WARNINGS=$((WARNINGS + 1)); }
+err()  { red "  ❌ $*"; ERRORS=$((ERRORS + 1)); }
+ok()   { green "  ✅ $*"; }
+
+# ── Helper: safe integer from possibly-multiline grep output ─────
+safe_int() {
+  local val="$1"
+  val=$(echo "$val" | head -1 | tr -d '[:space:]')
+  echo "${val:-0}"
+}
 
 # ── Prerequisites ────────────────────────────────────────────────
 
 command -v python3 >/dev/null 2>&1 || die "python3 is required"
 [ -f "$CHECKPOINT" ] || die "l5-checkpoint.json not found at $CHECKPOINT"
-[ -f "$CLAUDE_MD" ] || die "CLAUDE.md not found"
-[ -f "$ROADMAP" ] || die "roadmap.md not found"
-[ -f "$REQLOG" ] || die "requirements-log.md not found"
+[ -f "$CLAUDE_MD" ]   || die "CLAUDE.md not found"
+[ -f "$ROADMAP" ]     || die "roadmap.md not found"
+[ -f "$REQLOG" ]      || die "requirements-log.md not found"
+[ -f "$TRACK" ]       || die "tracks/synapse.md not found"
 
 # ── Extract checkpoint values ────────────────────────────────────
 
-L5_COUNTER=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['batchesSinceLastL5'])" 2>/dev/null) || die "Cannot read batchesSinceLastL5 from checkpoint"
-L5_LAST_BATCH=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Batch'])" 2>/dev/null) || die "Cannot read lastL5Batch from checkpoint"
-L5_TIMESTAMP=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Timestamp'])" 2>/dev/null) || die "Cannot read lastL5Timestamp from checkpoint"
+L5_COUNTER=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['batchesSinceLastL5'])" 2>/dev/null) || die "Cannot read batchesSinceLastL5"
+L5_LAST_BATCH=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Batch'])" 2>/dev/null) || die "Cannot read lastL5Batch"
+L5_TIMESTAMP=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Timestamp'])" 2>/dev/null) || die "Cannot read lastL5Timestamp"
 
-# ── Check 1: batchesSinceLastL5 consistency across docs ──────────
-
-echo "=== Check 1: batchesSinceLastL5 多文件一致性 ==="
-echo "  checkpoint 值: $L5_COUNTER"
-
-# CLAUDE.md: look for "batchesSinceLastL5=N" pattern in status table
-CLAUDE_L5=""
-CLAUDE_MATCH=$(grep -oE 'batchesSinceLastL5=[0-9]+' "$CLAUDE_MD" 2>/dev/null | head -1 || true)
-if [ -n "$CLAUDE_MATCH" ]; then
-  # Extract only the number after "=" (sed avoids matching "5" in "L5")
-  CLAUDE_L5=$(echo "$CLAUDE_MATCH" | sed 's/.*=//' | tr -d '[:space:]')
-fi
-if [ -n "$CLAUDE_L5" ] && [ "$CLAUDE_L5" != "$L5_COUNTER" ]; then
-  red "  ❌ CLAUDE.md 声称 batchesSinceLastL5=$CLAUDE_L5，实际 checkpoint=$L5_COUNTER"
-  ERRORS=$((ERRORS + 1))
-elif [ -n "$CLAUDE_L5" ]; then
-  green "  ✅ CLAUDE.md: $CLAUDE_L5"
-else
-  yellow "  ⚠️  未在 CLAUDE.md 中找到 batchesSinceLastL5"
-  WARNINGS=$((WARNINGS + 1))
+# git --since needs a time component for same-day commits
+GIT_SINCE="${L5_TIMESTAMP}"
+if ! echo "$GIT_SINCE" | grep -q ' '; then
+  GIT_SINCE="${GIT_SINCE} 00:00:00"
 fi
 
-# p12.md memory: check both header table and key stats
-P12_MD="$MEMORY_DIR/active/p12.md"
-if [ -f "$P12_MD" ]; then
-  P12_VALUES=""
-  P12_MATCHES=$(grep -oE 'batchesSinceLastL5=[0-9]+' "$P12_MD" 2>/dev/null || true)
-  if [ -n "$P12_MATCHES" ]; then
-    # Extract only the number after "=" (sed avoids matching "5" in "L5")
-    P12_VALUES=$(echo "$P12_MATCHES" | sed 's/.*=//' | tr -d '[:space:]')
-  fi
-  if [ -n "$P12_VALUES" ]; then
-    P12_UNIQUE=$(echo "$P12_VALUES" | sort -u)
-    P12_COUNT=$(echo "$P12_VALUES" | wc -l | tr -d ' ')
+# ── Detect active phases ─────────────────────────────────────────
+# Active = phases in CLAUDE.md status table that are NOT fully closed.
+# "全量闭环" = closed (P11). Everything else = active (P12, P100).
 
-    if [ "$(echo "$P12_UNIQUE" | wc -l | tr -d ' ')" -gt 1 ]; then
-      red "  ❌ p12.md 内部矛盾: 出现多个不同值: $(echo $P12_VALUES | tr '\n' ' ')"
-      ERRORS=$((ERRORS + 1))
-    elif [ -n "$P12_UNIQUE" ] && [ "$P12_UNIQUE" != "$L5_COUNTER" ]; then
-      red "  ❌ p12.md 声称 batchesSinceLastL5=$P12_UNIQUE，实际 checkpoint=$L5_COUNTER"
-      ERRORS=$((ERRORS + 1))
-    elif [ -n "$P12_UNIQUE" ]; then
-      green "  ✅ p12.md: $P12_UNIQUE ($P12_COUNT 处引用一致)"
+ACTIVE_PHASES=""
+while IFS= read -r line; do
+  ph=$(echo "$line" | grep -oE '\*\*P[0-9]+\*\*' | head -1 | sed 's/\*\*//g')
+  if [ -n "$ph" ]; then
+    # Skip phases marked as fully closed
+    if echo "$line" | grep -q '全量闭环'; then
+      continue
+    fi
+    if [ -z "$ACTIVE_PHASES" ]; then
+      ACTIVE_PHASES="$ph"
+    elif ! echo "$ACTIVE_PHASES" | grep -q "$ph"; then
+      ACTIVE_PHASES="$ACTIVE_PHASES,$ph"
     fi
   fi
-else
-  yellow "  ⚠️  p12.md memory 不存在，跳过"
-  WARNINGS=$((WARNINGS + 1))
-fi
+done < "$CLAUDE_MD"
 
-# ── Check 2: lastL5Batch 引用一致性 ──────────────────────────────
-
-echo ""
-echo "=== Check 2: lastL5Batch 引用一致性 ==="
-echo "  checkpoint 值: $L5_LAST_BATCH"
-
-# Extract last batch number from L5_LAST_BATCH (e.g., "B27→B28 ..." → extract B28)
-L5_TARGET_BATCH=$(echo "$L5_LAST_BATCH" | grep -oE 'B[0-9]+' | tail -1 || echo "")
-
-# CLAUDE.md status table should reference this batch
-if [ -n "$L5_TARGET_BATCH" ]; then
-  CLAUDE_REF=$(grep -c "$L5_TARGET_BATCH" "$CLAUDE_MD" 2>/dev/null || true)
-  CLAUDE_REF="${CLAUDE_REF:-0}"
-  if [ "$CLAUDE_REF" -eq 0 ]; then
-    yellow "  ⚠️  CLAUDE.md 未引用 L5 目标批次 $L5_TARGET_BATCH"
-    WARNINGS=$((WARNINGS + 1))
-  else
-    green "  ✅ CLAUDE.md 引用 $L5_TARGET_BATCH ($CLAUDE_REF 处)"
-  fi
-
-  # p12.md should also reference it
-  if [ -f "$P12_MD" ]; then
-    P12_REF=$(grep -c "$L5_TARGET_BATCH" "$P12_MD" 2>/dev/null || true)
-    P12_REF="${P12_REF:-0}"
-    if [ "$P12_REF" -eq 0 ]; then
-      yellow "  ⚠️  p12.md 未引用 L5 目标批次 $L5_TARGET_BATCH"
-      WARNINGS=$((WARNINGS + 1))
-    else
-      green "  ✅ p12.md 引用 $L5_TARGET_BATCH ($P12_REF 处)"
+# Fallback: also check track file
+if [ -z "$ACTIVE_PHASES" ]; then
+  while IFS= read -r line; do
+    ph=$(echo "$line" | grep -oE '\*\*P[0-9]+\*\*' | head -1 | sed 's/\*\*//g')
+    if [ -n "$ph" ] && ! echo "$line" | grep -q '全量闭环'; then
+      if [ -z "$ACTIVE_PHASES" ]; then
+        ACTIVE_PHASES="$ph"
+      elif ! echo "$ACTIVE_PHASES" | grep -q "$ph"; then
+        ACTIVE_PHASES="$ACTIVE_PHASES,$ph"
+      fi
     fi
-  fi
+  done < "$TRACK"
 fi
 
-# ── Check 3: 批次数自洽 ──────────────────────────────────────────
+# Last fallback
+if [ -z "$ACTIVE_PHASES" ]; then
+  ACTIVE_PHASES="P12"
+  yellow "无法自动检测活跃 Phase，默认使用 P12"
+fi
+
+IFS=',' read -ra PHASE_ARRAY <<< "$ACTIVE_PHASES"
+
+# ── Helper: extract batch IDs from a file (only active phases) ───
+extract_batches() {
+  local file="$1"
+  local pattern=""
+  for ph in "${PHASE_ARRAY[@]}"; do
+    pattern="${pattern}${ph}-B[0-9]+|"
+  done
+  pattern="${pattern%|}"
+  if [ -n "$pattern" ]; then
+    grep -oE "$pattern" "$file" 2>/dev/null | sort -u || true
+  fi
+}
+
+# ── Helper: extract batch IDs from git log since timestamp ───────
+extract_commits_since() {
+  local since="$1"
+  git -C "$PROJECT_DIR" log --since="$since" --format="%s" 2>/dev/null \
+    | grep -oE '(P[0-9]+-B[0-9]+)' \
+    | sort -u || true
+}
 
 echo ""
-echo "=== Check 3: roadmap batch 覆盖验证 ==="
+bold "══════════════════════════════════════════════════════════"
+bold "  L5 五关双向 Lattice 一致性检查"
+bold "  活跃 Phases: ${ACTIVE_PHASES}"
+bold "  Checkpoint: counter=$L5_COUNTER · since=$L5_TIMESTAMP"
+bold "══════════════════════════════════════════════════════════"
 
-# Count all P12 batches in roadmap for cross-reference
-ROADMAP_P12_COUNT=$(grep -c 'P12-B[0-9]' "$ROADMAP" 2>/dev/null || echo "0")
-REQLOG_P12_COUNT=$(grep -c 'P12-B[0-9]' "$REQLOG" 2>/dev/null || echo "0")
-echo "  roadmap P12 batch 条目: $ROADMAP_P12_COUNT"
-echo "  requirements-log P12 条目: $REQLOG_P12_COUNT"
-
-# This check is informational — exact batch counts differ because:
-# - l5-counter is incremented by pre-commit after L5 reset
-# - roadmap entries may lag by one commit
-# The real consistency check is in Check 4 (bidirectional coverage)
-
-# ── Check 4: roadmap ↔ requirements-log 双向覆盖 ─────────────────
+# ═══════════════════════════════════════════════════════════════════
+# Gate 1: roadmap ↔ reqlog (双向批覆盖 · 仅活跃 Phase)
+# ═══════════════════════════════════════════════════════════════════
 
 echo ""
-echo "=== Check 4: roadmap ↔ requirements-log 覆盖 ==="
+bold "── Gate 1: roadmap ↔ requirements-log ──"
 
-# Extract all P12 batch IDs from roadmap (P12 section)
-ROADMAP_BATCHES=$(grep -oE 'P12-B[0-9]+' "$ROADMAP" 2>/dev/null | sort -u || true)
+ROADMAP_BATCHES=$(extract_batches "$ROADMAP")
+REQLOG_BATCHES=$(extract_batches "$REQLOG")
+
+ROADMAP_COUNT=$(echo "$ROADMAP_BATCHES" | grep -c 'B[0-9]' 2>/dev/null || echo "0")
+ROADMAP_COUNT=$(safe_int "$ROADMAP_COUNT")
+REQLOG_COUNT=$(echo "$REQLOG_BATCHES" | grep -c 'B[0-9]' 2>/dev/null || echo "0")
+REQLOG_COUNT=$(safe_int "$REQLOG_COUNT")
+
+echo "  活跃 Phase (${ACTIVE_PHASES}) roadmap batch 条目: $ROADMAP_COUNT"
+echo "  活跃 Phase (${ACTIVE_PHASES}) requirements-log 条目: $REQLOG_COUNT"
+
+# 1a: roadmap → reqlog
 MISSING_IN_REQLOG=0
-CHECKED=0
 for batch in $ROADMAP_BATCHES; do
-  CHECKED=$((CHECKED + 1))
+  [ -z "$batch" ] && continue
   if ! grep -q "$batch" "$REQLOG" 2>/dev/null; then
-    yellow "  ⚠️  $batch 在 roadmap 中存在，但 requirements-log 中缺失"
+    warn "roadmap 有 $batch 但 requirements-log 缺失"
     MISSING_IN_REQLOG=$((MISSING_IN_REQLOG + 1))
   fi
 done
-if [ "$MISSING_IN_REQLOG" -eq 0 ] && [ "$CHECKED" -gt 0 ]; then
-  green "  ✅ 所有 $CHECKED 个 P12 batch 在 requirements-log 中均有记录"
-elif [ "$CHECKED" -eq 0 ]; then
-  yellow "  ⚠️  未在 roadmap 中找到 P12 batch 条目"
-else
-  WARNINGS=$((WARNINGS + MISSING_IN_REQLOG))
+if [ "$MISSING_IN_REQLOG" -eq 0 ] && [ "$ROADMAP_COUNT" -gt 0 ]; then
+  ok "roadmap → reqlog: ${ROADMAP_COUNT}/${ROADMAP_COUNT} 全覆盖"
 fi
 
-# ── Check 5: 时间戳新鲜度 ────────────────────────────────────────
+# 1b: reqlog → roadmap
+MISSING_IN_ROADMAP=0
+for batch in $REQLOG_BATCHES; do
+  [ -z "$batch" ] && continue
+  if ! grep -q "$batch" "$ROADMAP" 2>/dev/null; then
+    warn "reqlog 有 $batch 但 roadmap 缺失"
+    MISSING_IN_ROADMAP=$((MISSING_IN_ROADMAP + 1))
+  fi
+done
+if [ "$MISSING_IN_ROADMAP" -eq 0 ] && [ "$REQLOG_COUNT" -gt 0 ]; then
+  ok "reqlog → roadmap: ${REQLOG_COUNT}/${REQLOG_COUNT} 全覆盖"
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# Gate 2: reqlog ↔ commit (批→commit 可追溯 · 仅最近 L5 周期)
+# ═══════════════════════════════════════════════════════════════════
 
 echo ""
-echo "=== Check 5: 时间戳新鲜度 ==="
+bold "── Gate 2: requirements-log ↔ git commits (L5 周期内) ──"
+
+# Only check batches committed since last L5 (current cycle)
+COMMIT_BATCHES=$(extract_commits_since "$GIT_SINCE")
+COMMIT_COUNT=$(echo "$COMMIT_BATCHES" | grep -c 'B[0-9]' 2>/dev/null || echo "0")
+COMMIT_COUNT=$(safe_int "$COMMIT_COUNT")
+
+echo "  commits (since $GIT_SINCE) 中的 batch: $COMMIT_COUNT"
+
+# 2a: commits since L5 → reqlog (every recent batch commit should be in reqlog)
+MISSING_IN_REQLOG2=0
+for batch in $COMMIT_BATCHES; do
+  [ -z "$batch" ] && continue
+  if ! grep -q "$batch" "$REQLOG" 2>/dev/null; then
+    warn "commit $batch 在 requirements-log 中无对应条目"
+    MISSING_IN_REQLOG2=$((MISSING_IN_REQLOG2 + 1))
+  fi
+done
+if [ "$MISSING_IN_REQLOG2" -eq 0 ] && [ "$COMMIT_COUNT" -gt 0 ]; then
+  ok "commit → reqlog: ${COMMIT_COUNT}/${COMMIT_COUNT} 全覆盖"
+elif [ "$COMMIT_COUNT" -eq 0 ]; then
+  echo "  (L5 周期内无 batch commit · 可能刚完成 L5 复位)"
+fi
+
+# 2b: reqlog → commit — check batches from current L5 cycle only
+MISSING_COMMIT=0
+for batch in $REQLOG_BATCHES; do
+  [ -z "$batch" ] && continue
+  if ! echo "$COMMIT_BATCHES" | grep -q "$batch" 2>/dev/null; then
+    # Check full git history (may predate L5 cycle)
+    if git -C "$PROJECT_DIR" log --format="%s" 2>/dev/null | grep -q "$batch"; then
+      : # Has commit, just not in current L5 cycle — OK
+    else
+      warn "reqlog 有 $batch 但 git log 中无对应 commit"
+      MISSING_COMMIT=$((MISSING_COMMIT + 1))
+    fi
+  fi
+done
+if [ "$MISSING_COMMIT" -eq 0 ]; then
+  ok "reqlog → commit: 所有活跃 Phase batch 均可追溯"
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# Gate 3: commit ↔ checkpoint (commit 计数 vs batchesSinceLastL5)
+# ═══════════════════════════════════════════════════════════════════
+
+echo ""
+bold "── Gate 3: git commits ↔ l5-checkpoint.json ──"
+
+TOTAL_COMMITS_SINCE=$(git -C "$PROJECT_DIR" log --since="$GIT_SINCE" --oneline 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_COMMITS_SINCE=$(safe_int "$TOTAL_COMMITS_SINCE")
+echo "  commits since $GIT_SINCE: $TOTAL_COMMITS_SINCE"
+echo "  checkpoint batchesSinceLastL5: $L5_COUNTER"
+
+# Count batch-labeled commits since L5
+BATCH_COMMITS=$(git -C "$PROJECT_DIR" log --since="$GIT_SINCE" --format="%s" 2>/dev/null \
+  | grep -cE '(P[0-9]+-B[0-9]+)' 2>/dev/null || echo "0")
+BATCH_COMMITS=$(safe_int "$BATCH_COMMITS")
+
+echo "  batch-labeled commits (Px-By since L5): $BATCH_COMMITS"
+
+# Allow +/-1 tolerance for doc-only/L5-reset commits
+DIFF=$((BATCH_COMMITS - L5_COUNTER))
+DIFF_ABS=${DIFF#-}
+DIFF_ABS=$(safe_int "$DIFF_ABS")
+if [ "$DIFF_ABS" -gt 1 ]; then
+  warn "batch 提交数 ($BATCH_COMMITS) vs batchesSinceLastL5 ($L5_COUNTER) 偏差 $DIFF_ABS (>1)"
+else
+  ok "batch 提交数 ($BATCH_COMMITS) ≈ batchesSinceLastL5 ($L5_COUNTER) · 偏差 ≤ 1"
+fi
+
+# 3b: completedBatches 中的 batch 是否都有 commit
+COMPLETED=$(python3 -c "
+import json
+data = json.load(open('$CHECKPOINT'))
+print(' '.join(data.get('completedBatches', [])))
+" 2>/dev/null || echo "")
+
+if [ -n "$COMPLETED" ] && [ "$COMPLETED" != " " ]; then
+  MISSING_CB_COMMIT=0
+  for batch in $COMPLETED; do
+    [ -z "$batch" ] && continue
+    if ! git -C "$PROJECT_DIR" log --format="%s" 2>/dev/null | grep -q "$batch"; then
+      warn "completedBatches 有 $batch 但 git log 中无对应 commit"
+      MISSING_CB_COMMIT=$((MISSING_CB_COMMIT + 1))
+    fi
+  done
+  if [ "$MISSING_CB_COMMIT" -eq 0 ]; then
+    ok "completedBatches: 全部有 git commit 可追溯"
+  fi
+else
+  echo "  (completedBatches 为空，跳过)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# Gate 4: checkpoint ↔ CLAUDE.md (计数器+引用一致性)
+# ═══════════════════════════════════════════════════════════════════
+
+echo ""
+bold "── Gate 4: l5-checkpoint.json ↔ CLAUDE.md ──"
+
+# 4a: batchesSinceLastL5 多文件一致性
+CLAUDE_L5=$(grep -oE 'batchesSinceLastL5=[0-9]+' "$CLAUDE_MD" 2>/dev/null | head -1 | sed 's/.*=//' | tr -d '[:space:]')
+CLAUDE_L5=$(safe_int "$CLAUDE_L5")
+if [ -n "$CLAUDE_L5" ] && [ "$CLAUDE_L5" != "$L5_COUNTER" ]; then
+  err "CLAUDE.md batchesSinceLastL5=$CLAUDE_L5 ≠ checkpoint $L5_COUNTER"
+elif [ -n "$CLAUDE_L5" ] && [ "$CLAUDE_L5" -eq "$L5_COUNTER" ] 2>/dev/null; then
+  ok "CLAUDE.md batchesSinceLastL5=$CLAUDE_L5 ✓"
+else
+  warn "未在 CLAUDE.md 中找到 batchesSinceLastL5 声明"
+fi
+
+# 4b: lastL5Batch 在 CLAUDE.md 中被引用
+L5_TARGET=$(echo "$L5_LAST_BATCH" | grep -oE 'B[0-9]+' | tail -1 || echo "")
+if [ -n "$L5_TARGET" ]; then
+  CLAUDE_REF_COUNT=$(grep -c "$L5_TARGET" "$CLAUDE_MD" 2>/dev/null || echo "0")
+  CLAUDE_REF_COUNT=$(safe_int "$CLAUDE_REF_COUNT")
+  if [ "$CLAUDE_REF_COUNT" -eq 0 ]; then
+    warn "CLAUDE.md 未引用 L5 目标批次 $L5_TARGET"
+  else
+    ok "CLAUDE.md 引用 $L5_TARGET (${CLAUDE_REF_COUNT} 处)"
+  fi
+fi
+
+# 4c: lastL5Timestamp 新鲜度
 TODAY=$(date +%Y-%m-%d)
 YESTERDAY=$(date -v-1d +%Y-%m-%d 2>/dev/null || date -d "yesterday" +%Y-%m-%d 2>/dev/null || echo "")
-
 if [ "$L5_TIMESTAMP" = "$TODAY" ] || [ "$L5_TIMESTAMP" = "$YESTERDAY" ]; then
-  green "  ✅ L5 checkpoint 时间戳: $L5_TIMESTAMP (新鲜)"
+  ok "L5 timestamp: $L5_TIMESTAMP (新鲜)"
 else
-  yellow "  ⚠️  L5 checkpoint 时间戳: $L5_TIMESTAMP (不是今天/昨天)"
-  WARNINGS=$((WARNINGS + 1))
+  warn "L5 timestamp: $L5_TIMESTAMP (非今天/昨天 · 可能 L5 逾期)"
 fi
 
-# ── Summary ──────────────────────────────────────────────────────
+# 4d: Track file pointers
+TRACK_P12=$(grep -E '^\| \*\*P12\*\*' "$TRACK" 2>/dev/null | head -1 || echo "")
+if [ -n "$TRACK_P12" ]; then
+  TRACK_LAST=$(echo "$TRACK_P12" | grep -oE 'P12-B[0-9]+' | head -1 || echo "")
+  TRACK_NEXT=$(echo "$TRACK_P12" | grep -oE 'P12-B[0-9]+' | tail -1 || echo "")
+  echo "  track P12: last=$TRACK_LAST · next=$TRACK_NEXT"
+fi
+TRACK_P100=$(grep -E '^\| \*\*P100\*\*' "$TRACK" 2>/dev/null | head -1 || echo "")
+if [ -n "$TRACK_P100" ]; then
+  P100_LAST=$(echo "$TRACK_P100" | grep -oE 'P100-B[0-9]+' | head -1 || echo "")
+  echo "  track P100: last=$P100_LAST"
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# Gate 5: CLAUDE.md ↔ roadmap (Phase 状态+批号对齐)
+# ═══════════════════════════════════════════════════════════════════
 
 echo ""
-echo "=============================================="
-echo "  L5 一致性检查结果: $ERRORS 错误 · $WARNINGS 警告"
-echo "=============================================="
+bold "── Gate 5: CLAUDE.md ↔ roadmap ──"
+
+# 5a: Each active phase should have a section in roadmap
+for ph in "${PHASE_ARRAY[@]}"; do
+  phase_num="${ph#P}"
+  if grep -q "Phase ${phase_num}" "$ROADMAP" 2>/dev/null || grep -q "$ph " "$ROADMAP" 2>/dev/null; then
+    ok "$ph: CLAUDE.md 状态表 ↔ roadmap 章节 存在"
+  else
+    warn "$ph: CLAUDE.md 有状态表但 roadmap 中未找到对应章节"
+  fi
+done
+
+# 5b: CLAUDE.md header 版本日期是否新鲜
+HEADER_DATE=$(head -5 "$CLAUDE_MD" | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2}' | head -1 || echo "")
+if [ -n "$HEADER_DATE" ]; then
+  if [ "$HEADER_DATE" = "$TODAY" ]; then
+    ok "CLAUDE.md header 日期: $HEADER_DATE (今天)"
+  elif [ "$L5_COUNTER" -ge 2 ]; then
+    warn "CLAUDE.md header 日期 ($HEADER_DATE) 非今天 · L5 已逾期 · 可能未刷新"
+  else
+    echo "  CLAUDE.md header 日期: $HEADER_DATE"
+  fi
+fi
+
+# 5c: L5 status banner in CLAUDE.md should be present
+L5_BANNER=$(grep -oE 'batchesSinceLastL5=[0-9]+[^)]*' "$CLAUDE_MD" 2>/dev/null | head -1 || echo "")
+if [ -z "$L5_BANNER" ]; then
+  warn "CLAUDE.md 缺少 L5 状态 banner · 可能未执行 Rule #2 刷新"
+else
+  ok "CLAUDE.md L5 banner 存在"
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# Summary
+# ═══════════════════════════════════════════════════════════════════
+
+echo ""
+bold "══════════════════════════════════════════════════════════"
+printf "  L5 五关一致性结果: "
+if [ "$ERRORS" -gt 0 ]; then
+  red "${ERRORS} 错误"
+else
+  green "0 错误"
+fi
+printf " · "
+if [ "$WARNINGS" -gt 0 ]; then
+  yellow "${WARNINGS} 警告"
+else
+  green "0 警告"
+fi
+bold "══════════════════════════════════════════════════════════"
 
 # Determine exit code
 if [ "$ERRORS" -gt 0 ]; then
-  red "❌ L5 一致性检查未通过 — 发现 $ERRORS 项硬错误"
+  red ""
+  red "❌ L5 五关检查未通过 — 发现 ${ERRORS} 项硬错误"
+  red "   请执行 L5 拉通后再提交。"
   exit 1
 fi
 
 # In --strict mode, warnings also fail
 if [ "$STRICT" = true ] && [ "$WARNINGS" -gt 0 ]; then
-  yellow "⚠️  L5 一致性检查: --strict 模式，$WARNINGS 项警告视为失败"
+  yellow ""
+  yellow "⚠️  L5 五关检查: --strict 模式，${WARNINGS} 项警告视为失败"
   exit 1
 fi
 
-# When batchesSinceLastL5 ≥ 2, treat warnings as errors (L5 is overdue)
+# When batchesSinceLastL5 >= 2, treat warnings as errors (L5 is overdue)
 if [ "$L5_COUNTER" -ge 2 ] && [ "$WARNINGS" -gt 0 ]; then
-  red "❌ L5 一致性检查未通过 — batchesSinceLastL5=$L5_COUNTER (≥2) 且存在 $WARNINGS 项警告"
-  red "   必须先执行 L5 拉通再继续提交"
+  red ""
+  red "❌ L5 五关检查未通过 — batchesSinceLastL5=${L5_COUNTER} (>=2) 且存在 ${WARNINGS} 项警告"
+  red "   必须先执行 L5 拉通再继续提交。"
   exit 1
 fi
 
 if [ "$WARNINGS" -gt 0 ]; then
-  yellow "⚠️  L5 一致性检查: $WARNINGS 项警告 (非阻断)"
+  yellow ""
+  yellow "⚠️  L5 五关检查: ${WARNINGS} 项警告 (非阻断 · 建议在下一 L5 拉通时处理)"
 else
-  green "✅ L5 一致性检查全部通过"
+  green ""
+  green "✅ L5 五关双向 lattice 全部通过"
 fi
 
 exit 0
