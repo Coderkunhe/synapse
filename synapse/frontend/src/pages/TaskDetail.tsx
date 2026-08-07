@@ -9,6 +9,7 @@ import { formatDate } from '../utils/format'
 import { hashBatchColor } from '../utils/color'
 import EmptyState from '../components/EmptyState'
 import BatchSelect from '../components/BatchSelect'
+import DependencyGraph from '../components/DependencyGraph'
 import styles from './TaskDetail.module.css'
 
 const PRIORITIES = ['p0', 'p1', 'p2', 'p3']
@@ -654,6 +655,20 @@ export default function TaskDetail() {
         )}
       </div>
       )}
+
+      {/* ── Dependency Graph ─────────────────────────────── */}
+      <DependencyGraph
+        taskId={task.id}
+        token={token!}
+        currentTask={{
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          version_no: task.version_no,
+          depends_on: task.depends_on,
+        }}
+      />
 
       {/* ── Event Timeline ────────────────────────────────── */}
       <section className={styles.section}>

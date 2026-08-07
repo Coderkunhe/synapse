@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
-from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, VerificationStatus
+from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, TaskStatus, VerificationStatus
 from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, SynapseError
-from src.models import ProjectActorRole
+from src.models import ProjectActorRole, Task
 from src.permissions import require_permission
 from src.schemas.common import CursorPage
 from src.schemas.task import (
@@ -373,6 +373,58 @@ async def update_task(
     )
     await db.commit()
     return TaskResponse.model_validate(await task_to_response(task, db, current_actor_id=actor.actor_id))
+
+
+@router.get(
+    "/projects/{project_id}/tasks/dependency-graph",
+)
+async def get_dependency_graph(
+    project_id: str,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the project task dependency DAG as nodes + edges."""
+    import json as _json
+
+    project = await get_project_or_404(db, project_id)
+    if project.team_id != actor.team_id:
+        raise NotFoundError("project", project_id)
+
+    result = await db.execute(
+        select(Task).where(
+            Task.project_id == project_id,
+            Task.status.in_(
+                [TaskStatus.BACKLOG, TaskStatus.READY,
+                 TaskStatus.IN_PROGRESS, TaskStatus.IN_VERIFICATION,
+                 TaskStatus.COMPLETED, TaskStatus.REJECTED, TaskStatus.CANCELLED]
+            ),
+        ).order_by(Task.created_at)
+    )
+    tasks = result.scalars().all()
+
+    nodes = [
+        {"id": t.id, "title": t.title, "status": t.status}
+        for t in tasks
+    ]
+    task_ids = {t.id for t in tasks}
+
+    edges = []
+    for t in tasks:
+        if t.depends_on:
+            try:
+                deps = _json.loads(t.depends_on)
+                for dep in deps:
+                    dep_id = dep.get("task_id")
+                    if dep_id and dep_id in task_ids:
+                        edges.append({
+                            "from": dep_id,
+                            "to": t.id,
+                            "type": dep.get("type", "sequential"),
+                        })
+            except (_json.JSONDecodeError, TypeError):
+                pass
+
+    return {"nodes": nodes, "edges": edges}
 
 
 @router.get(

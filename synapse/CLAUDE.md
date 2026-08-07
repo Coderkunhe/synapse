@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B32 ✅ D2 四阶段全量闭环 · 189 tests · D2 ~55% | **P12-B33** 🔜 D3 Scout |
+| **P12** | B34 就位 · B33 ✅ D3 depends_on G5+G4 · 683 tests · D4 双 Builder 狗粮 | **P12-B34** 🔜 D4 Phase A 环境就位 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B114 ✅ 治理清理 · 12 modified→3 commits + 35 untracked 清理 + gitignore 补全 · P12-B30 阻断已解 | — |
 | **L5** | batchesSinceLastL5=0（B30→B32 L5 拉通完成 · P12-B33 ready）| 🟢 正常 |

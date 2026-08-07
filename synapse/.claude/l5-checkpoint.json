@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B33→B34 L5 拉通 — 📄 docs/plans/p12-b34-d4-dogfood.md 新增 D4 计划 · 📄 p12.md+MEMORY.md 暗号同步 · 📚 纯文档+memory 无代码变更",
+  "lastL5Batch": "B33→B34 L5 拉通 — B33 G5+G4 depends_on闭环 · B34 D4狗粮就位 · roadmap+reqlog+daily+CLAUDE.md+p12.md 全量同步 · 0 src变更",
   "lastL5Timestamp": "2026-08-07",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B33→B34 L5 拉通 — 📄 docs/plans/p12-b34-d4-dogfood.md 新增 D4 计划 · 📄 p12.md+MEMORY.md 暗号同步 · 📚 纯文档+memory 无代码变更",
+  "lastL5Evidence": "B33→B34 L5 拉通 — B33 G5+G4 depends_on闭环 · B34 D4狗粮就位 · roadmap+reqlog+daily+CLAUDE.md+p12.md 全量同步 · 0 src变更",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
