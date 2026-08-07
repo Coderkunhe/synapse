@@ -33,11 +33,10 @@
 
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 
 const { SynapseClient } = require('./api-client');
+const { isSessionAlive, checkTemplateVersion, sendHeartbeat: _sendHeartbeat } = require('./lib/heartbeat-core');
 
 const HEARTBEAT_INTERVAL_MS = 55_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
@@ -56,28 +55,6 @@ const UPGRADE_FLAG_FILE = path.join(WORKER_ROOT, 'template-upgrade-needed');
 const SESSION_ALIVE_FILE = path.join(WORKER_ROOT, '.session-alive');
 const SESSION_ALIVE_TIMEOUT_MS = 120_000; // 2 min — 2× CronCreate interval
 
-/**
- * Check if the session that spawned us is still alive by reading
- * the .session-alive file timestamp written by session-init.js.
- *
- * session-init.js updates this file on every run:
- *   - Full mode: SessionStart hook (first spawn)
- *   - --quick mode: CronCreate wakeup (every 60s)
- *
- * If the file hasn't been touched in SESSION_ALIVE_TIMEOUT_MS,
- * the Claude session is gone → daemon self-terminates.
- */
-function isSessionAlive() {
-  try {
-    const stat = fs.statSync(SESSION_ALIVE_FILE);
-    const age = Date.now() - stat.mtimeMs;
-    return age < SESSION_ALIVE_TIMEOUT_MS;
-  } catch (e) {
-    // File missing — session-init hasn't run yet or was cleaned up
-    return false;
-  }
-}
-
 // Keep --session-pid parsing for backward compatibility (ignored — replaced by .session-alive)
 // session-init.js still passes it; daemon no longer uses it for liveness decisions.
 let _sessionPid = 0;
@@ -89,95 +66,44 @@ let _sessionPid = 0;
   }
 }
 
-/**
- * P11-B124 (PFL-084): Compare server template_version against local
- * synapse-version.json.  Writes .claude/template-upgrade-needed flag
- * on mismatch so session-init.js can surface a banner in _task-current.md.
- *
- * When versions match and a stale flag exists, the flag is cleared
- * (the Worker has upgraded).
- *
- * @param {string} serverVersion — template_version from heartbeat response
- */
-function checkTemplateVersion(serverVersion) {
-  if (!serverVersion) return; // pre-B94 server, no version field
+// checkTemplateVersion and sendHeartbeat are now in lib/heartbeat-core.js.
+// Thin wrappers that wire up local paths and logging.
 
-  var localVersion = null;
-  try {
-    if (fs.existsSync(VERSION_FILE)) {
-      var raw = fs.readFileSync(VERSION_FILE, 'utf-8');
-      var parsed = JSON.parse(raw);
-      localVersion = parsed.version || null;
+function _onTemplateVersion(serverVersion) {
+  const upgradeScript = path.join(__dirname, 'session-init.js');
+  const result = checkTemplateVersion(serverVersion, {
+    versionFile: VERSION_FILE,
+    upgradeFlagFile: UPGRADE_FLAG_FILE,
+    sessionInitScript: upgradeScript,
+    execPath: process.execPath,
+  });
+  if (!result || result.action === 'ok') return;
+  if (result.action === 'flag_written') {
+    if (result.reason === 'no_local_version') {
+      console.error('heartbeat: WARN template version missing locally (server: ' + serverVersion.slice(0, 16) + '...)');
+    } else {
+      console.error('heartbeat: WARN template outdated (local: ' + (result.localVersion || '?').slice(0, 16) + '..., server: ' + serverVersion.slice(0, 16) + '...)');
     }
-  } catch (_) {
-    // File missing or corrupt — treat as stale (no local version = needs upgrade)
-  }
-
-  if (!localVersion) {
-    // No local version file — first-time detection or deployment issue
-    try {
-      fs.writeFileSync(UPGRADE_FLAG_FILE, JSON.stringify({
-        current: null,
-        latest: serverVersion,
-        detected_at: new Date().toISOString(),
-        reason: 'no_local_version',
-      }, null, 2) + '\n', 'utf-8');
-    } catch (_) { /* best-effort */ }
-    console.error('heartbeat: WARN template version missing locally (server: ' + serverVersion.slice(0, 16) + '...)');
-    return;
-  }
-
-  if (localVersion !== serverVersion) {
-    try {
-      fs.writeFileSync(UPGRADE_FLAG_FILE, JSON.stringify({
-        current: localVersion,
-        latest: serverVersion,
-        detected_at: new Date().toISOString(),
-      }, null, 2) + '\n', 'utf-8');
-    } catch (_) { /* best-effort */ }
-    console.error('heartbeat: WARN template outdated (local: ' + localVersion.slice(0, 16) + '..., server: ' + serverVersion.slice(0, 16) + '...)');
-
-    // P11-B126 (PFL-084): auto-upgrade — spawn upgrade immediately instead of
-    // waiting for Worker AI to notice the flag and run --upgrade manually.
-    // Fire-and-forget: detached + unref() — daemon does not wait for completion.
-    try {
-      const upgradeScript = path.join(__dirname, 'session-init.js');
-      const child = spawn(process.execPath, [upgradeScript, '--upgrade', '--silent'], {
-        detached: true,
-        stdio: 'ignore',
-        env: { ...process.env },
-      });
-      child.unref();
-      console.error('heartbeat: auto-upgrade spawned — ' +
-        'local: ' + localVersion.slice(0, 16) + '... → server: ' + serverVersion.slice(0, 16) + '...');
-    } catch (_) {
-      console.error('heartbeat: auto-upgrade spawn FAILED — flag file written, Worker AI must upgrade manually');
-    }
-  } else {
-    // Versions match — clear stale flag if it exists (upgrade was done)
-    try {
-      if (fs.existsSync(UPGRADE_FLAG_FILE)) {
-        fs.unlinkSync(UPGRADE_FLAG_FILE);
-      }
-    } catch (_) { /* best-effort */ }
+  } else if (result.action === 'upgrade_spawned') {
+    console.error('heartbeat: auto-upgrade spawned — ' +
+      'local: ' + result.localVersion.slice(0, 16) + '... → server: ' + result.serverVersion.slice(0, 16) + '...');
+  } else if (result.action === 'flag_cleared') {
+    // versions match, stale flag removed — silent
   }
 }
 
 async function sendHeartbeat(client, workerId) {
-  const res = await client.post('/v1/workers/' + workerId + '/heartbeat', { current_load: 0 });
+  const res = await _sendHeartbeat(client, workerId, {
+    onTemplateVersion: _onTemplateVersion,
+  });
   if (res.error) {
     if (res.status && res.status > 0) {
       console.error('heartbeat: WARN (HTTP ' + res.status + ')');
     } else {
       console.error('heartbeat: WARN (unreachable)');
     }
-    return null;
   }
-  // P11-B124 (PFL-084): detect template staleness on every successful heartbeat
-  if (res.data && res.data.template_version) {
-    checkTemplateVersion(res.data.template_version);
-  }
-  return res.data || { runtime_status: 'unknown' };
+  return res.data || null;
 }
 
 // --once mode (backward compatible)
@@ -203,7 +129,7 @@ async function daemon() {
     // P11-B132: check .session-alive file instead of parent PID.
     // session-init.js updates this file on every CronCreate wakeup (--quick).
     // If the file is stale (>2 min), the Claude session is gone → self-terminate.
-    if (!isSessionAlive()) {
+    if (!isSessionAlive(SESSION_ALIVE_FILE, SESSION_ALIVE_TIMEOUT_MS)) {
       console.error('heartbeat daemon: session alive file stale/missing — self-terminating (orphan)');
       process.exit(0);
     }

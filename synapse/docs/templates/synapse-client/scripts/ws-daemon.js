@@ -43,6 +43,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getKey } = require('./keychain');
+const { now, toWsUrl, isSessionAlive, resolveConfig, writeStatus, appendEvent, touchHealth } = require('./lib/ws-daemon-core');
 
 // ── Constants ──────────────────────────────────────────────────────
 const EVENTS_FILE = path.join(__dirname, '..', '_ws-events.jsonl');
@@ -75,20 +76,6 @@ const SESSION_ALIVE_TIMEOUT_MS = 120_000; // 2 min — 2× CronCreate interval
 // Independently of reconnect cycle — a stable WS connection can last days.
 const SESSION_CHECK_INTERVAL_MS = 60_000;
 
-/**
- * Check if the session that spawned us is still alive by reading
- * the .session-alive file timestamp written by session-init.js.
- */
-function isSessionAlive() {
-  try {
-    const stat = fs.statSync(SESSION_ALIVE_FILE);
-    const age = Date.now() - stat.mtimeMs;
-    return age < SESSION_ALIVE_TIMEOUT_MS;
-  } catch (e) {
-    return false;
-  }
-}
-
 // Keep --session-pid parsing for backward compatibility (ignored in B132)
 let _sessionPid = 0;
 {
@@ -105,88 +92,9 @@ let _sessionPid = 0;
 // Persists across reconnects — don't re-initialize on each connect().
 let lastAutoRefresh = 0;
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
-/** Current ISO timestamp. */
-function now() {
-  return new Date().toISOString();
-}
-
-/**
- * Convert an HTTP(S) base URL to a WebSocket URL.
- *   http://127.0.0.1:8001 → ws://127.0.0.1:8001
- *   https://api.example.com → wss://api.example.com
- *
- * @param {string} apiUrl
- * @returns {string}
- */
-function toWsUrl(apiUrl) {
-  return apiUrl.replace(/^http/, 'ws');
-}
-
-/**
- * Write daemon status file.
- * @param {"running"|"dead"} status
- */
-function writeStatus(status) {
-  const payload = status === 'dead'
-    ? { status: 'dead', since: now() }
-    : { status: 'running', since: now(), pid: process.pid };
-  try {
-    fs.writeFileSync(STATUS_FILE, JSON.stringify(payload) + '\n', 'utf-8');
-  } catch (_) { /* best-effort */ }
-}
-
-/**
- * Append an event to the JSONL event log.
- * Keeps at most MAX_EVENTS lines — shifts oldest when exceeded.
- *
- * @param {Object} event — The parsed WS message payload
- */
-function appendEvent(event) {
-  try {
-    const line = JSON.stringify({ ts: now(), ...event }) + '\n';
-
-    // Read existing, append, trim
-    let lines = [];
-    try {
-      const raw = fs.readFileSync(EVENTS_FILE, 'utf-8');
-      lines = raw.trim().split('\n').filter(Boolean);
-    } catch (_) { /* file doesn't exist yet — ok */ }
-
-    lines.push(line.trimEnd());
-
-    // Rotate: keep only last MAX_EVENTS
-    if (lines.length > MAX_EVENTS) {
-      lines = lines.slice(lines.length - MAX_EVENTS);
-    }
-
-    fs.writeFileSync(EVENTS_FILE, lines.join('\n') + '\n', 'utf-8');
-  } catch (_) { /* best-effort — don't crash on disk full */ }
-}
-
-/** Touch health file with current timestamp. */
-function touchHealth() {
-  try {
-    fs.writeFileSync(HEALTH_FILE, now() + '\n', 'utf-8');
-  } catch (_) { /* best-effort */ }
-}
-
 /** Log to stderr (daemon has no stdout — it's detached). */
 function log(msg) {
   process.stderr.write(`[ws-daemon ${now()}] ${msg}\n`);
-}
-
-// ── Resolve config ──────────────────────────────────────────────────
-
-function resolveConfig() {
-  const apiUrl = (process.env.SYNAPSE_API_URL || 'http://127.0.0.1:8001').replace(/\/+$/, '');
-  const workerId = process.env.SYNAPSE_WORKER_ID || '';
-  let apiKey = process.env.SYNAPSE_API_KEY || '';
-  if (!apiKey && workerId) {
-    apiKey = getKey(workerId) || '';
-  }
-  return { apiUrl, workerId, apiKey };
 }
 
 // ── Main daemon logic ───────────────────────────────────────────────
@@ -203,15 +111,15 @@ function connect(wsUrl) {
 
   ws.onopen = () => {
     log('connected');
-    writeStatus('running');
-    touchHealth();
+    writeStatus(STATUS_FILE, 'running');
+    touchHealth(HEALTH_FILE);
   };
 
   ws.onmessage = (event) => {
     try {
       const payload = JSON.parse(event.data);
-      appendEvent(payload);
-      touchHealth();
+      appendEvent(EVENTS_FILE, MAX_EVENTS, payload);
+      touchHealth(HEALTH_FILE);
 
       // ── B122 PFL-110 direction 2: WS-triggered auto-refresh ─────
       // Detect task/verification events and spawn session-init.js --quick --silent
@@ -237,8 +145,8 @@ function connect(wsUrl) {
       }
     } catch (_) {
       // Non-JSON message (e.g. plain text) — still record it
-      appendEvent({ type: 'unknown', raw: String(event.data).slice(0, 500) });
-      touchHealth();
+      appendEvent(EVENTS_FILE, MAX_EVENTS, { type: 'unknown', raw: String(event.data).slice(0, 500) });
+      touchHealth(HEALTH_FILE);
     }
   };
 
@@ -308,7 +216,7 @@ async function main() {
   // Version guard: native WebSocket requires Node.js ≥22
   if (typeof WebSocket === 'undefined') {
     log('FATAL: Node.js ≥22 required (WebSocket not available). ws-daemon cannot start.');
-    writeStatus('dead');
+    writeStatus(STATUS_FILE, 'dead');
     process.exit(1);
   }
 
@@ -316,7 +224,7 @@ async function main() {
 
   if (!config.apiKey) {
     log('FATAL: no API key available — set SYNAPSE_API_KEY or store in OS keychain.');
-    writeStatus('dead');
+    writeStatus(STATUS_FILE, 'dead');
     process.exit(1);
   }
 
@@ -331,7 +239,7 @@ async function main() {
     if (shuttingDown) return;
     shuttingDown = true;
     log(`received ${signal} — shutting down`);
-    writeStatus('running');  // clean shutdown is not a crash
+    writeStatus(STATUS_FILE, 'running');  // clean shutdown is not a crash
     process.exit(0);
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -348,7 +256,7 @@ async function main() {
   // Independent of reconnect cycle — stable connections can last days.
   let sessionCheckInterval = null;
   sessionCheckInterval = setInterval(() => {
-      if (!isSessionAlive()) {
+      if (!isSessionAlive(SESSION_ALIVE_FILE, SESSION_ALIVE_TIMEOUT_MS)) {
         log('session alive file stale/missing — self-terminating (orphan)');
         try {
           fs.writeFileSync(STATUS_FILE, JSON.stringify({
@@ -382,7 +290,7 @@ async function main() {
     } catch (_) {
       // All retries exhausted
       log('FATAL: reconnect exhausted — reporting to status file');
-      writeStatus('dead');
+      writeStatus(STATUS_FILE, 'dead');
       process.exit(1);
     }
   }
@@ -390,6 +298,6 @@ async function main() {
 
 main().catch((err) => {
   log(`unexpected error: ${err.message}`);
-  writeStatus('dead');
+  writeStatus(STATUS_FILE, 'dead');
   process.exit(1);
 });

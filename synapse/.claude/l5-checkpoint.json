@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B114 L5 拉通 — 📄 CLAUDE.md P100 B113→B114 状态更新 · 📄 requirements-log.md B114 全量条目 · 📄 MEMORY.md+p100.md 暗号更新 · 📄 .gitignore 5 patterns 补全 · ✅ P12-B30 阻断已解",
   "lastL5Timestamp": "2026-08-07",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B114 L5 拉通 — 📄 CLAUDE.md P100 B113→B114 状态更新 · 📄 requirements-log.md B114 全量条目 · 📄 MEMORY.md+p100.md 暗号更新 · 📄 .gitignore 5 patterns 补全 · ✅ P12-B30 阻断已解",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
