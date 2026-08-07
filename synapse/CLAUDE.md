@@ -26,7 +26,7 @@
 | # | 触发条件 | 动作 |
 |:--|:--------|:-----|
 | 1 | commit 前 | `git diff --stat` → >8 src files → 拆批（9-12 且全部 ≤3 行机械变更可豁免） |
-| 2 | batchesSinceLastL5 ≥ 2 | 先 L5 拉通再开新批 → `bash tools/l5-reset.sh` 复位 |
+| 2 | batchesSinceLastL5 ≥ 2 | 先 L5 拉通再开新批 → `bash tools/l5-reset.sh --yes "..."` 复位 · `check-l5-consistency.sh` 机械校验一致性 |
 | 3 | 编码前 | Scout 三问（数据流/同类参照/用户一句话）未答完 → 不写代码 |
 | 4 | commit 前 | 自检四问（乐观路径/边界状态/对比同类/变更口播）未过 → 不 commit |
 | 5 | 每批完成 | roadmap + reqlog + daily 三同步 |
@@ -97,4 +97,4 @@ synapse/
 | **P12** | B28 ✅ D2 Core Modules 单元测试 · 91 tests · D2 ~30% | **P12-B29** 🔜 |
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B111 ✅ 治理波全量收尾 | — |
-| **L5** | batchesSinceLastL5=1（B25+B26 联合 L5 已拉通 · checkpoint 为源） | 🟢 正常 |
+| **L5** | batchesSinceLastL5=1（B27+B28 联合 L5 已拉通 · checkpoint 为源） | 🟢 正常 |

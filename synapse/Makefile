@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution test-js setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution check-l5-consistency test-js setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -37,6 +37,7 @@ help: ## 显示所有可用 target
 	@echo "    make check-role-isolation  角色隔离观测门禁（ADR-006 S1-S3/S7，警告级）"
 	@echo "    make check-env-consistency .env ↔ Keychain ↔ launchd 密钥一致性（ENV-2 · P12-B24）"
 	@echo "    make check-env-pollution   Shell 环境变量污染检测（ENV-1 · P12-B26）"
+	@echo "    make check-l5-consistency  L5 跨文档一致性机械校验（P12-B29 · 替代表面文章）"
 	@echo "    make check-hooks         Git hooks 完整性检测（V-028 防呆 — 新 clone 后必检）"
 	@echo "    make check-template-drift  模板→部署 drift 检测（P100-B105 — SHA256 对比）"
 	@echo "    make check-db-migration  DB schema ↔ model 一致性检测（alembic check · P100-B106 · ⑲）"
@@ -214,6 +215,9 @@ test-js: ## Worker JS 单元测试（P12-B27 · D2 Foundation）
 	@echo "--- Worker JS 测试 ---"
 	@cd docs/templates/synapse-client && node scripts/tests/run-tests.js 2>&1 || { echo "❌ Worker JS 测试未通过"; exit 1; }
 	@echo "✅ Worker JS 测试通过"
+
+check-l5-consistency: ## L5 跨文档一致性机械校验（P12-B29 · 替代表面文章）
+	@bash tools/check-l5-consistency.sh
 
 # ── 基础设施 ──────────────────────────────────────────────
 

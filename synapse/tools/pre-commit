@@ -11,6 +11,7 @@
 #   6. Quality triple-axe gate (GAP-2 · P100-B91) — requires self-check file
 #   7. Checkpoint freshness gate (GAP-3 · P100-B91) — requires today's checkpoint
 #   8. Dogfood active gate — blocks src/ changes when dogfood-active flag exists
+#   9. Worker JS test gate (P12-B27 · P12-2) — runs JS tests when scripts/ files change
 #
 # Install: ln -sf ../../synapse/tools/pre-commit .git/hooks/pre-commit
 
@@ -32,6 +33,12 @@ fi
 L5_GATE="$REPO_ROOT/synapse/tools/l5-gate.sh"
 if [ -x "$L5_GATE" ]; then
   "$L5_GATE" || exit 1
+fi
+
+# ── Stage 2b: L5 cross-document consistency (mechanical) ──
+L5_CONSISTENCY="$REPO_ROOT/synapse/tools/check-l5-consistency.sh"
+if [ -x "$L5_CONSISTENCY" ]; then
+  "$L5_CONSISTENCY" || true  # warning-level: reports drifts, doesn't block
 fi
 
 # ── Stage 3: Schema audit check ──────────────────────────
@@ -96,6 +103,31 @@ fi
 DOGFOOD_GATE="$REPO_ROOT/synapse/tools/check-dogfood-gate.sh"
 if [ -x "$DOGFOOD_GATE" ]; then
   "$DOGFOOD_GATE" || exit 1
+fi
+
+# ── Stage 9: Worker JS test gate (P12-B27 · P12-2) ───────
+# JS 脚本变更 → 运行 Worker JS 单元测试，失败则阻断提交
+STAGED_JS_FILES=$(git diff --cached --name-only 2>/dev/null | grep -E '^synapse/docs/templates/synapse-client/scripts/.*\.js$' || true)
+if [[ -n "$STAGED_JS_FILES" ]]; then
+  echo ""
+  echo "🧪 检测到 Worker JS 脚本变更，运行 JS 测试..."
+  SYNAPSE_DIR="$REPO_ROOT/synapse"
+  if [ -f "$SYNAPSE_DIR/Makefile" ]; then
+    (cd "$SYNAPSE_DIR" && make test-js) || {
+      echo ""
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "🔴  Worker JS 测试失败（P12-2 · P12-B27）"
+      echo "🔴"
+      echo "🔴  JS 脚本变更必须通过 Worker JS 单元测试。"
+      echo "🔴  请修复失败测试后重新提交。"
+      echo "🔴  运行: cd synapse && make test-js"
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      exit 1
+    }
+    echo "✅ Worker JS 测试通过"
+  else
+    echo "⚠️  Makefile 未找到，跳过 JS 测试门禁"
+  fi
 fi
 
 exit 0
