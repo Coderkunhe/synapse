@@ -1,3 +1,12 @@
 # Dogfood test clients — temporary, not part of the Synapse platform codebase
 synapse-builder/
 synapse-orchestrator/
+
+# macOS
+.DS_Store
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+synapse/data/backups/

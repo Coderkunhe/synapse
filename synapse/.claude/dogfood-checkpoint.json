@@ -1,8 +1,8 @@
 {
-  "lastDogfoodBatch": "P12-B14",
-  "lastDogfoodTimestamp": "2026-08-05T14:03:00Z",
+  "lastDogfoodBatch": "P12-B23",
+  "lastDogfoodTimestamp": "2026-08-06T07:30:00Z",
   "batchesSinceLastDogfood": 0,
-  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14"],
-  "lastDogfoodEvidence": "P12-B14 dogfood: check-hooks.sh --fix + session-init.js hook self-check. D1 38%->44%. Task tsk_019fd22df6f77c31 submitted with逐项 evidence. start-codex-worker.sh --dry-run passed.",
-  "notes": "P12-4 constraint: B10-B13 (4 batches) + B14 (dogfood) = <=5 compliant. Counter reset."
+  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14", "P12-B20", "P12-B23"],
+  "lastDogfoodEvidence": "P12-B23 dogfood: B18-B22 修复实战检验. Server 健康 (4 reaper running). B22 system_interventions 计数器验证 (0=预期). B103 双 Worker 活跃 handshake. Heartbeat 监控 4 offline 检测. uvicorn --reload 自动加载 B22 config 变更. 1430 历史 stale_detected → B22 45min 阈值预期大幅降低.",
+  "notes": "P12-4 constraint: B20→B23 3批狗粮复位. batchesSinceLastDogfood=0. Next dogfood due by P12-B28."
 }
