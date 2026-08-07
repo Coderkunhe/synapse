@@ -28,6 +28,9 @@ from src.constants import TaskStatus, VerificationStatus, VerificationType
 from src.config import settings
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_dumps, safe_loads
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ── 幂等 guard (P11-B76) ─────────────────────────────────────
@@ -294,6 +297,8 @@ async def execute_verification(
         # P8-B9: 任务到达终态后检查批次完成状态
         from src.services.batch_service import check_batch_completion
         await check_batch_completion(db, task, team_id, actor_type, actor_id)
+        # P12-B33 G5: unblock downstream tasks that depend on this completed task
+        await _unblock_downstream_tasks(db, task, team_id)
     else:
         # 使用状态机：IN_VERIFICATION → REJECTED
         event_type, payload = apply_transition(
@@ -571,6 +576,8 @@ async def execute_batch_verification(
             # P8-B9: 任务到达终态后检查批次完成状态
             from src.services.batch_service import check_batch_completion
             await check_batch_completion(db, task, team_id, actor_type, actor_id)
+            # P12-B33 G5: unblock downstream tasks that depend on this completed task
+            await _unblock_downstream_tasks(db, task, team_id)
         else:
             event_type, payload = apply_transition(
                 task, TaskStatus.REJECTED,
@@ -716,3 +723,123 @@ def verification_to_response(ver: Verification) -> dict:
         "created_at": ver.created_at,
         "updated_at": ver.updated_at,
     }
+
+
+# ── P12-B33 G5: downstream task unblocking ─────────────────
+
+_NON_TERMINAL_STATES = {
+    TaskStatus.BACKLOG,
+    TaskStatus.READY,
+    TaskStatus.IN_PROGRESS,
+    TaskStatus.PAUSED,
+    TaskStatus.IN_VERIFICATION,
+    TaskStatus.REJECTED,
+}
+
+
+async def _unblock_downstream_tasks(
+    db: AsyncSession,
+    completed_task: Task,
+    team_id: str,
+) -> list[Task]:
+    """Find and notify tasks that depend on ``completed_task``.
+
+    When a task reaches COMPLETED status, check all non-terminal tasks
+    in the same project. For each task whose ``depends_on`` includes
+    ``completed_task.id``, verify ALL dependencies are now satisfied.
+    If so, broadcast a ``task.dependencies_met`` WS event so Workers
+    know the task is ready to claim.
+
+    Returns the list of unblocked tasks.
+
+    P12-B33 G5: This closes the last major gap in the depends_on chain.
+    Without this, downstream Workers must blind-poll on 409
+    TASK_DEPENDENCY_NOT_READY until the upstream completes.
+    """
+    from sqlalchemy import or_
+
+    unblocked: list[Task] = []
+
+    # Find candidates: same project, has depends_on, non-terminal
+    candidates = await db.execute(
+        select(Task).where(
+            Task.project_id == completed_task.project_id,
+            Task.depends_on.isnot(None),
+            Task.depends_on != "[]",
+            Task.depends_on != "null",
+            Task.status.in_(_NON_TERMINAL_STATES),
+        )
+    )
+    candidates_list = candidates.scalars().all()
+
+    if not candidates_list:
+        return unblocked
+
+    completed_id = completed_task.id
+
+    for downstream in candidates_list:
+        deps = safe_loads(downstream.depends_on)
+        if not deps:
+            continue
+
+        dep_ids = {d["task_id"] for d in deps}
+        if completed_id not in dep_ids:
+            continue
+
+        # Check if ALL dependencies are now completed
+        all_met = True
+        for dep_id in dep_ids:
+            dep_task = await db.get(Task, dep_id)
+            if dep_task is None:
+                logger.warning(
+                    "deps_unblock_dangling_ref",
+                    downstream_id=downstream.id,
+                    missing_dep_id=dep_id,
+                )
+                continue
+            if dep_task.status != TaskStatus.COMPLETED:
+                all_met = False
+                break
+
+        if not all_met:
+            continue
+
+        unblocked.append(downstream)
+
+        # Record event
+        await event_store.record(
+            db,
+            event_type="task.dependencies_met",
+            team_id=team_id,
+            actor_type="system",
+            actor_id="synapse",
+            target_type="task",
+            target_id=downstream.id,
+            payload={
+                "unblocked_by": completed_id,
+                "dependency_count": len(dep_ids),
+            },
+        )
+
+        # WS push — notify team that this task is now ready to claim
+        unblock_event = {
+            "type": "event",
+            "data": {
+                "event_type": "task.dependencies_met",
+                "task_id": downstream.id,
+                "unblocked_by": completed_id,
+                "status": downstream.status,
+            },
+        }
+        # Broadcast to team (so all Workers see it) and to task creator
+        await ws_manager.broadcast_to_team(team_id, unblock_event)
+
+    if unblocked:
+        logger.info(
+            "deps_unblocked",
+            completed_task_id=completed_id,
+            unblocked_count=len(unblocked),
+            unblocked_ids=[t.id for t in unblocked],
+        )
+
+    return unblocked

@@ -11,12 +11,15 @@ from src.constants import TaskStatus
 from src.exceptions import NotFoundError
 from src.models.project import Project
 from src.models.task import Task
+from src.utils.json_utils import safe_loads
 
 
-async def get_available_tasks(db, project_id, *, capability=None, cursor=None, limit=50):
+async def get_available_tasks(db, project_id, *, capability=None, cursor=None, limit=50,
+                              hide_dependency_blocked: bool = True):
     """获取项目中状态为 ready 的可领取 Task，游标分页。
 
     可按 ``capability``（验证类型）过滤。
+    ``hide_dependency_blocked`` (P12-B33 G4) 默认过滤仍有未完成依赖的 Task。
     """
     project = await db.get(Project, project_id)
     if project is None:
@@ -34,11 +37,49 @@ async def get_available_tasks(db, project_id, *, capability=None, cursor=None, l
     has_more = len(rows) > limit
     items = rows[:limit]
     next_cursor = items[-1].id if has_more and items else None
+
+    # P12-B33 G4: filter out tasks with unmet dependencies
+    # A task is "dependency blocked" when depends_on is non-empty and any
+    # dependency is not COMPLETED. Such tasks cannot be claimed (409).
+    if hide_dependency_blocked:
+        items = await _filter_dependency_blocked(db, items)
+
     count_stmt = select(func.count(Task.id)).where(*conditions)
     if capability:
         count_stmt = count_stmt.where(Task.id.in_(mids))
     total = (await db.execute(count_stmt)).scalar()
     return items, next_cursor, total
+
+
+async def _filter_dependency_blocked(
+    db: AsyncSession,
+    tasks: list[Task],
+) -> list[Task]:
+    """Remove tasks whose ``depends_on`` references are not all COMPLETED.
+
+    P12-B33 G4: A task with unmet dependencies is not truly "available"
+    because claiming it will return 409 TASK_DEPENDENCY_NOT_READY.
+    """
+    from src.models.task import Task as T
+
+    filtered: list[T] = []
+    for task in tasks:
+        if not task.depends_on:
+            filtered.append(task)
+            continue
+        deps = safe_loads(task.depends_on)
+        if not deps:
+            filtered.append(task)
+            continue
+        all_met = True
+        for dep in deps:
+            dep_task = await db.get(T, dep["task_id"])
+            if dep_task is None or dep_task.status != TaskStatus.COMPLETED:
+                all_met = False
+                break
+        if all_met:
+            filtered.append(task)
+    return filtered
 
 
 async def get_tasks(db, project_id, *, status=None, owner_id=None,

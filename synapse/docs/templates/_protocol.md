@@ -454,7 +454,9 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 | **claim 前检查 depends_on** | 每次 claim 前读 Task 详情，确认 `depends_on` 字段。即使列表接口返回了 ready Task，claim 时也可能因依赖未就绪被拒绝（409 `TASK_DEPENDENCY_NOT_READY`） |
 | **不空转等待** | 依赖未就绪时检查其他 ready Task。只当所有可做 Task 都依赖未就绪时才进入 poll 等待 |
 | **409 不是错误** | claim 返回 409 `TASK_DEPENDENCY_NOT_READY` → 依赖未就绪，不是系统故障。记录状态后继续轮询 |
-| **依赖完成 ≠ 自动通知** | Worker 不会自动收到"依赖解除"的 push。必须通过 HTTP Poll 重新检查。GAP-9 自主驱动循环的「终止条件：无 ready Task 可认领」触发时，先检查是否有依赖中的 Task → 有则继续 poll |
+| **依赖完成 → WS 自动通知（P12-B33）** | 上游 Task COMPLETED 后，Server 自动检查下游依赖并推送 `task.dependencies_met` WS 事件。Worker 订阅 `task.*` 即可实时感知，无需盲等 poll |
+| **WS 事件: task.dependencies_met** | `{"event_type": "task.dependencies_met", "task_id": "tsk_xxx", "unblocked_by": "tsk_yyy", "status": "ready"}` — 收到后可直接 claim 该 Task · G5 闭环 🎉 |
+| **GET /tasks/available 已自动过滤** | P12-B33 G4: `/tasks/available` 默认隐藏依赖未就绪的 Task（`hide_dependency_blocked=true`）。出现在列表中的 ready Task 都可以直接 claim |
 
 ---
 
