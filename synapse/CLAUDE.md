@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-08（P12-B47 ✅ Option B · B48 🔜 狗粮 · L5 counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-08（P12-B48 ✅ SPoF 验证 L1+L2 · B49 🔜 审计修复 · L5 counter=2）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
