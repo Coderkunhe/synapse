@@ -665,6 +665,9 @@
 | **P12-B43** | **双 Worker 狗粮闭环** — BA(Claude)+BB(Codex) 协作 · dependency-chain API (BFS 双向遍历) · TaskCard 依赖标签前端 · 9 PFL 登记 (PFL-144~152) · 702+189=891 tests · 🟢 中型 · 7 files · +945 | ✅ |
 | **P12-B44** | **PFL 消化波 5 修复** — PFL-147 auth 500 fix · PFL-148 generate-skill.sh .env 骨架 · PFL-149/145/146 SKILL.md 文档增强 · PFL-144 三层根因定位 → B45 · 702+189=891 tests · 🟢 微型 · 8 files · +119/-23 | ✅ |
 | **P12-B45** | **PFL-144/150/152 全量闭环 · PFL-151 🟡 SPoF 缓解** — P0: heartbeat monitor 三层修复 (ACTIVE+PENDING · offline_detected · failure_detector provider-aware) · P1: SKILL.md O CronCreate 120s + Codex /tmp state · P2: PFL-151 SPoF 设计选项 A/B/C 登记 · 714+189=903 tests · 🟢 中型 · 8 files · +131/-39 | ✅ |
+| **P12-B46** | **PFL-151 Option A: Builder @O WS Notification** — `POST /tasks/{id}/notify` 端点 · Builder 超时主动通知 O · WS push `orchestrator.notify` · SKILL.md Builder + O 模板更新 · +5 tests · 723 collected | ✅ |
+| **P12-B47** | **PFL-151 Option B: O SLA auto-escalate to Human** — `verification_escalation_minutes=10` · `detect_stale_verifications_escalation()` · 两阶段梯度响应（升级→回退）· @Human 消息 + WS push · +5 tests · 728 tests 零回归 | ✅ |
+| **P12-B48** | **🐶 狗粮验证 — PFL-151 三层防御** — 1O+2B 实战验证 B45+B46+B47 打破 SPoF · 暗号 `p12-b48-dogfood` | 🔜 |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

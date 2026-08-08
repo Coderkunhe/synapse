@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     verification_timeout_minutes: int = 120  # B22: 30→120 — 狗粮发现人工审批 30min 不够
     verification_max_auto_reverts: int = 5  # B22: 3→5 — 更多 rework 容错空间
 
+    # Verification escalation to Human (P12-B47 · PFL-151 Option B)
+    verification_escalation_minutes: int = 10  # O 沉默 >10min → auto-escalate to Human
+    verification_escalation_cooldown_minutes: int = 30  # 同任务不重复升级的最小间隔
+
     # Worker heartbeat monitor (P11-B128 · PFL-126 direction 4)
     worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline (standard)
     worker_heartbeat_timeout_seconds_codex: int = 1800  # P12-B42: 30 min for Codex (no daemon)

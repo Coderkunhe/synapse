@@ -46,6 +46,7 @@ EXEMPT_CLASSES = frozenset({
     "OrchestratorStatusResponse",  # P11-B87: lightweight heartbeat status projection, not a persisted entity
     "WorkerHeartbeatResponse",  # P11-B94: transient heartbeat response (not persisted, no audit fields)
     "WorkerStateResponse",  # P12-B5: transient Worker state snapshot (API aggregation, not persisted)
+    "TaskNotifyResponse",  # P12-B46: transient notification confirmation, not a persisted entity
 })
 
 AUDIT_FIELDS_CLASS = "AuditFields"

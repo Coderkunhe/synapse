@@ -10,8 +10,9 @@ from src.db import get_db
 from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, TaskStatus, VerificationStatus
 from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, SynapseError
-from src.models import ProjectActorRole, Task
+from src.models import ProjectActorRole, Task, Worker
 from src.permissions import require_permission
+from src.services.ws_manager import ws_manager
 from src.schemas.common import CursorPage
 from src.schemas.task import (
     BatchAssignRequest,
@@ -27,6 +28,8 @@ from src.schemas.task import (
     TaskCancelRequest,
     TaskClaimRequest,
     TaskCreate,
+    TaskNotifyRequest,
+    TaskNotifyResponse,
     TaskReadyRequest,
     TaskSubmitRequest,
     TaskTerminateRequest,
@@ -816,4 +819,95 @@ async def batch_update(
         failed_count=len(errors),
         task_ids=updated_ids,
         errors=errors,
+    )
+
+
+# ── P12-B46: Orchestrator notification ──────────────────────────────────
+
+
+@router.post(
+    "/projects/{project_id}/tasks/{task_id}/notify",
+    response_model=TaskNotifyResponse,
+)
+async def notify_orchestrator(
+    project_id: str,
+    task_id: str,
+    body: TaskNotifyRequest | None = None,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Notify Orchestrator(s) that a task needs attention (P12-B46 · PFL-151 Option A).
+
+    Builder calls this endpoint when waiting >2min for O response.
+    Creates a conversation message @Orchestrator and sends WS push to
+    all Orchestrator workers in the project.
+
+    Open to any authenticated actor who can access the task —
+    the notification is a coordination signal, not a privileged operation.
+    """
+    task = await _get_task(db, task_id)
+    if task is None or task.project_id != project_id:
+        raise NotFoundError("task", task_id)
+
+    # ── Find all Orchestrator workers in the project ──
+    orch_result = await db.execute(
+        select(Worker)
+        .join(ProjectActorRole, ProjectActorRole.worker_id == Worker.id)
+        .where(
+            ProjectActorRole.project_id == project_id,
+            ProjectActorRole.role == "orchestrator",
+        )
+    )
+    orchestrators = orch_result.scalars().all()
+
+    # ── Build notification message ──
+    reason = body.reason if body and body.reason else "awaiting_response"
+    from_identity = f"Worker {actor.actor_id}"
+    notify_body = (
+        f"@Orchestrator 🔔 **Builder is waiting for your response.**\n\n"
+        f"- **From**: {from_identity}\n"
+        f"- **Reason**: {reason}\n"
+        f"- **Task**: {task.title}\n"
+        f"- **Task Status**: {task.status}\n"
+    )
+
+    # ── Create a conversation message to persist the notification ──
+    from src.services.conversation_service import create_message
+
+    await create_message(
+        db,
+        task_id=task_id,
+        workflow_id=None,
+        message_type="comment",
+        body=notify_body,
+        in_reply_to_id=None,
+        sender_worker_id=actor.actor_id,
+        team_id=actor.team_id,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+    )
+
+    # ── Send WS push to each Orchestrator's daemon ──
+    notified_ids: list[str] = []
+    ws_message = {
+        "type": "orchestrator.notify",
+        "data": {
+            "task_id": task_id,
+            "project_id": project_id,
+            "reason": reason,
+            "from_actor_id": actor.actor_id,
+            "task_title": task.title,
+            "task_status": task.status,
+        },
+    }
+    for orch in orchestrators:
+        await ws_manager.broadcast_to_actor(orch.id, ws_message)
+        notified_ids.append(orch.id)
+
+    await db.commit()
+
+    return TaskNotifyResponse(
+        task_id=task_id,
+        notified_orchestrator_ids=notified_ids,
+        message=f"Notified {len(notified_ids)} Orchestrator(s) about task '{task.title}'",
     )

@@ -342,3 +342,23 @@ class DependencyChainView(BaseModel):
 
     task_id: str
     chain: DependencyChain
+
+
+# ── P12-B46: Orchestrator notification ──────────────────────────────────
+
+
+class TaskNotifyRequest(BaseModel):
+    """Request body for notifying the Orchestrator about a task needing attention."""
+
+    reason: str | None = Field(
+        default=None,
+        description="Why the Orchestrator's attention is needed (e.g., 'awaiting_verification', 'scope_decision')",
+    )
+
+
+class TaskNotifyResponse(BaseModel):
+    """Response after sending a notification to the Orchestrator."""
+
+    task_id: str
+    notified_orchestrator_ids: list[str] = Field(default_factory=list)
+    message: str

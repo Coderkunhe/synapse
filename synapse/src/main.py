@@ -17,6 +17,7 @@ from src.services.authorization_service import expire_stale_requests
 from src.services.stale_task_detector import (
     detect_stale_tasks,
     detect_stale_verifications,
+    detect_stale_verifications_escalation,
     detect_unclaimed_ready_tasks,
 )
 from src.services.ws_manager import ws_manager
@@ -127,6 +128,8 @@ async def _stale_task_reaper() -> None:
             stale_threshold = settings.task_stale_threshold_minutes
             reassign_threshold = settings.task_stale_reassign_minutes
             verify_timeout = settings.verification_timeout_minutes
+            escalation_minutes = settings.verification_escalation_minutes
+            escalation_cooldown = settings.verification_escalation_cooldown_minutes
 
             # P11-B128 (PFL-123): startup log on first iteration — proves
             # the reaper actually entered its scan loop. Without this,
@@ -152,6 +155,13 @@ async def _stale_task_reaper() -> None:
                 verify_result = await detect_stale_verifications(
                     db, threshold_minutes=verify_timeout,
                 )
+                # P12-B47 (PFL-151 Option B): escalation to Human before auto-revert
+                escalation_result = await detect_stale_verifications_escalation(
+                    db,
+                    escalation_minutes=escalation_minutes,
+                    revert_minutes=verify_timeout,
+                    cooldown_minutes=escalation_cooldown,
+                )
                 # P12-B25 (PFL-128): READY task unclaimed watchdog
                 ready_result = await detect_unclaimed_ready_tasks(
                     db,
@@ -169,13 +179,15 @@ async def _stale_task_reaper() -> None:
                     _system_intervention_stale_cancelled, \
                     _system_intervention_verify_reverted, \
                     _system_intervention_verify_cancelled, \
-                    _system_intervention_ready_unclaimed
+                    _system_intervention_ready_unclaimed, \
+                    _system_intervention_verify_escalated
                 _system_intervention_stale_detected += result["stale_count"]
                 _system_intervention_stale_reassigned += result.get("reassigned_count", 0)
                 _system_intervention_stale_cancelled += result.get("cancelled_count", 0)
                 _system_intervention_verify_reverted += verify_result["reverted_count"]
                 _system_intervention_verify_cancelled += verify_result.get("cancelled_count", 0)
                 _system_intervention_ready_unclaimed += ready_result["unclaimed_count"]
+                _system_intervention_verify_escalated += escalation_result["escalated_count"]
 
                 # ── WS broadcast for reassigned tasks (P11-B125) ──
                 reassigned = result.get("reassigned_tasks", [])
@@ -206,7 +218,7 @@ async def _stale_task_reaper() -> None:
                                 },
                             )
 
-                if result["stale_count"] > 0 or result.get("cancelled_count", 0) > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0:
+                if result["stale_count"] > 0 or result.get("cancelled_count", 0) > 0 or verify_result["reverted_count"] > 0 or verify_result.get("cancelled_count", 0) > 0 or escalation_result["escalated_count"] > 0:
                     logger = logging.getLogger("synapse")
                     if result["stale_count"] > 0:
                         logger.info(
@@ -231,6 +243,12 @@ async def _stale_task_reaper() -> None:
                             "Auto-cancelled %d task(s) after max revert retries: %s",
                             verify_result["cancelled_count"],
                             verify_result["cancelled_task_ids"],
+                        )
+                    if escalation_result["escalated_count"] > 0:
+                        logger.info(
+                            "Escalated %d verification(s) to Human (O SLA timeout): %s",
+                            escalation_result["escalated_count"],
+                            escalation_result["escalated_task_ids"],
                         )
         except Exception:
             _logger.warning(
@@ -405,6 +423,7 @@ _system_intervention_stale_cancelled: int = 0
 _system_intervention_verify_reverted: int = 0
 _system_intervention_verify_cancelled: int = 0
 _system_intervention_ready_unclaimed: int = 0  # P12-B25 (PFL-128)
+_system_intervention_verify_escalated: int = 0  # P12-B47 (PFL-151 Option B)
 
 
 @asynccontextmanager
@@ -539,6 +558,7 @@ def create_app() -> FastAPI:
                 "verify_reverted": _system_intervention_verify_reverted,
                 "verify_cancelled": _system_intervention_verify_cancelled,
                 "ready_unclaimed": _system_intervention_ready_unclaimed,
+                "verify_escalated": _system_intervention_verify_escalated,
             },
         }
 

@@ -220,6 +220,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **API submit = 完成，不是对话汇报** | 在对话里列结果表格 ≠ 完成任务。只有 `POST /tasks/{id}/submit`（含 evidence）才算完成 |
 | **每轮迭代前 re-fetch** | 检查"有没有新 Task"前必须重新调 API，不依赖启动时拉取的快照 |
 | **主动轮询验收结果** | submit 后不等人通知——每 15s `GET /tasks/{id}/verifications` 检查验收状态 |
+| **O 超时主动通知（P12-B46 · PFL-151）** | submit 后等待 O 验收 >2min 无响应 → `POST /projects/{pid}/tasks/{tid}/notify`（reason=`awaiting_verification`）。Server 创建 @O 评论 + WS push 通知 O daemon。再等 2min 仍无响应 → 评论区 @Human 升级。**先走系统机制再升级** |
 | **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
 | **被动响应者（P11-B74 · P12-B24 强化）** | O assign 是主通道——等待 O 分配 Task 是正常流程。O 沉默判定标准（P12-B24）：每轮循环调 `GET /teams/{id}/orchestrator-status` 检查 `last_assignment_at`（非 `last_heartbeat_at`）。`last_assignment_at` > 5min 或无记录 → O 沉默 → 启用 Pull fallback。⚠️ 心跳正常 ≠ O 在工作 — zombie O（心跳但从不分配）会导致 B 无限等待 |
@@ -266,6 +267,7 @@ POST /tasks/{id}/messages
 | 同一 Task 反复出现在 re-fetch | 检查 `version_no`。claim 前确认 `version_no` 与上次操作时不同。未增长 → 跳过 |
 | in_progress Task >2h 无活动 | 评论区 @Orchestrator 报告异常，等待 O 决策。不自行 cancel |
 | Wakeup 后 context 过期 | 不假设"还记得上次做到哪"——handshake + state sync 重建上下文 |
+| **O 超时无响应（P12-B46 · PFL-151）** | submit 后 O 在 2min 内未验收 → `POST /projects/{pid}/tasks/{tid}/notify` (body: `{"reason": "awaiting_verification"}`)。Server 会创建 `@Orchestrator` 评论 + WS push 通知 O daemon。之后再等 2min → 仍无响应 → 评论区 `@Human` 升级。**禁止**在调用 notify 之前手动 @Human——先用系统机制，系统兜不住才升级 |
 
 > 详见 `_protocol.md` §4.1.3「异常退出协议」。
 

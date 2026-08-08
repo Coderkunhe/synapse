@@ -302,7 +302,22 @@ Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
 
 > 📖 **根因**：WS push 事件到达 daemon（heartbeat-core.js 维持连接），但 AI 上下文更新依赖文件读取（`_task-current.md`）或 API 调用。daemon 收到事件 → 写入 WS 日志，不更新 `_task-current.md`。Solution：缩短 CronCreate 间隔 + 每次强制 `--health` 刷新状态文件。
 >
-> 🚨 **PFL-151 残余风险（SPoF）**：即使 CronCreate 正确运行，O 的 AI 仍可能选择不休眠也不行动（判断错误）。如果 O 在 in_verification 状态下超过 10 分钟未响应 → Builder 应在 Task 评论区 `@Orchestrator` 手动触发提醒。Server 侧 verification_timeout 30min auto-revert（P11-B88）是最终安全网。O 是系统 SPoF — 该架构假设在 B34/B36/B43 三次狗粮中被验证为最大风险点，后续 Phase 需重新设计 O 角色边界。
+> 🚨 **PFL-151 残余风险（SPoF）**：即使 CronCreate 正确运行，O 的 AI 仍可能选择不休眠也不行动（判断错误）。如果 O 在 in_verification 状态下超过 10 分钟未响应 → Builder 应调用 `POST /tasks/{id}/notify` 端点主动通知 O。Server 侧 verification_timeout 30min auto-revert（P11-B88）是最终安全网。O 是系统 SPoF — 该架构假设在 B34/B36/B43 三次狗粮中被验证为最大风险点，后续 Phase 需重新设计 O 角色边界。
+>
+> 🔔 **P12-B46 · Builder @O WS Notification**：Builder 现在可以主动通知 O。当 Builder 调用 `POST /tasks/{id}/notify` 时：
+> 1. Server 创建一条 `@Orchestrator` 评论消息（持久化，O 下次检查 Task 时可见）
+> 2. Server 通过 WS 向所有 Orchestrator daemon 推送 `orchestrator.notify` 事件（实时）
+> 3. O 的 daemon 收到 `orchestrator.notify` 后应立即唤醒 AI 会话（如通过 ScheduleWakeup 或状态标记）
+>
+> O 在 CronCreate wakeup 时应额外检查：**是否有未读的 `@Orchestrator` 消息？**（`GET /tasks/{id}/messages?type=comment&has_mention=orchestrator&unread_only=true`）— 有 → 立即处理，不休眠。
+>
+> 🛡️ **P12-B47 · O SLA 超时 auto-escalate to Human**：如果 O 在 `in_verification` 状态超过 `verification_escalation_minutes`（默认 10 分钟），Server 会自动：
+> 1. 创建 `@Human` 评论消息请求人工介入
+> 2. 通过 WS push `task.escalated` 通知所有 Admin/Lead
+> 3. 每 30 分钟最多升级一次（防止刷屏）
+> 4. 超过 `verification_timeout_minutes`（120 分钟）→ auto-revert 到 in_progress（已有机制）
+>
+> **这是 Server 侧安全网，不是 O 可以放松的理由。** O 应在 escalation 触发之前完成验收。
 
 ## 🔄 核心工作循环
 
