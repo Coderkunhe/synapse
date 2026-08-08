@@ -377,26 +377,48 @@ async def detect_stale_verifications_escalation(
                 "task_title": task.title,
             },
         )
+        # B48: flush event 到 DB，使后续 create_message 失败不影响 event
+        await db.flush()
 
         # ── 创建任务评论 @Human ──
-        await create_message(
-            db,
-            task_id=task.id,
-            workflow_id=None,
-            message_type="comment",
-            body=(
-                f"@Human ⚠️ **Orchestrator SLA 超时 — 需要人工介入**\n\n"
-                f"- **Task**: {task.title}\n"
-                f"- **状态**: 已等待 O 验收超过 {escalation_minutes} 分钟\n"
-                f"- **建议**: 请检查 O 是否在线，或手动验收此任务\n"
-                f"- **自动回退**: 如无人处理，系统将在 {revert_minutes} 分钟时自动回退"
-            ),
-            in_reply_to_id=None,
-            sender_worker_id="system",
-            team_id=team_id,
-            actor_type=ActorType.SYSTEM,
-            actor_id="verification_escalation_detector",
-        )
+        # B48: sender_worker_id="system" 可能因 FK 约束失败（worker 表无 "system"）。
+        # 通过 savepoint 隔离——message 创建失败不阻断 escalation 事件记录。
+        _task_id = task.id
+        _task_title = task.title
+        try:
+            savepoint = await db.begin_nested()
+            await create_message(
+                db,
+                task_id=_task_id,
+                workflow_id=None,
+                message_type="comment",
+                body=(
+                    f"@Human ⚠️ **Orchestrator SLA 超时 — 需要人工介入**\n\n"
+                    f"- **Task**: {_task_title}\n"
+                    f"- **状态**: 已等待 O 验收超过 {escalation_minutes} 分钟\n"
+                    f"- **建议**: 请检查 O 是否在线，或手动验收此任务\n"
+                    f"- **自动回退**: 如无人处理，系统将在 {revert_minutes} 分钟时自动回退"
+                ),
+                in_reply_to_id=None,
+                sender_worker_id="system",
+                team_id=team_id,
+                actor_type=ActorType.SYSTEM,
+                actor_id="verification_escalation_detector",
+            )
+            await savepoint.commit()
+        except Exception:
+            import logging
+            _logger = logging.getLogger("synapse.stale_task_detector")
+            _logger.warning(
+                "Failed to create escalation message for task %s "
+                "(escalation event still recorded)",
+                _task_id,
+                exc_info=True,
+            )
+            try:
+                await savepoint.rollback()
+            except Exception:
+                pass
 
         # ── WS push 通知所有 Human ──
         human_result = await db.execute(

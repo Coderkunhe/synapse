@@ -36,3 +36,56 @@
 | PFL-141 | Codex CLI 需人工 prompt 才启动 | 🔴 |
 | PFL-142 | 旧 P11 Worker 越界污染 B36 | 🔴 |
 | PFL-143 | Codex evidence 未落库 · JSON 格式不匹配 | 🔴 |
+
+---
+
+## B48 Dogfood — PFL-151 SPoF 三层防御
+
+> 暗号: `p12-b48-dogfood` · 2026-08-08 · plan: `docs/plans/p12-b48-dogfood.md`
+
+### 就位状态
+
+| 组件 | 状态 | 详情 |
+|:---|:--:|:---|
+| Server | 🟢 | port 8001, all reapers running, verify_escalated=0 |
+| B46+B47 commit | ✅ | `c272744` — notify + escalate, 15 files, +622/-14 |
+| Tests | ✅ | 719/719 pass, 10/10 B46+B47 tests pass |
+| Dogfood gate | ✅ | `dogfood-active` activated |
+| O Worker | 🟢 | `ag_019fe05e8cde755c` · orchestrator · active · hb=08:12 |
+| BA Worker | 🟢 | `ag_019fe05e8dc27d64` · builder · active · hb=08:12 |
+| BB Worker | ⬜ | optional Codex — skipped for B48 simplicity |
+| Project | 🟢 | `prj_019fe05f3f2d7a4a` · B48 Dogfood v2 |
+
+### SPoF 探针
+
+| 探针 | 目标 | 状态 |
+|:--:|------|:--:|
+| 1 | L1 notify — Builder → O WS push | ⬜ |
+| 2 | L2 escalate — Server → @Human + WS | ⬜ |
+| 3 | L3 self-health — O CronCreate provider-aware | ⬜ |
+| 4 | End-to-end cascade — O dead → defense fires | ⬜ |
+
+### V-Criteria
+
+| # | 标准 | 状态 |
+|:--:|------|:--:|
+| V1 | notify 返回 200 + notified_orchestrator_ids 非空 | ⬜ |
+| V2 | conversation 出现 @Orchestrator 消息 | ⬜ |
+| V3 | O 收到 notify 后恢复验收 | ⬜ |
+| V4 | task.escalated 事件可见 | ⬜ |
+| V5 | conversation 出现 @Human escalation 消息 | ⬜ |
+| V6 | health verify_escalated > 0 | ⬜ |
+| V7 | escalation cooldown 生效 | ⬜ |
+| V8 | O heartbeat 在 300s 窗口内 | ⬜ |
+| V9 | offline_detected 计数器正常 | ⬜ |
+| V10 | 心跳 monitor 区分 Claude/Codex 超时 | ⬜ |
+| V11 | 三层中至少两层被验证 | ⬜ |
+| V12 | Task 不永久卡死在 in_verification | ⬜ |
+| V13 | 零 God's-eye src/ 变更 | ⬜ |
+
+### 发现
+
+| PFL | 发现 | 严重度 |
+|:---|:---|:--:|
+
+(待狗粮执行后填充)
