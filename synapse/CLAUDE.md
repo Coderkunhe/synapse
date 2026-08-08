@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-08（P12-B42 ✅ Codex 兼容层 · 13/13 PFL 全部闭环 🎉 · 双 Worker 模型就位）
+> 不存代码，只协调工作。最后更新：2026-08-08（P12-B44 ✅ PFL 消化 5 修复 · B43 双 Worker 狗粮闭环 · L5 B43+B44 拉通完成）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -94,7 +94,7 @@ synapse/
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B42 ✅ Codex 兼容层 · 13/13 PFL 全部闭环 🎉 · 705+189=894 tests | **P12-B43** 🔜
+| **P12** | B44 ✅ PFL 消化 5 修复 · 702+189=891 tests | **P12-B45** 🔜
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · L5 counter=0 | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=0（B40→B42 L5 拉通完成）| 🟢 正常 |
+| **L5** | batchesSinceLastL5=0（B43+B44 L5 拉通完成）| 🟢 正常 |

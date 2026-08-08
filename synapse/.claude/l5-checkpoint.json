@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B40→B42 L5 拉通 — 📄 roadmap+reqlog+daily 三文档全量同步 · 📚 CLAUDE.md L5 counter 修正+track 指针 B32→B42 更新 · B41 evidence校验+API降级闭环 · B42 Codex兼容层 13/13 PFL 全部闭环 🎉 · 705 tests 零回归",
+  "lastL5Batch": "B43+B44 L5 拉通 — B43 双 Worker 狗粮闭环 · dependency-chain API + 9 PFL · B44 PFL 消化波 5 修复 · reqlog 补登 · CLAUDE.md 同步",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B40→B42 L5 拉通 — 📄 roadmap+reqlog+daily 三文档全量同步 · 📚 CLAUDE.md L5 counter 修正+track 指针 B32→B42 更新 · B41 evidence校验+API降级闭环 · B42 Codex兼容层 13/13 PFL 全部闭环 🎉 · 705 tests 零回归",
+  "lastL5Evidence": "B43+B44 L5 拉通 — B43 双 Worker 狗粮闭环 · dependency-chain API + 9 PFL · B44 PFL 消化波 5 修复 · reqlog 补登 · CLAUDE.md 同步",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
