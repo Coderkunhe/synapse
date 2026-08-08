@@ -316,3 +316,29 @@ class TaskResponse(AuditFields):
                 dl = dl.replace(tzinfo=None)
             self.is_overdue = dl < now
         return self
+
+
+# ── P12-B43: Dependency chain ──────────────────────────────────────
+
+
+class DependencyChainItem(BaseModel):
+    """A single node in a dependency chain — summary of a related task."""
+
+    task_id: str
+    title: str
+    status: str
+    dependency_type: str = "sequential"
+
+
+class DependencyChain(BaseModel):
+    """Upstream + downstream dependency chains."""
+
+    upstream: list[DependencyChainItem] = Field(default_factory=list)
+    downstream: list[DependencyChainItem] = Field(default_factory=list)
+
+
+class DependencyChainView(BaseModel):
+    """Full recursive dependency chain for a single task (computed, not DB-backed)."""
+
+    task_id: str
+    chain: DependencyChain

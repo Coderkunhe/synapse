@@ -22,6 +22,7 @@ from src.schemas.task import (
     BatchTaskCreateRequest,
     BatchUpdateRequest,
     BlockerReportRequest,
+    DependencyChainView,
     TaskAssignRequest,
     TaskCancelRequest,
     TaskClaimRequest,
@@ -425,6 +426,38 @@ async def get_dependency_graph(
                 pass
 
     return {"nodes": nodes, "edges": edges}
+
+
+@router.get(
+    "/tasks/{task_id}/dependency-chain",
+    response_model=DependencyChainView,
+)
+async def get_dependency_chain(
+    task_id: str,
+    direction: str = Query("both", pattern=r"^(upstream|downstream|both)$"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the full recursive dependency chain for a single task.
+
+    Traverses ``depends_on`` links transitively (BFS, depth ≤ 10):
+
+    - **upstream**: every task this task transitively depends on
+    - **downstream**: every task that transitively depends on this task
+    - **both** (default): both directions
+
+    Cycle detection: visited tasks are skipped; max depth prevents
+    infinite recursion on malformed data.
+    """
+    task = await _get_task(db, task_id)
+
+    project = await get_project_or_404(db, task.project_id)
+    if project.team_id != actor.team_id:
+        raise NotFoundError("task", task_id)
+
+    from src.services.dependency_chain_service import get_dependency_chain as _get_chain
+
+    return await _get_chain(db, task_id, direction=direction)
 
 
 @router.get(
