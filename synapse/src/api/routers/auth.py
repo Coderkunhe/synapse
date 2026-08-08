@@ -29,6 +29,7 @@ from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import AuthenticationError
 from src.models.member import Member
 from src.models.user import User
+from src.models.worker import Worker  # PFL-147: dev-admin Worker row creation
 from src.schemas.auth import (
     AuthStatusResponse,
     ForgotPasswordRequest,
@@ -142,6 +143,25 @@ async def dev_token(
         await db.commit()
 
     worker_id = derive_id(member.id, "worker")
+
+    # B44 PFL-147: Ensure Worker row exists for dev-admin.
+    # Without this, respond_to_request() writes responded_by_worker_id
+    # (FK → worker.id) → IntegrityError → unhandled 500.
+    # Mirrors upsert_member_via_oauth pattern (auth_service.py:213-227).
+    worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    if not worker_result.scalar_one_or_none():
+        worker = Worker(
+            id=worker_id,
+            name=member.display_name or "Dev Admin",
+            team_id=member.team_id,
+            user_id=member.user_id,
+            actor_type="human",
+            status="active",
+            api_key_hash=None,
+        )
+        db.add(worker)
+        await db.flush()
+
     access_token = create_access_token(
         user_id=member.user_id,
         actor_id=worker_id,

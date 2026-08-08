@@ -63,9 +63,14 @@ const WORKER_ROOT = path.resolve(__dirname, '..', '..', '..');
 // path.join(WORKER_ROOT, '.claude', ...) would create .claude/.claude/ nesting.
 // Settings go directly under WORKER_ROOT (i.e., .claude/settings.local.json).
 const SETTINGS_LOCAL = path.join(WORKER_ROOT, 'settings.local.json');
-// P12-B37 (PFL-131): 4 levels up = Worker root, matching _boot-prompt.md.
-// Previously 1 level up (__dirname/..) = .claude/skills/synapse/ — wrong layer.
-const OUTPUT_FILE = path.resolve(__dirname, '..', '..', '..', '..', '_task-current.md');
+// B44 PFL-148: Write _task-current.md to skills dir (alongside SKILL.md).
+// Claude Code resolves bare "_task-current.md" in SKILL.md relative to the
+// Skills directory (.claude/skills/synapse/). PFL-131/B37 moved it to project
+// root but that broke the actual read path — the AI never saw the state.
+// Both locations are written: skills dir (primary) + project root (backward compat).
+const OUTPUT_FILE = path.join(WORKER_ROOT, 'skills', 'synapse', '_task-current.md');
+// Backward compat: same content at project root for scripts/CLAUDE.md references
+const OUTPUT_FILE_ROOT = path.resolve(__dirname, '..', '..', '..', '..', '_task-current.md');
 const PROTOCOL_CACHE = path.join(__dirname, '..', '_protocol-cache.json');
 const COLLABORATION_NORMS_FILE = path.join(__dirname, '..', '_collaboration-norms.md');
 // B112 PFL-112: _boot-prompt.md at Worker root — human types @_boot-prompt.md to cold-start
@@ -890,6 +895,8 @@ function writeState(state) {
   try {
     fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
     fs.writeFileSync(OUTPUT_FILE, lines.join('\n') + '\n', 'utf-8');
+    // B44 PFL-148: Backward-compat copy at project root (scripts/CLAUDE.md may reference it)
+    try { fs.writeFileSync(OUTPUT_FILE_ROOT, lines.join('\n') + '\n', 'utf-8'); } catch (_) { /* RO FS tolerant */ }
     if (!SILENT_MODE) {
       console.error(`[${SCRIPT_NAME}] State written to ${OUTPUT_FILE}`);
     }

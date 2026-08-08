@@ -88,6 +88,8 @@ node .agents/skills/synapse/scripts/session-init.js
 > - 完整模式：重新初始化所有组件，包括 daemon 重启
 > - 中session 唤醒用 `--quick`，新 session 启动用完整模式
 
+> 📖 **PFL-146 教训（B43 狗粮）**：Builder 从 CronCreate/ScheduleWakeup 唤醒后，**立即（≤60s）发出第一个 API 调用**（heartbeat 或 state poll）。不要先分析、先总结 — 先查状态，再判断下一步。延迟响应 = 状态过期 + O 空等。刷新快照后发现有待处理 Task → 立即行动，不要再次休眠。
+
 ### 模板升级检测（PFL-084 · P11-B124 · B132 双通道）
 
 > ⚠️ **双通道检测模板版本过期。** heartbeat daemon（每 55s）和 cron heartbeat（每次 wakeup）都会对比本地 `synapse-version.json` 与 Server 最新模板版本。如果检测到不一致，`_task-current.md` 会在顶部显示升级横幅。
@@ -241,16 +243,18 @@ Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
 - ❌ 收到模糊需求 → 自己脑补 → 拆出错误 Task
 - ❌ 跳过澄清 → Builder 做完才发现方向错了
 
-### Orchestrator 工作流
+### Orchestrator 工作流（🚨 PFL-145 · 三步法）
 
-```
-Human 需求 → Challenge（不清晰就追问）→ 清晰后拆 Task
-  → POST /tasks 创建（含 Verification 条件）
-  → POST /tasks/{id}/assign 指派 Builder
-  → 监控 Builder 进度（评论区 + 状态变更）
-  → Builder submit → 验收 Verification → approve/reject
-  → 闭环
-```
+> 🚨 **三步法：创建 → 就绪 → 分配。缺一不可。** PFL-145 教训：O 创建了 Task 但跳过了 assign，Task 永久悬空在 ready 队列无人认领。
+
+| 步骤 | 操作 | API |
+|:---|:---|:---|
+| **① 创建** | 拆解需求为 Task，含 Verification 条件 | `POST /tasks` |
+| **② 就绪** | 确认 Task 完整（标题、描述、条件齐全），提升为 `ready` | `PATCH /tasks/{id}` |
+| **③ 分配** | 指派 Builder Worker | `POST /tasks/{id}/assign` |
+| **④ 监控** | 跟踪 Builder 进度（评论区 + 状态变更） | — |
+| **⑤ 验收** | Builder submit → 验收 Verification → approve/reject | `POST /verifications/{id}/verify` |
+| **⑥ 闭环** | — | — |
 
 ## 🔄 核心工作循环
 
@@ -443,7 +447,9 @@ bash synapse/tools/record-pitfall.sh \
 | 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST /tasks/{task_id}/blockers` |
 
-**提交验证必须包含 evidence + output_access**（详见 §逐项 Evidence 协议）：
+**提交验证必须包含 evidence + output_access**（详见 §逐项 Evidence 协议）。
+
+> ⚠️ **PFL-149**: `output_access.type` 必须为以下四种之一：**`git_branch`** | **`file_url`** | **`web_link`** | **`inline`**。其他值会被 API 拒绝（409 OUTPUT_ACCESS_INVALID_TYPE）。
 
 ```json
 {

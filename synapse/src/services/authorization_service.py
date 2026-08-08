@@ -26,6 +26,7 @@ from src.constants import (
 )
 from src.exceptions import ConflictError, ForbiddenError, InvalidStateTransition, NotFoundError
 from src.models.authorization_request import AuthorizationRequest
+from src.models.worker import Worker  # PFL-147: defensive guard for respond_to_request
 from src.services.event_store import event_store
 from src.utils.id_gen import generate_id
 
@@ -293,6 +294,14 @@ async def respond_to_request(
             from_status=record.status,
             to_status=status,
         )
+
+    # B44 PFL-147: Defensive guard — verify responder has a Worker row
+    # before writing the FK. Dev-admin (virtual user) may have a JWT but
+    # no Worker row → IntegrityError. Mirrors P12-B35 pattern in
+    # project_role_service.py:138-141.
+    responder_worker = await db.get(Worker, responder_worker_id)
+    if responder_worker is None:
+        raise NotFoundError("Worker", responder_worker_id)
 
     now = datetime.now(timezone.utc)
     record.status = status

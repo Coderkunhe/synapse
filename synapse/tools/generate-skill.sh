@@ -403,6 +403,26 @@ generate_claude() {
     # ── B110 Layer 3: Generate SessionStart hook + permissions ──
     write_settings_json "$OUTPUT"
     write_settings_local "$OUTPUT"
+
+    # ── B44 PFL-148: Generate .claude/.env skeleton ──
+    # Settings.json SessionStart hook sources this file. Without it,
+    # env vars are unset → session-init.js env check fails → Worker
+    # can't handshake. Only bootstrap-worker.sh previously created it.
+    local ENV_FILE="$OUTPUT/.claude/.env"
+    if [[ ! -f "$ENV_FILE" ]]; then
+        cat > "$ENV_FILE" << 'SKELETONEOF'
+# Synapse Worker Environment
+# Uncomment and fill in your values.
+# SYNAPSE_API_URL=http://localhost:8000
+# SYNAPSE_API_KEY=sk-syn-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ID=wa_xxxxxxxxxxxxxxxx
+# SYNAPSE_PROJECT_ID=prj_xxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ROLE=builder
+SKELETONEOF
+        echo "  ✅ .claude/.env (skeleton created — fill in your values)"
+    else
+        echo "  ⏭️  .claude/.env (already exists — skipping)"
+    fi
 }
 
 # ─── Codex 输出 ───
@@ -914,6 +934,23 @@ generate_client_claude() {
     write_settings_json "$OUTPUT"
     write_settings_local "$OUTPUT"
 
+    # ── B44 PFL-148: Generate .claude/.env skeleton ──
+    local ENV_FILE2="$OUTPUT/.claude/.env"
+    if [[ ! -f "$ENV_FILE2" ]]; then
+        cat > "$ENV_FILE2" << 'SKELETONEOF'
+# Synapse Worker Environment
+# Uncomment and fill in your values.
+# SYNAPSE_API_URL=http://localhost:8000
+# SYNAPSE_API_KEY=sk-syn-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ID=wa_xxxxxxxxxxxxxxxx
+# SYNAPSE_PROJECT_ID=prj_xxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ROLE=builder
+SKELETONEOF
+        echo "  ✅ .claude/.env (skeleton created — fill in your values)"
+    else
+        echo "  ⏭️  .claude/.env (already exists — skipping)"
+    fi
+
     # ── B111 PFL-111: Generate Worker CLAUDE.md ──
     # Client mode may not have --role; try env var, fall back to generic
     local CLIENT_ROLE="${ROLE:-${SYNAPSE_WORKER_ROLE:-}}"
@@ -1187,6 +1224,23 @@ SKILLEOF
     # ── Generate SessionStart hook ──
     write_settings_json "$OUTPUT"
     write_settings_local "$OUTPUT"
+
+    # ── B44 PFL-148: Generate .claude/.env skeleton ──
+    local ENV_FILE3="$OUTPUT/.claude/.env"
+    if [[ ! -f "$ENV_FILE3" ]]; then
+        cat > "$ENV_FILE3" << 'SKELETONEOF'
+# Synapse Worker Environment
+# Uncomment and fill in your values.
+# SYNAPSE_API_URL=http://localhost:8000
+# SYNAPSE_API_KEY=sk-syn-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ID=wa_xxxxxxxxxxxxxxxx
+# SYNAPSE_PROJECT_ID=prj_xxxxxxxxxxxxxxxx
+# SYNAPSE_WORKER_ROLE=builder
+SKELETONEOF
+        echo "  ✅ .claude/.env (skeleton created — fill in your values)"
+    else
+        echo "  ⏭️  .claude/.env (already exists — skipping)"
+    fi
 
     echo ""
     echo "✅ 完成。Skill 文件已渲染，0 未填充 VAR（Task 级除外）。"
