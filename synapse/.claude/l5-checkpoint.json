@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P12→P13 桥接 · 📄 docs/plans/p13-scout-brief.md P13 Scout Brief — 1O+2B 自我狗粮做 P13 方向决策 · docs/plans/p12-retrospective.md 诚实复盘 · tests/dogfood/d4/status.md B48 V-criteria 回填 · tools/dogfood-gate.sh D-P12-042 门禁落地 · PFL-158 闭环",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P12→P13 桥接 · 📄 docs/plans/p13-scout-brief.md P13 Scout Brief — 1O+2B 自我狗粮做 P13 方向决策 · docs/plans/p12-retrospective.md 诚实复盘 · tests/dogfood/d4/status.md B48 V-criteria 回填 · tools/dogfood-gate.sh D-P12-042 门禁落地 · PFL-158 闭环",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
