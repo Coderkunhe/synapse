@@ -1,1 +1,5 @@
 [2026-08-07T13:12:54Z] BLOCKED: branch=master remote=git@gitee.com:Coderkunhe/ai-synapse.git reason=no_synapse_no_skip_flag
+[2026-08-07T16:15:42Z] BLOCKED: branch=master remote=git@gitee.com:Coderkunhe/ai-synapse.git reason=no_synapse_no_skip_flag
+[2026-08-07T16:15:50Z] bypass: branch=master remote=git@gitee.com:Coderkunhe/ai-synapse.git skip_flag=yes
+[2026-08-07T16:36:22Z] BLOCKED: branch=master remote=git@gitee.com:Coderkunhe/ai-synapse.git reason=no_synapse_no_skip_flag
+[2026-08-07T16:37:23Z] bypass: branch=master remote=git@gitee.com:Coderkunhe/ai-synapse.git skip_flag=yes

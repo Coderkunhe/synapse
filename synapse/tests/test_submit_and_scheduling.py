@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import WorkerRuntimeStatus, TaskStatus
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError
+from src.schemas.task import TaskSubmitRequest
 from src.models.worker import Worker
 from src.models.batch import Batch
 from src.models.member import Member
@@ -260,6 +261,39 @@ class TestSubmitTask:
                 actor_type="worker", actor_id=seeded["agent_id"],
                 team_id=seeded["team_id"],
             )
+
+    # ── PFL-143: evidence 非空校验 ────────────────────────────
+
+    def test_submit_null_evidence_rejected(self):
+        """PFL-143: evidence=None → Pydantic ValidationError."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="evidence"):
+            TaskSubmitRequest(
+                summary="done",
+                evidence=None,
+                expected_version=1,
+            )
+
+    def test_submit_empty_evidence_rejected(self):
+        """PFL-143: evidence={} → Pydantic ValidationError."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="evidence"):
+            TaskSubmitRequest(
+                summary="done",
+                evidence={},
+                expected_version=1,
+            )
+
+    def test_submit_valid_evidence_accepted(self):
+        """PFL-143: non-empty evidence → schema accepts."""
+        req = TaskSubmitRequest(
+            summary="done",
+            evidence={"output_access": {"type": "inline", "value": "test"}},
+            expected_version=1,
+        )
+        assert req.evidence == {"output_access": {"type": "inline", "value": "test"}}
 
 
 # ═══════════════════════════════════════════════════════════════════

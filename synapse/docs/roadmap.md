@@ -659,6 +659,8 @@
 | **P12-B37** | **PFL 消化波 1** — PFL-131 session-init 路径修复 · PFL-139 role pattern · PFL-142 claim 项目隔离 · 3/13 PFL 闭环 · PFL-143 撤回 B38 | ✅ |
 | **P12-B38** | **文档残留全量同步** — 16 files · 11 docs + pitfalls AP-B37 登记 + B36 Codex 混搭计划 · violations + bypass 同步 | ✅ |
 | **P12-B39** | **审批 UI 三位一体闭环** — PFL-136 include_expired API · PFL-137 过期过滤纵深防御 · PFL-140 内联错误 + Modal 替代 alert · 702+189 tests 零回归 | ✅ |
+| **P12-B40** | **evidence 校验 + API 降级** — PFL-143 TaskSubmitRequest evidence 非空 field_validator（None/{}→422）· +3 tests · PFL-135 SKILL.md + role-builder.md API 降级路径（`GET /workers/me/state`）· 705 tests 零回归 · 2/13 PFL 闭环（累计 8/13）· 🟢 微型 · 4 files | ✅ |
+| **P12-B41** | **PFL-138 role 自动分配闭环** — 三层防御验证：WorkerCreate.role pattern + register_worker() default builder + ProjectRoleAssign.role pattern · 零新代码 · 23 tests 覆盖 · 9/13 PFL · 🟢 微型 · 1 file（pitfalls.md 标记） | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

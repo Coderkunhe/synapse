@@ -144,9 +144,28 @@ class BatchOperationResponse(BaseModel):
 class TaskSubmitRequest(BaseModel):
     """提交 Task 进行验证的请求体（protocol.md §4.4）。"""
     summary: str = Field(..., description="Required. Summary of work completed (what was done, key decisions, etc.)")
-    evidence: dict | None = Field(None, description="Optional. JSON object with evidence — PR links, commit hashes, test results, etc. Must be a dict/object, not a plain string.")
+    evidence: dict | None = Field(None, description="Required. JSON object with evidence — PR links, commit hashes, test results, etc. Must be a dict/object, not a plain string. PFL-143: empty/null evidence rejected at submit.")
     verification_results: list[VerificationResult] = Field(default_factory=list)
     expected_version: int = Field(..., ge=1)
+
+    @field_validator("evidence")
+    @classmethod
+    def check_evidence_non_empty(cls, v: dict | None) -> dict:
+        """PFL-143: Reject null or empty evidence at submit time.
+
+        Codex CLI was observed submitting with evidence field that didn't
+        match Server format — Server accepted the submit but discarded the
+        evidence silently.  This validator forces the Builder to provide
+        evidence before submit can succeed, and the error message tells
+        them the expected format.
+        """
+        if v is None or len(v) == 0:
+            raise ValueError(
+                "evidence is required and must be a non-empty JSON object. "
+                "Expected format: {'key': 'value', ...} with at minimum an "
+                "'output_access' field. See SKILL.md §逐项 Evidence 协议."
+            )
+        return v
 
 
 class TaskReadyRequest(BaseModel):

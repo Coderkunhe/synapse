@@ -211,6 +211,8 @@ POST /tasks/{id}/submit（附 evidence）
 └──────────────────────────────────────────────────────┘
 ```
 
+> 🚨 **PFL-135 API 降级路径**：`_task-current.md` 是 session-init.js 写的本地快照——不是实时状态。如果文件缺失或无法运行 `session-init.js`（hook 失效 / 脚本不可用），**不要空转**。直接用 API 获取状态：`GET /v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID`。API 返回实时状态——项目、角色、授权、活跃 Task、就绪队列。Codex Worker 已验证此模式可行（沙箱约束天生走 API-first）。**文件快照不是单点故障——API 是降级路径。**
+
 **循环规则**：
 
 | 规则 | 说明 |

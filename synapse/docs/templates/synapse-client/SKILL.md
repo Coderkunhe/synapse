@@ -35,7 +35,9 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 | 状态 | 含义 | 动作 |
 |:---|:---|:---|
 | **存在 + 当日** | SessionStart hook 已自动运行（Claude Code），或你刚才手动运行了脚本 | → 跳到「第二步：读取初始状态」 |
-| **不存在 / 过期** | 脚本未运行（Codex / 首次启动） | → 手动运行初始化脚本（见下方） |
+| **不存在 / 过期** | 脚本未运行（Codex / 首次启动） | → **路径 A（推荐）**：手动运行 `session-init.js`（生成完整快照 + daemon 管理）<br>→ **路径 B（PFL-135 API 降级）**：脚本不可用时，直接用 API 获取实时状态 — `GET /v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID` — 然后跳到「第二步」。**API 返回的是实时状态，不需要快照。** Codex 路径已验证此模式可行。 |
+
+> 🚨 **PFL-135 API 降级路径**：`_task-current.md` 缺失不是你空转的理由。Claude Code Worker 如果 `session-init.js` 无法运行（hook 失效/ScriptTool 禁用），**必须**走路径 B — 直接调 API。Codex Worker 天然走 API-first，不存在此问题。不要让文件快照成为单点故障。
 
 **P12-B8 (HK-3)：SessionStart hook 健康诊断**
 
