@@ -97,4 +97,4 @@ synapse/
 | **P12** | B42 ✅ Codex 兼容层 · 13/13 PFL 全部闭环 🎉 · 705+189=894 tests | **P12-B43** 🔜
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · L5 counter=0 | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=1（B42 已完成）| 🟢 正常 |
+| **L5** | batchesSinceLastL5=0（B40→B42 L5 拉通完成）| 🟢 正常 |

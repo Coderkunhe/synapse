@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P12-B32 ✅ D2 四阶段全量闭环 🎉 · 189 tests · D2 ~55%
-last_batch: P12-B32
-next_batch: P12-B33
-description: Synapse 主项目 — P12 三十二批闭环 · 1O+2B · B32 D2 四阶段全量闭环 · D1 62% · D2 ~55% · B33 D3 Scout
+phase: P12-B42 ✅ Codex 兼容层 · 13/13 PFL 全部闭环 🎉 · 双 Worker 模型就位
+last_batch: P12-B42
+next_batch: P12-B43
+description: Synapse 主项目 — P12 四十二批闭环 · 1O+2B · B42 Codex 兼容层 · 13/13 PFL · D1 62% · D2 ~55% · B43 狗粮验证
 ---
 
 # Synapse 轨道
@@ -16,7 +16,7 @@ description: Synapse 主项目 — P12 三十二批闭环 · 1O+2B · B32 D2 四
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
 | **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
-| **P12** | P12-B32 | **P12-B33** 🔜 | B1-B32 ✅ · B32 D2 四阶段全量闭环 🎉 · 189 tests · D2 ~55% · B33 D3 Scout |
+| **P12** | P12-B42 | **P12-B43** 🔜 | B1-B42 ✅ · B42 Codex 兼容层 · 13/13 PFL 闭环 🎉 · B43 狗粮验证 |
 
 ## P11 路线图：多 Agent 接入战
 
