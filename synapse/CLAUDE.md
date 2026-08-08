@@ -93,8 +93,8 @@ synapse/
 
 | 轨道 | 最后 Batch | 下一 Batch |
 |:---|:---|:---|
-| **P11** | B137 ✅ P11 全量闭环 🎉 | **P12-B1** ✅ D1 Scout |
-| **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 728 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
-| 🎯 | **P12 目标：1O+2B 三 Worker 协作（Claude Code / Codex CLI 混搭均可）** | ✅ 已达成 |
+| **P11** | B137 ✅ P11 全量闭环 🎉 | — |
+| **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
+| 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13-B1** 🔜 Worker 启动链韧性 |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · L5 counter=0 | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=0（B51 L5 拉通完成）| 🟢 正常 |
+| **L5** | batchesSinceLastL5=1（Scout 产出 3 文档）| 🟢 正常 |

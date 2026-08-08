@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-07（P12-B35 ✅ · P100-B115 ✅ · D1-D4 四方向推进中 · L5 counter=0）
+> 最后更新：2026-08-08（P12 全量闭环 🎉 · P13 定义就位 · P13-B1 🔜 · L5 counter=1）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -606,7 +606,7 @@
 
 ---
 
-## Phase 12：Harness-Driven Worker ▶️
+## Phase 12：Harness-Driven Worker ✅
 
 > **唯一目标**：达成 P11 未竟的原始目标 — **1 Orchestrator + 2 Builder（= 3 个 Worker）通过 Synapse 协作开发一个真实功能，全程不需要 God's-eye 干预。**
 >
@@ -719,3 +719,60 @@
 | G4 | GET /tasks 不过滤依赖未就绪 | 🟡 |
 | G5 | 依赖完成无 WS 推送 | 🟡 |
 | G6 | Worker 模板零提及 depends_on | 🟡 |
+
+---
+
+## Phase 13：基础设施可信度加固 ▶️
+
+> **一句话目标**：P12 证明了平台"可以工作"——P13 要让平台"可以信赖"。不是建新功能，而是把 P12 暴露的 30 个 PFL 中的结构性弱点（软约定、静默失败、跨客户端摩擦）转化为机械门禁。
+>
+> **启动条件**：P12 全量闭环 ✅ · P13 Scout 完成 ✅ · L5 复位
+> **核心原则**：P13 的每一批要么在消除一个已知的失败模式（PFL 根因），要么在让一个软约定变成机械门禁。**不做新功能，做可信度。**
+> **与 P12 的关系**：P12 是"让多 Worker 协作跑通"（功能性验证）。P13 是"让多 Worker 协作可靠"（可信度验证）。P12 的 917 tests 是资产——P13 让这些资产的保护范围更广。
+>
+> ⚠️ **P13 Scout 已完成**（[p13-scout-brief.md](plans/p13-scout-brief.md) → [p13-priority-proposal.md](plans/p13-priority-proposal.md)）。以下 P0→P1→P2 来自 Scout 的交叉分析，不是拍脑袋。
+
+### 🎯 P13 三方向
+
+| # | 方向 | 为什么必须在 P13 | 对应 Scout 信号 |
+|:--:|------|:---|:---|
+| **D1** | **脚本化机械门禁** | P12 最顽固的反模式：软约定（文档写了但无人执行）→ 不转化为机械门禁，P13 狗粮会重演同样的摩擦 | S2 软约定 + S5 证据完整性 |
+| **D2** | **Worker 可观测性基础** | P12 最常见的失败模式：Worker 在残缺状态静默运行——不修，P13 每轮狗粮的调试时间有一半浪费在发现"Worker 其实是坏的" | S3 启动链静默失败 + S4 SPoF |
+| **D3** | **跨客户端可靠性** | P12 最多产的 bug 来源（8 PFLs · 27%）：Claude vs Codex 行为差异——不修，P13 多客户端狗粮持续产生噪声 | S1 客户端不对称 |
+
+### 📋 P13 批次表
+
+| Batch | 内容 | 优先级 | Scout 来源 | 状态 |
+|:---|:---|:--:|:---|:--:|
+| **P13-B1** | **P0-1: Worker 启动链韧性** — 5 项健康自检脚本 `synapse-health-check.sh` · 启动后自动诊断 (handshake 200 · WS connected · heartbeat ticking · state file fresh · CronCreate scheduled) · 任一项失败 → 终端告警 · 模板集成 (boot-prompt + session-init) | P0 | C12 × S3 | 🔜 |
+| **P13-B2** | **P0-2: 狗粮证据完整性门禁** — `dogfood-gate.sh` V-criteria 完整性检查 · 解析上次 status.md → 存在 ⬜ → 阻断新狗粮 + 提示缺失项 · D-P12-042 落地 · PFL-158 闭环 | P0 | C8 × S2+S5 | 🔜 |
+| **P13-B3** | **P0-3: L5 一致性机械门禁** — `check-l5-consistency.sh` 三源对比 (l5-checkpoint.json · CLAUDE.md · MEMORY.md) · 不一致 → pre-commit 阻断 (+ `--skip-l5-check` 豁免但记录违纪) · 消除 B51 型漂移 | P0 | C5 × S2 | 🔜 |
+| **P13-B4** | **P1-1-start: 跨客户端 Provider Interface 设计** — 从 Codex 13 PFL 提炼统一 provider 接口 (heartbeat/offline/evidence/state/startup 五维) · 设计文档 · 不强求实现 | P1 | C1 × S1 | 📋 |
+| **P13-B5** | **P1-4: 多 Worker 集成测试 Harness 设计** — 多 Worker fixture 架构 + 并发调度方案 + 时序断言 API 设计文档 · 1 个 smoke test: B 提交→O 验收→下游解锁 | P1 | C2 × S2+S3+S4 | 📋 |
+| **P13-B6** | **P1-3: SPoF 梯度防御 B 线** — Server 侧 O 超时自动 escalation 到 Human · `escalation_service.py` over escalation_minutes → @Human 消息 · B47 设计方案落地 · PFL-151 闭环 | P1 | C9 × S4 | 📋 |
+| **P13-B7** | **P1-2: 狗粮→自动化回归转化链路** — 狗粮模板增加「自动化回归」节 · 每轮狗粮至少产出 1 test · dogfood-gate.sh 检查上次是否产出 test · "什么可自动化 vs 只能手工"判定标准 | P1 | C4 × S2+S5 | 📋 |
+| **P13-B8+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) · C13 (Hook 诊断) — 各有触发条件，不预先排期 | P2 | 6 项 | 📋 |
+
+### ✅ P13 成功标准（可验证的 "done"）
+
+```
+1. 三个机械门禁 (B1+B2+B3) 在 pre-commit 中生效——软约定成为阻断条件
+2. Worker 启动后 5 秒内完成自检——静默失败成为不可能
+3. 每轮狗粮的 V-criteria 至少 80% 有 automation evidence（非手工 code-verified）
+4. O 超时 >10min → Human 自动收到 escalation 通知
+5. 全程零 src/ 变更由 God's-eye 执行（God's-eye 只治理，不写代码）
+```
+
+### 🗄️ P14 储备（P13 明确排除）
+
+| 编号 | 内容 | 排除理由 |
+|:---|------|------|
+| W2 | Worker 自观测 dashboard | 仍然是产品功能——先让基础设施可靠 |
+| T2 | Builder 间 A2A 通信 | 先巩固 Task 依赖 + O 协调 |
+| T4 | 多 Worker 负载均衡 | 规模未到 |
+| H3 | Prompt 版本化+回滚 | 基础设施可信后再优化 |
+| H4 | Worker SDK 化 | 过早抽象——等 provider interface (B4) 验证后再做 |
+| P1 | Kanban 看板可视化 | 产品功能 |
+| C1-full | 跨客户端抽象层全量实现 | B4 只做设计——全量实现需要更多 PFL 数据 |
+| C2-full | 多 Worker 集成测试 Harness 全量建设 | B5 只做设计+smoke——全量建设留 P14 |
+| C11 | O 响应性 SLA 自动度量+报警 | 先让 O 不挂 (B6)，再让 O 快 |
