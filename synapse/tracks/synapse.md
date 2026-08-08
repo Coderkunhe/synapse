@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P13-B3 ✅ L5 一致性机械门禁 · B4 🔜 Provider Interface
-last_batch: P13-B3
-next_batch: P13-B4
-description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B3 ✅ · L5 三源 counter 门禁落地 · B4 跨客户端 Provider Interface
+phase: P13-B4 ✅ Provider Interface 设计 · B5 🔜 集成测试 Harness
+last_batch: P13-B4
+next_batch: P13-B5
+description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B4 ✅ · Provider Interface 五维契约设计完成 · B5 多 Worker 集成测试 Harness
 ---
 
 # Synapse 轨道
@@ -17,7 +17,7 @@ description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B3 �
 | **P100** | P100-B116 | **P100-B117** 🔜 | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · B117 🔜 下一站 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
-| **P13** | **P13-B3** | **P13-B4** 🔜 | B1→B3 ✅ · L5 一致性机械门禁落地 · B4 跨客户端 Provider Interface |
+| **P13** | **P13-B4** | **P13-B5** 🔜 | B1→B4 ✅ · Provider Interface 五维契约设计 · B5 多 Worker 集成测试 Harness |
 
 ## P11 路线图：多 Agent 接入战
 
