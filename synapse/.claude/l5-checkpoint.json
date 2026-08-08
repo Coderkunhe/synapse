@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P12-B51 闭环 — 新增 docs/plans/p12-b51-dogfood.md 狗粮报告 + 更新 tests/dogfood/d4/status.md 狗粮状态 · 4 探针全量通过 · 0 新 PFL · 728 tests 零回归",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P12-B51 闭环 — 新增 docs/plans/p12-b51-dogfood.md 狗粮报告 + 更新 tests/dogfood/d4/status.md 狗粮状态 · 4 探针全量通过 · 0 新 PFL · 728 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
