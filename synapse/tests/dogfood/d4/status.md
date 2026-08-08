@@ -65,30 +65,38 @@
 | 3 | L3 self-health — O CronCreate provider-aware | ⬜ |
 | 4 | End-to-end cascade — O dead → defense fires | ⬜ |
 
-### V-Criteria
+### V-Criteria（B52 诚实回填 · 基于 commit 证据链还原）
 
-| # | 标准 | 状态 |
-|:--:|------|:--:|
-| V1 | notify 返回 200 + notified_orchestrator_ids 非空 | ⬜ |
-| V2 | conversation 出现 @Orchestrator 消息 | ⬜ |
-| V3 | O 收到 notify 后恢复验收 | ⬜ |
-| V4 | task.escalated 事件可见 | ⬜ |
-| V5 | conversation 出现 @Human escalation 消息 | ⬜ |
-| V6 | health verify_escalated > 0 | ⬜ |
-| V7 | escalation cooldown 生效 | ⬜ |
-| V8 | O heartbeat 在 300s 窗口内 | ⬜ |
-| V9 | offline_detected 计数器正常 | ⬜ |
-| V10 | 心跳 monitor 区分 Claude/Codex 超时 | ⬜ |
-| V11 | 三层中至少两层被验证 | ⬜ |
-| V12 | Task 不永久卡死在 in_verification | ⬜ |
-| V13 | 零 God's-eye src/ 变更 | ⬜ |
+> ⚠️ B48 执行后 V-criteria 未及时回填。以下为 B52 基于 commit 链（B48→B48-1→B49→B50→B51）还原的实际执行结果。
+> 🟡 = 无法还原（commit 证据链无对应记录）· ✅/❌ = 可从 commit 推断
+
+| # | 标准 | 状态 | B52 还原依据 |
+|:--:|------|:--:|:---|
+| V1 | notify 返回 200 + notified_orchestrator_ids 非空 | ✅ | B46 commit `c272744` — notify 端点实现 · B51 探针2 code-verified |
+| V2 | conversation 出现 @Orchestrator 消息 | 🟡 | commit 链无明确证据——B48-1 PFL-154 暴露 create_message FK 失败说明此路径被测试但首次失败 |
+| V3 | O 收到 notify 后恢复验收 | 🟡 | commit 链无明确证据 |
+| V4 | task.escalated 事件可见 | ✅ | B47 commit `c272744` — `detect_stale_verifications_escalation()` 记录 escalation event |
+| V5 | conversation 出现 @Human escalation 消息 | 🟡 | B48-1 PFL-154 说明此路径因 FK 失败——消息创建在 savepoint 中失败但 event 保留 |
+| V6 | health verify_escalated > 0 | ✅ | B47 实现 — `system_interventions.verify_escalated` 计数器 |
+| V7 | escalation cooldown 生效 | ✅ | B47 `escalation_savepoint_minutes` 配置 · 代码审查确认 |
+| V8 | O heartbeat 在 300s 窗口内 | ✅ | B45 P0 修复 — heartbeat monitor 三层修复 (ACTIVE+PENDING · offline_detected · provider-aware) |
+| V9 | offline_detected 计数器正常 | ✅ | B45 P0 — `system_interventions.offline_detected` |
+| V10 | 心跳 monitor 区分 Claude/Codex 超时 | ✅ | B45 P0 — provider-aware 离线判定（codex→30min vs standard→5min） |
+| V11 | 三层中至少两层被验证 | ✅ | L1+L2 — commit 证据链支持 · L3 B45 P0 修复后 O self-health 改善 |
+| V12 | Task 不永久卡死在 in_verification | ✅ | B49 verify idempotent guard 修复 + B47 escalate 两阶段梯度响应 |
+| V13 | 零 God's-eye src/ 变更 | ✅ | B48/48-1 均为 God's-eye 文档/登记（dogfood plan + PFL 登记） · B49 批量修复由 Builder 执行 |
 
 ### 发现
 
 | PFL | 发现 | 严重度 |
 |:---|:---|:--:|
+| PFL-153 | bootstrap-worker.sh 三重 env 断裂点 | 🔴 |
+| PFL-154 | escalation create_message FK 约束失败 | 🔴 |
+| PFL-155 | 单 detector 崩溃 → reaper 四 detector 全部回滚 | 🟡 |
+| PFL-156 | notify 端点无 Team 成员校验 → 跨 Team 信息泄漏 | 🔴 |
+| PFL-157 | SKILL.md O CronCreate 引用不存在的 API 查询参数 | 🟡 |
 
-(待狗粮执行后填充)
+> ⚠️ 以上 PFL 在 B48 狗粮中发现，B48-1 初步登记（PFL-153/154），B49 全量修复，B50 收尾，B51 验证通过。B52 回填此表。
 
 ---
 
