@@ -97,4 +97,4 @@ synapse/
 | **P12** | B45 ✅ PFL-144/150/152 全量闭环 · PFL-151 🟡 缓解 · 714+189=903 tests | **P12-B46** 🔜 (下一次狗粮 or PFL-151 架构设计)
 | 🎯 | **P12 目标：1O+2B 三 Worker 协作**（Claude Code / Codex CLI 混搭均可） | 不变 |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · L5 counter=0 | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=1（B45 双 commit 后 · 下次会话需 L5 拉通）| 🟡 注意 |
+| **L5** | batchesSinceLastL5=0（B45 L5 拉通完成）| 🟢 正常 |
