@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P12-B52 证据补全+诚实复盘 · 📄 docs/plans/p12-retrospective.md 批判性自审 §七 三层可靠性评估 · 📄 tests/dogfood/d4/status.md B48 13项 V-criteria 诚实回填 · 📄 docs/pitfalls.md PFL-158 狗粮证据完整性门禁缺失登记 · 📄 docs/lessons-learned.md LL27 P12 收尾复盘 · 📄 CLAUDE.md + l5-checkpoint.json 状态同步 · 917 tests 零失败",
+  "lastL5Batch": "P12→P13 桥接 · 📄 docs/plans/p13-scout-brief.md P13 Scout Brief — 1O+2B 自我狗粮做 P13 方向决策 · docs/plans/p12-retrospective.md 诚实复盘 · tests/dogfood/d4/status.md B48 V-criteria 回填 · tools/dogfood-gate.sh D-P12-042 门禁落地 · PFL-158 闭环",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P12-B52 证据补全+诚实复盘 · 📄 docs/plans/p12-retrospective.md 批判性自审 §七 三层可靠性评估 · 📄 tests/dogfood/d4/status.md B48 13项 V-criteria 诚实回填 · 📄 docs/pitfalls.md PFL-158 狗粮证据完整性门禁缺失登记 · 📄 docs/lessons-learned.md LL27 P12 收尾复盘 · 📄 CLAUDE.md + l5-checkpoint.json 状态同步 · 917 tests 零失败",
+  "lastL5Evidence": "P12→P13 桥接 · 📄 docs/plans/p13-scout-brief.md P13 Scout Brief — 1O+2B 自我狗粮做 P13 方向决策 · docs/plans/p12-retrospective.md 诚实复盘 · tests/dogfood/d4/status.md B48 V-criteria 回填 · tools/dogfood-gate.sh D-P12-042 门禁落地 · PFL-158 闭环",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
