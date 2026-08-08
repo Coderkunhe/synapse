@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P13 Scout→B1 L5 拉通 — 📄 docs/plans/p13-candidate-pool.md 新增 13项候选池三维评分 · 📄 docs/plans/p13-friction-signals.md 新增 Top5摩擦信号30PFL分类 · 📄 docs/plans/p13-priority-proposal.md 新增 P0×3+P1×4+P2×6交叉分析 · 📄 docs/roadmap.md 新增 Phase 13定义三方向7批 · 🩺 tools/synapse-health-check.sh 新增 5项健康自检脚本 · 📄 CLAUDE.md 刷新当前状态表 · 📄 _boot-prompt.md+SKILL.md 刷新健康门禁集成",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 2,
   "completedBatches": [],
   "lastL5Evidence": "P13 Scout→B1 L5 拉通 — 📄 docs/plans/p13-candidate-pool.md 新增 13项候选池三维评分 · 📄 docs/plans/p13-friction-signals.md 新增 Top5摩擦信号30PFL分类 · 📄 docs/plans/p13-priority-proposal.md 新增 P0×3+P1×4+P2×6交叉分析 · 📄 docs/roadmap.md 新增 Phase 13定义三方向7批 · 🩺 tools/synapse-health-check.sh 新增 5项健康自检脚本 · 📄 CLAUDE.md 刷新当前状态表 · 📄 _boot-prompt.md+SKILL.md 刷新健康门禁集成",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

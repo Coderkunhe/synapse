@@ -49,8 +49,27 @@ check_vcriteria() {
     echo "├──────────────────────────────────────────────────────────────┤"
     echo "│  文件: tests/dogfood/d4/status.md                           │"
     echo "│  未填充 V-criteria: $unfilled 项                              │"
-    echo "│                                                              │"
-    echo "│  P12-B52 门禁规则: 上次狗粮的 V-criteria 必须全部回填        │"
+    echo "├──────────────────────────────────────────────────────────────┤"
+    # Show specific unfilled items (up to 20) with line numbers
+    local shown=0
+    while IFS= read -r line; do
+      if [[ "$shown" -ge 20 ]]; then
+        echo "│  ... 还有 $((unfilled - shown)) 项未显示                      │"
+        break
+      fi
+      local lineno="${line%%:*}"
+      local content="${line#*:}"
+      # Trim leading/trailing whitespace and pipe prefix for display
+      content=$(echo "$content" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      # Truncate to fit in box (max 52 chars to leave room for prefix)
+      if [[ ${#content} -gt 52 ]]; then
+        content="${content:0:49}..."
+      fi
+      printf "│  L%-4s ⬜ %s\n" "$lineno" "$content"
+      ((shown++))
+    done < <(grep -n '⬜' "$STATUS_FILE" 2>/dev/null)
+    echo "├──────────────────────────────────────────────────────────────┤"
+    echo "│  P13-B2 门禁规则: 上次狗粮的 V-criteria 必须全部回填        │"
     echo "│  后才能激活新狗粮。这是机械门禁，不是软约定。                │"
     echo "│                                                              │"
     echo "│  修复: 编辑 status.md，将所有 ⬜ 替换为 ✅/❌/🟡              │"
