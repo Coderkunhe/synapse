@@ -75,6 +75,13 @@ class TestHarnessProviders:
             assert "startup" in cfg
 
 
+    def test_custom_provider_config_rejects_non_dict(self):
+        """非 dict 覆盖值应抛出清晰的 TypeError。"""
+        import pytest
+        with pytest.raises(TypeError, match="expects a dict"):
+            custom_provider_config(heartbeat="not_a_dict")
+
+
 class TestHarnessFixtures:
     """L3: Provider-aware fixtures — 需要 ASGI + DB。"""
 

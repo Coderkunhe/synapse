@@ -111,6 +111,13 @@ def custom_provider_config(**overrides: Any) -> dict[str, Any]:
     """
     base = claude_code_provider_config()
     for section, values in overrides.items():
-        if section in base and isinstance(base[section], dict):
+        if section not in base:
+            continue
+        if not isinstance(values, dict):
+            raise TypeError(
+                f"custom_provider_config: section '{section}' expects a dict, "
+                f"got {type(values).__name__}"
+            )
+        if isinstance(base[section], dict):
             base[section].update(values)
     return base
