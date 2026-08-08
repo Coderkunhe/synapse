@@ -179,7 +179,7 @@ node .agents/skills/synapse/scripts/session-init.js --json
 2. `curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" "$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID"` → 一步获取全部状态
 3. 无需写文件 — 直接读取 curl 输出中的 JSON 字段即可
 
-#### Codex CronCreate 保持在线（P12-B42 · 🚨 必读）
+#### Codex CronCreate 保持在线（P12-B42 · P12-B45 · 🚨 必读）
 
 > ⚠️ Codex 无 daemon 进程 — 会话结束后 30min 内无心跳 → Server 标记 offline。
 > **每次 Codex 会话结束后，必须立即粘贴以下 CronCreate 命令保持心跳。**
@@ -187,17 +187,41 @@ node .agents/skills/synapse/scripts/session-init.js --json
 **CronCreate 保活命令**（在 Codex 终端中执行）：
 
 ```
-/cron 60s "Codex Worker heartbeat + task poll
-1. curl -s -X POST $SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/heartbeat -H 'Authorization: Bearer $SYNAPSE_API_KEY' -H 'Content-Type: application/json' -d '{}'
-2. curl -s -H 'Authorization: Bearer $SYNAPSE_API_KEY' '$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID' | grep -q 'in_progress_tasks.*[1-9]' && echo 'HAS_TASKS: check state output above' || echo 'idle'
+/cron 60s "Codex Worker heartbeat + state summary
+1. curl -s -X POST $SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/heartbeat -H 'Authorization: Bearer $SYNAPSE_API_KEY' -H 'Content-Type: application/json' -d '{\"current_load\":0}'
+2. STATE=$(curl -s -H 'Authorization: Bearer $SYNAPSE_API_KEY' '$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID')
+3. echo \"$STATE\" > /tmp/synapse-state-$SYNAPSE_WORKER_ID.json
+4. IN_PROG=$(echo \"$STATE\" | python3 -c \"import sys,json; print(len(json.load(sys.stdin).get('in_progress_tasks',[])))\" 2>/dev/null || echo 0)
+5. PENDING=$(echo \"$STATE\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get('pending_authorizations_count',0))\" 2>/dev/null || echo 0)
+6. READY=$(echo \"$STATE\" | python3 -c \"import sys,json; print(len(json.load(sys.stdin).get('ready_queue',[])))\" 2>/dev/null || echo 0)
+7. echo \"📋 in_progress=$IN_PROG auth=$PENDING ready=$READY — full state: cat /tmp/synapse-state-$SYNAPSE_WORKER_ID.json\"
+"
+```
+
+**返回终端时检查状态**：
+```bash
+# 查看完整 state（JSON 格式）
+cat /tmp/synapse-state-$SYNAPSE_WORKER_ID.json | python3 -m json.tool
+
+# 或仅看关键字段
+cat /tmp/synapse-state-$SYNAPSE_WORKER_ID.json | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+print(f'in_progress: {len(d.get(\"in_progress_tasks\",[]))}')
+print(f'ready: {len(d.get(\"ready_queue\",[]))}')
+print(f'pending_auth: {d.get(\"pending_authorizations_count\",0)}')
+for t in d.get('in_progress_tasks',[]): print(f'  • {t[\"id\"][:12]}… {t.get(\"title\",\"?\")}')
 "
 ```
 
 **说明**：
 - 每 60s 发一次 heartbeat（Server 侧 codex timeout=30min，充裕）
-- 同时 poll state — 有任务时 `HAS_TASKS` 会提示你回终端干活
+- 每次 poll state 并保存到 `/tmp/synapse-state-{worker_id}.json` — 终端返回后可直接查看
+- CronCreate 输出摘要行 `📋 in_progress=N auth=N ready=N` — 一目了然
 - Server 对 `provider=codex` 的 Worker 使用 30min 离线判定（vs 标准 5min）
 - ⚠️ 此 CronCreate 不会自动 claim/submit — 你仍需主动回终端执行
+- 💡 **/tmp 文件在 macOS 重启后清除** — 每次 CronCreate 周期都会刷新，无需担心过期
+
+> 📖 **PFL-152 教训（B43 狗粮）**：Codex 无 `_task-current.md` 等价物 — session-init.js 的 `--json` 输出在 CronCreate 中不可见，旧版只用 `grep -q` 吞掉了 state 输出。B45 修复：CronCreate 将完整 state 保存到 `/tmp/synapse-state-{worker_id}.json`，返回终端后可直接 `cat` 查看 + python3 美化输出。
 
 ## 🎯 Orchestrator 专属：需求接收与 Challenge（B113）
 
@@ -255,6 +279,30 @@ Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
 | **④ 监控** | 跟踪 Builder 进度（评论区 + 状态变更） | — |
 | **⑤ 验收** | Builder submit → 验收 Verification → approve/reject | `POST /verifications/{id}/verify` |
 | **⑥ 闭环** | — | — |
+
+### Orchestrator CronCreate 保持响应（P12-B45 · 🚨 PFL-150）
+
+> ⚠️ **PFL-150 教训（B43 狗粮）**：O 的 WS daemon 收到 `task.submitted` push 事件，但 AI 上下文不消费——`_task-current.md` 是 CronCreate 唤醒时的一次性快照，不会随 WS push 实时更新。Builder submit 后 O 可能在数分钟内不响应，导致验证队列堆积。**WS push 到达 daemon ≠ AI 已感知。**
+
+**每次 CronCreate wakeup 时，O 必须执行以下操作**：
+
+```
+/cron 120s "O state refresh + verification check
+1. node .claude/skills/synapse/scripts/session-init.js --health
+2. echo '── O 状态检查 ──'
+3. grep -c 'in_verification' .claude/skills/synapse/_task-current.md && echo '🔴 有待验收 Task — 立即处理！' || echo '✅ 无待验收 — 向 Human 打招呼或 ScheduleWakeup'
+"
+```
+
+**关键规则**：
+- O 的 CronCreate 间隔 ≤ 2 分钟（Builder submit 后 O 最多等 2 分钟响应）
+- 每次唤醒必须 `--health` 刷新 — 快照可能已过期数小时
+- 发现 `in_verification` → **不休眠**，立即验收（approve/reject）
+- 空闲 → 主动向 Human 打招呼（见上方 §空闲问候），不沉默
+
+> 📖 **根因**：WS push 事件到达 daemon（heartbeat-core.js 维持连接），但 AI 上下文更新依赖文件读取（`_task-current.md`）或 API 调用。daemon 收到事件 → 写入 WS 日志，不更新 `_task-current.md`。Solution：缩短 CronCreate 间隔 + 每次强制 `--health` 刷新状态文件。
+>
+> 🚨 **PFL-151 残余风险（SPoF）**：即使 CronCreate 正确运行，O 的 AI 仍可能选择不休眠也不行动（判断错误）。如果 O 在 in_verification 状态下超过 10 分钟未响应 → Builder 应在 Task 评论区 `@Orchestrator` 手动触发提醒。Server 侧 verification_timeout 30min auto-revert（P11-B88）是最终安全网。O 是系统 SPoF — 该架构假设在 B34/B36/B43 三次狗粮中被验证为最大风险点，后续 Phase 需重新设计 O 角色边界。
 
 ## 🔄 核心工作循环
 

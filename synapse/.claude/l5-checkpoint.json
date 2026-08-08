@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B43+B44 L5 拉通 — B43 双 Worker 狗粮闭环 · dependency-chain API + 9 PFL · B44 PFL 消化波 5 修复 · reqlog 补登 · CLAUDE.md 同步",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B43+B44 L5 拉通 — B43 双 Worker 狗粮闭环 · dependency-chain API + 9 PFL · B44 PFL 消化波 5 修复 · reqlog 补登 · CLAUDE.md 同步",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
