@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P12-B46 ✅ PFL-151 Option A · B47 🔜 PFL-151 Option B
-last_batch: P12-B46
-next_batch: P12-B47
-description: Synapse 主项目 — P12 四十六批闭环 · 1O+2B · D1 62% · D2 ~55% · B47 O SLA auto-escalate
+phase: P13-B3 ✅ L5 一致性机械门禁 · B4 🔜 Provider Interface
+last_batch: P13-B3
+next_batch: P13-B4
+description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B3 ✅ · L5 三源 counter 门禁落地 · B4 跨客户端 Provider Interface
 ---
 
 # Synapse 轨道
@@ -14,9 +14,10 @@ description: Synapse 主项目 — P12 四十六批闭环 · 1O+2B · D1 62% · 
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B111 | — ✅ | B111 ✅ 断裂点审计✅条目归档 · P100 治理波全量收尾 🎉 |
+| **P100** | P100-B116 | **P100-B117** 🔜 | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · B117 🔜 下一站 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
-| **P12** | P12-B48 | **P12-B49** 🔜 | B1-B48 ✅ · B48 SPoF L1+L2 ✅ · PFL-153~157 · B49 审计修复 |
+| **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
+| **P13** | **P13-B3** | **P13-B4** 🔜 | B1→B3 ✅ · L5 一致性机械门禁落地 · B4 跨客户端 Provider Interface |
 
 ## P11 路线图：多 Agent 接入战
 
