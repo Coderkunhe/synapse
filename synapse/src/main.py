@@ -287,10 +287,12 @@ async def _worker_heartbeat_monitor() -> None:
             async with async_session_factory() as db:
                 now = datetime.now(timezone.utc)
 
-                # Fetch all ACTIVE non-OFFLINE workers with a heartbeat record.
+                # P12-B45 (PFL-144): 扩展扫描到 ACTIVE + PENDING —
+                # Codex Worker 可能在 PENDING 状态通过 CronCreate 发送心跳，
+                # 仅扫 ACTIVE 会导致其不可见。
                 # Provider-specific timeout applied in Python (P12-B42).
                 stmt = sa_select(Worker).where(
-                    Worker.status == WorkerStatus.ACTIVE,
+                    Worker.status.in_([WorkerStatus.ACTIVE, WorkerStatus.PENDING]),
                     Worker.runtime_status != WorkerRuntimeStatus.OFFLINE,
                     Worker.last_heartbeat_at.is_not(None),
                 )
@@ -365,11 +367,15 @@ async def _worker_heartbeat_monitor() -> None:
 
                 await db.commit()
                 _heartbeat_monitor_scan_count += 1
+                # P12-B45 (PFL-144): accumulate offline detections for /health visibility
+                global _heartbeat_monitor_offline_count
+                _heartbeat_monitor_offline_count += offline_count
 
                 if offline_count > 0:
                     _logger.info(
-                        "Heartbeat monitor: marked %d worker(s) OFFLINE (scan #%d)",
+                        "Heartbeat monitor: marked %d worker(s) OFFLINE (scan #%d, total=%d)",
                         offline_count, _heartbeat_monitor_scan_count,
+                        _heartbeat_monitor_offline_count,
                     )
 
         except Exception:
@@ -388,6 +394,7 @@ _ws_reaper_reap_count: int = 0  # P11-B128: proves WS reaper is actually scannin
 _auth_reaper_expiry_count: int = 0  # P11-B128: proves auth reaper is actually scanning
 _heartbeat_monitor_task: asyncio.Task | None = None  # P11-B128: heartbeat monitor handle
 _heartbeat_monitor_scan_count: int = 0  # P11-B128: proves heartbeat monitor is scanning
+_heartbeat_monitor_offline_count: int = 0  # P12-B45 (PFL-144): workers marked OFFLINE by heartbeat monitor
 
 # B22: system intervention counters — emergency system actions that indicate
 # potential DB bypass risk. Accumulated across server lifetime, reported in
@@ -520,6 +527,7 @@ def create_app() -> FastAPI:
                 "heartbeat_monitor": {
                     "status": _reaper_status(_heartbeat_monitor_task),
                     "scan_count": _heartbeat_monitor_scan_count,
+                    "offline_count": _heartbeat_monitor_offline_count,  # P12-B45 (PFL-144)
                 },
             },
             # B22: system intervention counters — accumulated across server

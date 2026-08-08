@@ -29,9 +29,16 @@ async def run_failure_detection(
 ):
     """Trigger all four failure detection lines (P8-B7).
 
+    P12-B45 (PFL-144): provider-aware heartbeat timeouts from settings.
+
     Returns a summary of agents failed, tasks released, and reviews overdue.
     """
-    result = await run_all_detections(db)
+    from src.config import settings
+    result = await run_all_detections(
+        db,
+        standard_timeout=settings.worker_heartbeat_timeout_seconds,
+        codex_timeout=settings.worker_heartbeat_timeout_seconds_codex,
+    )
     await db.commit()
     return result
 

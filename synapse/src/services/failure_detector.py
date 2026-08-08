@@ -32,36 +32,44 @@ from src.task_state_machine import apply_transition as task_apply_transition
 
 # ── P8-B7 阈值 (D-P7-019, MVP 硬编码) ───────────────────
 
-T_HB = 60          # 心跳超时 → 硬故障（秒）
+T_HB = 60          # 心跳超时 → 硬故障（秒）— 仅作为 fallback，优先使用 provider-aware timeout
 T_PROG = 300       # 进度超时 → 软故障（秒）
 T_REVIEW = 86400   # 审核超时 → 仅通知（秒，24h）
 N_RETRY = 3        # 自动重试上限，超出后升级
 
+# P12-B45 (PFL-144): provider-aware heartbeat timeout defaults
+# Codex CLI 无 daemon，CronCreate-based heartbeat 间隔更长
+T_HB_STANDARD = 300   # 5 min (persistent Workers: Claude Code daemon)
+T_HB_CODEX = 1800     # 30 min (Codex CLI: no daemon, CronCreate-based)
+
 
 # ── 心跳 / 进度检测 ────────────────────────────────────
 
-async def detect_heartbeat_failures(db: AsyncSession) -> dict:
+async def detect_heartbeat_failures(
+    db: AsyncSession,
+    standard_timeout: int = T_HB_STANDARD,
+    codex_timeout: int = T_HB_CODEX,
+) -> dict:
     """扫描心跳超时的 Worker 并将其转为 ERROR 状态。
 
+    P12-B45 (PFL-144): provider-aware timeout — Codex CLI (no daemon,
+    CronCreate-based heartbeat) gets longer grace period than persistent
+    Workers (Claude Code daemon).
+
     Worker 被视为"硬故障"当：
-      - status == "active"
+      - status == "active" or "pending"（P12-B45: 扩展扫描范围）
       - runtime_status != "error"（已故障的 Worker 跳过）
-      - last_heartbeat_at 已设置且距今超过 T_HB 秒
-      - last_heartbeat_at 为 None 且 Worker 注册距今超过 T_HB（从未发送心跳）
+      - last_heartbeat_at 已设置且距今超过 provider-specific timeout
+      - last_heartbeat_at 为 None 且 Worker 注册距今超过 standard_timeout（从未发送心跳）
 
     故障 Worker 拥有的所有任务被释放回 READY。
     """
     now = datetime.now(timezone.utc)
-    hb_cutoff = now - timedelta(seconds=T_HB)
-    registration_cutoff = now - timedelta(seconds=T_HB)
-
-    # SQLite 存储无时区信息的 datetime；归一化以便比较
-    hb_cutoff_naive = hb_cutoff.replace(tzinfo=None)
-    registration_cutoff_naive = registration_cutoff.replace(tzinfo=None)
 
     # 查找心跳过期或从未心跳但注册时间很久的 Worker
+    # P12-B45: 扩展扫描到 PENDING — Codex Worker 可能在 PENDING 状态发送心跳
     stmt = select(Worker).where(
-        Worker.status == WorkerStatus.ACTIVE,
+        Worker.status.in_([WorkerStatus.ACTIVE, WorkerStatus.PENDING]),
         Worker.runtime_status != WorkerRuntimeStatus.ERROR,
     )
     result = await db.execute(stmt)
@@ -71,12 +79,21 @@ async def detect_heartbeat_failures(db: AsyncSession) -> dict:
     released_task_ids: list[str] = []
 
     for worker in candidates:
+        # P12-B45: provider-specific timeout
+        timeout = codex_timeout if worker.provider == "codex" else standard_timeout
+        hb_cutoff = now - timedelta(seconds=timeout)
+        registration_cutoff = now - timedelta(seconds=timeout)
+
+        # SQLite 存储无时区信息的 datetime；归一化以便比较
+        hb_cutoff_naive = hb_cutoff.replace(tzinfo=None)
+        registration_cutoff_naive = registration_cutoff.replace(tzinfo=None)
+
         is_stale = False
         if worker.last_heartbeat_at is not None:
             if worker.last_heartbeat_at < hb_cutoff_naive:
                 is_stale = True
         elif worker.created_at is not None and worker.created_at < registration_cutoff_naive:
-            # Worker 注册超过 T_HB 但从未发送心跳
+            # Worker 注册超过 timeout 但从未发送心跳
             is_stale = True
 
         if not is_stale:
@@ -87,7 +104,11 @@ async def detect_heartbeat_failures(db: AsyncSession) -> dict:
         event_type, payload = worker_apply_transition(
             worker, WorkerRuntimeStatus.ERROR,
             actor_type=ActorType.SYSTEM, actor_id="failure_detector",
-            context={"reason": "heartbeat_timeout", "threshold_s": T_HB},
+            context={
+                "reason": "heartbeat_timeout",
+                "threshold_s": timeout,
+                "provider": worker.provider,
+            },
         )
         await event_store.record(
             db, event_type=event_type, team_id=worker.team_id,
@@ -293,12 +314,20 @@ async def detect_review_timeouts(db: AsyncSession) -> dict:
     }
 
 
-async def run_all_detections(db: AsyncSession) -> dict:
+async def run_all_detections(
+    db: AsyncSession,
+    standard_timeout: int = T_HB_STANDARD,
+    codex_timeout: int = T_HB_CODEX,
+) -> dict:
     """运行全部四条检测线并返回摘要。
+
+    P12-B45 (PFL-144): provider-aware heartbeat timeout 参数传递到各检测线。
 
     调用方必须在此返回后提交事务。
     """
-    hb_result = await detect_heartbeat_failures(db)
+    hb_result = await detect_heartbeat_failures(
+        db, standard_timeout=standard_timeout, codex_timeout=codex_timeout,
+    )
     prog_result = await detect_progress_failures(db)
     lease_result = await detect_lease_expirations(db)
     review_result = await detect_review_timeouts(db)
