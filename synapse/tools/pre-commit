@@ -35,10 +35,29 @@ if [ -x "$L5_GATE" ]; then
   "$L5_GATE" || exit 1
 fi
 
-# ── Stage 2b: L5 cross-document consistency (mechanical) ──
+# ── Stage 2b: L5 counter consistency (mechanical gate · P13-B3) ──
+# Blocks on counter mismatch across three sources (checkpoint·CLAUDE.md·memory)
+# Bypass: SYNAPSE_SKIP_L5_CHECK=1 git commit ...
 L5_CONSISTENCY="$REPO_ROOT/synapse/tools/check-l5-consistency.sh"
 if [ -x "$L5_CONSISTENCY" ]; then
-  "$L5_CONSISTENCY" || true  # warning-level: reports drifts, doesn't block
+  if [ "${SYNAPSE_SKIP_L5_CHECK:-0}" = "1" ]; then
+    echo "⚠️  L5 一致性检查已通过 SYNAPSE_SKIP_L5_CHECK=1 跳过（违纪已记录）"
+    echo "   $(date -u +%Y-%m-%dT%H:%M:%SZ) pre-commit SYNAPSE_SKIP_L5_CHECK=1" \
+      >> "$REPO_ROOT/synapse/.claude/l5-check-bypass.log" 2>/dev/null || true
+  else
+    "$L5_CONSISTENCY" --critical-only || {
+      echo ""
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "🔴  L5 一致性门禁失败（P13-B3）"
+      echo "🔴"
+      echo "🔴  l5-checkpoint.json · CLAUDE.md · memory/active/*.md"
+      echo "🔴  三源 counter 不一致。请修正后重新提交。"
+      echo "🔴"
+      echo "🔴  紧急跳过：SYNAPSE_SKIP_L5_CHECK=1 git commit ..."
+      echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      exit 1
+    }
+  fi
 fi
 
 # ── Stage 3: Schema audit check ──────────────────────────

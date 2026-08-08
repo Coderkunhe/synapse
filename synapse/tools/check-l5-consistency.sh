@@ -8,12 +8,19 @@
 #   Gate 4: checkpoint ↔ CLAUDE.md (计数器+引用一致性)
 #   Gate 5: CLAUDE.md ↔ roadmap    (Phase 状态+批号对齐)
 #
+# P13-B3: --critical-only 模式 (三源 counter 一致性 · pre-commit 机械门禁)
+#   Gate 4a:  batchesSinceLastL5  (checkpoint ↔ CLAUDE.md status row)
+#   Gate 4a-2: counter=           (checkpoint ↔ CLAUDE.md header)
+#   Gate 4e:  counter=            (checkpoint ↔ memory/active/*.md)
+#
 # Usage:
-#   bash tools/check-l5-consistency.sh [--strict]
+#   bash tools/check-l5-consistency.sh [--strict] [--critical-only]
+#   bash tools/check-l5-consistency.sh --skip-l5-check   (bypass)
+#   bash tools/check-l5-consistency.sh --memory-dir <path>
 #
 # Exit codes:
-#   0 — 五关全部通过
-#   1 — 发现不一致（--strict 模式，或 batchesSinceLastL5 ≥ 2 时硬错误）
+#   0 — 检查通过
+#   1 — 发现不一致（--strict 模式，--critical-only counter 不匹配，或 batchesSinceLastL5 ≥ 2 时硬错误）
 #   2 — 脚本自身错误
 
 set -o pipefail
@@ -21,14 +28,42 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 STRICT=false
+CRITICAL_ONLY=false
+SKIP_CHECK=false
+MEMORY_DIR=""
 WARNINGS=0
 ERRORS=0
 
 for arg in "$@"; do
   case "$arg" in
     --strict) STRICT=true ;;
+    --critical-only) CRITICAL_ONLY=true ;;
+    --skip-l5-check) SKIP_CHECK=true ;;
+    --memory-dir=*) MEMORY_DIR="${arg#*=}" ;;
+    --memory-dir) shift; MEMORY_DIR="$1" ;;
   esac
 done
+
+# ── Bypass mechanism (P13-B3) ──────────────────────────────────
+
+if [ "$SKIP_CHECK" = true ] || [ "${SYNAPSE_SKIP_L5_CHECK:-0}" = "1" ]; then
+  BYPASS_LOG="$PROJECT_DIR/.claude/l5-check-bypass.log"
+  BYPASS_METHOD="flag"
+  [ "$SKIP_CHECK" != true ] && BYPASS_METHOD="env"
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) skip-l5-check bypass=$BYPASS_METHOD" >> "$BYPASS_LOG" 2>/dev/null || true
+  echo -e "[33m⚠️  L5 一致性检查已跳过（--skip-l5-check / SYNAPSE_SKIP_L5_CHECK=1）[0m"
+  echo -e "[33m   bypass 已记录: $BYPASS_LOG[0m"
+  exit 0
+fi
+
+# ── Memory directory resolution (P13-B3) ──────────────────────
+
+if [ -z "$MEMORY_DIR" ]; then
+  REPO_ROOT=$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")
+  MEM_DIR_DERIVED="$HOME/.claude/projects/-$(echo "$REPO_ROOT" | sed 's|^/||; s|/|-|g')/memory"
+  MEMORY_DIR="${SYNAPSE_MEM_DIR:-$MEM_DIR_DERIVED}"
+fi
+ACTIVE_MEM_DIR="$MEMORY_DIR/active"
 
 # ── Source files ─────────────────────────────────────────────────
 
@@ -110,6 +145,16 @@ if [ -z "$ACTIVE_PHASES" ]; then
   done < "$TRACK"
 fi
 
+# P13-B3: detect 🎯 (current focus) phase — these are always active
+FOCUS_PHASE=$(grep '🎯' "$CLAUDE_MD" 2>/dev/null | grep -oE '\*\*P[0-9]+' | head -1 | sed 's/\*\*//' || echo "")
+if [ -n "$FOCUS_PHASE" ] && ! echo "$ACTIVE_PHASES" | grep -q "$FOCUS_PHASE"; then
+  if [ -z "$ACTIVE_PHASES" ]; then
+    ACTIVE_PHASES="$FOCUS_PHASE"
+  else
+    ACTIVE_PHASES="$ACTIVE_PHASES,$FOCUS_PHASE"
+  fi
+fi
+
 # Last fallback
 if [ -z "$ACTIVE_PHASES" ]; then
   ACTIVE_PHASES="P12"
@@ -146,8 +191,12 @@ bold "  活跃 Phases: ${ACTIVE_PHASES}"
 bold "  Checkpoint: counter=$L5_COUNTER · since=$L5_TIMESTAMP"
 bold "══════════════════════════════════════════════════════════"
 
-# ═══════════════════════════════════════════════════════════════════
-# Gate 1: roadmap ↔ reqlog (双向批覆盖 · 仅活跃 Phase)
+if [ "$CRITICAL_ONLY" = true ]; then
+  echo ""
+  bold "  Mode: --critical-only (三源 counter 一致性 · 跳过 Gates 1-3,5)"
+else
+  # ═══════════════════════════════════════════════════════════════════
+  # Gate 1: roadmap ↔ reqlog (双向批覆盖 · 仅活跃 Phase)
 # ═══════════════════════════════════════════════════════════════════
 
 echo ""
@@ -288,23 +337,102 @@ if [ -n "$COMPLETED" ] && [ "$COMPLETED" != " " ]; then
 else
   echo "  (completedBatches 为空，跳过)"
 fi
+fi  # --critical-only: end of Gates 1-3 skip block
 
 # ═══════════════════════════════════════════════════════════════════
-# Gate 4: checkpoint ↔ CLAUDE.md (计数器+引用一致性)
+# Gate 4: checkpoint ↔ CLAUDE.md (计数器+引用一致性 · P13-B3 增强: 行号 + header counter + memory)
 # ═══════════════════════════════════════════════════════════════════
 
 echo ""
 bold "── Gate 4: l5-checkpoint.json ↔ CLAUDE.md ──"
 
-# 4a: batchesSinceLastL5 多文件一致性
+# 4a: batchesSinceLastL5 多文件一致性 (P13-B3: +行号)
+CLAUDE_L5_LINE_NUM=$(grep -nE 'batchesSinceLastL5=[0-9]+' "$CLAUDE_MD" 2>/dev/null | head -1 | cut -d: -f1)
 CLAUDE_L5=$(grep -oE 'batchesSinceLastL5=[0-9]+' "$CLAUDE_MD" 2>/dev/null | head -1 | sed 's/.*=//' | tr -d '[:space:]')
 CLAUDE_L5=$(safe_int "$CLAUDE_L5")
 if [ -n "$CLAUDE_L5" ] && [ "$CLAUDE_L5" != "$L5_COUNTER" ]; then
-  err "CLAUDE.md batchesSinceLastL5=$CLAUDE_L5 ≠ checkpoint $L5_COUNTER"
+  err "CLAUDE.md:$CLAUDE_L5_LINE_NUM batchesSinceLastL5=$CLAUDE_L5 ≠ checkpoint batchesSinceLastL5=$L5_COUNTER"
 elif [ -n "$CLAUDE_L5" ] && [ "$CLAUDE_L5" -eq "$L5_COUNTER" ] 2>/dev/null; then
-  ok "CLAUDE.md batchesSinceLastL5=$CLAUDE_L5 ✓"
+  ok "CLAUDE.md:$CLAUDE_L5_LINE_NUM batchesSinceLastL5=$CLAUDE_L5 ✓"
 else
   warn "未在 CLAUDE.md 中找到 batchesSinceLastL5 声明"
+fi
+
+# 4a-2: CLAUDE.md header counter=N 检查 (P13-B3: 捕获 header 漂移)
+echo ""
+echo "  --- header counter= 检查 ---"
+HEADER_COUNTER_LINE=$(head -5 "$CLAUDE_MD" | grep -nE 'counter=[0-9]+' | head -1 || echo "")
+if [ -n "$HEADER_COUNTER_LINE" ]; then
+  HEADER_COUNTER_LINE_NUM=$(echo "$HEADER_COUNTER_LINE" | cut -d: -f1)
+  HEADER_COUNTER=$(echo "$HEADER_COUNTER_LINE" | grep -oE 'counter=[0-9]+' | sed 's/counter=//' | tr -d '[:space:]')
+  HEADER_COUNTER=$(safe_int "$HEADER_COUNTER")
+  if [ "$HEADER_COUNTER" != "$L5_COUNTER" ]; then
+    err "CLAUDE.md:$HEADER_COUNTER_LINE_NUM header counter=$HEADER_COUNTER ≠ checkpoint batchesSinceLastL5=$L5_COUNTER"
+  else
+    ok "CLAUDE.md:$HEADER_COUNTER_LINE_NUM header counter=$HEADER_COUNTER ✓"
+  fi
+else
+  warn "CLAUDE.md header (line 1-5) 中未找到 counter= 声明"
+fi
+
+# 4a-3: CLAUDE.md 所有 counter=N 行全面扫描 (P13-B3)
+echo ""
+echo "  --- 全面 counter= 扫描 ---"
+ALL_COUNTER_LINES=$(grep -nE 'counter=[0-9]+' "$CLAUDE_MD" 2>/dev/null || echo "")
+if [ -n "$ALL_COUNTER_LINES" ]; then
+  while IFS= read -r hit; do
+    [ -z "$hit" ] && continue
+    hit_linenum=$(echo "$hit" | cut -d: -f1)
+    hit_value=$(echo "$hit" | grep -oE 'counter=[0-9]+' | sed 's/counter=//' | tr -d '[:space:]')
+    hit_value=$(safe_int "$hit_value")
+    if [ -n "$hit_value" ]; then
+      if [ "$hit_value" != "$L5_COUNTER" ]; then
+        err "CLAUDE.md:$hit_linenum counter=$hit_value ≠ checkpoint batchesSinceLastL5=$L5_COUNTER"
+      else
+        ok "CLAUDE.md:$hit_linenum counter=$hit_value ✓"
+      fi
+    fi
+  done <<< "$ALL_COUNTER_LINES"
+else
+  echo "  (CLAUDE.md 中未找到 counter= 引用)"
+fi
+
+# 4e: Memory 文件 counter 校验 (P13-B3: checkpoint ↔ memory/active/*.md)
+echo ""
+echo "  --- Memory 文件 counter= 校验 ---"
+if [ ! -d "$ACTIVE_MEM_DIR" ]; then
+  echo "  (memory/active/ 目录不存在: $ACTIVE_MEM_DIR — 跳过)"
+else
+  MEM_COUNTER_FOUND=false
+  for memfile in $ACTIVE_MEM_DIR/*.md; do
+    [ -f "$memfile" ] || continue
+    memname=$(basename "$memfile")
+    # P13-B3: only check counter in active phase files (skip closed phases)
+    mem_phase=$(echo "$memname" | grep -oE 'p[0-9]+' || echo "")
+    if [ -n "$mem_phase" ]; then
+      mem_phase_upper=$(echo "$mem_phase" | tr '[:lower:]' '[:upper:]')
+      if ! echo "$ACTIVE_PHASES" | grep -q "$mem_phase_upper"; then
+        continue  # Skip closed/inactive phase memory files
+      fi
+    fi
+    while IFS= read -r hit; do
+      [ -z "$hit" ] && continue
+      hit_linenum=$(echo "$hit" | cut -d: -f1)
+      hit_value=$(echo "$hit" | grep -oE 'counter=[0-9]+' | sed 's/counter=//' | tr -d '[:space:]')
+      hit_value=$(safe_int "$hit_value")
+      if [ -n "$hit_value" ]; then
+        MEM_COUNTER_FOUND=true
+        if [ "$hit_value" != "$L5_COUNTER" ]; then
+          err "memory/active/$memname:$hit_linenum counter=$hit_value ≠ checkpoint batchesSinceLastL5=$L5_COUNTER"
+        else
+          ok "memory/active/$memname:$hit_linenum counter=$hit_value ✓"
+        fi
+      fi
+    done < <(grep -nE 'counter=[0-9]+' "$memfile" 2>/dev/null || true)
+  done
+  if [ "$MEM_COUNTER_FOUND" = false ]; then
+    echo "  (memory/active/*.md 中未找到 counter= 引用 — 跳过)"
+  fi
 fi
 
 # 4b: lastL5Batch 在 CLAUDE.md 中被引用
@@ -341,6 +469,7 @@ if [ -n "$TRACK_P100" ]; then
   echo "  track P100: last=$P100_LAST"
 fi
 
+if [ "$CRITICAL_ONLY" != true ]; then
 # ═══════════════════════════════════════════════════════════════════
 # Gate 5: CLAUDE.md ↔ roadmap (Phase 状态+批号对齐)
 # ═══════════════════════════════════════════════════════════════════
@@ -376,6 +505,47 @@ if [ -z "$L5_BANNER" ]; then
   warn "CLAUDE.md 缺少 L5 状态 banner · 可能未执行 Rule #2 刷新"
 else
   ok "CLAUDE.md L5 banner 存在"
+fi
+fi  # --critical-only: end of Gate 5 skip block
+
+# ═══════════════════════════════════════════════════════════════════
+# P13-B3: --critical-only mode summary (precedes normal summary)
+# ═══════════════════════════════════════════════════════════════════
+
+if [ "$CRITICAL_ONLY" = true ]; then
+  echo ""
+  bold "══════════════════════════════════════════════════════════"
+  printf "  L5 三源 counter 一致性结果: "
+  if [ "$ERRORS" -gt 0 ]; then
+    red "${ERRORS} 错误"
+  else
+    green "0 错误"
+  fi
+  printf " · "
+  if [ "$WARNINGS" -gt 0 ]; then
+    yellow "${WARNINGS} 警告"
+  else
+    green "0 警告"
+  fi
+  bold "══════════════════════════════════════════════════════════"
+
+  if [ "$ERRORS" -gt 0 ]; then
+    red ""
+    red "❌ L5 三源一致性检查未通过 — 发现 ${ERRORS} 项硬错误"
+    red "   请修正上述 counter 不一致后重新提交。"
+    red "   预期值: batchesSinceLastL5=$L5_COUNTER (来源: l5-checkpoint.json)"
+    red "   紧急跳过: SYNAPSE_SKIP_L5_CHECK=1 git commit ..."
+    exit 1
+  fi
+
+  if [ "$WARNINGS" -gt 0 ]; then
+    yellow ""
+    yellow "⚠️  L5 三源一致性: ${WARNINGS} 项警告 (非阻断 · 建议修复)"
+  fi
+
+  green ""
+  green "✅ L5 三源 counter 一致性通过 (checkpoint counter=$L5_COUNTER)"
+  exit 0
 fi
 
 # ═══════════════════════════════════════════════════════════════════
