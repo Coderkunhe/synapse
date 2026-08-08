@@ -662,6 +662,9 @@
 | **P12-B40** | **evidence 校验 + API 降级** — PFL-143 TaskSubmitRequest evidence 非空 field_validator（None/{}→422）· +3 tests · PFL-135 SKILL.md + role-builder.md API 降级路径（`GET /workers/me/state`）· 705 tests 零回归 · 2/13 PFL 闭环（累计 8/13）· 🟢 微型 · 4 files | ✅ |
 | **P12-B41** | **PFL-138 role 自动分配闭环** — 三层防御验证：WorkerCreate.role pattern + register_worker() default builder + ProjectRoleAssign.role pattern · 零新代码 · 23 tests 覆盖 · 9/13 PFL · 🟢 微型 · 1 file（pitfalls.md 标记） | ✅ |
 | **P12-B42** | **Codex 兼容层** — provider-aware 离线判定（codex→30min vs standard→5min）· SKILL.md Codex CronCreate 保活模板 · PFL-132/133/134 ✅ + PFL-141 🟡 · 13/13 P12 PFL 全部闭环 🎉 · 705 tests 零回归 · 🟢 微型 · 4 files | ✅ |
+| **P12-B43** | **双 Worker 狗粮闭环** — BA(Claude)+BB(Codex) 协作 · dependency-chain API (BFS 双向遍历) · TaskCard 依赖标签前端 · 9 PFL 登记 (PFL-144~152) · 702+189=891 tests · 🟢 中型 · 7 files · +945 | ✅ |
+| **P12-B44** | **PFL 消化波 5 修复** — PFL-147 auth 500 fix · PFL-148 generate-skill.sh .env 骨架 · PFL-149/145/146 SKILL.md 文档增强 · PFL-144 三层根因定位 → B45 · 702+189=891 tests · 🟢 微型 · 8 files · +119/-23 | ✅ |
+| **P12-B45** | **PFL-144/150/152 全量闭环 · PFL-151 🟡 SPoF 缓解** — P0: heartbeat monitor 三层修复 (ACTIVE+PENDING · offline_detected · failure_detector provider-aware) · P1: SKILL.md O CronCreate 120s + Codex /tmp state · P2: PFL-151 SPoF 设计选项 A/B/C 登记 · 714+189=903 tests · 🟢 中型 · 8 files · +131/-39 | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|
