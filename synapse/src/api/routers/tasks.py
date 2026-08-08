@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import get_db
+from src.config import limiter, settings  # P12-B50: limiter for notify rate limiting
 from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, OwnerType, ProjectStatus, TaskStatus, VerificationStatus
 from src.dependencies import ActorInfo, get_current_actor
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, SynapseError
@@ -829,7 +830,9 @@ async def batch_update(
     "/projects/{project_id}/tasks/{task_id}/notify",
     response_model=TaskNotifyResponse,
 )
+@limiter.limit(settings.rate_limit_notify)  # P12-B50: 防止 notify 端点被滥用
 async def notify_orchestrator(
+    request: Request,  # P12-B50: slowapi rate limiting 需要 request 参数
     project_id: str,
     task_id: str,
     body: TaskNotifyRequest | None = None,
@@ -842,12 +845,30 @@ async def notify_orchestrator(
     Creates a conversation message @Orchestrator and sends WS push to
     all Orchestrator workers in the project.
 
-    Open to any authenticated actor who can access the task —
-    the notification is a coordination signal, not a privileged operation.
+    P12-B49 (PFL-156): requires the actor to belong to the task's team —
+    cross-team notify would leak task title/status via WS push and response.
     """
     task = await _get_task(db, task_id)
     if task is None or task.project_id != project_id:
         raise NotFoundError("task", task_id)
+
+    # ── PFL-156: verify actor belongs to the task's project/team ──
+    project = await get_project_or_404(db, project_id)
+    if project.team_id != actor.team_id:
+        raise ForbiddenError(
+            "CROSS_TEAM_NOTIFY",
+            f"Actor {actor.actor_id} (team={actor.team_id}) cannot notify "
+            f"on task {task_id} in project {project_id} (team={project.team_id})",
+            {"actor_team": actor.team_id, "project_team": project.team_id},
+        )
+
+    # ── P12-B49: state gate — refuse notify on terminal tasks ──
+    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+        raise ConflictError(
+            "TASK_TERMINAL",
+            f"Cannot notify on task {task_id} in terminal state '{task.status}'",
+            {"task_id": task_id, "status": task.status},
+        )
 
     # ── Find all Orchestrator workers in the project ──
     orch_result = await db.execute(
@@ -872,20 +893,30 @@ async def notify_orchestrator(
     )
 
     # ── Create a conversation message to persist the notification ──
+    # P12-B49: wrapped in try/except — WS push still happens even if
+    # message creation fails (e.g. FK constraint, transient DB error).
     from src.services.conversation_service import create_message
 
-    await create_message(
-        db,
-        task_id=task_id,
-        workflow_id=None,
-        message_type="comment",
-        body=notify_body,
-        in_reply_to_id=None,
-        sender_worker_id=actor.actor_id,
-        team_id=actor.team_id,
-        actor_type=actor.actor_type,
-        actor_id=actor.actor_id,
-    )
+    try:
+        await create_message(
+            db,
+            task_id=task_id,
+            workflow_id=None,
+            message_type="comment",
+            body=notify_body,
+            in_reply_to_id=None,
+            sender_worker_id=actor.actor_id,
+            team_id=actor.team_id,
+            actor_type=actor.actor_type,
+            actor_id=actor.actor_id,
+        )
+    except Exception:
+        import logging
+        _logger = logging.getLogger("synapse.api.notify")
+        _logger.warning(
+            "Failed to create notify message for task %s (WS push will still proceed)",
+            task_id, exc_info=True,
+        )
 
     # ── Send WS push to each Orchestrator's daemon ──
     notified_ids: list[str] = []

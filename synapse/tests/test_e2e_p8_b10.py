@@ -431,10 +431,12 @@ class TestFailureRecovery:
             await db_session.commit()
 
         # ── 运行故障检测器 ──
+        # P12-B49: 测试用 60s timeout（P12-B45 将 standard_timeout 从 60s 改为 300s，
+        # 但测试心跳设为 120s 前，需要显式传短 timeout 才能在 300s 默认值下触发）
         from src.services.failure_detector import detect_heartbeat_failures
 
         async with async_session_factory() as db_session:
-            result = await detect_heartbeat_failures(db_session)
+            result = await detect_heartbeat_failures(db_session, standard_timeout=60)
             await db_session.commit()
 
         assert result["failed_workers"] >= 1

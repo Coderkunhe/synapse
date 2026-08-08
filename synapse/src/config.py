@@ -144,6 +144,7 @@ class Settings(BaseSettings):
     rate_limit_register: str = "3/minute"
     rate_limit_forgot_password: str = "3/minute"
     rate_limit_reset_password: str = "3/minute"
+    rate_limit_notify: str = "5/minute"  # P12-B50: notify 端点频率限制
 
     # WebPush (P10-B44 · S-066)
     vapid_private_key: str = ""

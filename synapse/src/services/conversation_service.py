@@ -206,6 +206,33 @@ async def create_message(
 
     task_project_id: str = task_row[1]
 
+    # ── P12-B49: FK 前置校验 — 在 INSERT 前验证引用完整性，
+    #     将 IntegrityError 500 转换为明确的 404/422 ──
+    if in_reply_to_id is not None:
+        reply_result = await db.execute(
+            select(TaskWorkerConversation.id).where(
+                TaskWorkerConversation.id == in_reply_to_id,
+            ),
+        )
+        if reply_result.first() is None:
+            raise NotFoundError("TaskWorkerConversation", in_reply_to_id)
+
+    if workflow_id is not None:
+        from src.models.workflow import Workflow
+        wf_result = await db.execute(
+            select(Workflow.id).where(Workflow.id == workflow_id),
+        )
+        if wf_result.first() is None:
+            raise NotFoundError("Workflow", workflow_id)
+
+    if sender_worker_id is not None:
+        from src.models.worker import Worker
+        sw_result = await db.execute(
+            select(Worker.id).where(Worker.id == sender_worker_id),
+        )
+        if sw_result.first() is None:
+            raise NotFoundError("Worker", sender_worker_id)
+
     # ── @mention 解析 ──
     mentions = parse_mentions(body)
     worker_ids = await resolve_mentions(db, mentions, workflow_id)

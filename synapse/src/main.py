@@ -145,28 +145,71 @@ async def _stale_task_reaper() -> None:
 
             await asyncio.sleep(interval)
             async with async_session_factory() as db:
+                # ── PFL-155: 每个 detector 独立 try/except —
+                #     一个 flaky detector 不会回滚其他 detector 的工作
+
                 # P11-B76 + P11-B125: stale in_progress detection + reassign
-                result = await detect_stale_tasks(
-                    db,
-                    threshold_minutes=stale_threshold,
-                    reassign_threshold_minutes=reassign_threshold,
-                )
+                try:
+                    result = await detect_stale_tasks(
+                        db,
+                        threshold_minutes=stale_threshold,
+                        reassign_threshold_minutes=reassign_threshold,
+                    )
+                except Exception:
+                    _logger.warning(
+                        "stale_tasks detector failed", exc_info=True,
+                    )
+                    result = {
+                        "stale_count": 0, "stale_task_ids": [],
+                        "cancelled_count": 0, "cancelled_task_ids": [],
+                        "reassigned_count": 0, "reassigned_task_ids": [],
+                        "reassigned_tasks": [],
+                    }
+
                 # P11-B88: verification timeout auto-reclaim
-                verify_result = await detect_stale_verifications(
-                    db, threshold_minutes=verify_timeout,
-                )
+                try:
+                    verify_result = await detect_stale_verifications(
+                        db, threshold_minutes=verify_timeout,
+                    )
+                except Exception:
+                    _logger.warning(
+                        "stale_verifications detector failed", exc_info=True,
+                    )
+                    verify_result = {
+                        "reverted_count": 0, "reverted_task_ids": [],
+                        "cancelled_count": 0, "cancelled_task_ids": [],
+                    }
+
                 # P12-B47 (PFL-151 Option B): escalation to Human before auto-revert
-                escalation_result = await detect_stale_verifications_escalation(
-                    db,
-                    escalation_minutes=escalation_minutes,
-                    revert_minutes=verify_timeout,
-                    cooldown_minutes=escalation_cooldown,
-                )
+                try:
+                    escalation_result = await detect_stale_verifications_escalation(
+                        db,
+                        escalation_minutes=escalation_minutes,
+                        revert_minutes=verify_timeout,
+                        cooldown_minutes=escalation_cooldown,
+                    )
+                except Exception:
+                    _logger.warning(
+                        "verification_escalation detector failed", exc_info=True,
+                    )
+                    escalation_result = {
+                        "escalated_count": 0, "escalated_task_ids": [],
+                    }
+
                 # P12-B25 (PFL-128): READY task unclaimed watchdog
-                ready_result = await detect_unclaimed_ready_tasks(
-                    db,
-                    threshold_minutes=settings.task_ready_unclaimed_timeout_minutes,
-                )
+                try:
+                    ready_result = await detect_unclaimed_ready_tasks(
+                        db,
+                        threshold_minutes=settings.task_ready_unclaimed_timeout_minutes,
+                    )
+                except Exception:
+                    _logger.warning(
+                        "unclaimed_ready_tasks detector failed", exc_info=True,
+                    )
+                    ready_result = {
+                        "unclaimed_count": 0, "unclaimed_task_ids": [],
+                    }
+
                 await db.commit()
 
                 # P11-B128 (PFL-123): increment scan counter so health
@@ -426,10 +469,52 @@ _system_intervention_ready_unclaimed: int = 0  # P12-B25 (PFL-128)
 _system_intervention_verify_escalated: int = 0  # P12-B47 (PFL-151 Option B)
 
 
+# ── PFL-154: system worker bootstrap ─────────────────────────────────────────
+
+
+async def _ensure_system_worker() -> None:
+    """Create the SYSTEM pseudo-worker if it doesn't exist (P12-B49 · PFL-154).
+
+    The escalation detector (and other system actors) need ``sender_worker_id``
+    to satisfy the FK constraint on ``task_worker_conversation.sender_worker_id``.
+    Without a "system" worker, ``create_message(sender_worker_id="system")`` fails
+    with IntegrityError — which B48-1 mitigates via savepoint, but the @Human
+    message is still lost.
+
+    This is Option A from PFL-154: seed a system worker at startup rather than
+    altering the FK constraint (Option B would require an Alembic migration).
+    """
+    from sqlalchemy import select as sa_select
+    from src.models.worker import Worker
+
+    async with async_session_factory() as db:
+        result = await db.execute(
+            sa_select(Worker.id).where(Worker.id == "system"),
+        )
+        if result.first() is not None:
+            return  # Already exists
+
+        system_worker = Worker(
+            id="system",
+            name="System",
+            provider="system",
+            status="active",
+            team_id=None,
+        )
+        db.add(system_worker)
+        await db.commit()
+
+        import logging
+        logging.getLogger("synapse").info("Created system worker (PFL-154)")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     global _reaper_task, _expiry_reaper_task, _stale_reaper_task, _heartbeat_monitor_task
+    # P12-B49 (PFL-154): ensure system worker exists before daemons that
+    # may create messages with sender_worker_id="system"
+    await _ensure_system_worker()
     _reaper_task = asyncio.create_task(_ws_reaper())
     _expiry_reaper_task = asyncio.create_task(_auth_expiry_reaper())
     _stale_reaper_task = asyncio.create_task(_stale_task_reaper())

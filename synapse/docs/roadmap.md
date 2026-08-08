@@ -667,7 +667,9 @@
 | **P12-B45** | **PFL-144/150/152 全量闭环 · PFL-151 🟡 SPoF 缓解** — P0: heartbeat monitor 三层修复 (ACTIVE+PENDING · offline_detected · failure_detector provider-aware) · P1: SKILL.md O CronCreate 120s + Codex /tmp state · P2: PFL-151 SPoF 设计选项 A/B/C 登记 · 714+189=903 tests · 🟢 中型 · 8 files · +131/-39 | ✅ |
 | **P12-B46** | **PFL-151 Option A: Builder @O WS Notification** — `POST /tasks/{id}/notify` 端点 · Builder 超时主动通知 O · WS push `orchestrator.notify` · SKILL.md Builder + O 模板更新 · +5 tests · 723 collected | ✅ |
 | **P12-B47** | **PFL-151 Option B: O SLA auto-escalate to Human** — `verification_escalation_minutes=10` · `detect_stale_verifications_escalation()` · 两阶段梯度响应（升级→回退）· @Human 消息 + WS push · +5 tests · 728 tests 零回归 | ✅ |
-| **P12-B48** | **🐶 狗粮验证 — PFL-151 三层防御** — 1O+2B 实战验证 B45+B46+B47 打破 SPoF · 暗号 `p12-b48-dogfood` | 🔜 |
+| **P12-B48** | **🐶 狗粮验证 — PFL-151 三层防御** — 1O+2B 实战验证 B45+B46+B47 打破 SPoF · SPoF 验证 L1+L2 ✅ · B48-1 escalation savepoint 隔离 · 审计发现 PFL-153~157 · 719 tests | ✅ |
+| **P12-B49** | **审计修复波全量闭环** — PFL-154 system worker + PFL-155 detector 隔离 + PFL-156 notify 授权 + PFL-157 SKILL.md 虚假 API 修正 · FK 前置校验 · notify 错误处理+状态 gate · 728 tests | ✅ |
+| **P12-B50** | **收尾波** — PFL-153 bootstrap env 三重断裂修复 + check-env.sh 门禁脚本 + notify 频率限制 (@limiter) + escalation WS push orchestrator 角色补齐 · L5 拉通 · 728 tests | ✅ |
 
 | # | 方向 | 为什么必须在 P12 | 关键交付 |
 |:--:|------|:---|:---|

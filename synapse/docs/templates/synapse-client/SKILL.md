@@ -309,7 +309,10 @@ Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
 > 2. Server 通过 WS 向所有 Orchestrator daemon 推送 `orchestrator.notify` 事件（实时）
 > 3. O 的 daemon 收到 `orchestrator.notify` 后应立即唤醒 AI 会话（如通过 ScheduleWakeup 或状态标记）
 >
-> O 在 CronCreate wakeup 时应额外检查：**是否有未读的 `@Orchestrator` 消息？**（`GET /tasks/{id}/messages?type=comment&has_mention=orchestrator&unread_only=true`）— 有 → 立即处理，不休眠。
+> O 在 CronCreate wakeup 时应额外检查：**是否有未读的 `@Orchestrator` 消息？** 检查方式：
+> 1. **WS 事件**：daemon 可能已收到 `orchestrator.notify` push 事件 — 检查 WS 日志或 daemon 状态标记
+> 2. **Conversation 列表**：`GET /projects/{pid}/tasks/{tid}/conversation?limit=20` — 扫描最近消息中是否有 `@Orchestrator` mention（`mentions_json` 字段或 `body` 文本搜索）
+> 3. **有消息 → 立即处理，不休眠**
 >
 > 🛡️ **P12-B47 · O SLA 超时 auto-escalate to Human**：如果 O 在 `in_verification` 状态超过 `verification_escalation_minutes`（默认 10 分钟），Server 会自动：
 > 1. 创建 `@Human` 评论消息请求人工介入

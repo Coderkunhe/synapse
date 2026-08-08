@@ -424,7 +424,7 @@ async def detect_stale_verifications_escalation(
         human_result = await db.execute(
             select(ProjectActorRole).where(
                 ProjectActorRole.project_id == task.project_id,
-                ProjectActorRole.role.in_(["admin", "lead"]),
+                ProjectActorRole.role.in_(["admin", "lead", "orchestrator"]),  # P12-B50: 加 orchestrator，escalation 需通知 O
             )
         )
         human_roles = human_result.scalars().all()

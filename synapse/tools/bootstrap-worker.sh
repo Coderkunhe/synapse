@@ -265,7 +265,8 @@ boot3_configure_env() {
     fi
 
     # Check if .env already exists and has content
-    if [[ -f "$env_file" ]] && grep -q "SYNAPSE_API_URL" "$env_file" 2>/dev/null; then
+    # P12-B50 PFL-153: grep -v 过滤注释行，避免骨架模板的全注释行被误判为"已配置"
+    if [[ -f "$env_file" ]] && grep -v '^\s*#' "$env_file" 2>/dev/null | grep -q "SYNAPSE_API_URL"; then
         echo -e "  ${YELLOW}⚠️${NC}  .env 已存在且包含 SYNAPSE_API_URL"
         echo -n "  是否覆盖？[y/N] "
         read -r overwrite
@@ -667,6 +668,16 @@ main() {
     boot5_install_hooks        || failed=$((failed + 1))
     boot6_verify_connectivity  || failed=$((failed + 1))
     boot7_verify_settings      || failed=$((failed + 1))
+
+    # ── P12-B50 PFL-153: Env 完整性门禁 ──
+    # 在 BOOT-1~7 全部完成后，机械验证 SYNAPSE_* 变量非空/非占位符/非注释
+    echo ""
+    echo -e "${BOLD}── Env 门禁 ──${NC}"
+    if [[ -f "$OUTPUT/.claude/.env" ]]; then
+        bash "$PROJECT_ROOT/tools/check-env.sh" "$OUTPUT/.claude/.env" || failed=$((failed + 1))
+    elif [[ -f "$OUTPUT/.env" ]]; then
+        bash "$PROJECT_ROOT/tools/check-env.sh" "$OUTPUT/.env" || failed=$((failed + 1))
+    fi
 
     # ── Summary ──
     echo ""
