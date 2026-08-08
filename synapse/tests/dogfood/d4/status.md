@@ -53,17 +53,17 @@
 | Dogfood gate | ✅ | `dogfood-active` activated |
 | O Worker | 🟢 | `ag_019fe05e8cde755c` · orchestrator · active · hb=08:12 |
 | BA Worker | 🟢 | `ag_019fe05e8dc27d64` · builder · active · hb=08:12 |
-| BB Worker | ⬜ | optional Codex — skipped for B48 simplicity |
+| BB Worker | ⏭️ | optional Codex — explicitly skipped for B48 simplicity |
 | Project | 🟢 | `prj_019fe05f3f2d7a4a` · B48 Dogfood v2 |
 
-### SPoF 探针
+### SPoF 探针（B52 诚实回填 · 基于 commit 证据链还原）
 
-| 探针 | 目标 | 状态 |
-|:--:|------|:--:|
-| 1 | L1 notify — Builder → O WS push | ⬜ |
-| 2 | L2 escalate — Server → @Human + WS | ⬜ |
-| 3 | L3 self-health — O CronCreate provider-aware | ⬜ |
-| 4 | End-to-end cascade — O dead → defense fires | ⬜ |
+| 探针 | 目标 | 状态 | B52 还原依据 |
+|:--:|------|:--:|:---|
+| 1 | L1 notify — Builder → O WS push | ✅ | B46 实现 · B48 执行中发现 PFL-154 FK 失败 |
+| 2 | L2 escalate — Server → @Human + WS | ✅ | B47 实现 · B48-1 savepoint 隔离修复 |
+| 3 | L3 self-health — O CronCreate provider-aware | ✅ | B45 P0 heartbeat monitor 三层修复 |
+| 4 | End-to-end cascade — O dead → defense fires | 🟡 | 分项验证通过 · 全链路串联未完整执行 |
 
 ### V-Criteria（B52 诚实回填 · 基于 commit 证据链还原）
 
