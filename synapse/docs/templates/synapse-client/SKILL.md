@@ -121,6 +121,31 @@ Worker daemon 由 `session-init.js --health` 机械管理，AI 不参与决策�
 
 > 📖 **B135→B137 演变**：daemon 管理从"AI 读 prompt 判断"（PFL-127）→ 脚本机械自愈。AI 的决策面从 80% 缩到 20%。
 
+### 🩺 P13-B1 启动健康门禁（NEW）
+
+**每次冷启动 + `session-init.js` 完成后，立即运行 5 项健康自检：**
+
+```bash
+bash tools/synapse-health-check.sh -v
+```
+
+> 如果 Worker 目录没有 `tools/`，用 Skill 路径：
+> ```bash
+> bash .claude/skills/synapse/tools/synapse-health-check.sh -v
+> ```
+
+| # | 检查项 | 通过标准 | 失败含义 |
+|:--:|:---|:---|:---|
+| 1 | API 可达 | `GET /v1/workers/{id}` → 200 + status=ACTIVE | API 不可达或 Worker 不存在 |
+| 2 | Handshake | `POST /handshake` → 200/409 | Worker 无法注册到 Server |
+| 3 | Heartbeat 新鲜 | `POST /heartbeat` → 200 | daemon 未运行或心跳发送失败 |
+| 4 | State file 新鲜 | `_task-current.md` 存在 + <10min | session-init.js 未运行或 hook 未触发 |
+| 5 | Hook sentinel | `.claude/_last-session-init.txt` 存在 | SessionStart hook 从未触发 — "静默失败" |
+
+**🚨 任一项失败 → 先诊断再 claim Task。** 这是 P13-B1 的机械门禁——P12 的 5 个 PFL (126/127/131/148/153) 都是"Worker 假在线"模式。跳过自检 = 主动踩已知坑。
+
+> 📖 **P13 Scout S3 信号**：P12 的 30 个 PFL 中 5 个 (17%) 根因是"Worker 在残缺状态静默运行，狗粮时才暴露"。5 项自检把这个模式从"被动发现"变为"主动告警"。
+
 ### 第二步：读取初始状态
 
 > 💡 **B137：Daemon 管理已脚本化。** `--health` 模式自动检测 daemon 存活性并重 spawn——AI 读到的是修复后的状态，不需要自行判断 daemon 是否存活。
