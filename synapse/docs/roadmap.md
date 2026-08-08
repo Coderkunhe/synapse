@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-08（P12 全量闭环 🎉 · P13 B1→B5 ✅ · B6 🔜 · L5 counter=1）
+> 最后更新：2026-08-08（P12 全量闭环 🎉 · P13 B1→B5 ✅ · B6 🔜 · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -748,7 +748,7 @@
 | **P13-B2** | **P0-2: 狗粮证据完整性门禁** — `dogfood-gate.sh` V-criteria 完整性检查 · 解析上次 status.md → 存在 ⬜ → 阻断新狗粮 + 逐项提示缺失行号 · D-P12-042 落地 · PFL-158 闭环 | P0 | C8 × S2+S5 | ✅ |
 | **P13-B3** | **P0-3: L5 一致性机械门禁** — `check-l5-consistency.sh --critical-only` 三源对比 (l5-checkpoint.json · CLAUDE.md · MEMORY.md) · 不一致 → pre-commit 阻断 (+ `SYNAPSE_SKIP_L5_CHECK=1` 豁免但记录违纪) · Gate 4a/4a-2/4a-3/4e 增强 | P0 | C5 × S2 | ✅ |
 | **P13-B4** | **P1-1-start: 跨客户端 Provider Interface 设计** — 从 Codex 13 PFL 提炼统一 provider 接口 (heartbeat/offline/evidence/state/startup 五维) · 设计文档 · 不强求实现 | P1 | C1 × S1 | ✅ |
-| **P13-B5** | **P1-4: 多 Worker 集成测试 Harness 设计** — 多 Worker fixture 架构 + 并发调度方案 + 时序断言 API 设计文档 · 1 个 smoke test: B 提交→O 验收→下游解锁 | P1 | C2 × S2+S3+S4 | 📋 |
+| **P13-B5** | **P1-4: 多 Worker 集成测试 Harness 设计** — 多 Worker fixture 架构 + 并发调度方案 + 时序断言 API 设计文档 · 1 个 smoke test: B 提交→O 验收→下游解锁 | P1 | C2 × S2+S3+S4 | ✅ |
 | **P13-B6** | **P1-3: SPoF 梯度防御 B 线** — Server 侧 O 超时自动 escalation 到 Human · `escalation_service.py` over escalation_minutes → @Human 消息 · B47 设计方案落地 · PFL-151 闭环 | P1 | C9 × S4 | 📋 |
 | **P13-B7** | **P1-2: 狗粮→自动化回归转化链路** — 狗粮模板增加「自动化回归」节 · 每轮狗粮至少产出 1 test · dogfood-gate.sh 检查上次是否产出 test · "什么可自动化 vs 只能手工"判定标准 | P1 | C4 × S2+S5 | 📋 |
 | **P13-B8+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) · C13 (Hook 诊断) — 各有触发条件，不预先排期 | P2 | 6 项 | 📋 |
