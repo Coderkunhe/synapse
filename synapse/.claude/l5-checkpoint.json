@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P12-B50 闭环 — 新增 tools/check-env.sh 门禁脚本 + 修复 tools/bootstrap-worker.sh BOOT-3 grep 注释过滤 + 新增 src/config.py rate_limit_notify + 新增 src/api/routers/tasks.py @limiter 频率限制 + 修复 src/services/stale_task_detector.py escalation WS 角色补齐 · 验证 728 tests 零回归",
+  "lastL5Batch": "P12-B51 闭环 — 新增 docs/plans/p12-b51-dogfood.md 狗粮报告 + 更新 tests/dogfood/d4/status.md 狗粮状态 · 4 探针全量通过 · 0 新 PFL · 728 tests 零回归",
   "lastL5Timestamp": "2026-08-08",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P12-B50 闭环 — 新增 tools/check-env.sh 门禁脚本 + 修复 tools/bootstrap-worker.sh BOOT-3 grep 注释过滤 + 新增 src/config.py rate_limit_notify + 新增 src/api/routers/tasks.py @limiter 频率限制 + 修复 src/services/stale_task_detector.py escalation WS 角色补齐 · 验证 728 tests 零回归",
+  "lastL5Evidence": "P12-B51 闭环 — 新增 docs/plans/p12-b51-dogfood.md 狗粮报告 + 更新 tests/dogfood/d4/status.md 狗粮状态 · 4 探针全量通过 · 0 新 PFL · 728 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

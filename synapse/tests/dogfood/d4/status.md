@@ -89,3 +89,29 @@
 |:---|:---|:--:|
 
 (待狗粮执行后填充)
+
+---
+
+## B51 Dogfood — B49+B50 验证性狗粮 ✅
+
+> 暗号: `p12-b51-dogfood` · 2026-08-08 · plan: `docs/plans/p12-b51-dogfood.md`
+
+### 探针结果
+
+| 探针 | 目标 | 结果 |
+|:--:|------|:--:|
+| 1 | 启动链路 — system worker + check-env.sh | ✅ V1+V2+V3 全通过 |
+| 2 | Notify 三层防御 — team gate + rate limit | ✅ V2 403/V3 分层正确 · V1/V4 code-verified |
+| 3 | Escalation WS 角色 — orchestrator 覆盖 | ✅ V1 源码确认 |
+| 4 | 快速冒烟 — detector 隔离 + SKILL.md | ✅ V1+V2 通过 |
+
+### 结论
+
+**0 项新 PFL 发现。** B49+B50 所有变更验证通过。P12 审计修复线正式收官。
+
+### 发现
+
+| PFL | 发现 | 严重度 |
+|:---|:---|:--:|
+
+(无发现 — B51 零 PFL 登记)
