@@ -249,8 +249,11 @@ async def _worker_heartbeat_monitor() -> None:
     P11-B128 (PFL-126 direction 4): This is the only system-level closed
     loop for heartbeat monitoring — it doesn't depend on AI prompt compliance.
 
+    P12-B42: Provider-aware timeout — Codex CLI (no daemon, CronCreate-based
+    heartbeat) gets 30 min grace period vs 5 min for persistent Workers.
+
     Scans all ACTIVE workers whose last_heartbeat_at is older than
-    worker_heartbeat_timeout_seconds, transitions them to OFFLINE runtime
+    their provider-specific timeout, transitions them to OFFLINE runtime
     status, and records worker.runtime.offline events.
     """
     import logging
@@ -269,40 +272,51 @@ async def _worker_heartbeat_monitor() -> None:
         try:
             # P11-B128: settings inside try — prevents silent coroutine crash
             interval = settings.worker_heartbeat_monitor_interval_seconds
-            timeout = settings.worker_heartbeat_timeout_seconds
+            standard_timeout = settings.worker_heartbeat_timeout_seconds
+            codex_timeout = settings.worker_heartbeat_timeout_seconds_codex
 
             if _heartbeat_monitor_scan_count == 0:
                 _logger.info(
-                    "Worker heartbeat monitor started: interval=%ds, timeout=%ds",
-                    interval, timeout,
+                    "Worker heartbeat monitor started: interval=%ds, "
+                    "standard_timeout=%ds, codex_timeout=%ds",
+                    interval, standard_timeout, codex_timeout,
                 )
 
             await asyncio.sleep(interval)
 
             async with async_session_factory() as db:
-                cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout)
+                now = datetime.now(timezone.utc)
 
-                # Find ACTIVE workers with stale heartbeat who aren't already OFFLINE
+                # Fetch all ACTIVE non-OFFLINE workers with a heartbeat record.
+                # Provider-specific timeout applied in Python (P12-B42).
                 stmt = sa_select(Worker).where(
                     Worker.status == WorkerStatus.ACTIVE,
                     Worker.runtime_status != WorkerRuntimeStatus.OFFLINE,
                     Worker.last_heartbeat_at.is_not(None),
-                    Worker.last_heartbeat_at < cutoff,
                 )
                 result = await db.execute(stmt)
-                stale_workers = result.scalars().all()
+                candidates = result.scalars().all()
 
                 offline_count = 0
-                for worker in stale_workers:
-                    # Normalize SQLite naive UTC → aware for age calculation
+                for worker in candidates:
+                    # P12-B42: provider-specific timeout
+                    timeout = (
+                        codex_timeout
+                        if worker.provider == "codex"
+                        else standard_timeout
+                    )
+                    cutoff = now - timedelta(seconds=timeout)
+
                     last_hb = worker.last_heartbeat_at
                     if last_hb is None:
-                        continue  # defensive: query filters is_not(None)
+                        continue
                     if last_hb.tzinfo is None:
                         last_hb = last_hb.replace(tzinfo=timezone.utc)
-                    age_seconds = int(
-                        (datetime.now(timezone.utc) - last_hb).total_seconds()
-                    )
+
+                    if last_hb >= cutoff:
+                        continue  # still within provider-specific grace period
+
+                    age_seconds = int((now - last_hb).total_seconds())
 
                     event_type, payload = apply_transition(
                         worker,
@@ -313,6 +327,7 @@ async def _worker_heartbeat_monitor() -> None:
                             "reason": "heartbeat_timeout",
                             "last_heartbeat_age_seconds": age_seconds,
                             "timeout_seconds": timeout,
+                            "provider": worker.provider,
                         },
                     )
                     await event_store.record(
@@ -341,8 +356,10 @@ async def _worker_heartbeat_monitor() -> None:
                     )
 
                     _logger.warning(
-                        "Worker %s (%s) marked OFFLINE: last heartbeat %ds ago",
-                        worker.id, worker.name, age_seconds,
+                        "Worker %s (%s provider=%s) marked OFFLINE: "
+                        "last heartbeat %ds ago (timeout=%ds)",
+                        worker.id, worker.name, worker.provider,
+                        age_seconds, timeout,
                     )
                     offline_count += 1
 

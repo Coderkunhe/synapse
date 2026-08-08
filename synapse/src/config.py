@@ -123,7 +123,8 @@ class Settings(BaseSettings):
     verification_max_auto_reverts: int = 5  # B22: 3→5 — 更多 rework 容错空间
 
     # Worker heartbeat monitor (P11-B128 · PFL-126 direction 4)
-    worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline
+    worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline (standard)
+    worker_heartbeat_timeout_seconds_codex: int = 1800  # P12-B42: 30 min for Codex (no daemon)
     worker_heartbeat_monitor_interval_seconds: int = 60  # scan every 60s
 
     # Verify idempotent guard (P11-B76)

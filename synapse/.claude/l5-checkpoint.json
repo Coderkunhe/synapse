@@ -1,8 +1,8 @@
 {
   "lastL5Batch": "B40+B41 双批闭环 · PFL-143/135/138 · 9/13 PFL · 705 tests 零回归",
   "lastL5Timestamp": "2026-08-08",
-  "batchesSinceLastL5": 0,
-  "completedBatches": [],
+  "batchesSinceLastL5": 1,
+  "completedBatches": ["P12-B42"],
   "lastL5Evidence": "B40+B41 双批闭环 · PFL-143/135/138 · 9/13 PFL · 705 tests 零回归",
-  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
+  "notes": "B42: Codex 兼容层 · PFL-132/133/134 ✅ + PFL-141 🟡 · 13/13 PFL 闭环 🎉"
 }

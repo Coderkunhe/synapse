@@ -177,6 +177,26 @@ node .agents/skills/synapse/scripts/session-init.js --json
 2. `curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" "$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID"` → 一步获取全部状态
 3. 无需写文件 — 直接读取 curl 输出中的 JSON 字段即可
 
+#### Codex CronCreate 保持在线（P12-B42 · 🚨 必读）
+
+> ⚠️ Codex 无 daemon 进程 — 会话结束后 30min 内无心跳 → Server 标记 offline。
+> **每次 Codex 会话结束后，必须立即粘贴以下 CronCreate 命令保持心跳。**
+
+**CronCreate 保活命令**（在 Codex 终端中执行）：
+
+```
+/cron 60s "Codex Worker heartbeat + task poll
+1. curl -s -X POST $SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/heartbeat -H 'Authorization: Bearer $SYNAPSE_API_KEY' -H 'Content-Type: application/json' -d '{}'
+2. curl -s -H 'Authorization: Bearer $SYNAPSE_API_KEY' '$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID' | grep -q 'in_progress_tasks.*[1-9]' && echo 'HAS_TASKS: check state output above' || echo 'idle'
+"
+```
+
+**说明**：
+- 每 60s 发一次 heartbeat（Server 侧 codex timeout=30min，充裕）
+- 同时 poll state — 有任务时 `HAS_TASKS` 会提示你回终端干活
+- Server 对 `provider=codex` 的 Worker 使用 30min 离线判定（vs 标准 5min）
+- ⚠️ 此 CronCreate 不会自动 claim/submit — 你仍需主动回终端执行
+
 ## 🎯 Orchestrator 专属：需求接收与 Challenge（B113）
 
 > 如果你是 **Orchestrator** Worker，以下规则优先于通用循环。
