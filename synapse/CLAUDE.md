@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B122 ✅ · L5 counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B123 ✅ · L5 counter=1）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -97,5 +97,5 @@ synapse/
 | **P11** | B137 ✅ P11 全量闭环 🎉 | — |
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
 | 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
-| **P100** | B122 ✅ PFL-127 header 修复 + PFL-130 路由修正 | **P100-B123** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=0（P100-B122 ✅ 后 · L5 拉通完成）| 🟢 OK |
+| **P100** | B123 ✅ V-020/V-021/V-028 header 修复 + 违纪回顾 | **P100-B124** 🔜 下一站 |
+| **L5** | batchesSinceLastL5=1（P100-B123 ✅ 后）| 🟢 OK |
