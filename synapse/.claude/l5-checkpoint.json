@@ -4,5 +4,5 @@
   "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P13-B13+P100-B121 L5 拉通 — 📄 P13 收官 (P14候选池+roadmap+reqlog+daily) · 📚 P100-B121 AP-B37 概念独立性拆批维度 · 🎭 CLAUDE.md+counter 同步",
-  "notes": "P100-B121 ✅ 后 · counter=1 · 待下一 L5 拉通"
+  "notes": "P100-B121 ✅ · counter=1 (修复: post-commit hook 双重计数回退)"
 }
