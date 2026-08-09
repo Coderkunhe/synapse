@@ -584,6 +584,8 @@
 - **P100-B115**：**L5 五关一致性脚本化** ✅ — check-l5-consistency.sh 从手工五关→完整五关双向 lattice（Gate 1-5）· Phase-agnostic · 活跃 Phase 自动检测 · D-P100-040 闭环 · 🟢 微型 · 1 file (~300行)
 - **P100-B116**：**项目文档全量刷新** ✅ — ① 日期刷新 (13 docs): process-violations · execution-checklist · master-backlog · agent-comparison · glossary · onboarding-api-reference · prd · security-model-appendix · phase-criteria · worker-admin-interaction-flow · verification-evidence-model · CLAUDE.md · daily · ② Roadmap 补全: P12-B29 条目 · P100-B61→B69 拆分 · ③ Reqlog 补全: P100-B112 条目 · ④ L5 consistency: Gate 1 warning 28→~4 · 🟢 微型 · 17 files
 - **P100-B117**：**治理自愈 — B116 追踪补全 + 违纪回顾复位** ✅ — ① B116 roadmap/reqlog 回填 · ② V-030 索引补全 (29→30) · ③ violations-checkpoint 违纪回顾复位 (136→0) · ④ dogfood-checkpoint P12 R7→R11 + P13 B1→B12 回填 · ⑤ daily P13-B9→B12 回填 · ⑥ 日期同步 (4 docs) · 🟢 微型 · 10 files · +97/-24
+- **P100-B118**：**pitfalls 瘦身 + LL21 修复** ✅ — ① PFL-061/069/070/072/074/075/084/099 → archive（198 行）· ② pitfalls.md 1153→955 行（硬阻断阈值 1100 ✅ 解除）· ③ header 计数修正（48→49 PFL）· ④ LL21 编号跳号修复（lessons-learned.md 诚实标注）· 🟢 微型 · 2 files
+- **P100-B119**：**PFL-129 launchd label 修复 + 治理收边角** ✅ — ① PFL-129: synapse-launchd.sh label 从 role→worker_id（同 role 多 Worker 不再冲突）· ② generate-skill.sh write_launchd_plist 适配 worker_id · ③ API contracts baseline 更新（P13 10 新端点）· ④ stale .claude/self-check-* ×7 清理 · 🟢 微型 · 5 files
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
@@ -601,7 +603,7 @@
 | P6 | P6-B1→B34 | 34 | ✅ |
 | P7 | D1-D5 | 5 讨论 | ✅ |
 | P8 | P8-B1→B10 | 10 | ✅ |
-| P100 | P100-B1→B117 | 117 | ✅ 治理波持续 · B116 文档刷新 · B117 自愈 |
+| P100 | P100-B1→B119 | 119 | ✅ 治理波持续 · B118 pitfalls 瘦身 · B119 launchd label 修复 |
 | **P10** | **P10-B1→B47** | **47** | ✅ 议题 ①-⑧ 全部闭环 🎉 |
 | **P9** | **P9-B1→B95** | **95** | ✅ B1-B94 产品主线 · B95+ 产品体验找茬 🔄 |
 | **P11** | **P11-B1→B137** | **137** | ✅ **全量闭环 🎉** · Prompt-Driven→Harness-Driven |

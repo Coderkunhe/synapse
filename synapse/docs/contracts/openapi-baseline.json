@@ -144,6 +144,46 @@
         ],
         "type": "object"
       },
+      "AuthRequestStateSummary": {
+        "properties": {
+          "capability_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "request_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "request_type",
+          "status"
+        ],
+        "type": "object"
+      },
       "AuthStatusResponse": {
         "properties": {
           "actor_id": {
@@ -995,6 +1035,52 @@
         ],
         "type": "object"
       },
+      "CapabilityAuditCreate": {
+        "properties": {
+          "authorization_request_id": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capability_id": {
+            "type": "string"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "outcome": {
+            "pattern": "^(success|failure)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability_id",
+          "exit_code",
+          "duration_ms",
+          "outcome"
+        ],
+        "type": "object"
+      },
       "CapabilityAuditResponse": {
         "properties": {
           "actor_id": {
@@ -1302,8 +1388,19 @@
             ]
           },
           "message_type": {
-            "pattern": "^(clarification|blocking|review_request|handoff)$",
+            "pattern": "^(clarification|blocking|review_request|handoff|proposal)$",
             "type": "string"
+          },
+          "proposal_status": {
+            "anyOf": [
+              {
+                "pattern": "^(pending|confirmed|rejected)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "task_id": {
             "type": "string"
@@ -1428,6 +1525,16 @@
           "message_type": {
             "type": "string"
           },
+          "proposal_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "remark": {
             "anyOf": [
               {
@@ -1515,6 +1622,17 @@
             "anyOf": [
               {
                 "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proposal_status": {
+            "anyOf": [
+              {
+                "pattern": "^(pending|confirmed|rejected)$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2071,6 +2189,58 @@
         ],
         "type": "object"
       },
+      "DependencyChain": {
+        "properties": {
+          "downstream": {
+            "items": {
+              "$ref": "#/components/schemas/DependencyChainItem"
+            },
+            "type": "array"
+          },
+          "upstream": {
+            "items": {
+              "$ref": "#/components/schemas/DependencyChainItem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DependencyChainItem": {
+        "properties": {
+          "dependency_type": {
+            "default": "sequential",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "title",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DependencyChainView": {
+        "properties": {
+          "chain": {
+            "$ref": "#/components/schemas/DependencyChain"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "chain"
+        ],
+        "type": "object"
+      },
       "EventResponse": {
         "properties": {
           "actor_id": {
@@ -2337,6 +2507,7 @@
       },
       "OwnerType": {
         "enum": [
+          "human",
           "member",
           "worker"
         ],
@@ -2641,6 +2812,7 @@
           "role": {
             "maxLength": 20,
             "minLength": 1,
+            "pattern": "^(builder|orchestrator|steward|admin)$",
             "type": "string"
           },
           "worker_id": {
@@ -3682,6 +3854,42 @@
         ],
         "type": "object"
       },
+      "TaskNotifyRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "TaskNotifyResponse": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "notified_orchestrator_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "message"
+        ],
+        "type": "object"
+      },
       "TaskReadyRequest": {
         "properties": {
           "expected_version": {
@@ -3912,6 +4120,100 @@
           "title",
           "status",
           "priority"
+        ],
+        "type": "object"
+      },
+      "TaskStateSummary": {
+        "properties": {
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "depends_on": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status"
         ],
         "type": "object"
       },
@@ -4632,6 +4934,35 @@
         ],
         "type": "object"
       },
+      "VerificationCreateRequest": {
+        "properties": {
+          "criteria": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_id": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "type": {
+            "default": "manual",
+            "pattern": "^(manual|automated|check_list)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "description"
+        ],
+        "type": "object"
+      },
       "VerificationResponse": {
         "properties": {
           "auto_approved": {
@@ -4857,6 +5188,17 @@
             "maxLength": 100,
             "type": "string"
           },
+          "project_id": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "provider": {
             "default": "claude",
             "enum": [
@@ -4870,6 +5212,17 @@
             "anyOf": [
               {
                 "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "pattern": "^(builder|orchestrator|steward)$",
                 "type": "string"
               },
               {
@@ -5249,6 +5602,98 @@
           "name",
           "provider",
           "status"
+        ],
+        "type": "object"
+      },
+      "WorkerStateResponse": {
+        "properties": {
+          "active_task_count": {
+            "default": 0,
+            "type": "integer"
+          },
+          "all_active_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStateSummary"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "in_progress_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStateSummary"
+            },
+            "type": "array"
+          },
+          "pending_auth_requests": {
+            "items": {
+              "$ref": "#/components/schemas/AuthRequestStateSummary"
+            },
+            "type": "array"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "project_name": {
+            "type": "string"
+          },
+          "ready_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStateSummary"
+            },
+            "type": "array"
+          },
+          "role": {
+            "type": "string"
+          },
+          "runtime_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stale_verification_count": {
+            "default": 0,
+            "type": "integer"
+          },
+          "stale_verification_task_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verification_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStateSummary"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "worker_id": {
+            "type": "string"
+          },
+          "worker_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "worker_id",
+          "worker_name",
+          "role",
+          "project_id",
+          "project_name",
+          "generated_at"
         ],
         "type": "object"
       },
@@ -7667,6 +8112,15 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "include_expired",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -7974,6 +8428,48 @@
             }
           }
         }
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapabilityAuditCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilityAuditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/projects/{project_id}/decision-audits": {
@@ -8129,6 +8625,38 @@
                 "schema": {
                   "$ref": "#/components/schemas/CursorPage_EventResponse_"
                 }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/my-role": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -8642,6 +9170,38 @@
         }
       }
     },
+    "/v1/projects/{project_id}/tasks/dependency-graph": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/projects/{project_id}/tasks/{task_id}/messages": {
       "get": {
         "parameters": [
@@ -8852,6 +9412,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/tasks/{task_id}/notify": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TaskNotifyRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskNotifyResponse"
                 }
               }
             }
@@ -9086,6 +9704,53 @@
             }
           }
         }
+      }
+    },
+    "/v1/stats/o-sla": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_hours",
+            "required": false,
+            "schema": {
+              "maximum": 168,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sla_target_minutes",
+            "required": false,
+            "schema": {
+              "maximum": 120,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "stats"
+        ]
       }
     },
     "/v1/tasks/assign-batch": {
@@ -9457,6 +10122,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tasks/{task_id}/dependency-chain": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "both",
+              "pattern": "^(upstream|downstream|both)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependencyChainView"
                 }
               }
             }
@@ -10480,6 +11189,40 @@
         }
       }
     },
+    "/v1/verifications": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/verifications/batch": {
       "post": {
         "requestBody": {
@@ -10740,6 +11483,40 @@
         }
       }
     },
+    "/v1/workers/me/state": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workers/{worker_id}": {
       "delete": {
         "parameters": [
@@ -10956,6 +11733,15 @@
                   "type": "null"
                 }
               ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "require_role",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
             }
           }
         ],

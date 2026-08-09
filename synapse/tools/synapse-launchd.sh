@@ -6,17 +6,18 @@
 # every 60s — mechanical, no LLM involvement. The AI reads the repaired state.
 #
 # Usage:
-#   synapse-launchd.sh install   <project-dir> <role>   # generate plist + launchctl load
-#   synapse-launchd.sh uninstall <role>                   # launchctl unload + delete plist
-#   synapse-launchd.sh status    <role>                   # launchctl list + plist file check
-#   synapse-launchd.sh plist     <project-dir> <role>     # print plist to stdout (dry-run)
+#   synapse-launchd.sh install   <project-dir> <worker_id>  # generate plist + launchctl load
+#   synapse-launchd.sh uninstall <worker_id>                 # launchctl unload + delete plist
+#   synapse-launchd.sh status    <worker_id>                 # launchctl list + plist file check
+#   synapse-launchd.sh plist     <project-dir> <worker_id>   # print plist to stdout (dry-run)
 #
-# Roles: orchestrator | builder
+# Worker ID: unique worker identifier (e.g. wa_xxx). PFL-129: label is now
+# worker_id-based so multiple workers with the same role don't collide.
 #
 # Examples:
-#   bash tools/synapse-launchd.sh install ~/my-project builder
-#   bash tools/synapse-launchd.sh status  builder
-#   bash tools/synapse-launchd.sh uninstall builder
+#   bash tools/synapse-launchd.sh install ~/my-project wa_abc123
+#   bash tools/synapse-launchd.sh status  wa_abc123
+#   bash tools/synapse-launchd.sh uninstall wa_abc123
 #
 # Line B (Codex CLI): Codex has no launchd support — prompt-driven only.
 # See header comment at end of file for Codex live verification checklist.
@@ -38,17 +39,18 @@ usage() {
 synapse-launchd.sh — macOS launchd daemon manager for Synapse Workers.
 
 USAGE:
-  synapse-launchd.sh install   <project-dir> <role>    generate plist + launchctl load
-  synapse-launchd.sh uninstall <role>                   launchctl unload + delete plist
-  synapse-launchd.sh status    <role>                   launchctl list + plist file check
-  synapse-launchd.sh plist     <project-dir> <role>     print plist to stdout (dry-run)
+  synapse-launchd.sh install   <project-dir> <worker_id>  generate plist + launchctl load
+  synapse-launchd.sh uninstall <worker_id>                 launchctl unload + delete plist
+  synapse-launchd.sh status    <worker_id>                 launchctl list + plist file check
+  synapse-launchd.sh plist     <project-dir> <worker_id>   print plist to stdout (dry-run)
 
-ROLES: orchestrator | builder
+WORKER_ID: unique worker identifier (e.g. wa_xxx). PFL-129: label is now
+worker_id-based so multiple workers with the same role don't collide.
 
 EXAMPLES:
-  bash tools/synapse-launchd.sh install ~/my-project builder
-  bash tools/synapse-launchd.sh status  builder
-  bash tools/synapse-launchd.sh uninstall builder
+  bash tools/synapse-launchd.sh install ~/my-project wa_abc123
+  bash tools/synapse-launchd.sh status  wa_abc123
+  bash tools/synapse-launchd.sh uninstall wa_abc123
 
 DESIGN:
   - launchd invokes session-init.js --health --silent every 60 seconds
@@ -72,17 +74,22 @@ check_macos() {
 
 # ── Validation ──────────────────────────────────────────────────────────
 
-validate_role() {
-    local role="$1"
-    if [[ ! "$role" =~ ^(orchestrator|builder)$ ]]; then
-        echo "❌ Invalid role: ${role} (must be orchestrator or builder)"
+validate_worker_id() {
+    local worker_id="$1"
+    if [[ -z "$worker_id" ]]; then
+        echo "❌ Worker ID cannot be empty."
         exit 1
+    fi
+    # Worker IDs typically start with "w" prefix (e.g. wa_xxx for claude, wb_xxx for codex)
+    if [[ ! "$worker_id" =~ ^w ]]; then
+        echo "⚠️  Worker ID '${worker_id}' doesn't match expected format (w* prefix)."
+        echo "   Continuing anyway — if this is wrong, uninstall/status will fail."
     fi
 }
 
 validate_project_dir() {
     local dir="$1"
-    local role="$2"
+    local worker_id="$2"
 
     # Resolve to absolute path
     dir="$(cd "$dir" 2>/dev/null && pwd)" || {
@@ -130,39 +137,39 @@ find_node() {
 # ── Path helpers ────────────────────────────────────────────────────────
 
 plist_label() {
-    local role="$1"
-    echo "${LABEL_PREFIX}-${role}"
+    local worker_id="$1"
+    echo "${LABEL_PREFIX}.${worker_id}"
 }
 
 plist_path() {
-    local role="$1"
-    echo "${LAUNCH_AGENTS_DIR}/$(plist_label "$role").plist"
+    local worker_id="$1"
+    echo "${LAUNCH_AGENTS_DIR}/$(plist_label "$worker_id").plist"
 }
 
 log_path() {
-    local role="$1"
-    echo "${LOG_DIR}/synapse-worker-${role}.log"
+    local worker_id="$1"
+    echo "${LOG_DIR}/synapse-worker-${worker_id}.log"
 }
 
 error_log_path() {
-    local role="$1"
-    echo "${LOG_DIR}/synapse-worker-${role}-error.log"
+    local worker_id="$1"
+    echo "${LOG_DIR}/synapse-worker-${worker_id}-error.log"
 }
 
 # ── plist generation ────────────────────────────────────────────────────
 
 generate_plist() {
     local project_dir="$1"
-    local role="$2"
+    local worker_id="$2"
     local node_path="$3"
 
     local init_script="${project_dir}/.claude/skills/synapse/scripts/session-init.js"
     local label
-    label="$(plist_label "$role")"
+    label="$(plist_label "$worker_id")"
     local stdout_log
-    stdout_log="$(log_path "$role")"
+    stdout_log="$(log_path "$worker_id")"
     local stderr_log
-    stderr_log="$(error_log_path "$role")"
+    stderr_log="$(error_log_path "$worker_id")"
 
     # Read env vars from .claude/.env for the plist.
     # session-init.js checkEnv() reads process.env only — it does NOT parse the
@@ -240,38 +247,38 @@ PLIST
 
 cmd_plist() {
     local project_dir="$1"
-    local role="$2"
+    local worker_id="$2"
 
     check_macos
-    validate_role "$role"
-    project_dir="$(validate_project_dir "$project_dir" "$role")"
+    validate_worker_id "$worker_id"
+    project_dir="$(validate_project_dir "$project_dir" "$worker_id")"
     local node_path
     node_path="$(find_node)"
 
-    generate_plist "$project_dir" "$role" "$node_path"
+    generate_plist "$project_dir" "$worker_id" "$node_path"
 }
 
 cmd_install() {
     local project_dir="$1"
-    local role="$2"
+    local worker_id="$2"
 
     check_macos
-    validate_role "$role"
-    project_dir="$(validate_project_dir "$project_dir" "$role")"
+    validate_worker_id "$worker_id"
+    project_dir="$(validate_project_dir "$project_dir" "$worker_id")"
     local node_path
     node_path="$(find_node)"
 
     local plist_file
-    plist_file="$(plist_path "$role")"
+    plist_file="$(plist_path "$worker_id")"
     local label
-    label="$(plist_label "$role")"
+    label="$(plist_label "$worker_id")"
 
-    echo "▎ Synapse Worker (${role}) — launchd install"
+    echo "▎ Synapse Worker (${worker_id}) — launchd install"
     echo "  Project:    ${project_dir}"
     echo "  Node.js:    ${node_path}"
     echo "  plist:      ${plist_file}"
-    echo "  StdOut:     $(log_path "$role")"
-    echo "  StdErr:     $(error_log_path "$role")"
+    echo "  StdOut:     $(log_path "$worker_id")"
+    echo "  StdErr:     $(error_log_path "$worker_id")"
     echo ""
 
     # Pre-flight: unload if already loaded (idempotent install)
@@ -285,7 +292,7 @@ cmd_install() {
     mkdir -p "$LOG_DIR"
 
     # Generate and write plist
-    generate_plist "$project_dir" "$role" "$node_path" > "$plist_file"
+    generate_plist "$project_dir" "$worker_id" "$node_path" > "$plist_file"
     echo "  ✅ plist written: ${plist_file}"
 
     # Load
@@ -298,27 +305,27 @@ cmd_install() {
         echo "  ✅ job registered in launchctl list"
     else
         echo "  ⚠️  job not visible in launchctl list — check logs:"
-        echo "     cat $(error_log_path "$role")"
+        echo "     cat $(error_log_path "$worker_id")"
     fi
 
     echo ""
-    echo "  📋 To check status:  bash tools/synapse-launchd.sh status ${role}"
-    echo "  📋 To uninstall:     bash tools/synapse-launchd.sh uninstall ${role}"
-    echo "  📋 Logs:             tail -f $(log_path "$role")"
+    echo "  📋 To check status:  bash tools/synapse-launchd.sh status ${worker_id}"
+    echo "  📋 To uninstall:     bash tools/synapse-launchd.sh uninstall ${worker_id}"
+    echo "  📋 Logs:             tail -f $(log_path "$worker_id")"
 }
 
 cmd_uninstall() {
-    local role="$1"
+    local worker_id="$1"
 
     check_macos
-    validate_role "$role"
+    validate_worker_id "$worker_id"
 
     local plist_file
-    plist_file="$(plist_path "$role")"
+    plist_file="$(plist_path "$worker_id")"
     local label
-    label="$(plist_label "$role")"
+    label="$(plist_label "$worker_id")"
 
-    echo "▎ Synapse Worker (${role}) — launchd uninstall"
+    echo "▎ Synapse Worker (${worker_id}) — launchd uninstall"
 
     # Unload
     if [[ -f "$plist_file" ]]; then
@@ -336,17 +343,17 @@ cmd_uninstall() {
 }
 
 cmd_status() {
-    local role="$1"
+    local worker_id="$1"
 
     check_macos
-    validate_role "$role"
+    validate_worker_id "$worker_id"
 
     local plist_file
-    plist_file="$(plist_path "$role")"
+    plist_file="$(plist_path "$worker_id")"
     local label
-    label="$(plist_label "$role")"
+    label="$(plist_label "$worker_id")"
 
-    echo "▎ Synapse Worker (${role}) — launchd status"
+    echo "▎ Synapse Worker (${worker_id}) — launchd status"
     echo ""
 
     # launchctl list
@@ -385,8 +392,8 @@ cmd_status() {
     echo ""
 
     # Logs
-    local out_log="$(log_path "$role")"
-    local err_log="$(error_log_path "$role")"
+    local out_log="$(log_path "$worker_id")"
+    local err_log="$(error_log_path "$worker_id")"
     echo "  StdOut: ${out_log}"
     [[ -f "$out_log" ]] && echo "    📋 $(wc -l < "$out_log" | tr -d ' ') lines · last modified: $(stat -f '%Sm' "$out_log" 2>/dev/null || echo 'unknown')"
     echo "  StdErr: ${err_log}"
@@ -400,19 +407,19 @@ cmd_status() {
 COMMAND="${1:-}"
 case "$COMMAND" in
     install)
-        [[ $# -ne 3 ]] && { echo "Usage: $0 install <project-dir> <role>"; exit 1; }
+        [[ $# -ne 3 ]] && { echo "Usage: $0 install <project-dir> <worker_id>"; exit 1; }
         cmd_install "$2" "$3"
         ;;
     uninstall)
-        [[ $# -ne 2 ]] && { echo "Usage: $0 uninstall <role>"; exit 1; }
+        [[ $# -ne 2 ]] && { echo "Usage: $0 uninstall <worker_id>"; exit 1; }
         cmd_uninstall "$2"
         ;;
     status)
-        [[ $# -ne 2 ]] && { echo "Usage: $0 status <role>"; exit 1; }
+        [[ $# -ne 2 ]] && { echo "Usage: $0 status <worker_id>"; exit 1; }
         cmd_status "$2"
         ;;
     plist)
-        [[ $# -ne 3 ]] && { echo "Usage: $0 plist <project-dir> <role>"; exit 1; }
+        [[ $# -ne 3 ]] && { echo "Usage: $0 plist <project-dir> <worker_id>"; exit 1; }
         cmd_plist "$2" "$3"
         ;;
     *)

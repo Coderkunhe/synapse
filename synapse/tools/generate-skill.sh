@@ -398,7 +398,8 @@ generate_claude() {
     write_claude_md "$OUTPUT" "$ROLE" "claude"
 
     # ── P12-B3: Generate launchd plist (macOS daemon persistence) ──
-    write_launchd_plist "$OUTPUT" "$ROLE"
+    # PFL-129: worker_id from .env (if available); template mode — .env written below
+    write_launchd_plist "$OUTPUT" ""
 
     # ── B110 Layer 3: Generate SessionStart hook + permissions ──
     write_settings_json "$OUTPUT"
@@ -858,14 +859,28 @@ SETEOF
 # Generates a launchd plist for daemon persistence. Does NOT auto-install —
 # the user must run synapse-launchd.sh install manually.
 # Only runs on macOS (uname -s = Darwin). On Linux, prints a systemd pointer.
+#
+# PFL-129 (P100-B119): Label is now worker_id-based — com.synapse.worker.{worker_id}
+# — so multiple workers with the same role don't collide. Accepts worker_id as
+# second argument; falls back to reading SYNAPSE_WORKER_ID from .claude/.env.
 
 write_launchd_plist() {
     local OUT_DIR="$1"
-    local ROLE="${2:-}"
+    local WORKER_ID="${2:-}"
 
-    # Skip if role is unknown (client mode without --role flag)
-    if [[ -z "$ROLE" ]] || [[ ! "$ROLE" =~ ^(orchestrator|builder)$ ]]; then
-        echo "  ℹ️  launchd plist skipped — role unknown (use --role to specify)"
+    # Try to discover worker_id from .env if not explicitly provided
+    if [[ -z "$WORKER_ID" ]]; then
+        local ENV_FILE="$OUT_DIR/.claude/.env"
+        if [[ -f "$ENV_FILE" ]]; then
+            WORKER_ID="$(grep -E '^SYNAPSE_WORKER_ID=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+        fi
+    fi
+
+    # PFL-129: worker_id is required for unique label; skip if unavailable
+    if [[ -z "$WORKER_ID" ]]; then
+        echo "  ℹ️  launchd plist skipped — worker_id unknown."
+        echo "     Set SYNAPSE_WORKER_ID in .claude/.env, then run:"
+        echo "     bash tools/synapse-launchd.sh install <project-dir> <worker_id>"
         return 0
     fi
 
@@ -886,26 +901,26 @@ write_launchd_plist() {
     # Generate plist to LaunchAgents/ directory in output
     local PLIST_DIR="$OUT_DIR/LaunchAgents"
     mkdir -p "$PLIST_DIR"
-    local PLIST_FILE="$PLIST_DIR/com.synapse.worker-${ROLE}.plist"
+    local PLIST_FILE="$PLIST_DIR/com.synapse.worker.${WORKER_ID}.plist"
 
     # Use the launchd script's plist subcommand for canonical generation
     local plist_err
-    plist_err="$(bash "$LAUNCHD_SCRIPT" plist "$OUT_DIR" "$ROLE" > "$PLIST_FILE" 2>&1)"
+    plist_err="$(bash "$LAUNCHD_SCRIPT" plist "$OUT_DIR" "$WORKER_ID" > "$PLIST_FILE" 2>&1)"
     if [[ $? -eq 0 ]] && [[ -s "$PLIST_FILE" ]]; then
-        echo "  ✅ LaunchAgents/com.synapse.worker-${ROLE}.plist（launchd daemon — P12-B3）"
+        echo "  ✅ LaunchAgents/com.synapse.worker.${WORKER_ID}.plist（launchd daemon — P12-B3 · PFL-129 worker_id-based）"
         echo ""
-        echo "  ┌─────────────────────────────────────────────────────────────┐"
-        echo "  │  🚀 launchd daemon plist generated. To activate:            │"
-        echo "  │                                                             │"
-        echo "  │  bash tools/synapse-launchd.sh install ${OUT_DIR} ${ROLE}   │"
-        echo "  │                                                             │"
-        echo "  │  This keeps session-init.js --health running every 60s,     │"
-        echo "  │  independent of Claude Code /clear, exit, or restart.       │"
-        echo "  └─────────────────────────────────────────────────────────────┘"
+        echo "  ┌──────────────────────────────────────────────────────────────────┐"
+        echo "  │  🚀 launchd daemon plist generated. To activate:                 │"
+        echo "  │                                                                  │"
+        echo "  │  bash tools/synapse-launchd.sh install ${OUT_DIR} ${WORKER_ID}   │"
+        echo "  │                                                                  │"
+        echo "  │  This keeps session-init.js --health running every 60s,          │"
+        echo "  │  independent of Claude Code /clear, exit, or restart.            │"
+        echo "  └──────────────────────────────────────────────────────────────────┘"
         echo ""
     else
         echo "  ⚠️  plist generation failed: ${plist_err}"
-        echo "     Run manually: bash tools/synapse-launchd.sh install ${OUT_DIR} ${ROLE}"
+        echo "     Run manually: bash tools/synapse-launchd.sh install ${OUT_DIR} ${WORKER_ID}"
     fi
 }
 
@@ -957,7 +972,8 @@ SKELETONEOF
     write_claude_md "$OUTPUT" "$CLIENT_ROLE" "$TARGET"
 
     # ── P12-B3: Generate launchd plist (macOS daemon persistence) ──
-    write_launchd_plist "$OUTPUT" "$CLIENT_ROLE"
+    # PFL-129: worker_id from .env (if available); client mode may not have it yet
+    write_launchd_plist "$OUTPUT" ""
 
     verify_client_output "$OUT_DIR/SKILL.md" "SKILL.md"
 }
@@ -1219,7 +1235,8 @@ SKILLEOF
     write_claude_md "$OUTPUT" "$ROLE" "$TARGET"
 
     # ── P12-B3: Generate launchd plist (macOS daemon persistence) ──
-    write_launchd_plist "$OUTPUT" "$ROLE"
+    # PFL-129: worker_id from API — unique label, no collision with same-role workers
+    write_launchd_plist "$OUTPUT" "$WORKER_ID"
 
     # ── Generate SessionStart hook ──
     write_settings_json "$OUTPUT"
