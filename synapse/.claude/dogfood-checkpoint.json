@@ -1,8 +1,8 @@
 {
-  "lastDogfoodBatch": "P12-B30",
-  "lastDogfoodTimestamp": "2026-08-07T06:06:00Z",
-  "batchesSinceLastDogfood": 0,
-  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14", "P12-B20", "P12-B23", "P12-B30"],
-  "lastDogfoodEvidence": "P12-B30 dogfood: Server 8001 🟢 4 reapers running. WS 2 connections (O+B). Dual Worker heartbeats 200 OK (Orchestrator ag_019fb0b7849b77b6 + Builder ag_019fb0b784a57a9a). Counters all 0. Python 680 tests ✅. JS 91 tests ✅. P12-4 batch threshold (B24-B28=5) → B30 dogfood gate executed.",
-  "notes": "P12-4 constraint: B23→B28 5批已达阈值 · B30 纯狗粮验证复位. batchesSinceLastDogfood=0. Next dogfood due by P12-B35."
+  "lastDogfoodBatch": "P12-B51",
+  "lastDogfoodTimestamp": "2026-08-08",
+  "batchesSinceLastDogfood": 12,
+  "completedDogfoodBatches": ["P12-B4", "P12-B7", "P12-B9", "P12-B14", "P12-B20", "P12-B23", "P12-B30", "P12-B34", "P12-B36", "P12-B43", "P12-B48", "P12-B51"],
+  "lastDogfoodEvidence": "P12-B51 dogfood: P12 全量闭环 🎉 · P12 Retrospective §五 狗粮历史 R1→R11 · P13 已启 (B1→B12) 但尚未跑 P13 狗粮",
+  "notes": "P100-B117 回填 — 原 checkpoint 冻结在 P12-B30 · 现补全 P12 R7→R11 (B34/B36/B43/B48/B51) · P13 已执行 12 批但未跑狗粮 (batchesSinceLastDogfood=12>5 已达 P12-4 阈值，但 P12 已闭环，P13 无等效门禁)"
 }

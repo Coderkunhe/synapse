@@ -4,7 +4,7 @@
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
-> 最后更新：2026-07-28（P100-B104 ✅ P100 治理波收尾 · 🎉 104 批全量闭环）
+> 最后更新：2026-08-09（P100-B117 治理自愈 · 日期同步）
 
 ---
 
