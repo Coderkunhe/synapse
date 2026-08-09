@@ -4,6 +4,6 @@
   "totalViolations": 30,
   "recurringCount": 0,
   "unguardedCount": 2,
-  "batchesSinceLastReview": 5,
+  "batchesSinceLastReview": 8,
   "notes": "违纪回顾完成 · V-020/V-021/V-028 三处 header 修复 (body 早已 🟢) · V-024/V-027 unguarded · V-030 方法论约束"
 }

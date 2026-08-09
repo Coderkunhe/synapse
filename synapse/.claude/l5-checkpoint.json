@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B124→B125 L5 拉通 — P100-B125 L5 checker Gate 2+3 fix 闭环 · 📄 CLAUDE.md+roadmap.md+requirements-log.md counter= 同步 · 📚 check-l5-consistency.sh 三修复 (extract_batches section header锚定 + pipefail SIGPIPE + Gate 3 same-day tolerance) · 🎭 Gate 4 四源 counter=1 对齐 · 35 residual warnings documented → B126",
+  "lastL5Batch": "B126→B127 L5 拉通 — P100-B127 reqlog P11+P12 归档瘦身 · -1,105 行 (-21%) · 📄 CLAUDE.md counter=2→0 复位 · 📚 checkpoints sync",
   "lastL5Timestamp": "2026-08-09",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B124→B125 L5 拉通 — P100-B125 L5 checker Gate 2+3 fix 闭环 · 📄 CLAUDE.md+roadmap.md+requirements-log.md counter= 同步 · 📚 check-l5-consistency.sh 三修复 (extract_batches section header锚定 + pipefail SIGPIPE + Gate 3 same-day tolerance) · 🎭 Gate 4 四源 counter=1 对齐 · 35 residual warnings documented → B126",
+  "lastL5Evidence": "B126→B127 L5 拉通 — P100-B127 reqlog P11+P12 归档瘦身 · -1,105 行 (-21%) · 📄 CLAUDE.md counter=2→0 复位 · 📚 checkpoints sync",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
