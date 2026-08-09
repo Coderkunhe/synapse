@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B125 ✅ · L5 counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B126 ✅ · L5 counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -97,5 +97,21 @@ synapse/
 | **P11** | B137 ✅ P11 全量闭环 🎉 | — |
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
 | 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
-| **P100** | B125 ✅ L5 checker Gate 2+3 fix + L5 拉通 | **P100-B126** 🔜 收边角 |
-| **L5** | batchesSinceLastL5=0（B124→B125 L5 拉通完成 · counter 复位）| 🟢 OK |
+| **P100** | B126 ✅ L5 考古三批收边角 · 残量接受文档化 | **P100 治理波全量闭环 🎉** |
+| **L5** | batchesSinceLastL5=0（B125→B126 L5 拉通完成 · counter 复位）| 🟢 OK · 34 残量已文档化接受 |
+
+### 🏁 L5 考古三批（B124→B126）完成声明
+
+> 2026-08-09 完成。目标：将 L5 五关检查的警告清零或归档接受。
+
+**最终状态**: 0 errors · 34 warnings（全部已知残量 · 已接受）
+
+| Gate | 残量 | 根因 | 处置 |
+|:-----|:-----|:-----|:-----|
+| Gate 1 | 3 warnings (B42/B57/B85) | roadmap 有但 reqlog 缺失 — 这三个批次在 L5 体系建设前完成，原始变更已不可追溯 | **接受** — 不影响当前活跃工作 |
+| Gate 2 | 31 warnings (30 B100 + 1 P13) | reqlog 考古补登条目 — B124 将 22 条 roadmap→reqlog 补登 + B17-B84 等批次原有 reqlog 章节均无独立 git commit | **接受** — 考古条目，原始 commit message 格式不统一导致 checker 无法关联 |
+| Gate 3 | 0 ✅ | B125 same-day tolerance 修复后清零 | — |
+| Gate 4 | 0 ✅ | B125 counter 同步后四源对齐 | — |
+| Gate 5 | 0 ✅ | CLAUDE.md ↔ roadmap 对应完整 | — |
+
+**不再追踪的理由**: 残量全部为历史考古条目，不反映当前 Phase (P13/P100) 的交付质量。B124→B126 三批已实现：孤儿归档 (35段) → checker 三修复 → 残量接受。此后新产生的 Gate warnings 才需要追踪。
