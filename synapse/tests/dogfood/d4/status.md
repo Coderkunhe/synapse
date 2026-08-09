@@ -90,7 +90,7 @@
 
 | PFL | 发现 | 严重度 |
 |:---|:---|:--:|
-| PFL-153 | bootstrap-worker.sh 三重 env 断裂点 | 🔴 |
+| PFL-153 | bootstrap-worker.sh 三重 env 断裂点 | ✅ |
 | PFL-154 | escalation create_message FK 约束失败 | 🔴 |
 | PFL-155 | 单 detector 崩溃 → reaper 四 detector 全部回滚 | 🟡 |
 | PFL-156 | notify 端点无 Team 成员校验 → 跨 Team 信息泄漏 | 🔴 |

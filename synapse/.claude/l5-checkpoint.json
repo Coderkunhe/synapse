@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B117+B118 L5 拉通 — 治理自愈 + pitfalls 瘦身 · B116 回填 · 违纪回顾 · 日期同步 · LL21 修复",
+  "lastL5Batch": "P100-B119+B120 L5 拉通 — 📄 pitfalls.md header 计数修正 (✅44→45·🔴2→1) · dogfood d4/status.md PFL-153 ✅ · 📚 roadmap.md+reqlog.md+daily B120 登记 · 🎭 CLAUDE.md+l5-checkpoint 同步",
   "lastL5Timestamp": "2026-08-09",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B117+B118 L5 拉通 — roadmap.md B116/B117/B118 · reqlog B116 回填 · pitfalls.md 1153→955行 · lessons-learned.md LL21 · violations-checkpoint 136→0 · process-violations.md V-030 · dogfood-checkpoint P12/P13 · 日期同步 4 docs",
+  "lastL5Evidence": "P100-B119+B120 L5 拉通 — 📄 pitfalls.md header 计数修正 (✅44→45·🔴2→1) · dogfood d4/status.md PFL-153 ✅ · 📚 roadmap.md+reqlog.md+daily B120 登记 · 🎭 CLAUDE.md+l5-checkpoint 同步",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
