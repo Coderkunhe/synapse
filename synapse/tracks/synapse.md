@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P13-B5 ✅ 集成测试 Harness 设计 · B6 🔜 Harness 工具库实现
-last_batch: P13-B5
-next_batch: P13-B6
-description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B5 ✅ · 集成测试 Harness 设计完成 · B6 Harness 工具库实现 (providers/time_travel/fixtures)
+phase: P13 B1→B13 ✅ · 全量闭环 🎉 · P14 候选池已建
+last_batch: P13-B13
+next_batch: —
+description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 候选池: docs/plans/p14-candidate-pool.md
 ---
 
 # Synapse 轨道
@@ -17,7 +17,7 @@ description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B5 �
 | **P100** | P100-B127 | — 🟢 常开 | 治理轨道 · 按需启动 · B127 ✅ reqlog 归档瘦身 · 持续服务中 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
-| **P13** | **P13-B5** | **P13-B6** 🔜 | B1→B5 ✅ · 集成测试 Harness 设计 · B6 Harness 工具库实现 |
+| **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 交棒完成 |
 
 ## P11 路线图：多 Agent 接入战
 
