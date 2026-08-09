@@ -750,7 +750,7 @@
 | **P13-B4** | **P1-1-start: 跨客户端 Provider Interface 设计** — 从 Codex 13 PFL 提炼统一 provider 接口 (heartbeat/offline/evidence/state/startup 五维) · 设计文档 · 不强求实现 | P1 | C1 × S1 | ✅ |
 | **P13-B5** | **P1-4: 多 Worker 集成测试 Harness 设计** — 多 Worker fixture 架构 + 并发调度方案 + 时序断言 API 设计文档 · 1 个 smoke test: B 提交→O 验收→下游解锁 | P1 | C2 × S2+S3+S4 | ✅ |
 | **P13-B6** | **P1-4b: Harness 工具库实现** — tests/harness/ 五文件 (providers/time_travel/fixtures/assertions) · +17 smoke tests · 745 tests 零回归 · P13-B5 设计落地 | P1 | C2 × S2+S3+S4 | ✅ |
-| **P13-B7** | **P1-2: 狗粮→自动化回归转化链路** — 狗粮模板增加「自动化回归」节 · 每轮狗粮至少产出 1 test · dogfood-gate.sh 检查上次是否产出 test · "什么可自动化 vs 只能手工"判定标准 | P1 | C4 × S2+S5 | 📋 |
+| **P13-B7** | **Provider 配置测试** — test_provider_config.py (59 tests) · test_multi_worker_heartbeat.py (22 tests) · Provider 差异回归守卫 · 827 tests 零回归 | P1 | 2 files · +740 loc | ✅ |
 | **P13-B8+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) · C13 (Hook 诊断) — 各有触发条件，不预先排期 | P2 | 6 项 | 📋 |
 
 ### ✅ P13 成功标准（可验证的 "done"）
