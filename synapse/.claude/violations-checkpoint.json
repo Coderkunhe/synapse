@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100-B118",
+  "lastReviewBatch": "P100-B121 违纪回顾 — B119~B121 6 批全治理/文档 · 无新违纪 · V-030 持续 🔴 (方法论约束)",
   "lastReviewTimestamp": "2026-08-09",
   "totalViolations": 30,
-  "recurringCount": 0,
-  "unguardedCount": 1,
-  "batchesSinceLastReview": 5,
-  "notes": "P100-B117 违纪回顾 — V-030 🔴 unguarded (方法论约束 · 非机械门禁) · V-031 登记为触发日志 · 索引已补全 · 计数器复位"
+  "recurringCount": 1,
+  "unguardedCount": 2,
+  "batchesSinceLastReview": 0,
+  "notes": "违纪回顾完成，计数器复位"
 }
