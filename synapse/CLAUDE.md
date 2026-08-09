@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-09（P13 全量闭环 🎉 · B1→B10 共 10 批 · 881 tests · L5 counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B11 ✅ · B12 📋 · L5 counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -18,6 +18,7 @@
 ① 读 memory/active/<topic>.md（SessionStart hook 会告知 memory 路径）→ 确认当前目标 + 下一站
 ② 读 .claude/l5-checkpoint.json → batchesSinceLastL5 ≥ 2 → 先 L5 拉通
 ③ .git/hooks/post-commit 存在? → 否 → 告警「hooks 未安装，运行 make hooks」
+③.5 SessionStart hook 健康? → `bash tools/check-session-hook-health.sh --gate` · 失败 → 显示恢复指引（C13 · P13-B11）
 ④ 暗号中 Batch 编号 vs track.next_batch → 不匹配 → 确认
 ```
 
@@ -95,6 +96,6 @@ synapse/
 |:---|:---|:---|
 | **P11** | B137 ✅ P11 全量闭环 🎉 | — |
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
-| 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13 全量闭环 🎉** · B1→B10 共 10 批 · 881 tests · 5/5 成功标准达成 |
+| 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B11 ✅ · 11 批 · 881 tests |
 | **P100** | B116 ✅ 文档全量刷新 · 13 docs 日期同步 · done | **P100-B117** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=1（P13-B10 ✅ · P13 全量闭环 🎉）| 🟢 OK |
+| **L5** | batchesSinceLastL5=0（P13-B11 ✅ · L5 拉通完成）| 🟢 OK |
