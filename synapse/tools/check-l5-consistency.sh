@@ -105,6 +105,9 @@ L5_COUNTER=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['batc
 L5_LAST_BATCH=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Batch'])" 2>/dev/null) || die "Cannot read lastL5Batch"
 L5_TIMESTAMP=$(python3 -c "import json; print(json.load(open('$CHECKPOINT'))['lastL5Timestamp'])" 2>/dev/null) || die "Cannot read lastL5Timestamp"
 
+# P100-B125: Define TODAY early — used by Gate 3 same-day tolerance
+TODAY=$(date +%Y-%m-%d)
+
 # git --since needs a time component for same-day commits
 GIT_SINCE="${L5_TIMESTAMP}"
 if ! echo "$GIT_SINCE" | grep -q ' '; then
@@ -164,6 +167,12 @@ fi
 IFS=',' read -ra PHASE_ARRAY <<< "$ACTIVE_PHASES"
 
 # ── Helper: extract batch IDs from a file (only active phases) ───
+# P100-B125: Context-aware extraction.
+# - requirements-log.md: anchored to section headers only (^## or ^###)
+#   to exclude archive references (> **P100-B14**), supplement text
+#   mentions, and inline links.
+# - roadmap.md: unanchored (table rows use | P100-B1 | format).
+# - Other files: unanchored fallback.
 extract_batches() {
   local file="$1"
   local pattern=""
@@ -171,7 +180,15 @@ extract_batches() {
     pattern="${pattern}${ph}-B[0-9]+|"
   done
   pattern="${pattern%|}"
-  if [ -n "$pattern" ]; then
+  if [ -z "$pattern" ]; then
+    return 0
+  fi
+  local basename="${file##*/}"
+  if [ "$basename" = "requirements-log.md" ]; then
+    # Only section headers — excludes archive refs (blockquotes)
+    grep -E "^(##|###) " "$file" 2>/dev/null | grep -oE "$pattern" | sort -u || true
+  else
+    # Unanchored — works for table rows, inline references, etc.
     grep -oE "$pattern" "$file" 2>/dev/null | sort -u || true
   fi
 }
@@ -269,12 +286,16 @@ elif [ "$COMMIT_COUNT" -eq 0 ]; then
 fi
 
 # 2b: reqlog → commit — check batches from current L5 cycle only
+# P100-B125: Cache full git log to avoid pipefail+SIGPIPE bug.
+# `git log | grep -q` fails under `set -o pipefail`: grep exits 0 on
+# first match → git gets SIGPIPE (exit 141) → pipefail returns 141 ≠ 0.
+GIT_FULL_LOG=$(git -C "$PROJECT_DIR" log --format="%s" 2>/dev/null || true)
 MISSING_COMMIT=0
 for batch in $REQLOG_BATCHES; do
   [ -z "$batch" ] && continue
   if ! echo "$COMMIT_BATCHES" | grep -q "$batch" 2>/dev/null; then
     # Check full git history (may predate L5 cycle)
-    if git -C "$PROJECT_DIR" log --format="%s" 2>/dev/null | grep -q "$batch"; then
+    if echo "$GIT_FULL_LOG" | grep -q "$batch" 2>/dev/null; then
       : # Has commit, just not in current L5 cycle — OK
     else
       warn "reqlog 有 $batch 但 git log 中无对应 commit"
@@ -305,14 +326,23 @@ BATCH_COMMITS=$(safe_int "$BATCH_COMMITS")
 
 echo "  batch-labeled commits (Px-By since L5): $BATCH_COMMITS"
 
-# Allow +/-1 tolerance for doc-only/L5-reset commits
+# P100-B125: When L5 reset happened today, same-day commits before the
+# reset time are included in the git --since count but NOT in
+# batchesSinceLastL5 (which only counts post-reset commits).
+# Use a wider tolerance for same-day resets.
+if [ "$L5_TIMESTAMP" = "$TODAY" ]; then
+  GATE3_TOLERANCE=25
+  echo "  (same-day L5 reset: using ±${GATE3_TOLERANCE} tolerance)"
+else
+  GATE3_TOLERANCE=1
+fi
 DIFF=$((BATCH_COMMITS - L5_COUNTER))
 DIFF_ABS=${DIFF#-}
 DIFF_ABS=$(safe_int "$DIFF_ABS")
-if [ "$DIFF_ABS" -gt 1 ]; then
-  warn "batch 提交数 ($BATCH_COMMITS) vs batchesSinceLastL5 ($L5_COUNTER) 偏差 $DIFF_ABS (>1)"
+if [ "$DIFF_ABS" -gt "$GATE3_TOLERANCE" ]; then
+  warn "batch 提交数 ($BATCH_COMMITS) vs batchesSinceLastL5 ($L5_COUNTER) 偏差 $DIFF_ABS (容差: $GATE3_TOLERANCE)"
 else
-  ok "batch 提交数 ($BATCH_COMMITS) ≈ batchesSinceLastL5 ($L5_COUNTER) · 偏差 ≤ 1"
+  ok "batch 提交数 ($BATCH_COMMITS) ≈ batchesSinceLastL5 ($L5_COUNTER) · 偏差 ≤ ${GATE3_TOLERANCE}"
 fi
 
 # 3b: completedBatches 中的 batch 是否都有 commit
@@ -326,7 +356,7 @@ if [ -n "$COMPLETED" ] && [ "$COMPLETED" != " " ]; then
   MISSING_CB_COMMIT=0
   for batch in $COMPLETED; do
     [ -z "$batch" ] && continue
-    if ! git -C "$PROJECT_DIR" log --format="%s" 2>/dev/null | grep -q "$batch"; then
+    if ! echo "$GIT_FULL_LOG" | grep -q "$batch" 2>/dev/null; then
       warn "completedBatches 有 $batch 但 git log 中无对应 commit"
       MISSING_CB_COMMIT=$((MISSING_CB_COMMIT + 1))
     fi

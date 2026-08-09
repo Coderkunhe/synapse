@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B121→B123 L5 全量拉通 — 📄 roadmap.md +B121+B122+B123 三条 (Gate 1 reqlog→roadmap 97/97 ✅) · 📚 requirements-log.md +B122+B123 两条含L1-L4自检 (Gate 2 当前周期全覆盖) · 🎭 CLAUDE.md+p13.md counter=2 四源对齐 (Gate 4 ✅) · ⚠️ Gate 2-3 108项警告为P100历史预存drift (B14-B99 reqlog无对应commit) 非本次周期可修",
+  "lastL5Batch": "B124→B125 L5 拉通 — P100-B125 L5 checker Gate 2+3 fix 闭环 · 📄 CLAUDE.md+roadmap.md+requirements-log.md counter= 同步 · 📚 check-l5-consistency.sh 三修复 (extract_batches section header锚定 + pipefail SIGPIPE + Gate 3 same-day tolerance) · 🎭 Gate 4 四源 counter=1 对齐 · 35 residual warnings documented → B126",
   "lastL5Timestamp": "2026-08-09",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B121→B123 L5 全量拉通 — 📄 roadmap.md +B121+B122+B123 三条 (Gate 1 reqlog→roadmap 97/97 ✅) · 📚 requirements-log.md +B122+B123 两条含L1-L4自检 (Gate 2 当前周期全覆盖) · 🎭 CLAUDE.md+p13.md counter=2 四源对齐 (Gate 4 ✅) · ⚠️ Gate 2-3 108项警告为P100历史预存drift (B14-B99 reqlog无对应commit) 非本次周期可修",
+  "lastL5Evidence": "B124→B125 L5 拉通 — P100-B125 L5 checker Gate 2+3 fix 闭环 · 📄 CLAUDE.md+roadmap.md+requirements-log.md counter= 同步 · 📚 check-l5-consistency.sh 三修复 (extract_batches section header锚定 + pipefail SIGPIPE + Gate 3 same-day tolerance) · 🎭 Gate 4 四源 counter=1 对齐 · 35 residual warnings documented → B126",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

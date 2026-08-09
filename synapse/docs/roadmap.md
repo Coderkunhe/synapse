@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B123 ✅ · L5 counter=0）
+> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B125 🔜 · L5 counter=1）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -590,6 +590,8 @@
 - **P100-B121**：**AP-B37 闭环 + 违纪回顾复位** ✅ — ① AP-B37 🔴→✅ · pitfalls 最后一个 🔴 清除 · ② 违纪回顾 batchesSinceLastReview 6→0 · ③ pitfalls header ✅ 45→46 · 50 项全量闭环 🎉 · 🟢 微型 · 6 files
 - **P100-B122**：**PFL-127 header 修复 + PFL-130 路由修正** ✅ — ① PFL-127 header 🟡未标记→✅47 · ② PFL-130 路由 P13→P14候选池C7 · 🟢 微型 · 1 file
 - **P100-B123**：**V-020/V-021/V-028 header 🔴→🟢 + 违纪回顾复位** ✅ — ① 三处 violations section header 修复 · ② 违纪回顾 batchesSinceLastReview 4→0 · recurringCount 1→0 · 🟢 微型 · 1 file
+- **P100-B124**：**Reqlog 孤儿归档 + Roadmap→Reqlog 补登** ✅ — ① 35 段孤儿归档至 archive · ② 22 条 roadmap→reqlog 考古补登 · ③ L5 警告 109→107 · b124-reqlog-purge.py · 🟡 标准 · 3 files
+- **P100-B125**：**L5 checker Gate 2+3 fix** 🔜 — ① extract_batches 锚定 section header（消除归档引用误匹配）· ② git log pipefail+SIGPIPE 修复 · ③ Gate 3 same-day tolerance · ④ Gate 4 counter 同步 · 🟡 标准 · 4 files
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
