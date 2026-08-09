@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B12 ✅ · B13 📋 · P100-B117 ✅ 治理自愈 · L5 counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-09（P13 B1→B12 ✅ · B13 📋 · P100-B117+B118 ✅ · L5 counter=1）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -98,4 +98,4 @@ synapse/
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
 | 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B12 ✅ · 12 批 · 897 tests |
 | **P100** | B118 ✅ pitfalls 瘦身 · PFL-061~099 归档 · LL21 编号修复 · 955 行 | **P100-B119** 🔜 下一站 |
-| **L5** | batchesSinceLastL5=0（P13-B11 ✅ · L5 拉通完成）| 🟢 OK |
+| **L5** | batchesSinceLastL5=1（P100-B117+B118 ✅ · 1/2 to L5）| 🟢 OK |
