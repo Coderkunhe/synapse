@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P13-B8 L5 拉通 — 📄 CLAUDE.md header 更新 · roadmap B8 ✅ · reqlog B8 entry · memory/active/p13.md 暗号更新 · daily/2026-08-09.md 已追加 B8 · 📚 B8 叙事: B5 设计→B6 harness→B7 heartbeat→B8 offline/evidence/state/detector 四维 49 tests · 🎭 counter 三源校验通过 (0e/0w)",
+  "lastL5Batch": "P13-B9 L5 拉通 — 📄 escalation_service.py + provider_config_service.py NEW · failure_detector 去硬编码 · 10 escalation tests (5→10) · PFL-151 🟡→✅ 闭环 · 881 tests 零回归 · B4 原则 #3 落地 · C9 验收标准满足 · 📄 roadmap+pitfalls+CLAUDE.md+p13 memory+MEMORY.md 已更新 · reqlog+日报待补",
   "lastL5Timestamp": "2026-08-09",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P13-B8 L5 拉通 — 📄 CLAUDE.md header 更新 · roadmap B8 ✅ · reqlog B8 entry · memory/active/p13.md 暗号更新 · daily/2026-08-09.md 已追加 B8 · 📚 B8 叙事: B5 设计→B6 harness→B7 heartbeat→B8 offline/evidence/state/detector 四维 49 tests · 🎭 counter 三源校验通过 (0e/0w)",
+  "lastL5Evidence": "P13-B9 L5 拉通 — 📄 escalation_service.py + provider_config_service.py NEW · failure_detector 去硬编码 · 10 escalation tests (5→10) · PFL-151 🟡→✅ 闭环 · 881 tests 零回归 · B4 原则 #3 落地 · C9 验收标准满足 · 📄 roadmap+pitfalls+CLAUDE.md+p13 memory+MEMORY.md 已更新 · reqlog+日报待补",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

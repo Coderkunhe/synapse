@@ -28,6 +28,7 @@ from src.models.worker import Worker
 from src.models.task import Task
 from src.constants import TaskStatus
 from src.services.event_store import event_store
+from src.services.provider_config_service import get_provider_heartbeat_timeout
 from src.task_state_machine import apply_transition as task_apply_transition
 
 # ── P8-B7 阈值 (D-P7-019, MVP 硬编码) ───────────────────
@@ -47,14 +48,16 @@ T_HB_CODEX = 1800     # 30 min (Codex CLI: no daemon, CronCreate-based)
 
 async def detect_heartbeat_failures(
     db: AsyncSession,
-    standard_timeout: int = T_HB_STANDARD,
-    codex_timeout: int = T_HB_CODEX,
+    standard_timeout: int | None = None,
+    codex_timeout: int | None = None,
 ) -> dict:
     """扫描心跳超时的 Worker 并将其转为 ERROR 状态。
 
-    P12-B45 (PFL-144): provider-aware timeout — Codex CLI (no daemon,
-    CronCreate-based heartbeat) gets longer grace period than persistent
-    Workers (Claude Code daemon).
+    P12-B45 (PFL-144): provider-aware timeout — 通过
+    ``get_provider_heartbeat_timeout(worker.provider)`` 从 Provider 配置注册中心
+    获取超时阈值，替代 ``if worker.provider == "codex"`` 硬编码分支。
+
+    P13-B9: 去硬编码 — B4 设计原则 #3 落地。
 
     Worker 被视为"硬故障"当：
       - status == "active" or "pending"（P12-B45: 扩展扫描范围）
@@ -79,8 +82,14 @@ async def detect_heartbeat_failures(
     released_task_ids: list[str] = []
 
     for worker in candidates:
-        # P12-B45: provider-specific timeout
-        timeout = codex_timeout if worker.provider == "codex" else standard_timeout
+        # P13-B9: provider-aware timeout via config registry (B4 原则 #3)
+        # 显式参数覆盖仅用于测试兼容 — 任一参数非 None 即走旧逻辑
+        if standard_timeout is not None or codex_timeout is not None:
+            _std = standard_timeout if standard_timeout is not None else T_HB_STANDARD
+            _cdx = codex_timeout if codex_timeout is not None else T_HB_CODEX
+            timeout = _cdx if worker.provider == "codex" else _std
+        else:
+            timeout = get_provider_heartbeat_timeout(worker.provider)
         hb_cutoff = now - timedelta(seconds=timeout)
         registration_cutoff = now - timedelta(seconds=timeout)
 
@@ -316,12 +325,13 @@ async def detect_review_timeouts(db: AsyncSession) -> dict:
 
 async def run_all_detections(
     db: AsyncSession,
-    standard_timeout: int = T_HB_STANDARD,
-    codex_timeout: int = T_HB_CODEX,
+    standard_timeout: int | None = None,
+    codex_timeout: int | None = None,
 ) -> dict:
     """运行全部四条检测线并返回摘要。
 
     P12-B45 (PFL-144): provider-aware heartbeat timeout 参数传递到各检测线。
+    P13-B9: 参数改为可选 — 不传时使用 provider_config_service 查询。
 
     调用方必须在此返回后提交事务。
     """

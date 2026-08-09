@@ -752,7 +752,8 @@
 | **P13-B6** | **P1-4b: Harness 工具库实现** — tests/harness/ 五文件 (providers/time_travel/fixtures/assertions) · +17 smoke tests · 745 tests 零回归 · P13-B5 设计落地 | P1 | C2 × S2+S3+S4 | ✅ |
 | **P13-B7** | **Provider 配置测试** — test_provider_config.py (59 tests) · test_multi_worker_heartbeat.py (22 tests) · Provider 差异回归守卫 · 827 tests 零回归 | P1 | 2 files · +740 loc | ✅ |
 | **P13-B8** | **Offline+Evidence+State+Detector 回归测试** — 4 files · 49 tests · stale/lease/evidence/state endpoint + detector provider-aware 回归守卫 · 876 tests 零回归 | P1 | 4 test files · +950 loc | ✅ |
-| **P13-B9+** | **P2 按需触发** — SPoF 梯度防御 B 线 · 狗粮验证 · C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) · C13 (Hook 诊断) | P2 | 8 项 | 📋 |
+| **P13-B9** | **SPoF 梯度防御 B 线** — escalation_service.py (独立服务) · provider_config_service.py (去硬编码) · failure_detector.py B4 原则 #3 落地 · 10 escalation tests (5→10) · PFL-151 ✅ 闭环 · 881 tests 零回归 | P1 | 5 files · +330/-120 loc | ✅ |
+| **P13-B10+** | **P2 按需触发** — 狗粮验证 · C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) · C13 (Hook 诊断) | P2 | 7 项 | 📋 |
 
 ### ✅ P13 成功标准（可验证的 "done"）
 
