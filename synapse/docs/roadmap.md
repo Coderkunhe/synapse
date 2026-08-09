@@ -761,7 +761,7 @@
 | **P13-B10** | **P2 按需触发 — 狗粮验证** — 集成点审查 · 覆盖度审视 · 配置一致性 · DB 备份 · 全量回归 881 tests · P13 成功标准 5/5 | P2 | 10 批闭环 🎉 | ✅ |
 | **P13-B11** | **C13 Hook 诊断** — SessionStart hook 静默失败检测 · `check-session-hook-health.sh` canary 探针 · settings.json canary hook · CLAUDE.md 启动自检链 ③.5 扩展 | P2 | 4 files · +175 loc | ✅ |
 | **P13-B12** | **C11 O SLA Metric** — O 响应性 SLA 自动度量 · `o_sla_metrics.py` + `GET /stats/o-sla` · p50/p95/p99 + SLA 达标率 + breach 列表 · +16 tests · 897 tests 零回归 | P2 | 4 files · +330 loc | ✅ |
-| **P13-B13+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) | P2 | 4 项 | 📋 |
+| **P13-B13** | **收边角 · P13 正式收官** — C6/C7/C3/C10 → P14 候选池交棒 · P14 Scout 优先级建议 · P13 全量闭环 🎉 | P2 | 1 file NEW + 4 docs | ✅ |
 
 ### ✅ P13 成功标准（可验证的 "done"）
 
@@ -773,16 +773,22 @@
 5. 全程零 src/ 变更由 God's-eye 执行（God's-eye 只治理，不写代码）
 ```
 
-### 🗄️ P14 储备（P13 明确排除）
+### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
 | 编号 | 内容 | 排除理由 |
 |:---|------|------|
-| W2 | Worker 自观测 dashboard | 仍然是产品功能——先让基础设施可靠 |
+| W2 | Worker 自观测 dashboard | 产品功能——先让基础设施可靠 |
 | T2 | Builder 间 A2A 通信 | 先巩固 Task 依赖 + O 协调 |
 | T4 | 多 Worker 负载均衡 | 规模未到 |
 | H3 | Prompt 版本化+回滚 | 基础设施可信后再优化 |
-| H4 | Worker SDK 化 | 过早抽象——等 provider interface (B4) 验证后再做 |
+| H4 | Worker SDK 化 | 过早抽象——等 Provider Interface 验证后 |
 | P1 | Kanban 看板可视化 | 产品功能 |
-| C1-full | 跨客户端抽象层全量实现 | B4 只做设计——全量实现需要更多 PFL 数据 |
-| C2-full | 多 Worker 集成测试 Harness 全量建设 | B5 只做设计+smoke——全量建设留 P14 |
-| C11 | ~~O 响应性 SLA 自动度量+报警~~ | ✅ P13-B12 已交付 — `o_sla_metrics.py` + `GET /stats/o-sla` |
+| C1-full | 跨客户端抽象层全量实现 | B4 只做设计——需更多 PFL 数据 |
+| C2-full | 多 Worker 集成测试 Harness 全量 | B5/B6 做了设计+smoke——全量留 P14 |
+| C11 | ~~O 响应性 SLA 自动度量+报警~~ | ✅ P13-B12 已交付 |
+| **C6** | **D1 自动化率 62%→80%（Worker 升级/回滚）** | P13 交棒 → P14 · TD=4 · FE=4 |
+| **C7** | **depends_on G1/G2 前端+API 补齐** | P13 交棒 → P14 · SV=4 · TD=2 |
+| **C3** | **D2 测试覆盖率 55%→75%（daemon 边界）** | P13 交棒 → P14 · TD=5 · FE=3 |
+| **C10** | **Worker 身份认知硬约束（文件快照 SPoF）** | P13 交棒 → P14 · 架构变更 · FE=2 |
+
+> 📋 详细交棒文档：`docs/plans/p14-candidate-pool.md`
