@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B126 ✅ · 治理波全量闭环 🎉 · L5 counter=0）
+> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B127 🔜 · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -593,6 +593,7 @@
 - **P100-B124**：**Reqlog 孤儿归档 + Roadmap→Reqlog 补登** ✅ — ① 35 段孤儿归档至 archive · ② 22 条 roadmap→reqlog 考古补登 · ③ L5 警告 109→107 · b124-reqlog-purge.py · 🟡 标准 · 3 files
 - **P100-B125**：**L5 checker Gate 2+3 fix** ✅ — ① extract_batches 锚定 section header（消除归档引用误匹配）· ② git log pipefail+SIGPIPE 修复 · ③ Gate 3 same-day tolerance · ④ Gate 4 counter 同步 · 🟡 标准 · 6 files
 - **P100-B126**：**L5 考古三批收边角 · 残量接受文档化** ✅ — ① CLAUDE.md L5 残量接受声明（34 warnings · 三 Gate 根因+处置表）· ② roadmap+reqlog B125/B126 补登 · ③ CLAUDE.md header + 状态表更新 · 🟢 微型 · 3 files
+- **P100-B127**：**Reqlog P11+P12 归档瘦身** 🔜 — ① P11 (37条) + P12 (49条) = 86 条 reqlog 归档至 archive · ② 空行 compact · ③ 4 对重复条目（B124 补登产物）去重合并 · 🟡 标准 · b127-reqlog-archive.py
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
