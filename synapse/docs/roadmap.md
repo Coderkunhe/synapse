@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B12 ✅ · B13 🔜 · P100-B120 ✅ · L5 counter=0）
+> 最后更新：2026-08-09（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B123 ✅ · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -587,6 +587,9 @@
 - **P100-B118**：**pitfalls 瘦身 + LL21 修复** ✅ — ① PFL-061/069/070/072/074/075/084/099 → archive（198 行）· ② pitfalls.md 1153→955 行（硬阻断阈值 1100 ✅ 解除）· ③ header 计数修正（48→49 PFL）· ④ LL21 编号跳号修复（lessons-learned.md 诚实标注）· 🟢 微型 · 2 files
 - **P100-B119**：**PFL-129 launchd label 修复 + 治理收边角** ✅ — ① PFL-129: synapse-launchd.sh label 从 role→worker_id（同 role 多 Worker 不再冲突）· ② generate-skill.sh write_launchd_plist 适配 worker_id · ③ API contracts baseline 更新（P13 10 新端点）· ④ stale .claude/self-check-* ×7 清理 · 🟢 微型 · 5 files
 - **P100-B120**：**PFL-153 状态同步 · 治理收边角** ✅ — ① pitfalls.md header 计数修正：PFL-153 🔴→✅（44→45 已修复 · 2→1 未修复）· ② PFL-153 节标题 emoji 🔴→✅ · ③ dogfood d4/status.md PFL-153 status 🔴→✅ · 🟢 微型 · 2 files
+- **P100-B121**：**AP-B37 闭环 + 违纪回顾复位** ✅ — ① AP-B37 🔴→✅ · pitfalls 最后一个 🔴 清除 · ② 违纪回顾 batchesSinceLastReview 6→0 · ③ pitfalls header ✅ 45→46 · 50 项全量闭环 🎉 · 🟢 微型 · 6 files
+- **P100-B122**：**PFL-127 header 修复 + PFL-130 路由修正** ✅ — ① PFL-127 header 🟡未标记→✅47 · ② PFL-130 路由 P13→P14候选池C7 · 🟢 微型 · 1 file
+- **P100-B123**：**V-020/V-021/V-028 header 🔴→🟢 + 违纪回顾复位** ✅ — ① 三处 violations section header 修复 · ② 违纪回顾 batchesSinceLastReview 4→0 · recurringCount 1→0 · 🟢 微型 · 1 file
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
