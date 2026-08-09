@@ -126,6 +126,10 @@ class Settings(BaseSettings):
     verification_escalation_minutes: int = 10  # O 沉默 >10min → auto-escalate to Human
     verification_escalation_cooldown_minutes: int = 30  # 同任务不重复升级的最小间隔
 
+    # O SLA metrics (P13-B12 · C11)
+    o_sla_target_minutes: int = 5  # O 响应 SLA 目标 — task submit → verification start 的期望上限
+    o_sla_window_hours: int = 24  # SLA 统计窗口（小时）
+
     # Worker heartbeat monitor (P11-B128 · PFL-126 direction 4)
     worker_heartbeat_timeout_seconds: int = 300  # 5 min no heartbeat → offline (standard)
     worker_heartbeat_timeout_seconds_codex: int = 1800  # P12-B42: 30 min for Codex (no daemon)

@@ -755,7 +755,8 @@
 | **P13-B9** | **SPoF 梯度防御 B 线** — escalation_service.py (独立服务) · provider_config_service.py (去硬编码) · failure_detector.py B4 原则 #3 落地 · 10 escalation tests (5→10) · PFL-151 ✅ 闭环 · 881 tests 零回归 | P1 | 5 files · +330/-120 loc | ✅ |
 | **P13-B10** | **P2 按需触发 — 狗粮验证** — 集成点审查 · 覆盖度审视 · 配置一致性 · DB 备份 · 全量回归 881 tests · P13 成功标准 5/5 | P2 | 10 批闭环 🎉 | ✅ |
 | **P13-B11** | **C13 Hook 诊断** — SessionStart hook 静默失败检测 · `check-session-hook-health.sh` canary 探针 · settings.json canary hook · CLAUDE.md 启动自检链 ③.5 扩展 | P2 | 4 files · +175 loc | ✅ |
-| **P13-B12+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) · C11 (O SLA) | P2 | 5 项 | 📋 |
+| **P13-B12** | **C11 O SLA Metric** — O 响应性 SLA 自动度量 · `o_sla_metrics.py` + `GET /stats/o-sla` · p50/p95/p99 + SLA 达标率 + breach 列表 · +16 tests · 897 tests 零回归 | P2 | 4 files · +330 loc | ✅ |
+| **P13-B13+** | **P2 按需触发** — C6 (D1 升级脚本) · C7 (depends_on G1/G2) · C3 (D2 覆盖率) · C10 (身份认知) | P2 | 4 项 | 📋 |
 
 ### ✅ P13 成功标准（可验证的 "done"）
 
@@ -779,4 +780,4 @@
 | P1 | Kanban 看板可视化 | 产品功能 |
 | C1-full | 跨客户端抽象层全量实现 | B4 只做设计——全量实现需要更多 PFL 数据 |
 | C2-full | 多 Worker 集成测试 Harness 全量建设 | B5 只做设计+smoke——全量建设留 P14 |
-| C11 | O 响应性 SLA 自动度量+报警 | 先让 O 不挂 (B6)，再让 O 快 |
+| C11 | ~~O 响应性 SLA 自动度量+报警~~ | ✅ P13-B12 已交付 — `o_sla_metrics.py` + `GET /stats/o-sla` |
