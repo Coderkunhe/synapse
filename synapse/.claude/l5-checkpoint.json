@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B4→B5 L5 拉通 — 📄 docs/pitfalls.md PFL-167~174 已登记 · 🔧 tools/generate-skill.sh 冷启动模板修正 · 💻 src/schemas/task.py + src/services/task_core.py + src/api/routers/tasks.py depends_on 编辑后端 · 🎨 frontend/src/pages/TaskDetail.tsx + TaskDetail.module.css + client.ts + translations.ts 前端编辑表单 · 🧪 928 tests 零回归",
+  "lastL5Batch": "P14-B4→B5 L5 拉通 — 📄 roadmap.md 补登记 B3.1+B4 · 📄 requirements-log.md 补登记 B3.1+B4 · 📄 daily/2026-08-10.md 新建 · 📄 architecture.md+lessons-learned.md+methodology.md 日期同步 08-10 · 📄 CLAUDE.md counter 对齐 · 📄 memory/active/p14.md 更新 · 7 项硬阻断全量清零 · counter 2→0 复位",
   "lastL5Timestamp": "2026-08-10",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P14-B4→B5 L5 拉通 — 📄 docs/pitfalls.md PFL-167~174 已登记 · 🔧 tools/generate-skill.sh 冷启动模板修正 · 💻 src/schemas/task.py + src/services/task_core.py + src/api/routers/tasks.py depends_on 编辑后端 · 🎨 frontend/src/pages/TaskDetail.tsx + TaskDetail.module.css + client.ts + translations.ts 前端编辑表单 · 🧪 928 tests 零回归",
+  "lastL5Evidence": "P14-B4→B5 L5 拉通 — 📄 roadmap.md 补登记 B3.1+B4 · 📄 requirements-log.md 补登记 B3.1+B4 · 📄 daily/2026-08-10.md 新建 · 📄 architecture.md+lessons-learned.md+methodology.md 日期同步 08-10 · 📄 CLAUDE.md counter 对齐 · 📄 memory/active/p14.md 更新 · 7 项硬阻断全量清零 · counter 2→0 复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B127 ✅ · P14-B2 ✅ · L5 counter=0）
+> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B127 ✅ · P14-B4 ✅ 狗粮闭环 🎉 · L5 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -793,6 +793,8 @@
 | **P14-B1** | **C6 Worker 升级/回滚脚本** — `synapse-upgrade.sh`（3 子命令: upgrade/rollback/status）· startup log 补 escalation 参数 · heartbeat_monitor provider-aware 确认 | ✅ |
 | **P14-B2** | **G1+G2 Builder 错误上报 + Escalation 自动登记** — `POST /workers/{id}/error-report` 端点 · `pitfall_service.py` PFL 程序化创建 · escalation 自动 PFL+Task · 7 files · 920 tests | ✅ |
 | **P14-B3** | **诊断加固** — Worker/Project 错误列表端点 (2 endpoints) · SKILL.md + role-builder.md 诊断查询指引 · cursor 分页 + severity/worker_id 筛选 · 4 files · 928 tests | ✅ |
+| **P14-B3.1** | **P1+P2 修复** — severity SQL 层过滤 · 复合游标 · DG-1~5 狗粮测试纪律 · commit c957b85 | ✅ |
+| **P14-B4** | **狗粮闭环 🎉** — depends_on 编辑能力全量交付 · 1O+2B 协作验证通过 · backend 3 files + frontend 4 files · 928 tests 零回归 · PFL-169~174 登记 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
