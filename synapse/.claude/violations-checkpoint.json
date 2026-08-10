@@ -4,6 +4,6 @@
   "totalViolations": 30,
   "recurringCount": 0,
   "unguardedCount": 1,
-  "batchesSinceLastReview": 5,
+  "batchesSinceLastReview": 10,
   "notes": "违纪回顾完成，计数器复位"
 }

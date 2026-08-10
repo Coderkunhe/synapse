@@ -4,7 +4,7 @@
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
-> 最后更新：2026-08-10（P14-B4 狗粮闭环 · L5 拉通 · 日期同步）
+> 最后更新：2026-08-10（P14-B9 auto-verify 实现 · L5 拉通 · 日期同步）
 
 ---
 

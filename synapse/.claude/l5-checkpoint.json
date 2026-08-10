@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B9 auto-verify 实现完成 — 📄 src/schemas/task.py VerificationCreate 新增 auto_verifiable/auto_pass_pattern/auto_fail_pattern · 📄 src/services/verification_service.py _try_auto_verify()+_parse_evidence_for_verdict() · 📄 src/services/task_execution.py submit_task 集成 · 📄 src/api/routers/tasks.py 双路径 passthrough · 📄 src/services/task_create.py criteria JSON 存储 · 📄 tests/test_submit_and_scheduling.py +5 tests · 📄 docs/templates/role-builder.md §9 · 📄 docs/templates/role-orchestrator.md 验收行 · 📄 docs/roadmap.md B9 登记 · 📄 docs/requirements-log.md B9 登记 · 📄 docs/daily/2026-08-10.md B9 记录 · PFL-172 修复 · 934 tests 零回归",
+  "lastL5Batch": "P14-B9→B10 L5 拉通 — 📄 architecture+lessons+methodology 日期同步 B4→B9 · 📄 CLAUDE.md+checkpoint counter 四源对齐 · 📄 pitfalls.md PFL-205/206 登记 · 934 tests 零回归 · B9 auto-verify 全量登记完成",
   "lastL5Timestamp": "2026-08-10",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P14-B9 auto-verify 实现完成 — 📄 src/schemas/task.py VerificationCreate 新增 auto_verifiable/auto_pass_pattern/auto_fail_pattern · 📄 src/services/verification_service.py _try_auto_verify()+_parse_evidence_for_verdict() · 📄 src/services/task_execution.py submit_task 集成 · 📄 src/api/routers/tasks.py 双路径 passthrough · 📄 src/services/task_create.py criteria JSON 存储 · 📄 tests/test_submit_and_scheduling.py +5 tests · 📄 docs/templates/role-builder.md §9 · 📄 docs/templates/role-orchestrator.md 验收行 · 📄 docs/roadmap.md B9 登记 · 📄 docs/requirements-log.md B9 登记 · 📄 docs/daily/2026-08-10.md B9 记录 · PFL-172 修复 · 934 tests 零回归",
+  "lastL5Evidence": "P14-B9→B10 L5 拉通 — 📄 architecture+lessons+methodology 日期同步 B4→B9 · 📄 CLAUDE.md+checkpoint counter 四源对齐 · 📄 pitfalls.md PFL-205/206 登记 · 934 tests 零回归 · B9 auto-verify 全量登记完成",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
