@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import select
@@ -21,6 +23,9 @@ from src.permissions import require_permission
 from src.schemas.worker import (
     API_KEY_WARNING,
     AuthRequestStateSummary,
+    ErrorReportRequest,
+    ErrorReportResponse,
+    ErrorReportSummary,
     TaskStateSummary,
     WorkerCreate,
     WorkerCreateResponse,
@@ -52,7 +57,12 @@ from src.services.worker_scheduler import start_task as _start_task
 
 from src.services.template_service import render_protocol, resolve_role, compute_template_versions
 
+from src.services.event_store import event_store
+from src.services.pitfall_service import create_pitfall
+
 from .helpers import get_team_or_404
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 agents_router = APIRouter()  # backward compat, all routes deprecated
@@ -236,6 +246,38 @@ async def get_worker_state(
     stale_vt = [t for t in verification_tasks
                 if t.updated_at and t.updated_at < stale_cutoff]
 
+    # ── P14-B2 G1: Recent error reports ──
+    from src.constants import EventType as ET
+    from src.models.event import Event as EventModel
+    recent_errors_result = await db.execute(
+        select(EventModel)
+        .where(
+            EventModel.event_type == ET.WORKER_ERROR_REPORTED,
+            EventModel.actor_id == actor.actor_id,
+        )
+        .order_by(EventModel.created_at.desc())
+        .limit(5)
+    )
+    import json as json_module
+    recent_errors = []
+    for evt in recent_errors_result.scalars().all():
+        raw_payload = evt.payload or {}
+        if isinstance(raw_payload, str):
+            try:
+                payload = json_module.loads(raw_payload)
+            except (json_module.JSONDecodeError, TypeError):
+                payload = {}
+        else:
+            payload = raw_payload
+        recent_errors.append(ErrorReportSummary(
+            id=evt.id,
+            error_type=payload.get("error_type", "unknown"),
+            task_id=payload.get("task_id"),
+            summary=payload.get("summary", ""),
+            severity=payload.get("severity", "🔴"),
+            created_at=evt.created_at,
+        ))
+
     # ── Assemble response ──
     return WorkerStateResponse(
         worker_id=worker.id,
@@ -253,6 +295,214 @@ async def get_worker_state(
         pending_auth_requests=pending_auth_requests,
         stale_verification_count=len(stale_vt),
         stale_verification_task_ids=[t.id for t in stale_vt],
+        recent_error_reports=recent_errors,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P14-B2 G1: Builder Error Report
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/workers/{worker_id}/error-report",
+    response_model=ErrorReportResponse,
+    status_code=201,
+)
+async def report_error(
+    worker_id: str,
+    body: ErrorReportRequest,
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Builder 结构化错误上报（P14-B2 G1）。
+
+    Builder 通过此端点提交结构化错误上下文，
+    替代非结构化的 conversation comment 模式。
+    O 在 worker state 中可直接看到最近 5 条错误。
+
+    severity=🔴 时自动触发 G2 通路：创建 PFL + escalation Task。
+    """
+    # ── 权限：只有 Worker 自身或 Admin 可上报 ──
+    if actor.actor_id != worker_id and actor.actor_type not in (ActorType.HUMAN,):
+        # Human admins can report on behalf of workers
+        from src.models import ProjectActorRole
+        is_admin = await db.execute(
+            select(ProjectActorRole).where(
+                ProjectActorRole.worker_id == actor.actor_id,
+                ProjectActorRole.role.in_(["admin", "lead"]),
+            )
+        )
+        if not is_admin.scalar():
+            raise ForbiddenError(
+                "FORBIDDEN_NOT_WORKER_OWNER",
+                "Only the worker itself or an admin can report errors for this worker",
+            )
+
+    # ── 校验 worker 存在 ──
+    worker = await _get_worker(db, worker_id)
+    team_id = worker.team_id
+
+    # ── 可选：校验 task 存在 ──
+    project_id = ""
+    if body.task_id:
+        task = await db.get(Task, body.task_id)
+        if task is None:
+            raise NotFoundError("task", body.task_id)
+        project_id = task.project_id
+
+    # ── 记录 Event ──
+    from datetime import datetime, timezone
+    from uuid import uuid4
+    from src.constants import EventType as ET
+
+    now = datetime.now(timezone.utc)
+    event = await event_store.record(
+        db,
+        event_type=ET.WORKER_ERROR_REPORTED,
+        team_id=team_id,
+        actor_type=actor.actor_type,
+        actor_id=actor.actor_id,
+        target_type="worker",
+        target_id=worker_id,
+        payload={
+            "error_type": body.error_type,
+            "task_id": body.task_id,
+            "summary": body.summary,
+            "detail": body.detail,
+            "context": body.context or {},
+            "severity": body.severity,
+        },
+    )
+
+    # ── 如果关联 task，创建 conversation message ──
+    if body.task_id and project_id:
+        try:
+            from src.services.conversation_service import create_message
+            savepoint = await db.begin_nested()
+            await create_message(
+                db,
+                task_id=body.task_id,
+                workflow_id=None,
+                message_type="blocking",
+                body=(
+                    f"🚨 **Builder 错误上报**\n\n"
+                    f"- **Worker**: {worker.name} (`{worker_id}`)\n"
+                    f"- **错误类型**: `{body.error_type}`\n"
+                    f"- **严重度**: {body.severity}\n"
+                    f"- **摘要**: {body.summary}\n"
+                    + (f"\n**详情**:\n```\n{body.detail}\n```" if body.detail else "")
+                ),
+                in_reply_to_id=None,
+                sender_worker_id=worker_id,
+                team_id=team_id,
+                actor_type=actor.actor_type,
+                actor_id=actor.actor_id,
+            )
+            await savepoint.commit()
+        except Exception:
+            logger.warning(
+                "Failed to create error-report message for task %s (event still recorded)",
+                body.task_id,
+                exc_info=True,
+            )
+
+    # ── WS push 通知所有 Orchestrator ──
+    try:
+        from src.models import ProjectActorRole as PAR
+        from src.services.ws_manager import ws_manager
+        orch_result = await db.execute(
+            select(PAR).where(
+                PAR.project_id == project_id,
+                PAR.role.in_(["orchestrator", "admin", "lead"]),
+            )
+        ) if project_id else None
+        orch_roles = orch_result.scalars().all() if orch_result else []
+        for orch_role in orch_roles:
+            await ws_manager.broadcast_to_actor(
+                orch_role.worker_id,
+                {
+                    "type": "worker.error_reported",
+                    "data": {
+                        "worker_id": worker_id,
+                        "worker_name": worker.name,
+                        "error_type": body.error_type,
+                        "task_id": body.task_id,
+                        "summary": body.summary,
+                        "severity": body.severity,
+                    },
+                },
+            )
+    except Exception:
+        logger.warning("WS push failed for error report", exc_info=True)
+
+    # ── G2: severity=🔴 自动创建 PFL + Task ──
+    pfl_id = None
+    escalation_task_id = None
+    if body.severity == "🔴":
+        try:
+            pfl_id = create_pitfall(
+                title=f"[{body.error_type}] {body.summary}",
+                description=(
+                    f"Worker `{worker_id}` ({worker.name}) 上报严重错误。\n\n"
+                    f"- **错误类型**: `{body.error_type}`\n"
+                    + (f"- **关联 Task**: `{body.task_id}`\n" if body.task_id else "")
+                    + f"- **详情**: {body.detail or '无'}"
+                ),
+                severity="🔴",
+                cause=body.detail or "见 detail 字段",
+                fix_direction="Builder 需诊断并修复 · 关联 escalation Task 跟踪",
+                discovery_source="P14-B2 自动登记（Worker error report）",
+            )
+        except Exception:
+            logger.warning("Failed to auto-create PFL for error report", exc_info=True)
+
+        # 自动创建 escalation Task
+        if project_id and pfl_id:
+            try:
+                from src.services.task_create import create_task as _create_task_svc
+                escalation_task = await _create_task_svc(
+                    db,
+                    project_id=project_id,
+                    title=f"[{pfl_id}] {body.summary[:100]}",
+                    description=(
+                        f"## Escalation Task（自动创建 · P14-B2 G2）\n\n"
+                        f"- **来源**: Worker `{worker_id}` ({worker.name}) 错误上报\n"
+                        f"- **PFL**: {pfl_id}\n"
+                        f"- **错误类型**: `{body.error_type}`\n"
+                        + (f"- **关联 Task**: `{body.task_id}`\n" if body.task_id else "")
+                        + f"\n### 错误详情\n\n{body.detail or '无详情'}\n\n"
+                        f"### 上下文\n\n```json\n{body.context or {}}\n```"
+                    ),
+                    priority="p1",
+                    parent_task_id=None,
+                    batch_id=None,
+                    estimated_effort=None,
+                    tags=None,
+                    metadata=None,
+                    deadline_at=None,
+                    verifications=[],
+                    actor_type=ActorType.SYSTEM,
+                    actor_id="error_report_handler",
+                    team_id=team_id,
+                )
+                escalation_task_id = escalation_task.id
+            except Exception:
+                logger.warning("Failed to auto-create escalation Task", exc_info=True)
+
+    await db.commit()
+
+    return ErrorReportResponse(
+        id=str(uuid4()),
+        worker_id=worker_id,
+        error_type=body.error_type,
+        task_id=body.task_id,
+        summary=body.summary,
+        event_id=event.id,
+        pfl_id=pfl_id,
+        escalation_task_id=escalation_task_id,
+        severity=body.severity,
+        created_at=now,
     )
 
 

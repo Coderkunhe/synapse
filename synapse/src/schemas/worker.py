@@ -247,3 +247,72 @@ class WorkerStateResponse(BaseModel):
 
     # Warnings — non-empty when state quality is degraded
     warnings: list[str] = Field(default_factory=list)
+
+    # P14-B2 G1: recent error reports for Builder health visibility
+    recent_error_reports: list["ErrorReportSummary"] = Field(default_factory=list)
+
+
+# ── P14-B2 G1: Error Report schemas ──────────────────────────────────────
+
+
+class ErrorReportRequest(BaseModel):
+    """Builder 结构化错误上报请求体（P14-B2 G1）。
+
+    Builder 通过此端点提交结构化错误上下文，
+    替代非结构化的 conversation comment 模式。
+    """
+    error_type: str = Field(
+        ...,
+        max_length=50,
+        pattern=r"^(api_error|verification_failed|dependency_blocked|capability_mismatch|env_broken|timeout|escalation|unknown)$",
+        description="Error category",
+    )
+    task_id: str | None = Field(
+        None,
+        max_length=40,
+        description="Related task ID (optional — worker-level errors don't need a task)",
+    )
+    summary: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="One-line error description",
+    )
+    detail: str | None = Field(
+        None,
+        max_length=5000,
+        description="Full error context (stack trace, API response body, etc.)",
+    )
+    context: dict | None = Field(
+        None,
+        description="Structured context (http_status, endpoint, retry_count, etc.)",
+    )
+    severity: str = Field(
+        default="🔴",
+        pattern=r"^(🔴|🟡|🟢)$",
+        description="Severity: 🔴 critical | 🟡 warning | 🟢 info",
+    )
+
+
+class ErrorReportResponse(BaseModel):
+    """Error report 创建响应体（P14-B2 G1）。"""
+    id: str
+    worker_id: str
+    error_type: str
+    task_id: str | None = None
+    summary: str
+    event_id: str
+    pfl_id: str | None = None
+    escalation_task_id: str | None = None
+    severity: str
+    created_at: datetime
+
+
+class ErrorReportSummary(BaseModel):
+    """Error report 摘要 — 嵌入 WorkerStateResponse 中。"""
+    id: str
+    error_type: str
+    task_id: str | None = None
+    summary: str
+    severity: str
+    created_at: datetime

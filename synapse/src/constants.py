@@ -189,6 +189,9 @@ class EventType(StrEnum):
     REVIEW_OVERDUE = "review.overdue"                  # P8-B9: WS signal for review timeout
     TASK_ESCALATED = "task.escalated"                  # P8-B7
 
+    # Worker error reporting (P14-B2 G1+G2)
+    WORKER_ERROR_REPORTED = "worker.error_reported"
+
     # Team lifecycle
     TEAM_CREATED = "team.created"
     TEAM_UPDATED = "team.updated"

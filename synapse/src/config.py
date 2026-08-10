@@ -126,6 +126,10 @@ class Settings(BaseSettings):
     verification_escalation_minutes: int = 10  # O 沉默 >10min → auto-escalate to Human
     verification_escalation_cooldown_minutes: int = 30  # 同任务不重复升级的最小间隔
 
+    # P14-B2 G2: PFL auto-creation from escalations
+    pfl_auto_create_enabled: bool = True  # escalation 时自动创建 PFL + tracking Task
+    pfl_auto_create_cooldown_minutes: int = 60  # 同 escalation 不重复创建 PFL
+
     # O SLA metrics (P13-B12 · C11)
     o_sla_target_minutes: int = 5  # O 响应 SLA 目标 — task submit → verification start 的期望上限
     o_sla_window_hours: int = 24  # SLA 统计窗口（小时）
