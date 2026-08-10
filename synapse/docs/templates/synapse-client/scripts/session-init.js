@@ -513,6 +513,66 @@ function writeState(state) {
   lines.push('> **然后**再读下面的状态。本 banner 由 session-init.js 机械生成——脚本不会骗你。');
   lines.push('');
 
+  // ── B6: Daemon Health Alerts (PFL-173/174) ──
+  // These banners are ONLY shown in --health mode (CronCreate wakeup).
+  // They alert the AI to daemon re-spawn events, heartbeat freshness issues,
+  // and uncommitted changes — all of which are safety-critical for the Worker.
+
+  if (state._healthReport) {
+
+    // Banner 1: Daemon Health Alert — daemon was dead and re-spawned
+    if (state._healthReport.heartbeat.reSpawned || state._healthReport.wsDaemon.reSpawned) {
+      lines.push('## 🫀 Daemon Health Alert（PFL-173 · B6）');
+      lines.push('');
+      lines.push('> ⚠️ **守护进程曾停止运行**——在最近一次 CronCreate 唤醒时被 auto re-spawn。');
+      lines.push('> 在恢复之前，你的 Worker 在服务器端可能显示为 OFFLINE，Task 可能被 stale reaper 回退。');
+      lines.push('> ');
+      if (state._healthReport.heartbeat.reSpawned) {
+        lines.push('> - 🔴 **Heartbeat daemon** 曾停止——服务器可能已标记你为 OFFLINE。Task 所有权可能已释放。');
+      }
+      if (state._healthReport.wsDaemon.reSpawned) {
+        lines.push('> - 🔴 **WS daemon** 曾停止——实时事件推送中断，你可能错过了 Task 分配或验收结果通知。');
+      }
+      lines.push('> ');
+      lines.push('> **立即检查**：① 你当前的 Task 是否仍在 `in_progress`？② 是否有未 commit 的代码变更（见下方 PFL-174 检查）？');
+      lines.push('> ③ 如有问题 → 评论区 @Orchestrator 说明情况。');
+      lines.push('');
+    }
+
+    // Banner 2: Heartbeat Freshness Warning — daemon alive but not sending heartbeats
+    if (state._healthReport._heartbeatFreshness && !state._healthReport._heartbeatFreshness.fresh) {
+      var hbAge = state._healthReport._heartbeatFreshness.ageSeconds;
+      var hbAgeStr = hbAge !== null ? hbAge + ' 秒前' : '从未';
+      lines.push('## ⚠️ Heartbeat Freshness Warning（PFL-173 · B6）');
+      lines.push('');
+      lines.push('> ⚠️ **心跳守护进程正在运行但最近未成功发送心跳**（上次成功: ' + hbAgeStr + '）。');
+      lines.push('> 可能原因：网络波动 · API 不可达 · daemon 进程僵尸（PID 存在但事件循环卡死）。');
+      lines.push('> ');
+      lines.push('> **立即检查**：`curl -s $SYNAPSE_API_URL/health` — 确认 API 可达性。');
+      lines.push('> 如果 API 可达但心跳仍然失败 → 重启 Worker 会话。');
+      lines.push('');
+    }
+
+    // Banner 3: Unstaged Changes Alert — work in progress but not committed
+    if (state._healthReport._unstagedChanges && state._healthReport._unstagedChanges.hasUnstaged) {
+      var uc = state._healthReport._unstagedChanges;
+      lines.push('## 🚨 Unstaged Changes — Commit Now（PFL-174 · B6）');
+      lines.push('');
+      lines.push('> 🚨 **检测到 ' + uc.fileCount + ' 个文件有未 commit 的变更。**');
+      lines.push('> 如果 daemon 死亡或会话意外终止，这些代码会丢失——');
+      lines.push('> git 之外的代码不受保护（P14-B4 B1 教训：3 文件修改因 daemon 僵死被 stale revert 清零）。');
+      lines.push('> ');
+      lines.push('> **立即执行 checkpoint commit：**');
+      lines.push('> ```');
+      lines.push('> git add -A && git commit -m "checkpoint: <描述当前工作>"');
+      lines.push('> ```');
+      lines.push('> ');
+      lines.push('> ⚠️ commit 不需要等到测试通过——它是安全网，不是交付物。');
+      lines.push('');
+    }
+
+  } // END B6 daemon health alerts
+
   // ── PFL-110 Snapshot Freshness (B122 · 快照新鲜度检查) ──
   // The snapshot is a point-in-time cache from SessionStart. When the Worker
   // wakes up mid-session (CronCreate/ScheduleWakeup), the snapshot may be
@@ -1358,8 +1418,19 @@ async function main() {
     state._healthReport = healthReport;
 
     // Update daemon state for _task-current.md Connection section
-    state.heartbeatDaemon = { running: true, pids: healthReport.heartbeat.pid ? [healthReport.heartbeat.pid] : [], healthMode: true };
-    state.wsDaemon = { running: true, pids: healthReport.wsDaemon.pid ? [healthReport.wsDaemon.pid] : [], healthMode: true };
+    state.heartbeatDaemon = {
+      running: healthReport.heartbeat.pid !== null,
+      pids: healthReport.heartbeat.pid ? [healthReport.heartbeat.pid] : [],
+      healthMode: true,
+      reSpawned: healthReport.heartbeat.reSpawned
+    };
+    state.wsDaemon = {
+      running: healthReport.wsDaemon.pid !== null,
+      pids: healthReport.wsDaemon.pid ? [healthReport.wsDaemon.pid] : [],
+      healthMode: true,
+      reSpawned: healthReport.wsDaemon.reSpawned
+    };
+
 
     if (healthReport.heartbeat.reSpawned) {
       console.log(`🫀 ${SCRIPT_NAME}: heartbeat daemon RE-SPAWNED (was dead, now pid ${healthReport.heartbeat.pid})`);

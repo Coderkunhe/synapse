@@ -33,6 +33,7 @@
 
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 
 const { SynapseClient } = require('./api-client');
@@ -134,7 +135,7 @@ async function daemon() {
       process.exit(0);
     }
     const status = await sendHeartbeat(client, config.workerId);
-    if (status) { consecutiveFailures = 0; return true; }
+    if (status) { consecutiveFailures = 0; try { fs.writeFileSync(path.join(WORKER_ROOT, ".daemon-heartbeat-last-success.txt"), new Date().toISOString(), "utf-8"); } catch (_) { /* best-effort */ } return true; }
     consecutiveFailures++;
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       console.error('heartbeat daemon: ' + MAX_CONSECUTIVE_FAILURES + ' consecutive failures - exiting');

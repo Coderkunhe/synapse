@@ -627,6 +627,161 @@ test('daemon manager exposes correct PID file paths', () => {
   assert(dm.SESSION_ALIVE_FILE.includes('.session-alive'), 'session alive path');
 });
 
+// ── B6: checkHeartbeatFreshness ──────────────────────────────────────────
+
+test('checkHeartbeatFreshness returns fresh when timestamp < 120s old', () => {
+  const freshnessFile = path.join(WORKER_ROOT, '.daemon-heartbeat-last-success.txt');
+  const recentTs = new Date(Date.now() - 30 * 1000).toISOString(); // 30s ago
+  S.existingFiles.add(freshnessFile);
+  S.fileContents.set(freshnessFile, recentTs);
+
+  const dm = makeDM();
+  const result = dm.checkHeartbeatFreshness(WORKER_ROOT);
+
+  assert(result.fresh === true, 'should be fresh (30s old)');
+  assert(result.lastSuccess === recentTs, 'should return the timestamp');
+  assert(result.ageSeconds !== null && result.ageSeconds >= 25 && result.ageSeconds <= 35, 'age should be ~30s');
+});
+
+test('checkHeartbeatFreshness returns not fresh when timestamp > 120s old', () => {
+  const freshnessFile = path.join(WORKER_ROOT, '.daemon-heartbeat-last-success.txt');
+  const oldTs = new Date(Date.now() - 200 * 1000).toISOString(); // 200s ago
+  S.existingFiles.add(freshnessFile);
+  S.fileContents.set(freshnessFile, oldTs);
+
+  const dm = makeDM();
+  const result = dm.checkHeartbeatFreshness(WORKER_ROOT);
+
+  assert(result.fresh === false, 'should NOT be fresh (200s old)');
+  assert(result.lastSuccess === oldTs, 'should return the timestamp');
+  assert(result.ageSeconds !== null && result.ageSeconds >= 195, 'age should be ~200s');
+});
+
+test('checkHeartbeatFreshness returns not fresh when file does not exist', () => {
+  const dm = makeDM();
+  const result = dm.checkHeartbeatFreshness(WORKER_ROOT);
+
+  assert(result.fresh === false, 'should not be fresh');
+  assert(result.lastSuccess === null, 'lastSuccess should be null');
+  assert(result.ageSeconds === null, 'ageSeconds should be null');
+});
+
+test('checkHeartbeatFreshness handles empty file gracefully', () => {
+  const freshnessFile = path.join(WORKER_ROOT, '.daemon-heartbeat-last-success.txt');
+  S.existingFiles.add(freshnessFile);
+  S.fileContents.set(freshnessFile, '');
+
+  const dm = makeDM();
+  const result = dm.checkHeartbeatFreshness(WORKER_ROOT);
+
+  assert(result.fresh === false, 'empty file should not be fresh');
+  assert(result.lastSuccess === null, 'lastSuccess should be null');
+});
+
+test('checkHeartbeatFreshness handles invalid date gracefully', () => {
+  const freshnessFile = path.join(WORKER_ROOT, '.daemon-heartbeat-last-success.txt');
+  S.existingFiles.add(freshnessFile);
+  S.fileContents.set(freshnessFile, 'not-a-date');
+
+  const dm = makeDM();
+  const result = dm.checkHeartbeatFreshness(WORKER_ROOT);
+
+  assert(result.fresh === false, 'invalid date should not be fresh');
+  assert(result.lastSuccess === null, 'lastSuccess should be null');
+});
+
+// ── B6: checkUnstagedChanges ─────────────────────────────────────────────
+
+test('checkUnstagedChanges returns no unstaged when git status is clean', () => {
+  // Mock git status returning empty output
+  S.execResults.set('git status --porcelain', Buffer.from(''));
+
+  const dm = makeDM();
+  // WORKER_ROOT = /tmp/test-worker/.claude, so repoRoot = /tmp/test-worker
+  const result = dm.checkUnstagedChanges(WORKER_ROOT);
+
+  assert(result.hasUnstaged === false, 'should have no unstaged changes');
+  assert(result.fileCount === 0, 'fileCount should be 0');
+});
+
+test('checkUnstagedChanges returns files when git status shows changes', () => {
+  S.execResults.set('git status --porcelain', Buffer.from(' M src/foo.js\n?? newfile.txt\n'));
+
+  const dm = makeDM();
+  const result = dm.checkUnstagedChanges(WORKER_ROOT);
+
+  assert(result.hasUnstaged === true, 'should have unstaged changes');
+  assert(result.fileCount === 2, 'should find 2 files');
+  assert(result.files[0] === 'src/foo.js', 'first file should be src/foo.js');
+  assert(result.files[1] === 'newfile.txt', 'second file should be newfile.txt');
+});
+
+test('checkUnstagedChanges handles git failure gracefully', () => {
+  S.execResults.set('git status --porcelain', new Error('not a git repository'));
+
+  const dm = makeDM();
+  const result = dm.checkUnstagedChanges(WORKER_ROOT);
+
+  assert(result.hasUnstaged === false, 'should degrade gracefully');
+  assert(result.fileCount === 0, 'fileCount should be 0');
+  assert(result.error !== undefined, 'should have error message');
+});
+
+// ── B6: health() false positive fix — spawn failure ──────────────────────
+
+test('health reports running false when heartbeat spawn fails', () => {
+  // Heartbeat PID file missing (daemon not running)
+  // AND heartbeat.js script not found (spawn fails)
+  // S.existingFiles intentionally does NOT include heartbeat.js path
+  // So startHeartbeatDaemon will return {started: false}
+
+  const hbPidPath = path.join(WORKER_ROOT, '.daemon-heartbeat.pid');
+  const wsPidPath = path.join(WORKER_ROOT, '.daemon-ws.pid');
+  // WS daemon IS running
+  S.existingFiles.add(wsPidPath);
+  S.fileContents.set(wsPidPath, '200');
+  S.alivePids.add(200);
+
+  const dm = makeDM();
+  const report = dm.health();
+
+  // Heartbeat: PID null → spawn failed
+  assert(report.heartbeat.pid === null, 'heartbeat pid should be null when spawn fails');
+  assert(report.heartbeat.reSpawned === false, 'should not report reSpawned when spawn fails');
+
+  // WS daemon: was running, still running
+  assert(report.wsDaemon.wasRunning === true, 'wsDaemon was running');
+  assert(report.wsDaemon.pid === '200', 'wsDaemon pid should be 200');
+
+  // B6 additions should be present
+  assert(report._heartbeatFreshness !== undefined, 'should include heartbeat freshness');
+  assert(report._unstagedChanges !== undefined, 'should include unstaged changes');
+});
+
+test('health includes B6 freshness and unstaged sub-reports', () => {
+  const hbPidPath = path.join(WORKER_ROOT, '.daemon-heartbeat.pid');
+  const wsPidPath = path.join(WORKER_ROOT, '.daemon-ws.pid');
+  S.existingFiles.add(hbPidPath);
+  S.existingFiles.add(wsPidPath);
+  S.fileContents.set(hbPidPath, '100');
+  S.fileContents.set(wsPidPath, '200');
+  S.alivePids.add(100);
+  S.alivePids.add(200);
+
+  // Mock clean git status for unstaged check
+  S.execResults.set('git status --porcelain', Buffer.from(''));
+
+  const dm = makeDM();
+  const report = dm.health();
+
+  // B6 sub-reports must be present
+  assert(report._heartbeatFreshness !== undefined, '_heartbeatFreshness must be present');
+  assert(typeof report._heartbeatFreshness.fresh === 'boolean', '_heartbeatFreshness.fresh must be boolean');
+  assert(report._unstagedChanges !== undefined, '_unstagedChanges must be present');
+  assert(typeof report._unstagedChanges.hasUnstaged === 'boolean', '_unstagedChanges.hasUnstaged must be boolean');
+  assert(report.sessionAlive !== null, 'sessionAlive should still be set');
+});
+
 // ── Cleanup ─────────────────────────────────────────────────────────────
 
 restoreAll();

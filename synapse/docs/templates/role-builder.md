@@ -200,7 +200,7 @@ POST /tasks/{id}/submit（附 evidence）
 │     │     导致 ready task 无人认领）                    │
 │     └─ 有 ready + Cap 匹配 → claim → 进入执行           │
 │                                                      │
-│  3. 执行 → submit → poll 验收 → 回到步骤 1             │
+│  3. 执行 → commit checkpoint → submit → poll 验收 → 回到步骤 1             │
 │                                                      │
 │  4. 空闲出口（ScheduleWakeup · PFL-079 机械告警）        │
 │     ├─ 先读 _task-current.md 顶部活跃任务数               │
@@ -223,6 +223,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **O 超时主动通知（P12-B46 · PFL-151）** | submit 后等待 O 验收 >2min 无响应 → `POST /projects/{pid}/tasks/{tid}/notify`（reason=`awaiting_verification`）。Server 创建 @O 评论 + WS push 通知 O daemon。再等 2min 仍无响应 → 评论区 @Human 升级。**先走系统机制再升级** |
 | **空闲出口（ScheduleWakeup · P11-B74 · PFL-081 强化）** | 🚨 **退出前必须调用 ScheduleWakeup 工具设闹钟。** 这不是可选建议——是退出循环的硬性前置条件。**退出前先读 `_task-current.md` 顶部——如果脚本显示有活跃任务（PFL-079 机械告警），你判断为空闲就是错的。脚本不会骗你。** 无 ready + 无 in_progress + `_task-current.md` 活跃任务数 = 0 → 调用 `ScheduleWakeup` 工具（delaySeconds=30）→ 然后退出。**禁止不设闹钟直接退出。** B82 狗粮 3 次复现：Agent 在"分析完 → 写总结"后直接停，从未调用 ScheduleWakeup。ScheduleWakeup 是你的续命机制——没有它，你退出后就是永久的。202 超时 ≥15min → ScheduleWakeup 60s + 评论区 @Orchestrator |
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
+| **写完即 commit（PFL-174 · B6）** | 每次代码修改完成后立即 `git commit` 作为 checkpoint。daemon 死亡时未 commit 的变更会丢失（P14-B4 B1 教训：3 文件修改因 daemon 僵死被 stale revert 清零）。commit message 以 "checkpoint:" 开头。commit 不需要等到测试通过——它是安全网，不是交付物。 |
 | **被动响应者（P11-B74 · P12-B24 强化）** | O assign 是主通道——等待 O 分配 Task 是正常流程。O 沉默判定标准（P12-B24）：每轮循环调 `GET /teams/{id}/orchestrator-status` 检查 `last_assignment_at`（非 `last_heartbeat_at`）。`last_assignment_at` > 5min 或无记录 → O 沉默 → 启用 Pull fallback。⚠️ 心跳正常 ≠ O 在工作 — zombie O（心跳但从不分配）会导致 B 无限等待 |
 | **Capability 自检（P12-B19 · P12-B24 强化）** | Pull fallback 时检查 Task 的 `required_capabilities` 是否 ⊆ 自身的 `capability_tags.names`。不匹配 → **不再静默跳过**（B23 教训：静默跳过导致 ready task 无人认领且无人知晓）→ `POST /tasks/{id}/messages` @O 报告能力缺口："Task #{id} 需要 [{caps}]，我只有 [{my_caps}]，无法认领。" 匹配 → claim 正常执行 |
 
