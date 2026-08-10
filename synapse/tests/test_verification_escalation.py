@@ -334,3 +334,73 @@ class TestEscalationActualTrigger:
                 db, escalation_minutes=10, revert_minutes=120,
             )
             assert result["escalated_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_skip_escalation_metadata_prevents_cascade(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """P14-B8: Tasks with skip_escalation metadata are NOT escalated — blocks G2 cascade."""
+        headers = auth_header(seed.token)
+
+        proj_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "Skip Esc", "slug": _uniq_slug("skes")},
+            headers=headers,
+        )
+        assert proj_resp.status_code == 201, proj_resp.text
+        pid = proj_resp.json()["id"]
+
+        # Create a task WITH skip_escalation metadata (simulating G2 auto-created test task)
+        task_resp = await client.post(
+            f"/v1/projects/{pid}/tasks",
+            json={
+                "title": "Skip escalation test task",
+                "description": "This task has skip_escalation metadata — should NOT be escalated",
+                "priority": "p2",
+                "metadata": {"skip_escalation": True},
+                "verifications": [
+                    {"type": "manual", "description": "Should not trigger escalation", "criteria": {}}
+                ],
+            },
+            headers=headers,
+        )
+        assert task_resp.status_code == 201, task_resp.text
+        tid = task_resp.json()["id"]
+
+        from src.db import async_session_factory
+        from src.constants import TaskStatus
+
+        # Setup: put task in IN_VERIFICATION and age it past escalation threshold
+        async with async_session_factory() as db:
+            from src.models.task import Task
+            task = await db.get(Task, tid)
+            task.status = TaskStatus.IN_VERIFICATION
+            tt = TimeTravel(db)
+            await tt.advance_updated_at(tid, minutes=15)
+            await db.commit()
+
+        # Run escalation detector — should skip this task
+        async with async_session_factory() as db:
+            from src.services.escalation_service import detect_stale_verifications_escalation
+            result = await detect_stale_verifications_escalation(
+                db, escalation_minutes=10, revert_minutes=120,
+            )
+            await db.commit()
+            assert result["escalated_count"] == 0, (
+                f"Task with skip_escalation metadata should NOT be escalated, "
+                f"but got: {result}"
+            )
+
+        # Verify NO escalated event was recorded
+        async with async_session_factory() as db:
+            from src.models.event import Event
+            from sqlalchemy import select
+            stmt = select(Event).where(
+                Event.target_id == tid,
+                Event.event_type == "task.escalated",
+            )
+            events_result = await db.execute(stmt)
+            events = events_result.scalars().all()
+            assert len(events) == 0, (
+                f"Expected 0 escalated events for skip_escalation task, got {len(events)}"
+            )

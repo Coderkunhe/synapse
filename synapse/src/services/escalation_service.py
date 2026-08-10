@@ -22,6 +22,7 @@ from src.models.event import Event
 from src.models.task import Task
 from src.services.event_store import event_store
 from src.services.ws_manager import ws_manager
+from src.utils.json_utils import safe_loads
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,11 @@ async def detect_stale_verifications_escalation(
             )
         )
         if (prior_escalation.scalar() or 0) > 0:
+            continue
+
+        # ── P14-B8: 跳过 escalation 系统自创的 test task（阻断 G2 级联放大）──
+        task_metadata = safe_loads(task.metadata_)
+        if task_metadata and task_metadata.get("skip_escalation"):
             continue
 
         # ── 记录 escalation 事件 ──
@@ -266,7 +272,7 @@ async def _maybe_auto_create_pfl_and_task(
             batch_id=None,
             estimated_effort=None,
             tags=None,
-            metadata=None,
+            metadata={"skip_escalation": True},  # P14-B8: 阻断 G2 级联放大
             deadline_at=None,
             verifications=[],
             actor_type=ActorType.SYSTEM,

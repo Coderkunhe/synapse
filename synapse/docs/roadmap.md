@@ -764,6 +764,8 @@
 | **P14-B4** | **狗粮闭环 🎉** — depends_on 编辑能力全量交付 · 1O+2B 协作验证通过 · backend 3 files + frontend 4 files · 928 tests 零回归 · PFL-169~174 登记 | ✅ |
 | **P14-B5** | **Worker 启动零人工** — PFL-167 (worktree 启动基础设施) + PFL-168 (去人工断点) · generate-skill.sh 启动就绪检查清单 · SKILL.md 冷启动措辞更新 · prompts.js CronCreate 自启动 · b4-dogfood-setup.py .env 路径修复 | ✅ |
 | **P14-B6** | **daemon 存活性加固** — PFL-173 (daemon↔Claude 双向心跳) + PFL-174 (代码 commit checkpoint) · daemon-manager.js checkHeartbeatFreshness + checkUnstagedChanges · session-init.js 3 alert banners · role-builder.md commit discipline | ✅ |
+| **P14-B7** | **狗粮验证 🎉** — 4/4 VC 闭环 · PFL-167/168/173/174 全量通过 · 3 Worker 零人工启动 · daemon 存活性确认 | ✅ |
+| **P14-B8** | **O SPoF 根因定位 + 短期止血** — 23 项 escalation PFL 合并至 PFL-172 · G2 级联放大止血（skip_escalation）· auto-verify 设计文档 · 3 files · 929 tests 零回归 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
