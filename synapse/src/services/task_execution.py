@@ -28,6 +28,7 @@ from src.services.task_core import (
     _validate_transition,
     get_task,
 )
+from src.services.verification_service import _try_auto_verify, _unblock_downstream_tasks
 from src.services.ws_manager import ws_manager
 from src.task_state_machine import apply_transition
 from src.utils.id_gen import derive_id
@@ -165,6 +166,76 @@ async def submit_task(
         target_id=task.id,
         payload=payload,
     )
+
+    # P14-B9: 尝试 auto-verify — 在 IN_VERIFICATION 后立即检查是否可以自动判定。
+    # 如果所有 verification 都是 auto_verifiable，Server 解析 evidence 并直接
+    # 完成/拒绝任务，绕过 O 手动验收。
+    auto_outcome = await _try_auto_verify(db, task, team_id)
+    if auto_outcome is not None:
+        from src.services.batch_service import check_batch_completion
+
+        if auto_outcome == "all_passed":
+            final_event_type, final_payload = apply_transition(
+                task, TaskStatus.COMPLETED,
+                actor_type="SYSTEM", actor_id="auto_verify",
+                context={
+                    "summary": summary,
+                    "verification_count": len(all_task_vers_list),
+                    "all_verifications_passed": True,
+                    "auto_verified": True,
+                },
+            )
+            task.completed_at = datetime.now(timezone.utc)
+        else:  # any_failed
+            final_event_type, final_payload = apply_transition(
+                task, TaskStatus.REJECTED,
+                actor_type="SYSTEM", actor_id="auto_verify",
+                context={
+                    "summary": summary,
+                    "verification_count": len(all_task_vers_list),
+                    "all_verifications_passed": False,
+                    "auto_verified": True,
+                },
+            )
+            task.redo_count += 1
+
+        _bump_version(task)
+
+        await event_store.record(
+            db,
+            event_type=final_event_type,
+            team_id=team_id,
+            actor_type="SYSTEM",
+            actor_id="auto_verify",
+            target_type="task",
+            target_id=task.id,
+            payload=final_payload,
+        )
+
+        await check_batch_completion(db, task, team_id, "SYSTEM", "auto_verify")
+        await _unblock_downstream_tasks(db, task, team_id)
+
+        # P8-B4: 提交后清除 Worker 的活跃任务
+        if actor_type == ActorType.WORKER:
+            from src.services.worker_scheduler import finish_current_task
+            await finish_current_task(db, actor_id)
+
+        # WS push — notify submitter and creator of auto-verify result
+        auto_event = {
+            "type": "event",
+            "data": {
+                "event_type": final_event_type,
+                "task_id": task.id,
+                "status": task.status,
+                "summary": summary,
+                "auto_verified": True,
+            },
+        }
+        await ws_manager.broadcast_to_actor(actor_id, auto_event)
+        if task.create_user_id and task.create_user_id != actor_id:
+            await ws_manager.broadcast_to_actor(task.create_user_id, auto_event)
+
+        return task
 
     # P8-B4: 提交后清除 Worker 的活跃任务
     if actor_type == ActorType.WORKER:

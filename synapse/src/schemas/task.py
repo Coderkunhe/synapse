@@ -214,6 +214,7 @@ class VerificationCreate(BaseModel):
     """嵌入 TaskCreate 的验证条件。
 
     P11-B70: 新增 expected_evidence_type 字段 + 可判定性 validator。
+    P14-B9: 新增 auto_verifiable / auto_pass_pattern / auto_fail_pattern — Server 侧 auto-verify。
     """
     type: str = Field(..., pattern=r"^(manual|automated|check_list)$")
     description: str = Field(..., max_length=1000)
@@ -226,6 +227,43 @@ class VerificationCreate(BaseModel):
             "Builder must provide evidence matching this type."
         ),
     )
+    auto_verifiable: bool = Field(
+        False,
+        description=(
+            "Whether this verification can be auto-checked by the Server. "
+            "Only valid when expected_evidence_type is 'command_output'. "
+            "Server parses evidence for pass/fail indicators. "
+            "Must be explicitly set by O — Builder cannot self-mark."
+        ),
+    )
+    auto_pass_pattern: str | None = Field(
+        None,
+        description=(
+            "Regex or keyword to detect pass in evidence. "
+            "Example: 'passed' for pytest output, 'All checks passed' for ruff. "
+            "Default: Server uses built-in heuristics."
+        ),
+    )
+    auto_fail_pattern: str | None = Field(
+        None,
+        description=(
+            "Regex or keyword to detect fail in evidence. "
+            "Example: 'FAILED', 'error:', 'assert'. "
+            "Default: Server uses built-in heuristics."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def check_auto_verifiable_constraints(self) -> "VerificationCreate":
+        """P14-B9: auto_verifiable 仅在 expected_evidence_type='command_output' 时有效。"""
+        if self.auto_verifiable:
+            if self.expected_evidence_type != "command_output":
+                raise ValueError(
+                    f"auto_verifiable=True requires expected_evidence_type='command_output', "
+                    f"got '{self.expected_evidence_type}'. "
+                    f"Auto-verify only supports command_output evidence in Phase 1."
+                )
+        return self
 
     @field_validator("description")
     @classmethod

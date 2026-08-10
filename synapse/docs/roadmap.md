@@ -766,6 +766,7 @@
 | **P14-B6** | **daemon 存活性加固** — PFL-173 (daemon↔Claude 双向心跳) + PFL-174 (代码 commit checkpoint) · daemon-manager.js checkHeartbeatFreshness + checkUnstagedChanges · session-init.js 3 alert banners · role-builder.md commit discipline | ✅ |
 | **P14-B7** | **狗粮验证 🎉** — 4/4 VC 闭环 · PFL-167/168/173/174 全量通过 · 3 Worker 零人工启动 · daemon 存活性确认 | ✅ |
 | **P14-B8** | **O SPoF 根因定位 + 短期止血** — 23 项 escalation PFL 合并至 PFL-172 · G2 级联放大止血（skip_escalation）· auto-verify 设计文档 · 3 files · 929 tests 零回归 | ✅ |
+| **P14-B9** | **Server 侧 auto-verify 实现** — PFL-172 修复 · submit 时自动验收 command_output evidence · 5 files + 5 tests · 934 tests 零回归 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 

@@ -124,6 +124,179 @@ async def _check_verify_idempotent(
     )
 
 
+# ── P14-B9: Server 侧 auto-verify ─────────────────────────
+
+# Built-in heuristics for evidence parsing (design doc §5.2)
+_AUTO_FAIL_INDICATORS = [
+    "FAILED", "error:", "Error:", "assert",
+    "0 passed", "no tests ran", "command not found",
+    "FAIL", "Traceback", "exception", "exit code 1",
+    "SyntaxError", "ImportError", "ModuleNotFoundError",
+]
+_AUTO_PASS_INDICATORS = [
+    "passed", "ok", "success", "0 errors",
+    "All checks passed", "no issues found",
+    "PASSED", "OK", "0 failed",
+]
+
+
+def _parse_evidence_for_verdict(
+    evidence_json: str | None,
+    auto_pass_pattern: str | None,
+    auto_fail_pattern: str | None,
+) -> str:
+    """Parse verification evidence and return "passed" | "failed" | "undetermined".
+
+    Order: fail indicators first (safety-side), then pass indicators.
+    Custom patterns (from O's auto_pass_pattern / auto_fail_pattern) override built-in heuristics.
+    """
+    if not evidence_json:
+        return "undetermined"
+
+    evidence_dict = safe_loads(evidence_json) or {}
+    # Extract searchable text from evidence
+    # Prefer submitter_note for string evidence, fall back to full dict
+    search_text = ""
+    if isinstance(evidence_dict.get("submitter_note"), str):
+        search_text = evidence_dict["submitter_note"]
+    else:
+        # Stringify the whole evidence dict for pattern matching
+        search_text = str(evidence_dict)
+
+    if not search_text:
+        return "undetermined"
+
+    # 1. Check custom fail pattern first (O-configured, highest priority)
+    if auto_fail_pattern:
+        import re
+        if re.search(auto_fail_pattern, search_text):
+            return "failed"
+
+    # 2. Check built-in fail indicators
+    for indicator in _AUTO_FAIL_INDICATORS:
+        if indicator in search_text:
+            # "passed" and "failed" overlap — check both
+            if indicator == "FAILED" and "FAILED" in search_text:
+                return "failed"
+            return "failed"
+
+    # 3. Check custom pass pattern
+    if auto_pass_pattern:
+        import re
+        if re.search(auto_pass_pattern, search_text):
+            return "passed"
+
+    # 4. Check built-in pass indicators
+    has_pass = False
+    for indicator in _AUTO_PASS_INDICATORS:
+        if indicator in search_text:
+            has_pass = True
+            break
+
+    if has_pass:
+        return "passed"
+
+    # Neither clear → safety: leave for O
+    return "undetermined"
+
+
+async def _try_auto_verify(
+    db: AsyncSession,
+    task: "Task",
+    team_id: str,
+) -> str | None:
+    """Attempt auto-verification for a task. Called from submit_task.
+
+    Only updates Verification records (status, verified_by, verified_at) and
+    records verification.executed events. Does NOT transition the task —
+    the caller (submit_task) handles task-level state transitions.
+
+    Preconditions (all must be true, else return None):
+      1. ALL verifications have _auto_verifiable == True in criteria
+      2. ALL verifications have non-empty evidence
+
+    Returns:
+      "all_passed" — all verifications auto-passed, caller should complete task
+      "any_failed" — some verifications auto-failed, caller should reject task
+      None — undetermined / not all auto_verifiable, leave for O
+    """
+    # Read all verifications for this task
+    all_vers_result = await db.execute(
+        select(Verification).where(Verification.task_id == task.id)
+    )
+    all_vers = all_vers_result.scalars().all()
+
+    if not all_vers:
+        return None  # No verifications — shouldn't happen, but safe
+
+    # Precondition: ALL verifications must be auto_verifiable
+    auto_vers = []
+    for ver in all_vers:
+        criteria = safe_loads(ver.criteria) or {}
+        if not criteria.get("_auto_verifiable"):
+            return None  # At least one verification is not auto-verifiable
+        auto_vers.append(ver)
+
+    # Precondition: ALL verifications must have evidence
+    for ver in auto_vers:
+        if not ver.evidence:
+            return None  # Evidence missing — can't auto-verify
+
+    # Parse evidence for each verification
+    verdicts: list[tuple[Verification, str]] = []  # (ver, "passed"|"failed"|"undetermined")
+    for ver in auto_vers:
+        criteria = safe_loads(ver.criteria) or {}
+        auto_pass = criteria.get("_auto_pass_pattern")
+        auto_fail = criteria.get("_auto_fail_pattern")
+        verdict = _parse_evidence_for_verdict(ver.evidence, auto_pass, auto_fail)
+        verdicts.append((ver, verdict))
+
+    # If any verification is undetermined → skip auto-verify entirely
+    if any(v == "undetermined" for _, v in verdicts):
+        logger.info(
+            "auto_verify_skipped_undetermined",
+            task_id=task.id,
+            verdicts=[{"ver_id": v.id, "verdict": vd} for v, vd in verdicts],
+        )
+        return None
+
+    # Apply verdicts to verifications
+    now = datetime.now(timezone.utc)
+    for ver, verdict in verdicts:
+        ver.status = verdict
+        ver.verified_by = "auto_verify"
+        ver.verified_at = now
+
+        await event_store.record(
+            db,
+            event_type="verification.executed",
+            team_id=team_id,
+            actor_type="SYSTEM",
+            actor_id="auto_verify",
+            target_type="verification",
+            target_id=ver.id,
+            payload={
+                "task_id": task.id,
+                "verification_status": verdict,
+                "verified_by": "auto_verify",
+                "auto_verified": True,
+            },
+        )
+
+    # Return overall verdict — caller handles task transition
+    all_passed = all(v == "passed" for _, v in verdicts)
+    outcome = "all_passed" if all_passed else "any_failed"
+
+    logger.info(
+        "auto_verify_executed" if all_passed else "auto_verify_failed",
+        task_id=task.id,
+        outcome=outcome,
+        verification_count=len(verdicts),
+        failed=[ver.id for ver, v in verdicts if v == "failed"],
+    )
+    return outcome
+
+
 # ── 验证操作 ───────────────────────────────────────
 
 async def execute_verification(

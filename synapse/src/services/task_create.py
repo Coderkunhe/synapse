@@ -166,10 +166,17 @@ async def create_task(
     verification_objs = []
     for v in verifications:
         # P11-B70: expected_evidence_type 存入 criteria JSON（零 migration）
+        # P14-B9: auto_verifiable / auto_pass / auto_fail 同理存入 criteria JSON
         criteria = v.get("criteria") or {}
         ee_type = v.get("expected_evidence_type")
         if ee_type is not None:
             criteria = {**criteria, "_expected_evidence_type": ee_type}
+        if v.get("auto_verifiable"):
+            criteria["_auto_verifiable"] = True
+        if v.get("auto_pass_pattern"):
+            criteria["_auto_pass_pattern"] = v["auto_pass_pattern"]
+        if v.get("auto_fail_pattern"):
+            criteria["_auto_fail_pattern"] = v["auto_fail_pattern"]
         ver = Verification(
             id=generate_id("verification"),
             task_id=task.id,

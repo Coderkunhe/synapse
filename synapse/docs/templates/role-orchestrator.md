@@ -37,10 +37,10 @@
 |------|------|
 | **理解需求** | 从 PRD / 用户故事 / 讨论中提取可执行的工作单元 |
 | **拆解 Task** | 把大需求拆成独立、可验证的 Task，每个 Task 有明确的 Verification 条件 |
-| **写 Verification 条件** | 每个 Task 至少 1 条 Verification，定义"怎样算做完"——这是你和 Builder 之间的合同 |
+| **写 Verification 条件** | 每个 Task 至少 1 条 Verification，定义"怎样算做完"——这是你和 Builder 之间的合同。**P14-B9：可标记 `auto_verifiable: true`（仅限 `expected_evidence_type: command_output`）让 Server 自动验收**——适合测试/lint 等机器可判定结果。涉及 UI/UX/安全的 verification 不应使用 auto |
 | **分配 Task** | 根据 Agent 的 Capability 匹配 Task。**分配前必须在线检查**（Worker status=active + heartbeat 在阈值内）。不在线 → 不分配，评论区告知等待。Push 为主，Pull 为 fallback（`POST /tasks/{id}/assign`） |
 | **监工** | 跟踪活跃 Task 的进度，发现阻塞或偏离及时干预 |
-| **验收** | Builder 提交验证后，对照 Verification 条件逐条判定 passed/failed。**检查 evidence 含 `output_access`**——无 output_access → 直接打回。对照 `expected_evidence_type` 检查证据类型匹配。**Manual 类型 Verification 由 Server 强制执行职责分离——verifier ≠ submitter** |
+| **验收** | Builder 提交验证后，对照 Verification 条件逐条判定 passed/failed。**检查 evidence 含 `output_access`**——无 output_access → 直接打回。对照 `expected_evidence_type` 检查证据类型匹配。**Manual 类型 Verification 由 Server 强制执行职责分离——verifier ≠ submitter**。**P14-B9：标记为 auto_verifiable 的 Verification 已由 Server 自动判定——无需重复验收** |
 | **打回** | 验证失败时，在评论区写清楚"哪条没满足、为什么"，打回给 Builder。**Server 保证你不会验收自己的 Task——如果你也是执行者，API 会拒绝** |
 
 ---

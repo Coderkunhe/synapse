@@ -455,6 +455,25 @@ API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 
 
 **Server 强制执行此规则**——即使你尝试自验，API 也会拒绝。这不是"建议"，是硬门禁。
 
+### 9. 自动验收（Server 侧 auto-verify · P14-B9）
+
+**当 O 在创建 Task 时将 Verification 标记为 `auto_verifiable: true` 时**，Server 会在你 submit 后自动解析 evidence 并判定 pass/fail——**不需要等 O 手动验收**。
+
+```
+submit 响应中 status 直接变为 completed 或 rejected → 无需轮询验收
+```
+
+**判断逻辑**：
+- evidence 含 `passed` / `ok` / `0 errors` 等通过标识 → auto-pass → Task `completed`
+- evidence 含 `FAILED` / `error:` / `assert` 等失败标识 → auto-fail → Task `rejected`
+- evidence 不明确（无明确标识）→ 跳过 auto-verify → 正常等 O 验收
+
+**两种验收路径不冲突**：
+- 🚀 **auto-verifiable Task**：submit → 即时验收（零等待）
+- 👤 **非 auto-verifiable Task**：submit → 评论区 @Orchestrator → 主动轮询（§6 流程不变）
+
+**你怎么知道是哪种？** Task 创建时 O 设置 `verifications[].auto_verifiable`。正常提交 evidence 即可——Server 自动判断走哪条路径。
+
 ---
 
 ## 常用 API

@@ -586,3 +586,230 @@ class TestValidateTaskActive:
         # Worker 的 active_task_id 应被清除
         agent = await db.get(Worker, seeded["agent_id"])
         assert agent.active_task_id is None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P14-B9: Server 侧 auto-verify
+# ═══════════════════════════════════════════════════════════════════
+
+
+async def _create_auto_verifiable_task(
+    db: AsyncSession, seeded: dict, **kw
+):
+    """Create a task with auto_verifiable verification, ready it, and claim it.
+
+    Returns (task, verification_ids) — task in IN_PROGRESS state ready for submit.
+    Verification IDs are returned eagerly to avoid lazy-load greenlet issues.
+    """
+    from src.services.task_create import create_task
+    from src.services.task_activation import ready_task, claim_task
+    from src.utils.id_gen import derive_id
+
+    verifications = [
+        {
+            "type": "automated",
+            "description": kw.get("ver_desc", "pytest all tests pass, ruff 0 errors"),
+            "criteria": {
+                "_expected_evidence_type": "command_output",
+                "_auto_verifiable": True,
+                **(kw.get("extra_criteria", {})),
+            },
+        }
+    ]
+    if kw.get("add_non_auto_ver"):
+        verifications.append({
+            "type": "manual",
+            "description": "Human review required",
+            "criteria": {},
+        })
+
+    task = await create_task(
+        db,
+        project_id=seeded["project_id"],
+        title=kw.get("title", "Auto-Verify Test"),
+        description=kw.get("description", "Testing auto-verify"),
+        priority="p1",
+        parent_task_id=None,
+        batch_id=seeded["batch_id"],
+        estimated_effort=None,
+        tags=None,
+        metadata=None,
+        deadline_at=None,
+        verifications=verifications,
+        actor_type="human",
+        actor_id=derive_id(seeded["member_id"], "worker"),
+        team_id=seeded["team_id"],
+    )
+    # Eagerly resolve verification IDs via explicit query (avoids lazy-load greenlet issues)
+    from src.models.verification import Verification
+    ver_result = await db.execute(
+        sa_select(Verification).where(Verification.task_id == task.id)
+    )
+    ver_ids = [v.id for v in ver_result.scalars().all()]
+    await db.flush()
+    task = await ready_task(
+        db, task.id, expected_version=task.version_no,
+        actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"),
+        team_id=seeded["team_id"],
+    )
+    await db.flush()
+    task = await claim_task(
+        db, task.id, worker_id=seeded["agent_id"],
+        worker_team_id=seeded["team_id"], expected_version=task.version_no,
+    )
+    await db.flush()
+    return task, ver_ids
+
+
+@pytest.mark.asyncio
+class TestAutoVerify:
+    """P14-B9: Server-side auto-verification of command_output evidence."""
+
+    async def test_auto_verify_all_pass(
+        self, db: AsyncSession, seeded: dict,
+    ):
+        """Submit with passing evidence → auto-verify completes task."""
+        from src.services.task_execution import submit_task
+
+        task, ver_ids = await _create_auto_verifiable_task(db, seeded)
+
+        submitted = await submit_task(
+            db, task.id,
+            summary="All tests pass",
+            evidence={"output_access": {"type": "inline", "value": "test results"}},
+            verification_results=[{
+                "verification_id": ver_ids[0],
+                "status": "passed",
+                "evidence": "pytest: 23 passed, 0 failed, 0 errors in 1.23s",
+            }],
+            expected_version=task.version_no,
+            actor_type="worker",
+            actor_id=seeded["agent_id"],
+            team_id=seeded["team_id"],
+        )
+
+        assert submitted.status == TaskStatus.COMPLETED, (
+            f"Expected COMPLETED, got {submitted.status}"
+        )
+        assert submitted.completed_at is not None
+
+    async def test_auto_verify_fail(
+        self, db: AsyncSession, seeded: dict,
+    ):
+        """Submit with failing evidence → auto-verify rejects task."""
+        from src.services.task_execution import submit_task
+
+        task, ver_ids = await _create_auto_verifiable_task(db, seeded)
+
+        submitted = await submit_task(
+            db, task.id,
+            summary="Tests failed",
+            evidence={"output_access": {"type": "inline", "value": "test results"}},
+            verification_results=[{
+                "verification_id": ver_ids[0],
+                "status": "failed",
+                "evidence": "pytest: 20 passed, 3 FAILED, 1 error in 2.1s",
+            }],
+            expected_version=task.version_no,
+            actor_type="worker",
+            actor_id=seeded["agent_id"],
+            team_id=seeded["team_id"],
+        )
+
+        assert submitted.status == TaskStatus.REJECTED, (
+            f"Expected REJECTED, got {submitted.status}"
+        )
+        assert submitted.redo_count == 1
+
+    async def test_auto_verify_skip_non_auto_verifiable(
+        self, db: AsyncSession, seeded: dict,
+    ):
+        """Task with a non-auto-verifiable verification → normal IN_VERIFICATION flow."""
+        from src.services.task_execution import submit_task
+
+        task, ver_ids = await _create_auto_verifiable_task(
+            db, seeded, add_non_auto_ver=True,
+        )
+
+        submitted = await submit_task(
+            db, task.id,
+            summary="Mixed verifications",
+            evidence={"output_access": {"type": "inline", "value": "results"}},
+            verification_results=[
+                {
+                    "verification_id": ver_ids[0],
+                    "status": "passed",
+                    "evidence": "pytest: 23 passed, 0 failed",
+                },
+            ],
+            expected_version=task.version_no,
+            actor_type="worker",
+            actor_id=seeded["agent_id"],
+            team_id=seeded["team_id"],
+        )
+
+        # Should fall through to normal flow — wait for O
+        assert submitted.status == TaskStatus.IN_VERIFICATION, (
+            f"Expected IN_VERIFICATION, got {submitted.status}"
+        )
+
+    async def test_auto_verify_skip_ambiguous_evidence(
+        self, db: AsyncSession, seeded: dict,
+    ):
+        """Evidence with no clear pass/fail indicators → skip, leave for O."""
+        from src.services.task_execution import submit_task
+
+        task, ver_ids = await _create_auto_verifiable_task(db, seeded)
+
+        submitted = await submit_task(
+            db, task.id,
+            summary="Unclear output",
+            evidence={"output_access": {"type": "inline", "value": "weird output"}},
+            verification_results=[{
+                "verification_id": ver_ids[0],
+                "status": "passed",
+                "evidence": "The build did something but it's unclear what happened",
+            }],
+            expected_version=task.version_no,
+            actor_type="worker",
+            actor_id=seeded["agent_id"],
+            team_id=seeded["team_id"],
+        )
+
+        # Ambiguous → normal flow, wait for O
+        assert submitted.status == TaskStatus.IN_VERIFICATION, (
+            f"Expected IN_VERIFICATION (ambiguous), got {submitted.status}"
+        )
+
+    async def test_auto_verify_custom_patterns(
+        self, db: AsyncSession, seeded: dict,
+    ):
+        """O-configured custom pass/fail patterns override built-in heuristics."""
+        from src.services.task_execution import submit_task
+
+        task, ver_ids = await _create_auto_verifiable_task(
+            db, seeded,
+            extra_criteria={
+                "_auto_fail_pattern": r"CRITICAL ERROR|SEGFAULT",
+                "_auto_pass_pattern": r"BUILD SUCCESS",
+            },
+        )
+
+        submitted = await submit_task(
+            db, task.id,
+            summary="Custom pattern test",
+            evidence={"output_access": {"type": "inline", "value": "build log"}},
+            verification_results=[{
+                "verification_id": ver_ids[0],
+                "status": "passed",
+                "evidence": "BUILD SUCCESS — all modules compiled",
+            }],
+            expected_version=task.version_no,
+            actor_type="worker",
+            actor_id=seeded["agent_id"],
+            team_id=seeded["team_id"],
+        )
+
+        assert submitted.status == TaskStatus.COMPLETED, (
+            f"Expected COMPLETED (custom pass pattern), got {submitted.status}"
+        )

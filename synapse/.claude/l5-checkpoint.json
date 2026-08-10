@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B8 amended → L5 拉通 — 📄 pitfalls.md 33 PFL→PFL-172 合并 · 📄 escalation_service.py G2 skip_escalation 止血 · 📄 test_verification_escalation.py +1 test · 📄 docs/plans/p14-auto-verify-design.md 新建 · 📄 requirements-log.md B7+B8 补登记 · 📄 roadmap.md B7+B8 登记 · 📄 daily/2026-08-10.md B7+B8 记录 · 📄 CLAUDE.md counter 同步 · 📄 l5-checkpoint.json 复位 · 929 tests 零回归",
+  "lastL5Batch": "P14-B9 auto-verify 实现完成 — 📄 src/schemas/task.py VerificationCreate 新增 auto_verifiable/auto_pass_pattern/auto_fail_pattern · 📄 src/services/verification_service.py _try_auto_verify()+_parse_evidence_for_verdict() · 📄 src/services/task_execution.py submit_task 集成 · 📄 src/api/routers/tasks.py 双路径 passthrough · 📄 src/services/task_create.py criteria JSON 存储 · 📄 tests/test_submit_and_scheduling.py +5 tests · 📄 docs/templates/role-builder.md §9 · 📄 docs/templates/role-orchestrator.md 验收行 · 📄 docs/roadmap.md B9 登记 · 📄 docs/requirements-log.md B9 登记 · 📄 docs/daily/2026-08-10.md B9 记录 · PFL-172 修复 · 934 tests 零回归",
   "lastL5Timestamp": "2026-08-10",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P14-B8 amended → L5 拉通 — 📄 pitfalls.md 33 PFL→PFL-172 合并 · 📄 escalation_service.py G2 skip_escalation 止血 · 📄 test_verification_escalation.py +1 test · 📄 docs/plans/p14-auto-verify-design.md 新建 · 📄 requirements-log.md B7+B8 补登记 · 📄 roadmap.md B7+B8 登记 · 📄 daily/2026-08-10.md B7+B8 记录 · 📄 CLAUDE.md counter 同步 · 📄 l5-checkpoint.json 复位 · 929 tests 零回归",
+  "lastL5Evidence": "P14-B9 auto-verify 实现完成 — 📄 src/schemas/task.py VerificationCreate 新增 auto_verifiable/auto_pass_pattern/auto_fail_pattern · 📄 src/services/verification_service.py _try_auto_verify()+_parse_evidence_for_verdict() · 📄 src/services/task_execution.py submit_task 集成 · 📄 src/api/routers/tasks.py 双路径 passthrough · 📄 src/services/task_create.py criteria JSON 存储 · 📄 tests/test_submit_and_scheduling.py +5 tests · 📄 docs/templates/role-builder.md §9 · 📄 docs/templates/role-orchestrator.md 验收行 · 📄 docs/roadmap.md B9 登记 · 📄 docs/requirements-log.md B9 登记 · 📄 docs/daily/2026-08-10.md B9 记录 · PFL-172 修复 · 934 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

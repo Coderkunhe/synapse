@@ -159,6 +159,10 @@ async def create_task(
             "type": v.type,
             "description": v.description,
             "criteria": v.criteria,
+            "expected_evidence_type": v.expected_evidence_type,
+            "auto_verifiable": v.auto_verifiable,
+            "auto_pass_pattern": v.auto_pass_pattern,
+            "auto_fail_pattern": v.auto_fail_pattern,
         }
         for v in body.verifications
     ]
