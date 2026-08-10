@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B129+P14-B5 → L5 拉通 — 📄 roadmap.md +B129+B5 双批登记 · 📄 requirements-log.md +B129+B5 双批登记 · 📄 CLAUDE.md B5 状态同步 · 📄 pitfalls.md 475行→归档瘦身 +365行 archive/pitfalls-archive.md · 📄 tracks/synapse.md P100 B127→B129 · 📄 memory/active/p14.md B5→B6 暗号更新 · 门禁三关全绿",
+  "lastL5Batch": "P14-B6 → L5 拉通 — 📄 daemon-manager.js +checkHeartbeatFreshness +checkUnstagedChanges · 📄 heartbeat.js +freshness marker · 📄 session-init.js +3 alert banners · 📄 role-builder.md +PFL-174 commit discipline · 📄 test-daemon-manager.js +10 tests · 199 JS + 928 Python 零回归",
   "lastL5Timestamp": "2026-08-10",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B129+P14-B5 → L5 拉通 — 📄 roadmap.md +B129+B5 双批登记 · 📄 requirements-log.md +B129+B5 双批登记 · 📄 CLAUDE.md B5 状态同步 · 📄 pitfalls.md 475行→归档瘦身 +365行 archive/pitfalls-archive.md · 📄 tracks/synapse.md P100 B127→B129 · 📄 memory/active/p14.md B5→B6 暗号更新 · 门禁三关全绿",
+  "lastL5Evidence": "P14-B6 → L5 拉通 — 📄 daemon-manager.js +checkHeartbeatFreshness +checkUnstagedChanges · 📄 heartbeat.js +freshness marker · 📄 session-init.js +3 alert banners · 📄 role-builder.md +PFL-174 commit discipline · 📄 test-daemon-manager.js +10 tests · 199 JS + 928 Python 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
