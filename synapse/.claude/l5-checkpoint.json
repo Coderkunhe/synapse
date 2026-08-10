@@ -1,11 +1,8 @@
 {
-  "lastL5Batch": "P14-B2→B3 拉通完成 — GET /workers/{id}/error-reports + GET /projects/{id}/error-reports 诊断查询 · SKILL.md + role-builder.md 诊断指引 · 4 files · +8 tests · 928 tests 零回归",
+  "lastL5Batch": "P14-B2→B3.1 L5 拉通完成 — B2 G1+G2 Builder 错误上报+Escalation 自动登记 · B3 诊断加固 Worker/Project 错误列表+模板诊断指引 · B3.1 P1 severity SQL层过滤+P2 复合游标(created_at,id)+DG-1~5 狗粮测试纪律 · CLAUDE.md counter 已同步 · 928 tests 零回归 · docs/pitfalls.md 已更新",
   "lastL5Timestamp": "2026-08-10",
   "batchesSinceLastL5": 0,
-  "completedBatches": [
-    "P14-B2",
-    "P14-B3"
-  ],
-  "lastL5Evidence": "P14-B2→B3 拉通完成 — GET /workers/{id}/error-reports (cursor 分页 + severity 筛选) + GET /projects/{id}/error-reports (cursor 分页 + worker_id 筛选) · _events_to_error_summaries helper 复用 · SKILL.md 上报后行为约定 · role-builder.md 诊断查询 curl 示例 · 8 new tests (listing/pagination/filter/auth) · 928 tests 零回归",
-  "notes": "P14-B3 L5 拉通完成 · 诊断加固三触点全量交付 · 修复 B2 遗留的 reqlog B1 条目 heading 丢失问题 · counter 0 · 🔜 B4"
+  "completedBatches": [],
+  "lastL5Evidence": "P14-B2→B3.1 L5 拉通完成 — B2 G1+G2 Builder 错误上报+Escalation 自动登记 · B3 诊断加固 Worker/Project 错误列表+模板诊断指引 · B3.1 P1 severity SQL层过滤+P2 复合游标(created_at,id)+DG-1~5 狗粮测试纪律 · CLAUDE.md counter 已同步 · 928 tests 零回归 · docs/pitfalls.md 已更新",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
