@@ -48,6 +48,9 @@ export default function TaskDetail() {
   const [editTags, setEditTags] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
   const [editBatchId, setEditBatchId] = useState('')
+  const [editDependsOn, setEditDependsOn] = useState<Array<{ task_id: string; type: string }>>([])
+  const [editDepInput, setEditDepInput] = useState('')
+  const [editDepType, setEditDepType] = useState('sequential')
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [dismissedGuidance, setDismissedGuidance] = useState(false)
@@ -204,6 +207,9 @@ export default function TaskDetail() {
     setEditTags(task.tags?.join(', ') || '')
     setEditDeadline(task.deadline_at ? task.deadline_at.slice(0, 16) : '')
     setEditBatchId(task.batch_id || '')
+    setEditDependsOn(task.depends_on?.map(d => ({ task_id: d.task_id, type: d.type || 'sequential' })) || [])
+    setEditDepInput('')
+    setEditDepType('sequential')
     setEditError(null)
     setEditing(true)
   }
@@ -234,6 +240,9 @@ export default function TaskDetail() {
       const newDeadline = editDeadline ? new Date(editDeadline).toISOString() : null
       const oldDeadline = task.deadline_at || null
       if (newDeadline !== oldDeadline) body.deadline_at = newDeadline
+      const newDependsOn = editDependsOn.length ? editDependsOn : null
+      const oldDependsOn = task.depends_on?.length ? task.depends_on.map(d => ({ task_id: d.task_id, type: d.type || 'sequential' })) : null
+      if (JSON.stringify(newDependsOn) !== JSON.stringify(oldDependsOn)) body.depends_on = newDependsOn
 
       const updated = await updateTask(taskId, body as Parameters<typeof updateTask>[1], token)
       setTask(updated)
@@ -538,6 +547,63 @@ export default function TaskDetail() {
               onChange={e => setEditTags(e.target.value)}
               placeholder={t('tasks.tagsPlaceholder')}
             />
+          </div>
+
+          <div className={styles.editField}>
+            <label htmlFor="task-edit-depends-on">{t('taskDetail.dependsOn')}</label>
+            <div className={styles.dependsOnEditor}>
+              <div className={styles.dependsOnInputRow}>
+                <input
+                  id="task-edit-depends-on"
+                  type="text"
+                  value={editDepInput}
+                  onChange={e => setEditDepInput(e.target.value)}
+                  placeholder="task_id"
+                  className={styles.dependsOnTaskInput}
+                />
+                <select
+                  value={editDepType}
+                  onChange={e => setEditDepType(e.target.value)}
+                  className={styles.dependsOnTypeSelect}
+                >
+                  <option value="sequential">sequential</option>
+                  <option value="artifact">artifact</option>
+                </select>
+                <button
+                  type="button"
+                  className={styles.btnAddDep}
+                  onClick={() => {
+                    const tid = editDepInput.trim()
+                    if (tid && !editDependsOn.some(d => d.task_id === tid)) {
+                      setEditDependsOn([...editDependsOn, { task_id: tid, type: editDepType }])
+                      setEditDepInput('')
+                    }
+                  }}
+                  disabled={!editDepInput.trim()}
+                >
+                  {t('taskDetail.addDependency')}
+                </button>
+              </div>
+              {editDependsOn.length > 0 && (
+                <ul className={styles.dependsOnEditList}>
+                  {editDependsOn.map((dep, idx) => (
+                    <li key={dep.task_id} className={styles.dependsOnEditItem}>
+                      <Link to={`/tasks/${dep.task_id}`} className={styles.depLink} target="_blank">
+                        {dep.task_id.slice(0, 18)}…
+                      </Link>
+                      <span className={styles.dependsOnEditType}>({dep.type})</span>
+                      <button
+                        type="button"
+                        className={styles.btnRemoveDep}
+                        onClick={() => setEditDependsOn(editDependsOn.filter((_, i) => i !== idx))}
+                      >
+                        {t('taskDetail.removeDependency')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           <div className={styles.editRow}>

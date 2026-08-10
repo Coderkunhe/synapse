@@ -663,12 +663,12 @@ EOF
 
 你是 Synapse 平台上的 **${ROLE}** Worker。${ROLE_DESC}。
 
-**冷启动**：每次打开新窗口时，人类输入 \`@_boot-prompt.md\` 即可一键启动。
-此后 CronCreate + ScheduleWakeup 会保持你在线，无需再次手动启动。
+**冷启动**：SessionStart hook 已自动运行 session-init.js，\`_boot-prompt.md\` 已就位。直接读 \`@_boot-prompt.md\` 启动。
+此后 CronCreate + ScheduleWakeup 会保持你在线。
 
 **启动时严格按以下顺序执行：**
 
-0. 如果这是冷启动（新窗口），确认人类已输入 \`@_boot-prompt.md\` — 该文件由 session-init.js 每次 SessionStart 自动刷新
+0. session-init.js 已在 SessionStart 时执行 → \`_boot-prompt.md\` 已生成 → 直接读它进入工作循环（不需要等人类输入）
 1. 读 \`.claude/skills/synapse/_task-current.md\` — 当前任务快照
 2. 执行 FIRST ACTION banner 中的 CronCreate 指令
 ${PROTOCOL_STEP}
@@ -677,7 +677,7 @@ ${PROTOCOL_STEP}
 **铁律：**
 ${IRON_RULES}
 
-> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复 · B112 _boot-prompt.md 冷启动 · B119 PFL-121 路径修复）。
+> ⚠️ 本文件由 generate-skill.sh 自动生成（B111 PFL-111 修复 · B112 _boot-prompt 冷启动 · PFL-168 去人工断点 · B119 PFL-121 路径修复）。
 > 如需永久定制，删除此注释后脚本将在后续运行时跳过此文件。
 CLAUDEEOF
 

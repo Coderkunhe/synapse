@@ -529,6 +529,8 @@ const en: TranslationMap = {
       rejected: 'This task was rejected. Review the feedback and resubmit.',
       dismiss: 'Got it',
     },
+    addDependency: 'Add',
+    removeDependency: 'Remove',
   },
 
   // ── Task Card ─────────────────────────────────────────────────────────
@@ -1349,6 +1351,8 @@ const zh: TranslationMap = {
       rejected: '此任务已被驳回。请查看驳回原因，修改后重新提交验收。',
       dismiss: '知道了',
     },
+    addDependency: '添加',
+    removeDependency: '移除',
   },
 
   taskCard: {

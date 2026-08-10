@@ -360,6 +360,13 @@ async def update_task(
     if project.team_id != actor.team_id:
         raise NotFoundError("task", task_id)
 
+    # P14-B4: serialize depends_on list[TaskDependency] → list[dict]
+    depends_on = (
+        [d.model_dump() for d in body.depends_on]
+        if body.depends_on is not None
+        else None
+    )
+
     task = await _update_task(
         db,
         task_id,
@@ -371,6 +378,7 @@ async def update_task(
         required_capabilities=body.required_capabilities,
         metadata=body.metadata,
         deadline_at=body.deadline_at,
+        depends_on=depends_on,
         expected_version=body.expected_version,
         actor_type=actor.actor_type,
         actor_id=actor.actor_id,

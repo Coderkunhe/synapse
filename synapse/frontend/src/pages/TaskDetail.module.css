@@ -722,3 +722,104 @@
   border-color: var(--gm-text-secondary, #8892a6);
   color: var(--gm-text, #e4e8f0);
 }
+
+/* ── Depends-On Editor ──────────────────────────────────── */
+
+.dependsOnEditor {
+  margin-top: 2px;
+}
+
+.dependsOnInputRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dependsOnTaskInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--gm-surface, #141820);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+  color: var(--gm-text, #e4e8f0);
+  font-family: var(--gm-font-mono, monospace);
+  font-size: 13px;
+}
+
+.dependsOnTypeSelect {
+  padding: 6px 8px;
+  background: var(--gm-surface, #141820);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+  color: var(--gm-text, #e4e8f0);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.btnAddDep {
+  padding: 6px 12px;
+  background: var(--gm-primary, #5b7ef5);
+  color: #fff;
+  border: none;
+  border-radius: var(--gm-radius, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.btnAddDep:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btnAddDep:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.dependsOnEditList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dependsOnEditItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--gm-surface, #141820);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.dependsOnEditType {
+  color: var(--gm-text-secondary, #8892a6);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.btnRemoveDep {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid var(--gm-error, #d44);
+  border-radius: 4px;
+  color: var(--gm-error, #d44);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.btnRemoveDep:hover {
+  background: color-mix(in srgb, var(--gm-error, #d44) 15%, transparent);
+}

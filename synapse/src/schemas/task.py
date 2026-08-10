@@ -73,6 +73,7 @@ class TaskUpdate(BaseModel):
     required_capabilities: list[str] | None = None
     metadata: dict | None = None
     deadline_at: datetime | None = None
+    depends_on: list[TaskDependency] | None = None
     expected_version: int = Field(..., ge=1)
 
     @field_validator("description")

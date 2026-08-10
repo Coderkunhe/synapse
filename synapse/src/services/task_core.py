@@ -114,6 +114,7 @@ async def update_task(
     required_capabilities: list[str] | None = None,
     metadata: dict | None,
     deadline_at: datetime | None,
+    depends_on: list[dict] | None = None,
     expected_version: int,
     actor_type: str,
     actor_id: str,
@@ -147,6 +148,11 @@ async def update_task(
         changed = True
     if deadline_at is not None:
         task.deadline_at = deadline_at
+        changed = True
+    if depends_on is not None:
+        from src.services.task_validation import validate_depends_on
+        await validate_depends_on(db, depends_on, task.project_id)
+        task.depends_on = safe_dumps(depends_on)
         changed = True
 
     if changed:

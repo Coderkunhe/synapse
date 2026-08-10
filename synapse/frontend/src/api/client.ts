@@ -440,6 +440,7 @@ export function updateTask(
     priority?: string
     estimated_effort?: string
     tags?: string[]
+    depends_on?: Array<{ task_id: string; type: string }> | null
     deadline_at?: string
     expected_version: number
   },
