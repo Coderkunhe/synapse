@@ -74,6 +74,7 @@
 | DG-3 | **善后** — 测试完成必须打扫：① 删除 worktree ② 删除对应 git branch ③ 清理测试创建的 Task/Event/Worker 数据 ④ `git worktree prune` | P14 B4 kickoff |
 | DG-4 | **主目录只读** — 狗粮期间 `ai-synapse/` 仅运行服务器 + God's-eye API 操作 · `git diff` 在测试结束后必须为空 | P14 B4 kickoff |
 | DG-5 | **命名规范** — worktree 名 = `<phase>-<batch>-<role>`（如 `p14-b4-b1`）· 一目了然知道属于哪个 Phase/批/角色 | P14 B4 kickoff |
+| DG-6 | **VDD 循环不可绕过** — God's-eye 不得直接修改 Worker 目录（worktree）中的任何文件 · 模板/Skill 源码变更 → VDD 循环（改模板→Task→Builder 部署→O 验收）· 违规即 V-030 | P100-B128 防呆 |
 
 ## 📁 项目结构
 
@@ -111,7 +112,7 @@ synapse/
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
 | 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | 🎯 | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14-B4** ✅ 狗粮闭环 🎉 · depends_on 编辑能力 · 1O+2B 协作验证通过 |
-| 🛡️ | **P100**（治理轨道 · 常开）| **B128 🔴 进行中** · L5 遗留治理 · V-030 + 违纪回顾 + 瘦身 | — 🟢 常开（按需启动）|
+| 🛡️ | **P100**（治理轨道 · 常开）| **B129 ✅** · workers.py 拆分 (1403→648+768) + B128 四任务闭环 | — 🟢 常开（按需启动）|
 | **L5** | batchesSinceLastL5=0（B4 狗粮闭环 → L5 拉通完成）| 🟢 就绪 |
 
 ### 🏁 L5 考古三批（B124→B126）完成声明

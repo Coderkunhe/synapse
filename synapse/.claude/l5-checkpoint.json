@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B4→B5 L5 拉通 — 📄 roadmap.md 补登记 B3.1+B4 · 📄 requirements-log.md 补登记 B3.1+B4 · 📄 daily/2026-08-10.md 新建 · 📄 architecture.md+lessons-learned.md+methodology.md 日期同步 08-10 · 📄 CLAUDE.md counter 对齐 · 📄 memory/active/p14.md 更新 · 7 项硬阻断全量清零 · counter 2→0 复位",
+  "lastL5Batch": "P100-B129+P14-B5 → L5 拉通 — 📄 roadmap.md +B129+B5 双批登记 · 📄 requirements-log.md +B129+B5 双批登记 · 📄 CLAUDE.md B5 状态同步 · 📄 pitfalls.md 475行→归档瘦身 +365行 archive/pitfalls-archive.md · 📄 tracks/synapse.md P100 B127→B129 · 📄 memory/active/p14.md B5→B6 暗号更新 · 门禁三关全绿",
   "lastL5Timestamp": "2026-08-10",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P14-B4→B5 L5 拉通 — 📄 roadmap.md 补登记 B3.1+B4 · 📄 requirements-log.md 补登记 B3.1+B4 · 📄 daily/2026-08-10.md 新建 · 📄 architecture.md+lessons-learned.md+methodology.md 日期同步 08-10 · 📄 CLAUDE.md counter 对齐 · 📄 memory/active/p14.md 更新 · 7 项硬阻断全量清零 · counter 2→0 复位",
+  "lastL5Evidence": "P100-B129+P14-B5 → L5 拉通 — 📄 roadmap.md +B129+B5 双批登记 · 📄 requirements-log.md +B129+B5 双批登记 · 📄 CLAUDE.md B5 状态同步 · 📄 pitfalls.md 475行→归档瘦身 +365行 archive/pitfalls-archive.md · 📄 tracks/synapse.md P100 B127→B129 · 📄 memory/active/p14.md B5→B6 暗号更新 · 门禁三关全绿",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

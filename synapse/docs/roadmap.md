@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B127 ✅ · P14-B4 ✅ 狗粮闭环 🎉 · L5 拉通 counter=0）
+> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B4 ✅ 狗粮闭环 🎉 · L5 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -352,41 +352,6 @@
 | `tools/generate-skill.sh` | 双客户端生成脚本（`--target claude\|codex`） |
 
 ---
-
-## Glassmind 审计后续移植 Backlog
-
-> 来源：`docs/research/glassmind-audit.md`（2026-07-03）
-> 标注：🟠 适配后可用 · 🟡 有代码后再抄 · ⚪ 设计思想
-
-### 🟠 适配后可用（设计阶段可映射）
-
-| ID | 内容 | 来源 |
-|----|------|------|
-| G2.1 | 产品优先级四层框架 — L0(架构堵点) > L1(用户断点) > L2(体验弧线) > L3(深度打磨) | methodology.md §优先级 |
-| G2.2 | 核心议题追踪 — 每议题 × 四维评分(P/D/Dep/F) | core_issues.md |
-| G2.3 | Agent 对比框架 — 8 维评估 × 多 agent 横向对比 | model-comparison.md |
-| G2.4 | ADR 架构决策模板 — 问题→方案对比→决策→为什么 | ci-cd.md |
-| G2.5 | 数据模型版本快照 — schema snapshot + 变更影响分析 | .contract-snapshot.json |
-
-### 🟡 有代码后再抄
-
-| ID | 内容 | 来源 |
-|----|------|------|
-| G3.1 | Makefile 分层门禁体系 | Makefile |
-| G3.2 | Shared Module Governance 工具 | check_shared_modules.py | ✅ P100-B16 |
-| G3.3 | 测试骨架检测 | Makefile L2e |
-
-### ⚪ 设计思想（持续参考）
-
-| ID | 内容 | 来源 |
-|----|------|------|
-| G4.1 | 三层沉淀架构（意志→肌肉→骨骼） | methodology.md |
-| G4.2 | 品类-验证对齐（不同产物不同验证策略） | methodology.md |
-| G4.3 | UI/UX 通用模式手册（10 模式） | ui-ux-patterns.md |
-| G4.4 | 四支柱研究框架 | research-strategy.md |
-
----
-
 ## Phase 9：产品主线 ✅ B1-B80 · ▶️ B81-B90
 
 > 来源：2026-07-06 产品内核定调。Task 是入口，其余都是标签。
@@ -594,6 +559,8 @@
 - **P100-B125**：**L5 checker Gate 2+3 fix** ✅ — ① extract_batches 锚定 section header（消除归档引用误匹配）· ② git log pipefail+SIGPIPE 修复 · ③ Gate 3 same-day tolerance · ④ Gate 4 counter 同步 · 🟡 标准 · 6 files
 - **P100-B126**：**L5 考古三批收边角 · 残量接受文档化** ✅ — ① CLAUDE.md L5 残量接受声明（34 warnings · 三 Gate 根因+处置表）· ② roadmap+reqlog B125/B126 补登 · ③ CLAUDE.md header + 状态表更新 · 🟢 微型 · 3 files
 - **P100-B127**：**Reqlog P11+P12 归档瘦身** ✅ — ① P11 (37条) + P12 (49条) = 86 条 reqlog 归档至 archive · ② 空行 compact (1,341→1,106) · ③ 4 对重复条目检测 · 🟡 标准 · 6 files · b127-reqlog-archive.py
+- **P100-B128**：**L5 遗留治理 · 四任务闭环** ✅ — ① V-030 防呆落地（DG-6 狗粮纪律 + process-violations 🔴→🟢）· ② 违纪回顾补做（batchesSinceLastReview 25→0）· ③ roadmap.md 瘦身（825→790 · Glassmind Backlog 归档）· ④ pitfalls.md 瘦身（1254→897 · PFL-108~PFL-122 归档）· 🟡 标准 · 7 files
+- **P100-B129**：**workers.py 拆分** ✅ — ① workers.py 1403→648 行 · ② 新建 worker_info.py 768 行（状态/协议/错误上报）· ③ _parse_event_payload + _events_to_error_summaries → helpers.py · ④ check-line-count 全绿 · 🟡 标准 · 5 files · 928 tests 零回归
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
