@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P13 track 指针同步 + L5 counter 拉通 — 📄 tracks/synapse.md P13-B5→B13 closed + CLAUDE.md counter sync · 📚 l5-checkpoint.json reset 2→0 · 🎭 memory p13.md+p100.md counter 同步",
-  "lastL5Timestamp": "2026-08-09",
+  "lastL5Batch": "P14-B0→B1 拉通完成 — reqlog 补 P14-B0/P14-B1 两批 · memory p100.md/p13.md counter 1→2 同步 · l5-checkpoint.json completedBatches 格式简化 · Gate 1-2 考古残量 P100-B42/B57/B85 + 31 条 reqlog 补登条目 B124-B126 已接受 · Gate 3 同天 tolerance 已知限制 · 897 tests 零回归 · P14-B1 C6 升级脚本交付验证通过",
+  "lastL5Timestamp": "2026-08-10",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P13 track 指针同步 + L5 counter 拉通 — 📄 tracks/synapse.md P13-B5→B13 closed + CLAUDE.md counter sync · 📚 l5-checkpoint.json reset 2→0 · 🎭 memory p13.md+p100.md counter 同步",
+  "lastL5Evidence": "P14-B0→B1 拉通完成 — reqlog 补 P14-B0/P14-B1 两批 · memory p100.md/p13.md counter 1→2 同步 · l5-checkpoint.json completedBatches 格式简化 · Gate 1-2 考古残量 P100-B42/B57/B85 + 31 条 reqlog 补登条目 B124-B126 已接受 · Gate 3 同天 tolerance 已知限制 · 897 tests 零回归 · P14-B1 C6 升级脚本交付验证通过",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

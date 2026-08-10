@@ -138,9 +138,10 @@ async def _stale_task_reaper() -> None:
             if _stale_reaper_scan_count == 0:
                 _logger.info(
                     "Stale task reaper started: interval=%ds, stale=%dmin, "
-                    "reassign=%dmin, verify_timeout=%dmin",
+                    "reassign=%dmin, verify_timeout=%dmin, "
+                    "escalation=%dmin, escalation_cooldown=%dmin",
                     interval, stale_threshold, reassign_threshold,
-                    verify_timeout,
+                    verify_timeout, escalation_minutes, escalation_cooldown,
                 )
 
             await asyncio.sleep(interval)

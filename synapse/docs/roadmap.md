@@ -790,6 +790,7 @@
 | Batch | 内容 | 状态 |
 |:---|:---|:--:|
 | **P14-B0** | **Scope 定义** — P14 五维检查 · 成功标准 · In/Out scope · 批次路线 · 风险缓解 · `docs/plans/p14-scope.md` | ✅ |
+| **P14-B1** | **C6 Worker 升级/回滚脚本** — `synapse-upgrade.sh`（3 子命令: upgrade/rollback/status）· startup log 补 escalation 参数 · heartbeat_monitor provider-aware 确认 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
@@ -804,7 +805,7 @@
 | C1-full | 跨客户端抽象层全量实现 | B4 只做设计——需更多 PFL 数据 |
 | C2-full | 多 Worker 集成测试 Harness 全量 | B5/B6 做了设计+smoke——全量留 P14 |
 | C11 | ~~O 响应性 SLA 自动度量+报警~~ | ✅ P13-B12 已交付 |
-| **C6** | **D1 自动化率 62%→80%（Worker 升级/回滚）** | P13 交棒 → **P14** · TD=4 · FE=4 · 🎯 P14 纳入 |
+| **C6** | **D1 自动化率 62%→80%（Worker 升级/回滚）** | ✅ **P14-B1 已交付** · `tools/synapse-upgrade.sh` |
 
 > 📋 详细交棒文档：`docs/plans/p14-candidate-pool.md`
 
@@ -816,3 +817,5 @@
 | **C3** | D2 测试覆盖率 55%→75%（daemon 边界） | TD=5 但需 CI 改造 · P14 过程中可渐进补 · 不单独成批 |
 | **C7** | depends_on G1/G2 前端+API 补齐 | SV=4 但 TD=2 · 核心链路 G3-G6 已闭环 · 非阻塞 |
 | C2-full | 多 Worker 集成测试 Harness 全量 | P13 设计+smoke 已完成 · 全量待规模需求驱动 |
+| **D-030** | C6 版本追踪 — Worker 版本号 + CHANGELOG · 升级脚本知道"从什么版本升到什么版本" | P14-B1 明确排除 · C6 先解决零干预升级 · 版本号体系独立设计 |
+| **D-031** | C6 自动回滚 — 升级后 health check 失败→自动 git revert + 重启 | P14-B1 明确排除 · 先让手动回滚可用 · 自动触发需要独立的判定+恢复策略 |
