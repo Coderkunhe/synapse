@@ -792,6 +792,7 @@
 | **P14-B0** | **Scope 定义** — P14 五维检查 · 成功标准 · In/Out scope · 批次路线 · 风险缓解 · `docs/plans/p14-scope.md` | ✅ |
 | **P14-B1** | **C6 Worker 升级/回滚脚本** — `synapse-upgrade.sh`（3 子命令: upgrade/rollback/status）· startup log 补 escalation 参数 · heartbeat_monitor provider-aware 确认 | ✅ |
 | **P14-B2** | **G1+G2 Builder 错误上报 + Escalation 自动登记** — `POST /workers/{id}/error-report` 端点 · `pitfall_service.py` PFL 程序化创建 · escalation 自动 PFL+Task · 7 files · 920 tests | ✅ |
+| **P14-B3** | **诊断加固** — Worker/Project 错误列表端点 (2 endpoints) · SKILL.md + role-builder.md 诊断查询指引 · cursor 分页 + severity/worker_id 筛选 · 4 files · 928 tests | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 

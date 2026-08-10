@@ -487,6 +487,36 @@ bash synapse/tools/record-pitfall.sh \
 | `429` | 等待 `Retry-After` 秒后重试 |
 | `5xx` | 指数退避：1s → 5s → 25s → 放弃（最多 3 次） |
 
+### 结构化错误上报（P14-B2 G1）
+
+> ⚠️ **退避重试 3 次仍失败 → 不要只记在对话里。** 使用结构化错误上报让 O 和 God's-eye 能诊断系统健康状况。
+
+```bash
+curl -s -X POST "$SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/error-report" \
+  -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "error_type": "api_error",
+    "task_id": "tsk_xxx",
+    "summary": "API 5xx 退避重试 3 次后仍失败",
+    "detail": "POST /v1/tasks/claim → 500 · retry 1s→5s→25s · all failed",
+    "context": {"http_status": 500, "retry_count": 3},
+    "severity": "🔴"
+  }'
+```
+
+**severity 速查**：
+- `🔴` — 阻断，无法继续 → 自动创建 PFL + 跟踪 Task
+- `🟡` — 警告，可降级 → 仅记录
+- `🟢` — 信息 → 仅记录
+
+> 完整 error_type 分类和上报协议见 `role-builder.md` §结构化错误上报。
+
+**上报后的行为约定（P14-B3）**：
+1. **不要盲目重试** — 上报后等待 O 或 God's-eye 诊断反馈
+2. **检查错误历史** — `GET /workers/me/state` 的 `recent_error_reports` 字段可查看自身最近 5 条错误
+3. **关联 Task 暂停** — 如果 `severity=🔴` 且关联了 `task_id`，该 Task 的 escalation Task 会被自动创建，等待 Human/God's-eye 诊断后再继续
+
 ### 202 CLI 用户体验 — 等待提示与超时降级
 
 > 收到 202 不是错误——是正常的授权流程。不要让用户看到裸错误码。
@@ -537,6 +567,7 @@ bash synapse/tools/record-pitfall.sh \
 | 验收验证 (Orch) | `POST /verifications/{ver_id}/verify` |
 | 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST /tasks/{task_id}/blockers` |
+| 🚨 上报错误（P14-B2 G1） | `POST /v1/workers/{worker_id}/error-report` |
 
 **提交验证必须包含 evidence + output_access**（详见 §逐项 Evidence 协议）。
 

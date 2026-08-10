@@ -1,8 +1,11 @@
 {
-  "lastL5Batch": "P14-B1→B2 拉通完成 — G1 POST /workers/{id}/error-report + G2 pitfall_service.py escalation 自动 PFL+Task · 7 files · 23 new tests · 920 tests 零回归 · create_task() 7 缺失 kwarg 修复 · test assertions 强化（escalation_task_id 验证）",
+  "lastL5Batch": "P14-B2→B3 拉通完成 — GET /workers/{id}/error-reports + GET /projects/{id}/error-reports 诊断查询 · SKILL.md + role-builder.md 诊断指引 · 4 files · +8 tests · 928 tests 零回归",
   "lastL5Timestamp": "2026-08-10",
   "batchesSinceLastL5": 0,
-  "completedBatches": ["P14-B2"],
-  "lastL5Evidence": "P14-B1→B2 拉通完成 — G1 POST /workers/{id}/error-report + G2 pitfall_service.py escalation 自动 PFL+Task · 7 files · 23 new tests (13 pitfall unit + 10 error report integration) · 920 tests 零回归 · create_task() 7 缺失 kwarg 修复（TypeError 静默吞没→全链路验证通过）· test assertions 强化",
-  "notes": "P14-B2 L5 拉通完成 · B1→B2 计数器复位 · 发现并修复 create_task 签名不匹配（parent_task_id/batch_id/estimated_effort/tags/metadata/deadline_at/verifications 缺失）"
+  "completedBatches": [
+    "P14-B2",
+    "P14-B3"
+  ],
+  "lastL5Evidence": "P14-B2→B3 拉通完成 — GET /workers/{id}/error-reports (cursor 分页 + severity 筛选) + GET /projects/{id}/error-reports (cursor 分页 + worker_id 筛选) · _events_to_error_summaries helper 复用 · SKILL.md 上报后行为约定 · role-builder.md 诊断查询 curl 示例 · 8 new tests (listing/pagination/filter/auth) · 928 tests 零回归",
+  "notes": "P14-B3 L5 拉通完成 · 诊断加固三触点全量交付 · 修复 B2 遗留的 reqlog B1 条目 heading 丢失问题 · counter 0 · 🔜 B4"
 }

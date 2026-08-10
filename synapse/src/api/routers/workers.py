@@ -101,6 +101,40 @@ async def _resolve_project_from_task_query(request: Request, db: AsyncSession) -
     return task.project_id
 
 
+def _events_to_error_summaries(
+    events: list, severity: str | None = None
+) -> list:
+    """将 WORKER_ERROR_REPORTED Event 列表转为 ErrorReportSummary 列表（P14-B3）。
+
+    解析 Event.payload JSON 并构造摘要对象。
+    """
+    import json as _json
+
+    summaries = []
+    for evt in events:
+        raw = evt.payload or {}
+        if isinstance(raw, str):
+            try:
+                payload = _json.loads(raw)
+            except (_json.JSONDecodeError, TypeError):
+                payload = {}
+        else:
+            payload = raw
+
+        if severity and payload.get("severity") != severity:
+            continue
+
+        summaries.append(ErrorReportSummary(
+            id=evt.id,
+            error_type=payload.get("error_type", "unknown"),
+            task_id=payload.get("task_id"),
+            summary=payload.get("summary", ""),
+            severity=payload.get("severity", "🔴"),
+            created_at=evt.created_at,
+        ))
+    return summaries
+
+
 # ═══════════════════════════════════════════════════════════════════
 # Project Discovery (P11-B9)
 # ═══════════════════════════════════════════════════════════════════
@@ -504,6 +538,62 @@ async def report_error(
         severity=body.severity,
         created_at=now,
     )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P14-B3: Error Report Listing（诊断查询入口）
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/{worker_id}/error-reports",
+    response_model=CursorPage[ErrorReportSummary],
+)
+async def list_worker_error_reports(
+    worker_id: str,
+    cursor: str | None = Query(None, description="ISO 时间戳游标（created_at）"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    severity: str | None = Query(None, pattern=r"^(🔴|🟡|🟢)$"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """查询 Worker 的历史错误报告（P14-B3 诊断加固）。
+
+    支持 cursor 分页（基于 created_at）+ severity 筛选。
+    O 和 God's-eye 通过此端点快速定位 Builder 的故障历史。
+    """
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    from src.constants import EventType as ET
+    from src.models.event import Event as EventModel
+
+    conditions = [
+        EventModel.event_type == ET.WORKER_ERROR_REPORTED,
+        EventModel.target_type == "worker",
+        EventModel.target_id == worker_id,
+    ]
+    if cursor:
+        conditions.append(EventModel.created_at < cursor)
+
+    query = (
+        select(EventModel)
+        .where(*conditions)
+        .order_by(EventModel.created_at.desc())
+        .limit(limit + 1)
+    )
+    result = await db.execute(query)
+    events = result.scalars().all()
+
+    has_more = len(events) > limit
+    if has_more:
+        events = events[:limit]
+
+    items = _events_to_error_summaries(events, severity)
+    next_cursor = events[-1].created_at.isoformat() if has_more and items else None
+
+    return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
 # ═══════════════════════════════════════════════════════════════════

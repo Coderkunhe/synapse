@@ -313,3 +313,191 @@ class TestErrorReportEndpoint:
         assert len(state["recent_error_reports"]) >= 1, (
             f"Should have at least 1 recent error report"
         )
+
+
+class TestErrorReportListing:
+    """P14-B3: GET /workers/{id}/error-reports + GET /projects/{id}/error-reports 测试。"""
+
+    @pytest.mark.asyncio
+    async def test_list_worker_errors_empty(self, client: AsyncClient, seed: SeedData):
+        """无错误记录时返回空列表。"""
+        headers = auth_header(seed.token)
+
+        resp = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["items"] == []
+        assert data["next_cursor"] is None
+
+    @pytest.mark.asyncio
+    async def test_list_worker_errors_with_data(self, client: AsyncClient, seed: SeedData):
+        """上报几条错误后，列表返回对应条目。"""
+        headers = auth_header(seed.token)
+
+        # 上报 2 条错误
+        for i in range(2):
+            resp = await client.post(
+                f"/v1/workers/{seed.worker_id}/error-report",
+                json={
+                    "error_type": "api_error",
+                    "summary": f"List test error #{i}",
+                    "severity": "🟡" if i == 0 else "🔴",
+                },
+                headers=headers,
+            )
+            assert resp.status_code == 201, resp.text
+
+        resp = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert len(data["items"]) >= 2
+
+    @pytest.mark.asyncio
+    async def test_list_worker_errors_severity_filter(self, client: AsyncClient, seed: SeedData):
+        """severity 筛选只返回匹配的记录。"""
+        headers = auth_header(seed.token)
+
+        # 上报 🔴 和 🟡 各一条
+        await client.post(
+            f"/v1/workers/{seed.worker_id}/error-report",
+            json={"error_type": "api_error", "summary": "Critical", "severity": "🔴"},
+            headers=headers,
+        )
+        await client.post(
+            f"/v1/workers/{seed.worker_id}/error-report",
+            json={"error_type": "api_error", "summary": "Warning", "severity": "🟡"},
+            headers=headers,
+        )
+
+        resp = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports?severity=🔴",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        items = resp.json()["items"]
+        assert all(item["severity"] == "🔴" for item in items), (
+            f"All items should be 🔴, got: {[i['severity'] for i in items]}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_worker_errors_pagination(self, client: AsyncClient, seed: SeedData):
+        """cursor 分页正确工作。"""
+        headers = auth_header(seed.token)
+
+        # 上报 3 条
+        for i in range(3):
+            await client.post(
+                f"/v1/workers/{seed.worker_id}/error-report",
+                json={
+                    "error_type": "api_error",
+                    "summary": f"Page test #{i}",
+                    "severity": "🟢",
+                },
+                headers=headers,
+            )
+
+        # 第一页：limit=2
+        resp = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports?limit=2",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert data["next_cursor"] is not None
+
+        # 第二页
+        resp2 = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports?limit=2&cursor={data['next_cursor']}",
+            headers=headers,
+        )
+        assert resp2.status_code == 200, resp2.text
+        data2 = resp2.json()
+        assert len(data2["items"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_list_worker_errors_unauthorized(self, client: AsyncClient, seed: SeedData):
+        """无认证 — 401。"""
+        resp = await client.get(
+            f"/v1/workers/{seed.worker_id}/error-reports",
+        )
+        assert resp.status_code == 401, resp.text
+
+    @pytest.mark.asyncio
+    async def test_list_project_errors(self, client: AsyncClient, seed: SeedData):
+        """项目级错误列表 — 包含该 team 下所有 Worker 的错误。"""
+        headers = auth_header(seed.token)
+
+        # 创建 project
+        resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "List Test Project", "description": "For listing tests", "slug": f"list-err-{seed.team_id[-6:]}"},
+            headers=headers,
+        )
+        assert resp.status_code == 201, resp.text
+        project_id = resp.json()["id"]
+
+        # 创建 task
+        resp = await client.post(
+            f"/v1/projects/{project_id}/tasks",
+            json={"title": "Error list task", "description": "T", "priority": "p2"},
+            headers=headers,
+        )
+        assert resp.status_code == 201, resp.text
+        task_id = resp.json()["id"]
+
+        # 上报一条关联 task 的错误
+        await client.post(
+            f"/v1/workers/{seed.worker_id}/error-report",
+            json={
+                "error_type": "timeout",
+                "task_id": task_id,
+                "summary": "Project-level error test",
+                "severity": "🔴",
+            },
+            headers=headers,
+        )
+
+        resp = await client.get(
+            f"/v1/projects/{project_id}/error-reports",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert len(data["items"]) >= 1
+        assert data["items"][0]["error_type"] == "timeout"
+
+    @pytest.mark.asyncio
+    async def test_list_project_errors_worker_filter(self, client: AsyncClient, seed: SeedData):
+        """worker_id 筛选项目级错误列表。"""
+        headers = auth_header(seed.token)
+
+        resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "Filter Test Project", "description": "For filter tests", "slug": f"flt-err-{seed.team_id[-6:]}"},
+            headers=headers,
+        )
+        assert resp.status_code == 201, resp.text
+        project_id = resp.json()["id"]
+
+        resp = await client.get(
+            f"/v1/projects/{project_id}/error-reports?worker_id={seed.worker_id}",
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        # 即使为空也应该返回 200（不是 404）
+        assert resp.json()["items"] == []
+
+    @pytest.mark.asyncio
+    async def test_list_project_errors_unauthorized(self, client: AsyncClient, seed: SeedData):
+        """无认证 — 401。"""
+        resp = await client.get(
+            f"/v1/projects/some-project-id/error-reports",
+        )
+        assert resp.status_code == 401, resp.text

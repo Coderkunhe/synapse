@@ -271,6 +271,82 @@ POST /tasks/{id}/messages
 
 > 详见 `_protocol.md` §4.1.3「异常退出协议」。
 
+### 结构化错误上报（P14-B2 G1 · 🚨 必读）
+
+> ⚠️ **遇到非预期错误时，不要只在对话中描述。** 使用 `POST /v1/workers/{worker_id}/error-report`
+> 上报结构化错误记录。God's-eye 和 Orchestrator 通过这些记录诊断系统健康状况，
+> 而非逐条阅读对话日志。
+
+**上报时机**：
+- API 调用返回非预期错误（非 4xx 业务错误）
+- 同一 Task 返工 ≥2 次仍无法通过 Verification
+- 依赖的 Task 长时间不完成（> 30min）
+- 授权请求过期且无法自动恢复
+- 环境异常（缺少工具、配置文件损坏等）
+
+**不上报的场景**：
+- 正常的 4xx 业务错误（422 ValidationError、409 VERSION_CONFLICT）— 这些是协议的一部分
+- 临时网络抖动 → 按退避重试协议处理（3 次后退避，仍失败再上报）
+
+**请求格式**：
+
+```bash
+curl -s -X POST "$SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/error-report" \
+  -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "error_type": "api_error",
+    "task_id": "tsk_xxx",
+    "summary": "短描述（≤200 字符）",
+    "detail": "详细诊断信息（可选，≤5000 字符）",
+    "context": {"http_status": 500, "endpoint": "/v1/tasks/claim"},
+    "severity": "🔴"
+  }'
+```
+
+**error_type 分类**：
+
+| error_type | 使用场景 |
+|:---|:---|
+| `api_error` | Synapse API 返回非预期错误（5xx、格式异常） |
+| `verification_failed` | 多次返工后 Verification 条件仍不可满足 |
+| `dependency_blocked` | depends_on 依赖的 Task 长期不完成 |
+| `capability_mismatch` | Task 需要的 capability 超出自身能力范围 |
+| `env_broken` | 环境异常（工具缺失、配置错误等） |
+| `timeout` | 操作超时（网络、API 响应等） |
+| `escalation` | 需要人工介入的升级场景 |
+| `unknown` | 以上分类不适用的其他错误 |
+
+**severity**：
+- `🔴` — 阻断性错误，无法继续当前 Task → 自动创建 PFL + 跟踪 Task
+- `🟡` — 警告，可降级继续 → 仅记录
+- `🟢` — 信息，纯诊断 → 仅记录
+
+**规则**：
+- 同一 Task 可上报多次 error — 每次记录独立事件
+- `context` 字段用于机器可读的诊断信息（堆栈、响应体等）
+- 错误上报不影响 Task 状态 — 纯诊断通道
+- severity=🔴 时系统自动创建 PFL 条目和跟踪 Task
+
+### 诊断查询（P14-B3 — 查看错误历史）
+
+**查看自身错误**：
+```bash
+# Worker state 中包含最近 5 条错误报告
+curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+  "$SYNAPSE_API_URL/v1/workers/me/state?project_id=$SYNAPSE_PROJECT_ID" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d['recent_error_reports'], indent=2))"
+```
+
+**查看自身完整错误列表（分页）**：
+```bash
+curl -s -H "Authorization: Bearer $SYNAPSE_API_KEY" \
+  "$SYNAPSE_API_URL/v1/workers/$SYNAPSE_WORKER_ID/error-reports?limit=20&severity=🔴"
+```
+
+> O 可通过 `GET /v1/projects/{project_id}/error-reports` 查看项目全局错误。
+> God's-eye 通过此端点快速定位故障，而非逐条阅读对话日志。
+
 ---
 
 ## 关键原则

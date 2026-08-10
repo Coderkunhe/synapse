@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -272,3 +273,66 @@ async def delete_project(
         team_id=actor.team_id,
     )
     await db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P14-B3: Project Error Report Listing（诊断查询入口）
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/projects/{project_id}/error-reports",
+    response_model=CursorPage,
+)
+async def list_project_error_reports(
+    project_id: str,
+    cursor: str | None = Query(None, description="ISO 时间戳游标（created_at）"),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    worker_id: str | None = Query(None, description="按 Worker 筛选"),
+    severity: str | None = Query(None, pattern=r"^(🔴|🟡|🟢)$"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """查询项目内所有 Worker 的错误报告（P14-B3 诊断加固）。
+
+    O 和 God's-eye 通过此端点一览项目全局错误状况。
+    可选按 worker_id 和 severity 筛选。
+    """
+    from src.models.project import Project
+    from src.models.event import Event as EventModel
+    from src.constants import EventType as ET
+    from src.schemas.worker import ErrorReportSummary
+
+    project = await db.get(Project, project_id)
+    if project is None:
+        raise NotFoundError("project", project_id)
+    if project.team_id != actor.team_id:
+        raise NotFoundError("project", project_id)
+
+    conditions = [
+        EventModel.event_type == ET.WORKER_ERROR_REPORTED,
+        EventModel.team_id == project.team_id,
+    ]
+    if worker_id:
+        conditions.append(EventModel.target_id == worker_id)
+    if cursor:
+        conditions.append(EventModel.created_at < cursor)
+
+    query = (
+        select(EventModel)
+        .where(*conditions)
+        .order_by(EventModel.created_at.desc())
+        .limit(limit + 1)
+    )
+    result = await db.execute(query)
+    events = result.scalars().all()
+
+    has_more = len(events) > limit
+    if has_more:
+        events = events[:limit]
+
+    from src.api.routers.workers import _events_to_error_summaries
+    items = _events_to_error_summaries(events, severity)
+    next_cursor = events[-1].created_at.isoformat() if has_more and items else None
+
+    return CursorPage(items=items, next_cursor=next_cursor, total=None)
