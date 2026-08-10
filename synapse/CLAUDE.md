@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-10（P13 B1→B13 ✅ · 全量闭环 🎉 · P14-B3 ✅ 诊断加固 · P100-B127 ✅ · L5 counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-10（P13 B1→B13 ✅ · P14-B3.1 ✅ P1/P2修复+DG-1~5 · P100-B127 ✅ · L5 counter=1）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -45,6 +45,7 @@
 | 17 | 同规 ≥3 次违反 or 持续资产损失 | P100 紧急批 · 不等 Phase 边界 |
 | 18 | commit message | `feat(synapse): Px-By — 描述` · 前缀必含 `synapse:` |
 | 19 | /clear 前 | 更新 memory/active/<topic>.md + 更新 MEMORY.md 暗号行 · 含 🧭 D-ID + 🔒 角色自审 |
+| 20 | 多 Worker 狗粮测试 | 三原则：① 隔离 — worktree 独立目录 · 不污染主开发环境 ② 可复现 — 环境配置脚本化 · 不依赖手工记忆 ③ 善后 — 测试完成删除 worktree + 分支 + 测试数据 |
 
 ## 🚨 P12 启动约束（P11 3.25 复盘产物 · 不可跳过）
 
@@ -61,6 +62,18 @@
 | P12-7 | **「完成」四要素** — 代码 + 测试 + 自愈脚本 + 狗粮验证通过 · 缺一不可 | LL26 教训 5 |
 
 > 详细复盘：`docs/lessons-learned.md` LL26 · `docs/roadmap.md` §Phase 11 未达成目标与根因分析
+
+## 🧪 多 Worker 狗粮测试纪律（P14 制定 · 全程生效）
+
+> 每次狗粮测试 = 一次沙箱实验。主开发环境是生产线，不得污染。
+
+| # | 约束 | 来源 |
+|:--|:-----|:-----|
+| DG-1 | **隔离** — Worker 工作目录使用 `.claude/worktrees/` git worktree · 禁止在主目录 `ai-synapse/` 内以 Worker 模式运行 | P14 B4 kickoff |
+| DG-2 | **可复现** — 环境配置（.env、Worker 注册、Project 创建）脚本化 · 不得依赖手工记忆或上一次测试的残留状态 | P14 B4 kickoff |
+| DG-3 | **善后** — 测试完成必须打扫：① 删除 worktree ② 删除对应 git branch ③ 清理测试创建的 Task/Event/Worker 数据 ④ `git worktree prune` | P14 B4 kickoff |
+| DG-4 | **主目录只读** — 狗粮期间 `ai-synapse/` 仅运行服务器 + God's-eye API 操作 · `git diff` 在测试结束后必须为空 | P14 B4 kickoff |
+| DG-5 | **命名规范** — worktree 名 = `<phase>-<batch>-<role>`（如 `p14-b4-b1`）· 一目了然知道属于哪个 Phase/批/角色 | P14 B4 kickoff |
 
 ## 📁 项目结构
 
@@ -99,7 +112,7 @@ synapse/
 | 🎯 | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | 🎯 | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14-B3** ✅ 诊断加固 · 🔜 B4 |
 | 🛡️ | **P100**（治理轨道 · 常开）| B127 ✅ reqlog P11+P12 归档瘦身 · -1,105 行 (-21%) | — 🟢 常开（按需启动）|
-| **L5** | batchesSinceLastL5=0（✅ P14-B0→B1 L5 拉通完成）| 🟢 可开新批 |
+| **L5** | batchesSinceLastL5=1（B3.1 未拉通 · B4 前需复位）| 🟡 B4 前拉通 |
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 

@@ -286,7 +286,7 @@ async def delete_project(
 )
 async def list_project_error_reports(
     project_id: str,
-    cursor: str | None = Query(None, description="ISO 时间戳游标（created_at）"),
+    cursor: str | None = Query(None, description="复合游标（created_at,id）"),
     limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     worker_id: str | None = Query(None, description="按 Worker 筛选"),
     severity: str | None = Query(None, pattern=r"^(🔴|🟡|🟢)$"),
@@ -296,8 +296,10 @@ async def list_project_error_reports(
     """查询项目内所有 Worker 的错误报告（P14-B3 诊断加固）。
 
     O 和 God's-eye 通过此端点一览项目全局错误状况。
-    可选按 worker_id 和 severity 筛选。
+    可选按 worker_id 和 severity 筛选（SQL 层）。
     """
+    from sqlalchemy import and_, or_
+
     from src.models.project import Project
     from src.models.event import Event as EventModel
     from src.constants import EventType as ET
@@ -315,13 +317,33 @@ async def list_project_error_reports(
     ]
     if worker_id:
         conditions.append(EventModel.target_id == worker_id)
+
+    # ── severity 过滤（P14-B3.1 P1 修复：下推到 SQL 层）──
+    if severity:
+        conditions.append(EventModel.payload.like(f'%"severity": "{severity}"%'))
+
+    # ── cursor 分页（P14-B3.1 P2 修复：复合游标 (created_at, id)）──
     if cursor:
-        conditions.append(EventModel.created_at < cursor)
+        parts = cursor.split(",", 1)
+        cursor_ts = parts[0]
+        cursor_id = parts[1] if len(parts) > 1 else None
+        if cursor_id:
+            conditions.append(
+                or_(
+                    EventModel.created_at < cursor_ts,
+                    and_(
+                        EventModel.created_at == cursor_ts,
+                        EventModel.id < cursor_id,
+                    ),
+                )
+            )
+        else:
+            conditions.append(EventModel.created_at < cursor_ts)
 
     query = (
         select(EventModel)
         .where(*conditions)
-        .order_by(EventModel.created_at.desc())
+        .order_by(EventModel.created_at.desc(), EventModel.id.desc())
         .limit(limit + 1)
     )
     result = await db.execute(query)
@@ -332,7 +354,11 @@ async def list_project_error_reports(
         events = events[:limit]
 
     from src.api.routers.workers import _events_to_error_summaries
-    items = _events_to_error_summaries(events, severity)
-    next_cursor = events[-1].created_at.isoformat() if has_more and items else None
+    items = _events_to_error_summaries(events)
+    next_cursor = (
+        f"{events[-1].created_at.isoformat()},{events[-1].id}"
+        if has_more and items
+        else None
+    )
 
     return CursorPage(items=items, next_cursor=next_cursor, total=None)

@@ -101,29 +101,31 @@ async def _resolve_project_from_task_query(request: Request, db: AsyncSession) -
     return task.project_id
 
 
-def _events_to_error_summaries(
-    events: list, severity: str | None = None
-) -> list:
-    """将 WORKER_ERROR_REPORTED Event 列表转为 ErrorReportSummary 列表（P14-B3）。
+def _parse_event_payload(evt) -> dict:
+    """解析 Event.payload JSON 字符串为 dict（P14-B3）。
 
-    解析 Event.payload JSON 并构造摘要对象。
+    payload 以 JSON 字符串存储（String column），返回解析后的 dict。
     """
     import json as _json
 
+    raw = evt.payload or {}
+    if isinstance(raw, str):
+        try:
+            return _json.loads(raw)
+        except (_json.JSONDecodeError, TypeError):
+            return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _events_to_error_summaries(events: list) -> list:
+    """将 WORKER_ERROR_REPORTED Event 列表转为 ErrorReportSummary 列表（P14-B3）。
+
+    解析 Event.payload JSON 并构造摘要对象。
+    severity 过滤已下推到 SQL 层，此处不再做二次过滤。
+    """
     summaries = []
     for evt in events:
-        raw = evt.payload or {}
-        if isinstance(raw, str):
-            try:
-                payload = _json.loads(raw)
-            except (_json.JSONDecodeError, TypeError):
-                payload = {}
-        else:
-            payload = raw
-
-        if severity and payload.get("severity") != severity:
-            continue
-
+        payload = _parse_event_payload(evt)
         summaries.append(ErrorReportSummary(
             id=evt.id,
             error_type=payload.get("error_type", "unknown"),
@@ -551,7 +553,7 @@ async def report_error(
 )
 async def list_worker_error_reports(
     worker_id: str,
-    cursor: str | None = Query(None, description="ISO 时间戳游标（created_at）"),
+    cursor: str | None = Query(None, description="复合游标（created_at,id）"),
     limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     severity: str | None = Query(None, pattern=r"^(🔴|🟡|🟢)$"),
     actor: ActorInfo = Depends(get_current_actor),
@@ -559,12 +561,14 @@ async def list_worker_error_reports(
 ):
     """查询 Worker 的历史错误报告（P14-B3 诊断加固）。
 
-    支持 cursor 分页（基于 created_at）+ severity 筛选。
+    支持 cursor 分页（基于 (created_at, id) 复合游标）+ severity 筛选（SQL 层）。
     O 和 God's-eye 通过此端点快速定位 Builder 的故障历史。
     """
     worker = await _get_worker(db, worker_id)
     if worker.team_id != actor.team_id:
         raise NotFoundError("worker", worker_id)
+
+    from sqlalchemy import and_, or_
 
     from src.constants import EventType as ET
     from src.models.event import Event as EventModel
@@ -574,13 +578,34 @@ async def list_worker_error_reports(
         EventModel.target_type == "worker",
         EventModel.target_id == worker_id,
     ]
+
+    # ── severity 过滤（P14-B3.1 P1 修复：下推到 SQL 层）──
+    if severity:
+        # payload 以 JSON 字符串存储 → LIKE 模式匹配
+        conditions.append(EventModel.payload.like(f'%"severity": "{severity}"%'))
+
+    # ── cursor 分页（P14-B3.1 P2 修复：复合游标 (created_at, id)）──
     if cursor:
-        conditions.append(EventModel.created_at < cursor)
+        parts = cursor.split(",", 1)
+        cursor_ts = parts[0]
+        cursor_id = parts[1] if len(parts) > 1 else None
+        if cursor_id:
+            conditions.append(
+                or_(
+                    EventModel.created_at < cursor_ts,
+                    and_(
+                        EventModel.created_at == cursor_ts,
+                        EventModel.id < cursor_id,
+                    ),
+                )
+            )
+        else:
+            conditions.append(EventModel.created_at < cursor_ts)
 
     query = (
         select(EventModel)
         .where(*conditions)
-        .order_by(EventModel.created_at.desc())
+        .order_by(EventModel.created_at.desc(), EventModel.id.desc())
         .limit(limit + 1)
     )
     result = await db.execute(query)
@@ -590,8 +615,12 @@ async def list_worker_error_reports(
     if has_more:
         events = events[:limit]
 
-    items = _events_to_error_summaries(events, severity)
-    next_cursor = events[-1].created_at.isoformat() if has_more and items else None
+    items = _events_to_error_summaries(events)
+    next_cursor = (
+        f"{events[-1].created_at.isoformat()},{events[-1].id}"
+        if has_more and items
+        else None
+    )
 
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
