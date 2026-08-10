@@ -43,3 +43,38 @@ async def get_project_or_404(db: AsyncSession, project_id: str) -> Project:
     if project is None:
         raise NotFoundError("project", project_id)
     return project
+
+
+def _parse_event_payload(evt) -> dict:
+    """解析 Event.payload JSON 字符串为 dict（P14-B3）。
+
+    payload 以 JSON 字符串存储（String column），返回解析后的 dict。
+    """
+    import json as _json
+
+    raw = evt.payload or {}
+    if isinstance(raw, str):
+        try:
+            return _json.loads(raw)
+        except (_json.JSONDecodeError, TypeError):
+            return {}
+    return raw if isinstance(raw, dict) else {}
+def _events_to_error_summaries(events: list) -> list:
+    """将 WORKER_ERROR_REPORTED Event 列表转为 ErrorReportSummary 列表（P14-B3）。
+
+    解析 Event.payload JSON 并构造摘要对象。
+    severity 过滤已下推到 SQL 层，此处不再做二次过滤。
+    """
+    summaries = []
+    for evt in events:
+        payload = _parse_event_payload(evt)
+        from src.schemas.worker import ErrorReportSummary
+        summaries.append(ErrorReportSummary(
+            id=evt.id,
+            error_type=payload.get("error_type", "unknown"),
+            task_id=payload.get("task_id"),
+            summary=payload.get("summary", ""),
+            severity=payload.get("severity", "🔴"),
+            created_at=evt.created_at,
+        ))
+    return summaries

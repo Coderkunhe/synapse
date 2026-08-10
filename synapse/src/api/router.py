@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from .routers import admin, authorization_requests, bootstrap, capabilities, capability_audits, circuit_breakers, conversation, decision_audits, protection_reports, stats, webpush, workers, workflow, analyses, auth, batches, docs, events, features, projects, scans, skills, tasks, teams, token_usage
+from .routers import admin, authorization_requests, bootstrap, capabilities, capability_audits, circuit_breakers, conversation, decision_audits, protection_reports, stats, webpush, worker_info, workers, workflow, analyses, auth, batches, docs, events, features, projects, scans, skills, tasks, teams, token_usage
 from . import dashboard
 
 api_router = APIRouter(prefix="/v1")
 
 api_router.include_router(teams.router)
 api_router.include_router(workers.router)
+api_router.include_router(worker_info.router)
+api_router.include_router(worker_info.agents_router)  # deprecated /agents/* backward compat
 api_router.include_router(workers.agents_router)  # deprecated /agents/* backward compat
 api_router.include_router(projects.router)
 api_router.include_router(tasks.router)

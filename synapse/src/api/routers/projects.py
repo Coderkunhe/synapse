@@ -353,7 +353,7 @@ async def list_project_error_reports(
     if has_more:
         events = events[:limit]
 
-    from src.api.routers.workers import _events_to_error_summaries
+    from src.api.routers.helpers import _events_to_error_summaries
     items = _events_to_error_summaries(events)
     next_cursor = (
         f"{events[-1].created_at.isoformat()},{events[-1].id}"
