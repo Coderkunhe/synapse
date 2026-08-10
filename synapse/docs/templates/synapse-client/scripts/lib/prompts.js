@@ -26,7 +26,7 @@
  */
 const CRONCREATE_PROMPT = (
   "Wake up. "
-  + "① HK-3 check: read .claude/_last-session-init.txt — if missing, SessionStart hook never fired (known Claude Code issue), alert human to type @_boot-prompt.md. "
+  + "① HK-3 check: read .claude/_last-session-init.txt — if missing, SessionStart hook never fired (known Claude Code issue), run session-init.js directly to bootstrap. "
   + "② Run: node .claude/skills/synapse/scripts/session-init.js --health (daemon self-heal + heartbeat + refresh _task-current.md). "
   + "③ Read _task-current.md — check active tasks. "
   + "④ Continue working if active tasks exist, ScheduleWakeup if idle."

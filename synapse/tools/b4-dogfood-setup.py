@@ -91,7 +91,7 @@ async def main():
             worker = existing_w.scalar_one_or_none()
             if worker:
                 print(f"⏭️  Worker exists: {w['name']} ({worker.id})")
-                results.append({"worker": worker, "api_key": "ALREADY_REGISTERED"})
+                results.append({"worker": worker, "api_key": "ALREADY_REGISTERED", "role": w["role"]})
             else:
                 worker_obj, api_key = await register_worker(
                     db,
@@ -108,7 +108,7 @@ async def main():
                     project_id=project.id,
                     project_role=w["role"],
                 )
-                results.append({"worker": worker_obj, "api_key": api_key})
+                results.append({"worker": worker_obj, "api_key": api_key, "role": w["role"]})
                 print(f"✅ Worker: {w['name']} ({worker_obj.id}) · Key: {api_key}")
 
         await db.commit()
@@ -119,6 +119,7 @@ async def main():
             w = r["worker"]
             name = w.name
             api_key = r["api_key"]
+            role = r["role"]
 
             if "B1" in name:
                 wt_synapse = WORKTREES_DIR / "p14-b4-b1" / "synapse"
@@ -134,17 +135,41 @@ async def main():
                 continue
 
             wt_synapse.mkdir(parents=True, exist_ok=True)
-            env_path = wt_synapse / ".env"
+            claude_env_dir = wt_synapse / ".claude"
+            claude_env_dir.mkdir(parents=True, exist_ok=True)
+            env_path = claude_env_dir / ".env"
             env_content = (
                 f"# Synapse Worker — {name}\n"
                 f"SYNAPSE_API_KEY={api_key}\n"
-                f"SYNAPSE_BASE_URL=http://localhost:8001\n"
+                f"SYNAPSE_API_URL=http://localhost:8001\n"
                 f"SYNAPSE_PROJECT_ID={project.id}\n"
                 f"SYNAPSE_TEAM_ID={team.id}\n"
                 f"SYNAPSE_WORKER_ID={w.id}\n"
+                f"SYNAPSE_WORKER_ROLE={role}\n"
             )
             env_path.write_text(env_content)
             print(f"✅ .env → {env_path}")
+
+            # P14-B5 PFL-167: Auto-run generate-skill.sh after worktree .env is ready
+            gen_script = Path(__file__).resolve().parent / "generate-skill.sh"
+            if gen_script.exists():
+                import subprocess
+                result = subprocess.run(
+                    ["bash", str(gen_script), "--from-api",
+                     "--output", str(wt_synapse),
+                     "--api-url", "http://localhost:8001",
+                     "--worker-id", w.id,
+                     "--project-id", project.id,
+                     "--role", role,
+                     "--api-key", api_key],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    print(f"✅ generate-skill.sh → {wt_synapse}")
+                else:
+                    print(f"⚠️  generate-skill.sh failed: {result.stderr[:200]}")
+            else:
+                print(f"⚠️  generate-skill.sh not found at {gen_script}")
 
     # 5. Summary
     print()

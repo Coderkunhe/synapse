@@ -26,7 +26,7 @@ description: Synapse Worker 协议 — 人机混合团队分布式协调平台�
 
 ## 🚀 启动 — 会话初始化（B107 跨客户端架构）
 
-> 💡 **冷启动（B112 PFL-112）**：如果你是新打开的 Worker 窗口，人类同事应该会在窗口里输入 `@_boot-prompt.md` 来触发你的启动序列。该文件由 `session-init.js` 每次 SessionStart 自动刷新到 Worker 根目录。如果你没看到人类输入它，检查 `_task-current.md` 是否已存在 — 如果已存在，说明 SessionStart hook 已自动初始化，直接跳到「第二步」。
+> 💡 **冷启动（B112 PFL-112 · P14-B5 PFL-168）**：SessionStart hook 已自动运行 session-init.js，`_boot-prompt.md` 和 `_task-current.md` 已就位。直接读 `_task-current.md` 进入工作循环——不需要等人类输入。如果 `_task-current.md` 不存在，说明 hook 未触发，手动运行 `node .claude/skills/synapse/scripts/session-init.js`。
 
 ### 第一步：检查启动状态
 
