@@ -446,6 +446,25 @@ API Key 是 Worker 的唯一身份凭证。使用他人的 Key 完全绕过 API 
 
 **核心检验**：问自己"这个 Task 做完了，怎么验证？"——答不上来 = 拆得不够细。
 
+#### 技术栈围栏（P14-B10 PFL-171）
+
+Task 创建时**必须设置 `required_capabilities`** 声明技术栈边界，防止 Builder 越界认领：
+
+| 子系统 | `required_capabilities` | 匹配的 Builder |
+|:-------|:------------------------|:--------------|
+| 纯 API/后端 | `["backend", "python"]` | 声明了 `backend` 或 `python` 的 Worker |
+| 纯前端 | `["frontend", "typescript"]` | 声明了 `frontend` 或 `typescript` 的 Worker |
+| 全栈（前后端都涉及） | 拆成两个 Task——分别设置 | 两个独立的 Builder |
+| 文档/配置 | 留空（任意 Worker） | 不限 |
+
+**规则**：
+- 涉及 `src/` 目录 → `required_capabilities: ["backend", "python"]`
+- 涉及 `frontend/src/` 目录 → `required_capabilities: ["frontend", "typescript"]`
+- 同时涉及前后端 → **必须拆成两个 Task**（水平切的反模式在此适用——拆分后每个独立验证）
+- 纯文档/模板/配置（CLAUDE.md、Skill 文件、memory）→ 不设 `required_capabilities`
+
+> ⚠️ **Server 侧硬门禁**：claim 时 Server 强制校验 `required_capabilities ⊆ worker.capability_tags.names`，不匹配 → `409 WORKER_MISSING_CAPABILITIES`。但 **assign 和 claim 双路径都校验**——你设对了，Builder 才不可能越界。
+
 #### 拆分方向：垂直切，而非水平切
 
 ```

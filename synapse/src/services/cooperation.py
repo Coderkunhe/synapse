@@ -88,6 +88,33 @@ async def claim_batch(
             f"Batch {batch_id} has no tasks in READY status",
         )
 
+    # P14-B10 PFL-171: claim 路径 capability 校验（与 assign 路径对齐）
+    if actor_type == ActorType.WORKER:
+        for task in ready_tasks:
+            req_caps = safe_loads(task.required_capabilities)
+            if not req_caps:
+                continue
+            cap_tags = worker.capability_tags or {}
+            cap_names: list[str] = cap_tags.get("names", [])
+            if not cap_names:
+                raise ConflictError(
+                    "WORKER_NO_CAPABILITIES",
+                    f"Worker '{worker.name}' has no declared capabilities. "
+                    f"Task '{task.id}' requires: {', '.join(req_caps)}. "
+                    f"Worker must complete handshake with capability declarations.",
+                    {"workerId": worker_id, "requiredCapabilities": req_caps},
+                )
+            missing = [c for c in req_caps if c not in cap_names]
+            if missing:
+                raise ConflictError(
+                    "WORKER_MISSING_CAPABILITIES",
+                    f"Worker '{worker.name}' lacks required capabilities: {', '.join(missing)}. "
+                    f"Worker declared: {', '.join(cap_names)}. "
+                    f"Task '{task.id}' requires: {', '.join(req_caps)}.",
+                    {"workerId": worker_id, "taskId": task.id, "missingCapabilities": missing,
+                     "workerCapabilities": cap_names, "requiredCapabilities": req_caps},
+                )
+
     now = datetime.now(timezone.utc)
     claimed_ids: list[str] = []
 

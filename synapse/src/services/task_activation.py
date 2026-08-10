@@ -14,6 +14,7 @@ from src.exceptions import (
     NotFoundError,
 )
 from src.models.task import Task
+from src.models.worker import Worker
 from src.services.event_store import event_store
 from src.services.task_core import (
     _bump_version,
@@ -152,6 +153,35 @@ async def ready_task(
     return task
 
 
+def _check_worker_capabilities(task: Task, worker: Worker, worker_id: str) -> None:
+    """P11-B95 PFL-086 + P14-B10 PFL-171: 校验 Worker 已声明 Task 所需的所有 capability。
+
+    用于 assign_task（push）和 claim_task/claim_batch（pull）双路径。
+    """
+    req_caps = safe_loads(task.required_capabilities)
+    if not req_caps:
+        return
+    cap_tags = worker.capability_tags or {}
+    cap_names: list[str] = cap_tags.get("names", [])
+    if not cap_names:
+        raise ConflictError(
+            "WORKER_NO_CAPABILITIES",
+            f"Worker '{worker.name}' has no declared capabilities. "
+            f"Task requires: {', '.join(req_caps)}. "
+            f"Worker must complete handshake with capability declarations.",
+            {"workerId": worker_id, "requiredCapabilities": req_caps},
+        )
+    missing = [c for c in req_caps if c not in cap_names]
+    if missing:
+        raise ConflictError(
+            "WORKER_MISSING_CAPABILITIES",
+            f"Worker '{worker.name}' lacks required capabilities: {', '.join(missing)}. "
+            f"Worker declared: {', '.join(cap_names)}. "
+            f"Task requires: {', '.join(req_caps)}.",
+            {"workerId": worker_id, "missingCapabilities": missing, "workerCapabilities": cap_names, "requiredCapabilities": req_caps},
+        )
+
+
 async def assign_task(
     db: AsyncSession,
     task_id: str,
@@ -188,7 +218,6 @@ async def assign_task(
         if owner is None or owner.team_id != team_id:
             raise NotFoundError("member", owner_id)
     elif owner_type == OwnerType.WORKER:
-        from src.models.worker import Worker
         owner = await db.get(Worker, owner_id)
         if owner is None or owner.team_id != team_id:
             raise NotFoundError("worker", owner_id)
@@ -199,28 +228,8 @@ async def assign_task(
                 f"Activate the worker via POST /v1/workers/{owner_id}/handshake",
             )
 
-        # P11-B95 PFL-086: verify Worker has required capabilities
-        req_caps = safe_loads(task.required_capabilities)
-        if req_caps:
-            cap_tags = owner.capability_tags or {}
-            cap_names: list[str] = cap_tags.get("names", [])
-            if not cap_names:
-                raise ConflictError(
-                    "WORKER_NO_CAPABILITIES",
-                    f"Worker '{owner.name}' has no declared capabilities. "
-                    f"Task requires: {', '.join(req_caps)}. "
-                    f"Worker must complete handshake with capability declarations.",
-                    {"workerId": owner_id, "requiredCapabilities": req_caps},
-                )
-            missing = [c for c in req_caps if c not in cap_names]
-            if missing:
-                raise ConflictError(
-                    "WORKER_MISSING_CAPABILITIES",
-                    f"Worker '{owner.name}' lacks required capabilities: {', '.join(missing)}. "
-                    f"Worker declared: {', '.join(cap_names)}. "
-                    f"Task requires: {', '.join(req_caps)}.",
-                    {"workerId": owner_id, "missingCapabilities": missing, "workerCapabilities": cap_names, "requiredCapabilities": req_caps},
-                )
+        # P11-B95 PFL-086 + P14-B10 PFL-171: verify Worker has required capabilities
+        _check_worker_capabilities(task, owner, owner_id)
     else:
         raise ConflictError(
             "INVALID_OWNER_TYPE",
@@ -343,7 +352,6 @@ async def claim_task(
 
     # 校验 Worker 存在且活跃（仅 Worker 认领时需要）
     if actor_type == ActorType.WORKER:
-        from src.models.worker import Worker
         worker = await db.get(Worker, worker_id)
         if worker is None:
             raise NotFoundError("worker", worker_id)
@@ -353,6 +361,9 @@ async def claim_task(
                 f"Worker {worker_id} is not active (status: {worker.status}). "
                 f"Activate the worker via POST /v1/workers/{worker_id}/handshake",
             )
+
+        # P14-B10 PFL-171: claim 路径 capability 校验（与 assign 路径对齐）
+        _check_worker_capabilities(task, worker, worker_id)
 
         # P12-B37 (PFL-142): 纵深防御 — 若 Project 已有角色分配，则 Worker 必须有角色。
         # Router 层 require_permission 已做校验，但 stale role record 可绕过。

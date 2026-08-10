@@ -225,7 +225,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
 | **写完即 commit（PFL-174 · B6）** | 每次代码修改完成后立即 `git commit` 作为 checkpoint。daemon 死亡时未 commit 的变更会丢失（P14-B4 B1 教训：3 文件修改因 daemon 僵死被 stale revert 清零）。commit message 以 "checkpoint:" 开头。commit 不需要等到测试通过——它是安全网，不是交付物。 |
 | **被动响应者（P11-B74 · P12-B24 强化）** | O assign 是主通道——等待 O 分配 Task 是正常流程。O 沉默判定标准（P12-B24）：每轮循环调 `GET /teams/{id}/orchestrator-status` 检查 `last_assignment_at`（非 `last_heartbeat_at`）。`last_assignment_at` > 5min 或无记录 → O 沉默 → 启用 Pull fallback。⚠️ 心跳正常 ≠ O 在工作 — zombie O（心跳但从不分配）会导致 B 无限等待 |
-| **Capability 自检（P12-B19 · P12-B24 强化）** | Pull fallback 时检查 Task 的 `required_capabilities` 是否 ⊆ 自身的 `capability_tags.names`。不匹配 → **不再静默跳过**（B23 教训：静默跳过导致 ready task 无人认领且无人知晓）→ `POST /tasks/{id}/messages` @O 报告能力缺口："Task #{id} 需要 [{caps}]，我只有 [{my_caps}]，无法认领。" 匹配 → claim 正常执行 |
+| **Capability 自检（P12-B19 · P12-B24 强化 · P14-B10 硬门禁）** | Server 侧在 claim 时**强制校验** `required_capabilities` ⊆ `capability_tags.names`（P14-B10 PFL-171）。不匹配 → API 直接返回 `409 WORKER_MISSING_CAPABILITIES` 拒绝认领。**你不需要手动检查**——Server 已做硬门禁。如果你收到此错误 → 评论区 `@Orchestrator` 报告能力缺口："Task #{id} 需要 [{caps}]，我只有 [{my_caps}]，无法认领。" 不要重复 claim。**Handshake 时务必声明完整 capability_tags**——这是 Server 校验的唯一依据。如果你声明了错误的能力（如只有 `frontend` 却认领了需要 `backend` 的 Task），Server 会直接拒绝。 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
 
@@ -473,6 +473,56 @@ submit 响应中 status 直接变为 completed 或 rejected → 无需轮询验�
 - 👤 **非 auto-verifiable Task**：submit → 评论区 @Orchestrator → 主动轮询（§6 流程不变）
 
 **你怎么知道是哪种？** Task 创建时 O 设置 `verifications[].auto_verifiable`。正常提交 evidence 即可——Server 自动判断走哪条路径。
+
+### Submit 请求体完整示例（P14-B10 PFL-169）
+
+**Submit 有两个 evidence 路径，不可混淆**：
+
+| 字段 | 类型 | 用途 | 谁读取 |
+|:-----|:-----|:-----|:-----|
+| `evidence` (顶层) | `dict` (JSON object) | 整体提交证据——`output_access` 是硬门禁，其余自由 | Server 校验 output_access · O 验收参考 |
+| `verification_results[].evidence` | `str` | **逐条 Verification 的独立证据**——每条一个字符串 | **auto-verify 引擎读取这个** · O 验收时逐条 review |
+
+> ⚠️ **PFL-169 教训**：B2 把 evidence 全部放在顶层 dict，但 auto-verify 引擎读的是 `verification_results[].evidence`。两者都需要填。
+
+**完整 submit 请求体**：
+
+```json
+POST /v1/tasks/{id}/submit
+{
+  "summary": "完成 API 端点 test coverage 补充",
+  "expected_version": 7,
+
+  "evidence": {
+    "testResults": {"passed": 23, "failed": 0},
+    "lintOutput": "0 errors, 0 warnings",
+    "output_access": {
+      "type": "git_branch",
+      "value": "https://github.com/team/repo@feature/test-coverage"
+    }
+  },
+
+  "verification_results": [
+    {
+      "verification_id": "ver_abc123",
+      "status": "passed",
+      "evidence": "pytest tests/test_api.py -v: 23 passed, 0 failed, 0 errors. Coverage: api.py 94%."
+    },
+    {
+      "verification_id": "ver_def456",
+      "status": "passed",
+      "evidence": "ruff check src/api/: 0 errors, 0 warnings. mypy src/api/: Success."
+    }
+  ]
+}
+```
+
+> **关键规则**：
+> - `evidence`（顶层）必须包含 `output_access` — 缺失 → `409 OUTPUT_ACCESS_REQUIRED`
+> - `verification_results[].evidence` 是**字符串**，不是 dict — 放逐条可验证证据
+> - 每条对应一个 Verification condition — 1:1 映射
+> - auto-verifiable Task（`expected_evidence_type: "command_output"`）的 `verification_results[].evidence` 会被 Server 自动解析判定 pass/fail
+> - **submit 前读 Schema**：`TaskSubmitRequest` 的完整字段定义在 API 文档 — 别靠记忆猜格式
 
 ---
 
