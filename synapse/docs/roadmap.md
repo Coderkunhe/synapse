@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B4 ✅ 狗粮闭环 🎉 · L5 拉通 counter=0）
+> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B6 ✅ daemon 存活性加固 · L5 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -762,6 +762,8 @@
 | **P14-B3** | **诊断加固** — Worker/Project 错误列表端点 (2 endpoints) · SKILL.md + role-builder.md 诊断查询指引 · cursor 分页 + severity/worker_id 筛选 · 4 files · 928 tests | ✅ |
 | **P14-B3.1** | **P1+P2 修复** — severity SQL 层过滤 · 复合游标 · DG-1~5 狗粮测试纪律 · commit c957b85 | ✅ |
 | **P14-B4** | **狗粮闭环 🎉** — depends_on 编辑能力全量交付 · 1O+2B 协作验证通过 · backend 3 files + frontend 4 files · 928 tests 零回归 · PFL-169~174 登记 | ✅ |
+| **P14-B5** | **Worker 启动零人工** — PFL-167 (worktree 启动基础设施) + PFL-168 (去人工断点) · generate-skill.sh 启动就绪检查清单 · SKILL.md 冷启动措辞更新 · prompts.js CronCreate 自启动 · b4-dogfood-setup.py .env 路径修复 | ✅ |
+| **P14-B6** | **daemon 存活性加固** — PFL-173 (daemon↔Claude 双向心跳) + PFL-174 (代码 commit checkpoint) · daemon-manager.js checkHeartbeatFreshness + checkUnstagedChanges · session-init.js 3 alert banners · role-builder.md commit discipline | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
