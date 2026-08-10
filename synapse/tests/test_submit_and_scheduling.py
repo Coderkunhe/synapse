@@ -133,7 +133,6 @@ async def _create_ready_claimed_task(
 # ═══════════════════════════════════════════════════════════════════
 
 
-@pytest.mark.asyncio
 class TestSubmitTask:
     async def test_submit_transitions_to_in_verification(
         self, db: AsyncSession, seeded: dict,

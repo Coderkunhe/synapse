@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B6 ✅ daemon 存活性加固 · L5 拉通 counter=0）
+> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B11 ✅ B12 狗粮就绪 · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -767,6 +767,8 @@
 | **P14-B7** | **狗粮验证 🎉** — 4/4 VC 闭环 · PFL-167/168/173/174 全量通过 · 3 Worker 零人工启动 · daemon 存活性确认 | ✅ |
 | **P14-B8** | **O SPoF 根因定位 + 短期止血** — 23 项 escalation PFL 合并至 PFL-172 · G2 级联放大止血（skip_escalation）· auto-verify 设计文档 · 3 files · 929 tests 零回归 | ✅ |
 | **P14-B9** | **Server 侧 auto-verify 实现** — PFL-172 修复 · submit 时自动验收 command_output evidence · 5 files + 5 tests · 934 tests 零回归 | ✅ |
+| **P14-B10** | **角色围栏硬化** — PFL-169 (evidence 文档化) + PFL-171 (claim capability 硬门禁) · 4 code + 2 template · +4 tests · 938 tests 零回归 | ✅ |
+| **P14-B11** | **PFL 收尾+L5 拉通+修复+B12 场景定义** — PFL-211/212 合并入 PFL-172 · L5 counter 1→0 · violations 12→0 · pytest 3 处误标修复 · B12 7 VC 场景 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
