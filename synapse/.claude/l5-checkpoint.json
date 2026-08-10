@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P14-B2→B3.1 L5 拉通完成 — B2 G1+G2 Builder 错误上报+Escalation 自动登记 · B3 诊断加固 Worker/Project 错误列表+模板诊断指引 · B3.1 P1 severity SQL层过滤+P2 复合游标(created_at,id)+DG-1~5 狗粮测试纪律 · CLAUDE.md counter 已同步 · 928 tests 零回归 · docs/pitfalls.md 已更新",
   "lastL5Timestamp": "2026-08-10",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P14-B2→B3.1 L5 拉通完成 — B2 G1+G2 Builder 错误上报+Escalation 自动登记 · B3 诊断加固 Worker/Project 错误列表+模板诊断指引 · B3.1 P1 severity SQL层过滤+P2 复合游标(created_at,id)+DG-1~5 狗粮测试纪律 · CLAUDE.md counter 已同步 · 928 tests 零回归 · docs/pitfalls.md 已更新",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
