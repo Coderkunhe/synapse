@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P14-B8 amended → L5 拉通 — 📄 pitfalls.md 33 PFL→PFL-172 合并 · 📄 escalation_service.py G2 skip_escalation 止血 · 📄 test_verification_escalation.py +1 test · 📄 docs/plans/p14-auto-verify-design.md 新建 · 📄 requirements-log.md B7+B8 补登记 · 📄 roadmap.md B7+B8 登记 · 📄 daily/2026-08-10.md B7+B8 记录 · 📄 CLAUDE.md counter 同步 · 📄 l5-checkpoint.json 复位 · 929 tests 零回归",
   "lastL5Timestamp": "2026-08-10",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P14-B8 amended → L5 拉通 — 📄 pitfalls.md 33 PFL→PFL-172 合并 · 📄 escalation_service.py G2 skip_escalation 止血 · 📄 test_verification_escalation.py +1 test · 📄 docs/plans/p14-auto-verify-design.md 新建 · 📄 requirements-log.md B7+B8 补登记 · 📄 roadmap.md B7+B8 登记 · 📄 daily/2026-08-10.md B7+B8 记录 · 📄 CLAUDE.md counter 同步 · 📄 l5-checkpoint.json 复位 · 929 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
