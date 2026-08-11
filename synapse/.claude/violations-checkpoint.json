@@ -4,6 +4,6 @@
   "totalViolations": 30,
   "recurringCount": 0,
   "unguardedCount": 1,
-  "batchesSinceLastReview": 0,
+  "batchesSinceLastReview": 2,
   "notes": "B5-B10 12 批审查完成 — 无新增违纪 · V-024 (启动自检) + V-027 (幽灵Batch) + V-029 (L5门禁绕过) 均为已知残量 · 双层防呆 (V-024+l5-gate) 持续有效 · 计数器复位"
 }

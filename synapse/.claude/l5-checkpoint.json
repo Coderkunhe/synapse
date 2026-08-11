@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B10→B11 L5 拉通 — 📄 roadmap+reqlog B10 补登记 · 📄 architecture+lessons+methodology 日期同步 B9→B10 · 📄 CLAUDE.md counter 三源对齐 · 📄 pitfalls.md PFL-211/212 合并+167/168 stale tag 去重+172 状态更新 · 📄 daily B10+B11 追加 · 938 tests 零回归",
-  "lastL5Timestamp": "2026-08-10",
+  "lastL5Batch": "P14-B11→B12 L5 拉通 — 📄 pitfalls.md 新增 PFL-229 batch API required_capabilities 遗漏 · 📄 requirements-log.md 新增 B12 狗粮交付记录 · 📄 CLAUDE.md counter 同步 2→0 · 📄 l5-checkpoint.json 复位",
+  "lastL5Timestamp": "2026-08-11",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P14-B10→B11 L5 拉通 — 📄 roadmap+reqlog B10 补登记 · 📄 architecture+lessons+methodology 日期同步 B9→B10 · 📄 CLAUDE.md counter 三源对齐 · 📄 pitfalls.md PFL-211/212 合并+167/168 stale tag 去重+172 状态更新 · 📄 daily B10+B11 追加 · 938 tests 零回归",
+  "lastL5Evidence": "P14-B11→B12 L5 拉通 — 📄 pitfalls.md 新增 PFL-229 batch API required_capabilities 遗漏 · 📄 requirements-log.md 新增 B12 狗粮交付记录 · 📄 CLAUDE.md counter 同步 2→0 · 📄 l5-checkpoint.json 复位",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
