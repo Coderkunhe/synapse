@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P14-B13 L5 拉通 — 📄 PFL-229 修复 (tasks.py +1 line + test_capability_gating.py +82 lines) · 📄 pitfalls.md 状态更新 · 📄 requirements-log.md B13 登记 · 📄 CLAUDE.md counter 同步 · 📄 l5-checkpoint.json 复位",
-  "lastL5Timestamp": "2026-08-11",
+  "lastL5Batch": "P14-B15 全量复盘+架构审查+完成度审查 · B14 VC-6 止血验证 · P14 全量闭环 🎉 · 16 批 · 7/7 VC · 939 tests · 残量 R1-R7 登记",
+  "lastL5Timestamp": "2026-08-12",
   "batchesSinceLastL5": 0,
-  "completedBatches": ["P14-B13"],
-  "lastL5Evidence": "P14-B13 ✅ PFL-229 batch API required_capabilities 修复 · 939 tests (+1) 零回归 · L5 拉通 — pitfalls + reqlog + l5-checkpoint 三源对齐",
-  "notes": "B13 = PFL-229 修复 + 回归测试 + L5 拉通 · counter 复位 1→0 · P14 B1-B13 全量闭环 ✅"
+  "completedBatches": [],
+  "lastL5Evidence": "P14-B15 全量复盘+架构审查+完成度审查 · B14 VC-6 止血验证 · P14 全量闭环 🎉 · 16 批 · 7/7 VC · 939 tests · 残量 R1-R7 登记",
+  "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-10（P12 全量闭环 🎉 · P13 B1→B13 ✅ · 全量闭环 🎉 · P100-B129 ✅ · P14-B11 ✅ B12 狗粮就绪 · L5 counter=0）
+> 最后更新：2026-08-12（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 939 tests 零回归 · L5 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -769,6 +769,10 @@
 | **P14-B9** | **Server 侧 auto-verify 实现** — PFL-172 修复 · submit 时自动验收 command_output evidence · 5 files + 5 tests · 934 tests 零回归 | ✅ |
 | **P14-B10** | **角色围栏硬化** — PFL-169 (evidence 文档化) + PFL-171 (claim capability 硬门禁) · 4 code + 2 template · +4 tests · 938 tests 零回归 | ✅ |
 | **P14-B11** | **PFL 收尾+L5 拉通+修复+B12 场景定义** — PFL-211/212 合并入 PFL-172 · L5 counter 1→0 · violations 12→0 · pytest 3 处误标修复 · B12 7 VC 场景 | ✅ |
+| **P14-B12** | **狗粮验证 🎉** — 6/7 VC 通过 · 发现 PFL-229 batch API 遗漏 required_capabilities · L5 已拉通 · VC-6 待 reaper | ✅ |
+| **P14-B13** | **PFL-229 修复 + 回归测试** — `tasks.py:276` +1 line · `test_capability_gating.py` +82 lines · 939 tests 零回归 · L5 拉通 counter=0 | ✅ |
+| **P14-B14** | **VC-6 止血验证** — reaper 周期确认 · 7 条历史 escalation 审查 · 0 条级联 · skip_escalation 三角度验证 · 0 code changes | ✅ |
+| **P14-B15** | **全量复盘+架构审查+完成度审查** — `docs/plans/p14-b15-retrospective.md` · 残量 R1-R7 登记 · P15 方向建议 · P14 全量闭环 🎉 | ✅ |
 
 ### 🗄️ P14 储备（P13 明确排除 · B13 交棒）
 
