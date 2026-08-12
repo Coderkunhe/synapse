@@ -490,3 +490,87 @@ class TestClaimCapabilityGating:
             headers=worker_headers,
         )
         assert claim_resp.status_code == 200, claim_resp.text
+
+    @pytest.mark.asyncio
+    async def test_claim_batch_rejects_worker_with_wrong_capabilities(
+        self, client: AsyncClient, seed: SeedData
+    ):
+        """P14-B13 PFL-229 回归：batch 创建的 Task 带 required_capabilities → claim_batch 校验 capability 门禁。
+
+        B12 狗粮 VC-5 发现：batch API 端点遗漏 required_capabilities 传递，
+        导致 Worker 绕过 capability 门禁成功 claim 不匹配的任务。
+        本测试通过 batch API 全链路验证修复有效。
+        """
+        headers = auth_header(seed.token)
+        slug = _uniq_slug("b13-batch-cap")
+        proj_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "B13 Batch Cap Gate", "slug": slug},
+            headers=headers,
+        )
+        assert proj_resp.status_code == 201
+        project_id = proj_resp.json()["id"]
+
+        # 注册前端 Worker（只有 frontend capability）
+        agent_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/agents",
+            json={"name": "Frontend Claimer", "provider": "claude"},
+            headers=headers,
+        )
+        assert agent_resp.status_code == 201
+        worker_id = agent_resp.json()["worker"]["id"]
+        worker_headers = auth_header(agent_resp.json()["api_key"])
+
+        await client.post(
+            f"/v1/agents/{worker_id}/handshake",
+            json={"worker_version": "1.0.0", "capabilities": ["frontend"], "preferred_channel": "websocket"},
+            headers=worker_headers,
+        )
+
+        await ensure_project_role(client, project_id, worker_id, "builder", headers)
+
+        # 创建 Batch
+        batch_resp = await client.post(
+            f"/v1/projects/{project_id}/batches",
+            json={"name": "B13 Test Batch", "description": "PFL-229 regression test"},
+            headers=headers,
+        )
+        assert batch_resp.status_code == 201
+        batch_id = batch_resp.json()["id"]
+
+        # 通过 batch API 创建 Task（要求 backend capability）
+        batch_task_resp = await client.post(
+            f"/v1/projects/{project_id}/tasks/batch",
+            json={
+                "tasks": [
+                    {
+                        "title": "Backend Task via Batch",
+                        "description": "This task requires backend capability",
+                        "priority": "p2",
+                        "batch_id": batch_id,
+                        "required_capabilities": ["backend"],
+                        "verifications": [{"type": "manual", "description": "Verify backend work"}],
+                    }
+                ]
+            },
+            headers=headers,
+        )
+        assert batch_task_resp.status_code == 201, batch_task_resp.text
+        created_tasks = batch_task_resp.json()
+        assert len(created_tasks) == 1
+        task = created_tasks[0]
+
+        # Ready the task
+        await ready_task(client, task, seed.token)
+        ready_resp = await client.get(f"/v1/tasks/{task['id']}", headers=headers)
+        assert ready_resp.status_code == 200
+
+        # 前端 Worker 尝试 claim 整个 batch → 应该被拒
+        claim_resp = await client.post(
+            f"/v1/batches/{batch_id}/claim",
+            headers=worker_headers,
+        )
+        assert claim_resp.status_code == 409, f"Expected 409, got {claim_resp.status_code}: {claim_resp.text}"
+        assert "WORKER_MISSING_CAPABILITIES" in claim_resp.text, (
+            f"Expected WORKER_MISSING_CAPABILITIES in: {claim_resp.text}"
+        )

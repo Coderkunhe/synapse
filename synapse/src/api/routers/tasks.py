@@ -273,6 +273,7 @@ async def create_tasks_batch(
             "batch_id": task_create.batch_id,
             "estimated_effort": task_create.estimated_effort,
             "tags": task_create.tags,
+            "required_capabilities": task_create.required_capabilities,
             "metadata": task_create.metadata,
             "deadline_at": task_create.deadline_at,
             "depends_on": depends_on,
