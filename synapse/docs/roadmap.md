@@ -561,6 +561,7 @@
 - **P100-B127**：**Reqlog P11+P12 归档瘦身** ✅ — ① P11 (37条) + P12 (49条) = 86 条 reqlog 归档至 archive · ② 空行 compact (1,341→1,106) · ③ 4 对重复条目检测 · 🟡 标准 · 6 files · b127-reqlog-archive.py
 - **P100-B128**：**L5 遗留治理 · 四任务闭环** ✅ — ① V-030 防呆落地（DG-6 狗粮纪律 + process-violations 🔴→🟢）· ② 违纪回顾补做（batchesSinceLastReview 25→0）· ③ roadmap.md 瘦身（825→790 · Glassmind Backlog 归档）· ④ pitfalls.md 瘦身（1254→897 · PFL-108~PFL-122 归档）· 🟡 标准 · 7 files
 - **P100-B129**：**workers.py 拆分** ✅ — ① workers.py 1403→648 行 · ② 新建 worker_info.py 768 行（状态/协议/错误上报）· ③ _parse_event_payload + _events_to_error_summaries → helpers.py · ④ check-line-count 全绿 · 🟡 标准 · 5 files · 928 tests 零回归
+- **P100-B130**：**R7 escalation 归档** ✅ — ① 24 条 escalation PFL（PFL-213~237，除 229）标题+正文 🔴→🔗 已合并至 PFL-172 · 各加「P100-B130 合并」说明行 ② 4 条 header 未同步（PFL-207~210）标题修复 ③ PFL-172 正文状态 🟡 短期止血完成 + 合并计数 43→71 · 🟢 微型 · 1 file（纯文档 · 0 code）
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
@@ -801,3 +802,8 @@
 | C2-full | 多 Worker 集成测试 Harness 全量 | P13 设计+smoke 已完成 · 全量待规模需求驱动 |
 | **D-030** | C6 版本追踪 — Worker 版本号 + CHANGELOG · 升级脚本知道"从什么版本升到什么版本" | P14-B1 明确排除 · C6 先解决零干预升级 · 版本号体系独立设计 |
 | **D-031** | C6 自动回滚 — 升级后 health check 失败→自动 git revert + 重启 | P14-B1 明确排除 · 先让手动回滚可用 · 自动触发需要独立的判定+恢复策略 |
+| **PFL-141** | Codex CLI 启动后需人工输入 prompt — 无法像 Claude Code 自主初始化 | P12 跨客户端遗留 · 🟡 待排期 · 非阻塞（Codex 非主客户端） |
+| **PFL-142** | 旧 P11 Builder Worker 越界污染 B36 dogfood | P11 遗留 · 🟡 待排期 · 已由 P14-B10 capability 门禁缓解 |
+| **PFL-130** | TaskUpdate schema 缺 depends_on 字段 — 依赖链创建后不可修改 | = C7 depends_on G1/G2 补齐 · 已在 C7 跟踪 |
+
+> 📋 PFL 未闭环清理盘点（2026-08-13 · B15 复盘后补）：24 条 escalation PFL（PFL-213~237）+ 4 条 header（PFL-207~210）+ PFL-172 正文状态 ✅ 已由 P100-B130 归档闭环。剩余 3 条 🟡 历史遗留（PFL-130/141/142）独立登记如上，不混入本批。
