@@ -4,6 +4,6 @@
   "totalViolations": 30,
   "recurringCount": 0,
   "unguardedCount": 1,
-  "batchesSinceLastReview": 2,
-  "notes": "违纪回顾完成，计数器复位"
+  "batchesSinceLastReview": 1,
+  "notes": "违纪回顾完成，计数器复位 · B133 后 L5 拉通 + amend 误 bump → 手工校准 4→1（B133 为唯一真实 batch · L5 非 batch）"
 }

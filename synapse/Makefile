@@ -230,26 +230,27 @@ setup: hooks db-init ## 首次初始化
 		echo "⏭️  .venv 已存在，跳过"; \
 	fi
 
-hooks: ## 安装 git hooks（pre-commit + commit-msg + post-commit）
-	@if [ ! -f "../.git/hooks/pre-commit" ]; then \
+hooks: ## 安装 git hooks（pre-commit + commit-msg + post-commit · 全部 symlink 防 copy 漂移）
+	@if [ ! -L "../.git/hooks/pre-commit" ]; then \
+		rm -f ../.git/hooks/pre-commit; \
 		ln -sf ../../synapse/tools/pre-commit ../.git/hooks/pre-commit && \
-		echo "✅ pre-commit hook 已安装"; \
+		echo "✅ pre-commit hook 已安装 (symlink)"; \
 	else \
-		echo "⏭️  pre-commit hook 已存在，跳过"; \
+		echo "⏭️  pre-commit hook 已就位 (symlink)，跳过"; \
 	fi
-	@if [ ! -f "../.git/hooks/commit-msg" ]; then \
-		cp tools/check-commit-prefix.sh ../.git/hooks/commit-msg && \
-		chmod +x ../.git/hooks/commit-msg && \
-		echo "✅ commit-msg hook 已安装"; \
+	@if [ ! -L "../.git/hooks/commit-msg" ]; then \
+		rm -f ../.git/hooks/commit-msg; \
+		ln -sf ../../synapse/tools/commit-msg ../.git/hooks/commit-msg && \
+		echo "✅ commit-msg hook 已安装 (symlink)"; \
 	else \
-		echo "⏭️  commit-msg hook 已存在，跳过"; \
+		echo "⏭️  commit-msg hook 已就位 (symlink)，跳过"; \
 	fi
-	@if [ ! -f "../.git/hooks/post-commit" ]; then \
-		cp tools/post-commit.sh ../.git/hooks/post-commit && \
-		chmod +x ../.git/hooks/post-commit && \
-		echo "✅ post-commit hook 已安装"; \
+	@if [ ! -L "../.git/hooks/post-commit" ]; then \
+		rm -f ../.git/hooks/post-commit; \
+		ln -sf ../../synapse/tools/post-commit.sh ../.git/hooks/post-commit && \
+		echo "✅ post-commit hook 已安装 (symlink)"; \
 	else \
-		echo "⏭️  post-commit hook 已存在，跳过"; \
+		echo "⏭️  post-commit hook 已就位 (symlink)，跳过"; \
 	fi
 
 db-init: ## 初始化数据库

@@ -51,8 +51,9 @@ if [ "$TOUCHES_SYNAPSE" -gt 0 ]; then
   if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
     IN_REBASE=true
   fi
+  # COMMIT_MSG 统一在此计算一次（L5 checkpoint + violations 两个 counter 块共用 · B134 去重）
+  COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
   if [ -f "$L5_CHECKPOINT" ] && [ "$IN_REBASE" = false ]; then
-    COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
     L5_COMMIT_MSG="$COMMIT_MSG" python3 -c "
 import json, os, re
 commit_msg = os.environ.get('L5_COMMIT_MSG', '')
@@ -90,15 +91,20 @@ if not is_l5:
   # ── S-072: Sync violations checkpoint counter ────────────
   # PI-01 fix — batchesSinceLastReview was never incremented,
   # causing check-violations.sh "≥5 batches" hard-gate to
-  # never fire.  Always increment (violations-review.sh resets
-  # it explicitly on review).
+  # never fire.  Increment on non-L5 batches only (violations-review.sh
+  # resets it explicitly on review).
+  # B134: L5 拉通非业务 batch — 对称于上方 L5 counter skip，不 bump violations counter。
+  #   否则 L5 commit + amend 会误 bump（B133 后手工校准 4→1 的根因）。
   VIOLATIONS_CHECKPOINT="$SYNAPSE_DIR/.claude/violations-checkpoint.json"
   if [ -f "$VIOLATIONS_CHECKPOINT" ] && [ "$IN_REBASE" = false ]; then
-    python3 -c "
-import json
+    V_COMMIT_MSG="$COMMIT_MSG" python3 -c "
+import json, os
+commit_msg = os.environ.get('V_COMMIT_MSG', '')
+is_l5 = any(kw in commit_msg for kw in ['L5', '拉通'])
 with open('$VIOLATIONS_CHECKPOINT') as f:
     data = json.load(f)
-data['batchesSinceLastReview'] = data.get('batchesSinceLastReview', 0) + 1
+if not is_l5:
+    data['batchesSinceLastReview'] = data.get('batchesSinceLastReview', 0) + 1
 with open('$VIOLATIONS_CHECKPOINT', 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.write('\n')
@@ -129,7 +135,6 @@ with open('$VIOLATIONS_CHECKPOINT', 'w') as f:
   # ── G-007: Fresh-eyes 契约层标记 ───────────────────────
   # 契约变更批（onboarding/protocol/schema/api）必须 fresh-eyes 复审才 close。
   # 检测 commit msg 关键词 → 写 pending marker。若 msg 自证 fresh-eyes → 清 marker。
-  COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
   FRESH_EYES_KEYWORDS="onboarding|protocol|schema|contract|契约|api\b|API\b"
   MARKER="${GIT_DIR}/synapse-pending-fresh-eyes"
 
