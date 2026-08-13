@@ -57,7 +57,7 @@ if [ "$TOUCHES_SYNAPSE" -gt 0 ]; then
     L5_COMMIT_MSG="$COMMIT_MSG" python3 -c "
 import json, os, re
 commit_msg = os.environ.get('L5_COMMIT_MSG', '')
-is_l5 = any(kw in commit_msg for kw in ['L5', '拉通'])
+is_l5 = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg)
 with open('$L5_CHECKPOINT') as f:
     data = json.load(f)
 if not is_l5:
@@ -98,9 +98,9 @@ if not is_l5:
   VIOLATIONS_CHECKPOINT="$SYNAPSE_DIR/.claude/violations-checkpoint.json"
   if [ -f "$VIOLATIONS_CHECKPOINT" ] && [ "$IN_REBASE" = false ]; then
     V_COMMIT_MSG="$COMMIT_MSG" python3 -c "
-import json, os
+import json, os, re
 commit_msg = os.environ.get('V_COMMIT_MSG', '')
-is_l5 = any(kw in commit_msg for kw in ['L5', '拉通'])
+is_l5 = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg)
 with open('$VIOLATIONS_CHECKPOINT') as f:
     data = json.load(f)
 if not is_l5:
