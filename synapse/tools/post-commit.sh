@@ -54,7 +54,7 @@ if [ "$TOUCHES_SYNAPSE" -gt 0 ]; then
   if [ -f "$L5_CHECKPOINT" ] && [ "$IN_REBASE" = false ]; then
     COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
     L5_COMMIT_MSG="$COMMIT_MSG" python3 -c "
-import json, os
+import json, os, re
 commit_msg = os.environ.get('L5_COMMIT_MSG', '')
 is_l5 = any(kw in commit_msg for kw in ['L5', '拉通'])
 with open('$L5_CHECKPOINT') as f:
@@ -65,6 +65,21 @@ if not is_l5:
 with open('$L5_CHECKPOINT', 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.write('\n')
+# B133 (P12-3 脚本化): sync CLAUDE.md counter — post-commit bumped the checkpoint
+# but left CLAUDE.md header `counter=N` + status `batchesSinceLastL5=N` one behind,
+# causing the pre-commit 三源校验 (check-l5-consistency --critical-only) to drift/block.
+# Now they move together. L5 commit (is_l5) skips both — it IS the reset point.
+if not is_l5:
+    new_count = data.get('batchesSinceLastL5', 0)
+    claude_md = '$SYNAPSE_DIR/CLAUDE.md'
+    if os.path.exists(claude_md):
+        with open(claude_md) as f:
+            content = f.read()
+        updated = re.sub(r'batchesSinceLastL5=[0-9]+', f'batchesSinceLastL5={new_count}', content)
+        updated = re.sub(r'counter=[0-9]+', f'counter={new_count}', updated)
+        if updated != content:
+            with open(claude_md, 'w') as f:
+                f.write(updated)
 " 2>/dev/null || true
     L5_COUNT=$(python3 -c "import json; print(json.load(open('$L5_CHECKPOINT')).get('batchesSinceLastL5', 0))" 2>/dev/null || echo "?")
     printf "║  L5 累积: %-48s ║\n" "${L5_COUNT}/2"

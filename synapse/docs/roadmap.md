@@ -564,6 +564,7 @@
 - **P100-B130**：**R7 escalation 归档** ✅ — ① 24 条 escalation PFL（PFL-213~237，除 229）标题+正文 🔴→🔗 已合并至 PFL-172 · 各加「P100-B130 合并」说明行 ② 4 条 header 未同步（PFL-207~210）标题修复 ③ PFL-172 正文状态 🟡 短期止血完成 + 合并计数 43→71 · 🟢 微型 · 1 file（纯文档 · 0 code）
 - **P100-B131**：**文档结构修复** ✅ — ① PFL-128 正文归位（正文从文件末尾 PFL-153 之后漂移段移回标题下方）· ② 归档表格残留去重（PFL-147~152 + PFL-158 旧表格 → archive）· ③ 头部幽灵 AP 计数修正（113 PFL + 1 AP → 114 PFL）· 🟢 微型 · 2 files（纯文档 · 0 code）
 - **P100-B132**：**数据卫生** ✅ — ① DB 清理 26 非终态 task + 39 非 system worker + 关联记录（幂等脚本 tools/cleanup-dogfood-residue.py · 保留 161 completed/cancelled/rejected + system worker）· ② violations 回顾（B12~B15 + B130~B131 无新增违纪 · 30/30 🟢 · counter 复位）· ③ 发现运行中 server 自动登记 escalation PFL（引用已删 task）→ 停止 server + revert · 🟡 标准 · 1 新脚本 + 3 文档（0 src code）
+- **P100-B133**：**治理批（hook counter 同步 + stray files 清理）** ✅ — ① post-commit.sh 同步 CLAUDE.md counter（bump checkpoint 后同步 header counter=N + status batchesSinceLastL5=N · P12-3 脚本化 · 消除三源漂移）· ② stray files 清理（删除 0 字节 synapse/git + 4 个 session-init.js 运行时产物 · .gitignore 加 _boot-prompt.md/_task-current.md/_last-session-init.txt）· 🟢 微型 · 3 files（1 脚本 + 1 .gitignore + 1 doc）
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

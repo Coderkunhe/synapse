@@ -30,3 +30,9 @@ data/*.db-shm
 # OS
 .DS_Store
 Thumbs.db
+
+# Worker-client session artifacts (session-init.js 运行时生成 · P100-B133 治理)
+# 模板源在 docs/templates/synapse-client/（已入库）；这些是运行时产物，不入库
+_boot-prompt.md
+_task-current.md
+_last-session-init.txt
