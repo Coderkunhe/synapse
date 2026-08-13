@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-13（P14-B15 ✅ · P14 全量闭环 🎉 · 16 批 · 7/7 VC · 939 tests · P100-B130 ✅ + B131 ✅ + B132 ✅ · B133 治理批 · L5 拉通 counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-13（P14-B15 ✅ · P14 全量闭环 🎉 · 16 批 · 7/7 VC · 939 tests · P100-B130 ✅ + B131 ✅ + B132 ✅ + B133 ✅ · L5 B132→B133 拉通 · counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -113,18 +113,18 @@ synapse/
 | ✅ | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
 | 🛡️ | **P100**（治理轨道 · 常开）| **B133 ✅** · post-commit hook counter 同步 + stray files 清理 | — 🟢 常开（按需启动）|
-| **L5** | batchesSinceLastL5=1（P100-B130→B131 L5 拉通 · B132+B133 累积）|
+| **L5** | batchesSinceLastL5=0（B132→B133 L5 拉通 · counter 复位）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 
 > 2026-08-09 完成。目标：将 L5 五关检查的警告清零或归档接受。
 
-**最终状态**: 0 errors · 34 warnings（全部已知残量 · 已接受）
+**最终状态**: 0 errors · 33 warnings（全部已知残量 · 已接受）
 
 | Gate | 残量 | 根因 | 处置 |
 |:-----|:-----|:-----|:-----|
 | Gate 1 | 3 warnings (B42/B57/B85) | roadmap 有但 reqlog 缺失 — 这三个批次在 L5 体系建设前完成，原始变更已不可追溯 | **接受** — 不影响当前活跃工作 |
-| Gate 2 | 31 warnings (30 B100 + 1 P13) | reqlog 考古补登条目 — B124 将 22 条 roadmap→reqlog 补登 + B17-B84 等批次原有 reqlog 章节均无独立 git commit | **接受** — 考古条目，原始 commit message 格式不统一导致 checker 无法关联 |
+| Gate 2 | 30 warnings (30 B100) | reqlog 考古补登条目 — B124 将 22 条 roadmap→reqlog 补登 + B17-B84 等批次原有 reqlog 章节均无独立 git commit（原 31 条含 1 P13，B132 后已消解） | **接受** — 考古条目，原始 commit message 格式不统一导致 checker 无法关联 |
 | Gate 3 | 0 ✅ | B125 same-day tolerance 修复后清零 | — |
 | Gate 4 | 0 ✅ | B125 counter 同步后四源对齐 | — |
 | Gate 5 | 0 ✅ | CLAUDE.md ↔ roadmap 对应完整 | — |
