@@ -97,8 +97,6 @@ class Settings(BaseSettings):
     cookie_secure: bool = True  # True when not in debug mode
 
     # Server
-    host: str = "0.0.0.0"
-    port: int = 8000
     debug: bool = True
 
     # Continuity detection

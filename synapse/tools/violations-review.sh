@@ -44,13 +44,13 @@ if [ ! -f "$VIOLATIONS_FILE" ]; then
   exit 1
 fi
 
-# ── Parse current stats ───────────────────────────────────────────
-TOTAL=$(grep -c '^| V-... |.*| [0-9] |' "$VIOLATIONS_FILE" 2>/dev/null || echo "0")
-RECURRING=$(grep -c '| 🔴 |' "$VIOLATIONS_FILE" 2>/dev/null || true)
-GUARDED=$(grep '^| V-... |.*| ✅' "$VIOLATIONS_FILE" 2>/dev/null | wc -l | tr -d ' ')
-NO_MARKER=$(grep '^| V-... |.*| [0-9] |' "$VIOLATIONS_FILE" 2>/dev/null | grep -v '✅\|⚠️' | wc -l | tr -d ' ')
-UNGUARDED=$(grep '^| V-... |.*| ⚠️' "$VIOLATIONS_FILE" 2>/dev/null | wc -l | tr -d ' ')
-UNGUARDED=$((UNGUARDED + NO_MARKER))
+# ── Parse current stats (index section only · P100-B142 对齐 check-violations.sh) ──
+# 只截「### 违纪索引」~「> 统计」区间，避免「防呆可行性评估」表误匹配（曾致 已防呆 43 vs 27）
+INDEX_SECTION=$(sed -n '/^### 违纪索引/,/^> 统计/p' "$VIOLATIONS_FILE" 2>/dev/null || echo "")
+TOTAL=$(echo "$INDEX_SECTION" | grep -cE '^\| V-... \| ' 2>/dev/null || echo "0")
+RECURRING=$(echo "$INDEX_SECTION" | grep -cE '^\| V-... \|.*\|.*\| 🔴 \|' 2>/dev/null || true)
+GUARDED=$(echo "$INDEX_SECTION" | grep -E '^\| V-... \|.*\| ✅' 2>/dev/null | wc -l | tr -d ' ')
+UNGUARDED=$((TOTAL - GUARDED))
 
 echo ""
 echo "=== 违纪回顾复位 ==="
