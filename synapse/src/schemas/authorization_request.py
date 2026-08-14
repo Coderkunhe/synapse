@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.schemas.common import AuditFields
 
@@ -106,6 +106,15 @@ class AuthorizationRequestResponse(AuditFields):
     responded_by_worker_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("expires_at", "last_heartbeat_at", "responded_at", mode="after")
+    @classmethod
+    def _ensure_timezone_aware(cls, v: datetime | None) -> datetime | None:
+        """SQLite 存 naive datetime（DateTime(timezone=True) 在 SQLite 是 no-op）——
+        序列化前补 UTC 时区，否则前端 new Date() 按本地(GMT+8)解读早 8h 误判过期。"""
+        if v is not None and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 # ═════════════════════════════════════════════════════════════════════════

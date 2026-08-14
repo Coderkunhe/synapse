@@ -80,7 +80,7 @@ class AuthorizationRequest(Base, AuditMixin):
         comment="响应此请求的人类 Worker ID",
     )
     responded_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True,
+        DateTime(timezone=True), nullable=True,
         comment="响应时间",
     )
     response_note: Mapped[str | None] = mapped_column(
@@ -112,11 +112,11 @@ class AuthorizationRequest(Base, AuditMixin):
 
     # ── 存活保证 ──
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False,
+        DateTime(timezone=True), nullable=False,
         comment="过期时间 — 默认创建后 1 小时，Worker 可通过心跳续期",
     )
     last_heartbeat_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow,
+        DateTime(timezone=True), nullable=False, default=_utcnow,
         comment="最后一次心跳时间",
     )
 

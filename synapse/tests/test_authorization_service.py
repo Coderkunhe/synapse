@@ -28,6 +28,7 @@ from src.exceptions import (
 )
 from src.models.authorization_request import AuthorizationRequest
 from src.models.worker import Worker
+from src.schemas.authorization_request import AuthorizationRequestResponse
 from src.services.authorization_service import (
     cancel_worker_requests,
     create_authorization_request,
@@ -733,3 +734,77 @@ class TestQueryHelpers:
         """不存在的请求 → NotFoundError."""
         with pytest.raises(NotFoundError):
             await get_request(db_session, "areq_nonexistent")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P100-B137: 时区序列化 round-trip（VDD 先红后绿）
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestTimezoneRoundtrip:
+    """expires_at / last_heartbeat_at / responded_at 序列化时补 UTC 时区。
+
+    根因（P100-B106 盲区）：AuthorizationRequest 的这些列是 naive
+    DateTime。SQLite 无原生时区类型，DateTime(timezone=True) 在 SQLite 是
+    no-op（存储同 naive 字符串），aware datetime 写入后 round-trip 剥离
+    tzinfo → Pydantic 序列化无偏移 → 前端 new Date() 按本地(GMT+8) 解读
+    早 8h 误判过期。修复在序列化层：schema field_validator 补 UTC。
+    """
+
+    async def test_expires_at_serializes_with_timezone(
+        self, db_session, test_project, test_worker, actor_info
+    ):
+        """expires_at / last_heartbeat_at 经 model_validate 序列化后 timezone-aware."""
+        record = await create_authorization_request(
+            db_session,
+            project_id=test_project,
+            worker_id=test_worker,
+            request_type="api_auth",
+            operation="task.assign",
+            **actor_info,
+        )
+        await db_session.commit()
+
+        # 模拟前端 GET：用独立 session 从 DB 重新读取（绕过身份映射缓存）
+        async with async_session_factory() as fresh_session:
+            fresh = await fresh_session.get(AuthorizationRequest, record.id)
+            response = AuthorizationRequestResponse.model_validate(fresh)
+
+            assert response.expires_at.tzinfo is not None, (
+                "expires_at 序列化后仍 naive → 前端 new Date() 早 8h 误判过期"
+            )
+            assert response.last_heartbeat_at.tzinfo is not None, (
+                "last_heartbeat_at 序列化后仍 naive"
+            )
+
+    async def test_responded_at_serializes_with_timezone(
+        self, db_session, test_project, test_worker, actor_info
+    ):
+        """responded_at 经 model_validate 序列化后 timezone-aware."""
+        record = await create_authorization_request(
+            db_session,
+            project_id=test_project,
+            worker_id=test_worker,
+            request_type="api_auth",
+            operation="task.assign",
+            **actor_info,
+        )
+        await db_session.commit()
+
+        await respond_to_request(
+            db_session,
+            request_id=record.id,
+            responder_worker_id=actor_info["actor_id"],
+            status="approved",
+            **actor_info,
+        )
+        await db_session.commit()
+
+        # 独立 session 重读（绕过身份映射缓存）
+        async with async_session_factory() as fresh_session:
+            fresh = await fresh_session.get(AuthorizationRequest, record.id)
+            response = AuthorizationRequestResponse.model_validate(fresh)
+
+            assert response.responded_at.tzinfo is not None, (
+                "responded_at 序列化后仍 naive"
+            )

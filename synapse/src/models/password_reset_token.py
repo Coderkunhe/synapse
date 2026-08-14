@@ -26,7 +26,7 @@ class PasswordResetToken(Base, AuditMixin):
         comment="SHA-256 hex digest of the plaintext reset token",
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False,
+        DateTime(timezone=True), nullable=False,
         comment="Token expires 1 hour after creation",
     )
     used_at: Mapped[datetime | None] = mapped_column(
