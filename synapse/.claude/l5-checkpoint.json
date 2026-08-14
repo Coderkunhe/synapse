@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B132→B133 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B132 数据卫生 + B133 治理批）· 📚 数据卫生→治理批叙事链连贯 · 🎭 纯文档治理批跳过场景遍历 · Gate 1-5 0 错误 33 已知残量",
-  "lastL5Timestamp": "2026-08-13",
+  "lastL5Batch": "B134→B135 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B134 hook symlink + B135 is_l5 word-boundary）· 📚 治理批叙事链连贯（hook 漂移→symlink→word-boundary 收紧）· 🎭 纯脚本治理批跳过场景遍历 · Gate 1-5 0 错误 35 已知残量",
+  "lastL5Timestamp": "2026-08-14",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B132→B133 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B132 数据卫生 + B133 治理批）· 📚 数据卫生→治理批叙事链连贯 · 🎭 纯文档治理批跳过场景遍历 · Gate 1-5 0 错误 33 已知残量",
+  "lastL5Evidence": "B134→B135 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B134 hook symlink + B135 is_l5 word-boundary）· 📚 治理批叙事链连贯（hook 漂移→symlink→word-boundary 收紧）· 🎭 纯脚本治理批跳过场景遍历 · Gate 1-5 0 错误 35 已知残量",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
