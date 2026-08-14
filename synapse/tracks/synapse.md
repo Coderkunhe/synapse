@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P13 B1→B13 ✅ · 全量闭环 🎉 · P14 候选池已建
-last_batch: P13-B13
+phase: P14 B0→B15 ✅ · 全量闭环 🎉 · P100 治理轨道常开
+last_batch: P14-B15
 next_batch: —
-description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 候选池: docs/plans/p14-candidate-pool.md
+description: Synapse 主项目 — P14 从平台建造到平台使用 · B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · P100 治理轨道常开
 ---
 
 # Synapse 轨道
@@ -14,10 +14,11 @@ description: Synapse 主项目 — P13 基础设施可信度加固 · B1→B13 �
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B138 | — | 治理轨道（常开）· B138 ✅ 善后清理（--no-verify 全量 + 狗粮残留 + stray） |
+| **P100** | P100-B139 | — | 治理轨道（常开）· B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
-| **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 交棒完成 |
+| **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
+| **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 
 ## P11 路线图：多 Agent 接入战
 

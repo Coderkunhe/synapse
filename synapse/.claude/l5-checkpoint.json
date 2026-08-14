@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B136→B137 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B136 venv shebang 防呆 + B137 时区序列化修复）· 📚 治理批叙事链连贯（hook symlink→word-boundary→venv shebang→首个 src/ 时区修复）· 🎭 场景遍历: 2 timezone tests 通过（authorization_request round-trip tzinfo 非 None）· Gate 1-5 0 错误 33 已知残量",
   "lastL5Timestamp": "2026-08-14",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B136→B137 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B136 venv shebang 防呆 + B137 时区序列化修复）· 📚 治理批叙事链连贯（hook symlink→word-boundary→venv shebang→首个 src/ 时区修复）· 🎭 场景遍历: 2 timezone tests 通过（authorization_request round-trip tzinfo 非 None）· Gate 1-5 0 错误 33 已知残量",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

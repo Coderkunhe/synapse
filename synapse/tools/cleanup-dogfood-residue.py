@@ -13,10 +13,13 @@ b4-dogfood-teardown.sh step 6）。
   - completed / cancelled / rejected task（历史证据，不删不改）
   - id='system' 的 system actor worker（应用运行时依赖：auto-verify /
     escalation / authorization 使用 actor_id="system"）
+  - --keep-worker 指定的 worker（按 id 或 name 匹配 · 如 human admin worker Hunter，避免误删真人账号）
 
 用法：
   python3 tools/cleanup-dogfood-residue.py           # dry-run，仅预览
   python3 tools/cleanup-dogfood-residue.py --yes     # 执行（单事务提交）
+  python3 tools/cleanup-dogfood-residue.py --keep-worker <id-or-name> [--keep-worker <id-or-name> ...]
+                                                      # 白名单：保留指定 worker（及其关联数据）
 
 前置：先备份 DB（本脚本不自带备份，避免误删后无法回滚）：
   sqlite3 data/synapse.db ".backup 'data/backups/synapse-$(date +%F)-before-cleanup.db'"
@@ -54,20 +57,30 @@ def snapshot(conn) -> dict:
     }
 
 
-def cleanup(conn, dry_run: bool):
+def cleanup(conn, dry_run: bool, keep_workers: set[str] | None = None):
     # ── 目标 id ──────────────────────────────────────────────
+    keep_workers = keep_workers or set()
     task_ids = [
         r[0]
         for r in conn.execute(
             f"SELECT id FROM task WHERE status IN {NON_TERMINAL}"
         ).fetchall()
     ]
-    worker_ids = [
-        r[0]
-        for r in conn.execute(
+    # --keep-worker 白名单按 id 或 name 匹配（如 `Hunter` 是 name，非 id）
+    keep_list = sorted(keep_workers)
+    if keep_list:
+        keep_clause = ",".join("?" * len(keep_list))
+        keep_params = tuple(keep_list) + tuple(keep_list)  # id + name 两处
+        worker_rows = conn.execute(
+            f"SELECT id FROM worker WHERE id != 'system' "
+            f"AND id NOT IN ({keep_clause}) AND name NOT IN ({keep_clause})",
+            keep_params,
+        ).fetchall()
+    else:
+        worker_rows = conn.execute(
             "SELECT id FROM worker WHERE id != 'system'"
         ).fetchall()
-    ]
+    worker_ids = [r[0] for r in worker_rows]
 
     task_ph = ",".join("?" * len(task_ids)) if task_ids else "NULL"
     worker_ph = ",".join("?" * len(worker_ids)) if worker_ids else "NULL"
@@ -77,6 +90,9 @@ def cleanup(conn, dry_run: bool):
     # 报告目标规模
     print(f"  非终态 task: {len(task_ids)} 条")
     print(f"  非 system worker: {len(worker_ids)} 条")
+    if keep_workers:
+        kept = sorted(keep_workers)
+        print(f"  --keep-worker 白名单保留: {len(kept)} 条 ({', '.join(kept)})")
     if not task_ids and not worker_ids:
         print("  （无残留，无需清理）")
         return
@@ -156,10 +172,21 @@ def cleanup(conn, dry_run: bool):
 
 
 def main():
-    dry_run = "--yes" not in sys.argv
-    if "--help" in sys.argv or "-h" in sys.argv:
+    args = sys.argv[1:]
+    dry_run = "--yes" not in args
+    if "--help" in args or "-h" in args:
         print(__doc__)
         return
+
+    # 解析 --keep-worker <id>（可重复）白名单
+    keep_workers: set[str] = set()
+    i = 0
+    while i < len(args):
+        if args[i] == "--keep-worker" and i + 1 < len(args):
+            keep_workers.add(args[i + 1])
+            i += 2
+            continue
+        i += 1
 
     if not DB_PATH.exists():
         print(f"❌ DB 不存在: {DB_PATH}")
@@ -173,7 +200,7 @@ def main():
     for k, v in before.items():
         print(f"  {k}: {v}")
 
-    cleanup(conn, dry_run)
+    cleanup(conn, dry_run, keep_workers=keep_workers)
 
     if not dry_run:
         after = snapshot(conn)
