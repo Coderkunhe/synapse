@@ -1,4 +1,4 @@
-.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution check-l5-consistency test-js setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
+.PHONY: help check check-all check-docs check-batch-numbers check-lessons check-comments check-tests check-types check-line-count check-contracts check-violations check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-hooks check-frontend check-template-drift check-env-pollution check-venv check-l5-consistency test-js setup hooks db-init db-sync contracts-baseline dogfood-on dogfood-off
 
 # ─── Synapse Makefile ──────────────────────────────────────
 # 精简版 — 只包含本项目适用的 target。
@@ -56,7 +56,7 @@ help: ## 显示所有可用 target
 	@echo "    make db-sync     从 DB 导出 Batch 状态到 docs/batch-status.md"
 	@echo ""
 
-check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-env-consistency check-env-pollution check-batch-sequence check-quality-gate check-checkpoint-freshness check-template-drift check-db-migration check-types check-tests ## 完整门禁
+check: check-hooks check-docs check-batch-numbers check-lessons check-comments check-line-count check-contracts check-phase check-violations check-shared-modules check-schema-audit check-discussions check-plan-mode check-fresh-eyes check-gate-tests check-doc-curl check-db-consistency check-agent-worker-consistency check-issue-numbers check-role-isolation check-env-consistency check-env-pollution check-venv check-batch-sequence check-quality-gate check-checkpoint-freshness check-template-drift check-db-migration check-types check-tests ## 完整门禁
 	@echo ""
 	@echo "✅ 门禁全部通过"
 
@@ -174,6 +174,9 @@ check-env-pollution: ## Shell 环境变量污染检测（ENV-1 · P12-B26 · 警
 		echo "   → 建议: make check-env-pollution ARGS='--fix' 清理或 bash tools/check-env-pollution.sh --fix"; \
 	fi; \
 	exit 0
+
+check-venv: ## venv shebang 一致性防呆（P100-B136 · PFL-239 · 警告级）
+	@bash tools/check-venv.sh
 
 check-hooks: ## Git hooks 完整性检测（V-028 防呆 — 新 clone/迁库后首次 make check 即可发现）
 	@bash tools/check-hooks.sh
