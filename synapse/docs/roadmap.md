@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-14（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 941 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · L5 B138→B139 拉通 counter=0）
+> 最后更新：2026-08-14（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · L5 B138→B139 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -571,6 +571,7 @@
 - **P100-B137**：**治理批（时区序列化修复 · 首个触 src/ 的 P100 批）** ✅ — ① AuthorizationRequest expires_at/last_heartbeat_at/responded_at + refresh_token/password_reset_token expires_at → DateTime(timezone=True) 对齐 TimestampMixin ② schema field_validator 序列化补 UTC（SQLite 无原生时区 → timezone=True 是 no-op · 真修在序列化层）· 消除「前端 new Date() 早 8h 误判过期禁用批准按钮」· 🟡 标准 · 5 files（3 model + 1 schema + 1 test）· 941 tests 零回归
 - **P100-B138**：**善后清理（0 code · DG-3）** ✅ — ① --no-verify 全量提交（capabilities.yaml 三 git push 命令 git_push_main/branch/force 全补 --no-verify · 消除 pre-push hook 死循环 Bug 2 · 补 B136 修复只覆盖 git_push_main 的盲区）· ② 停 server + 清理狗粮残留（push-worker ag_019ffe1b + capability + builder 角色 + 2 审批请求 + Hunter admin 角色 · 保留 Hunter worker 本体 · targeted SQL 非全量脚本）· ③ revert pitfalls.md 服务器自动登记 escalation PFL-240~245（引用 ghost task）· ④ 删 0 字节 stray synapse.db（B133 漏）· 🟢 微型 · 2 files（1 配置 + 1 audit log）· 0 code
 - **P100-B139**：**治理批（escalation PFL 自动登记根因 + 脚本白名单 + tracks 刷新）** ✅ — ① escalation detector 运行期自动写 PFL 根因：.env 加 PFL_AUTO_CREATE_ENABLED=false 止血 + PFL-240 登记（三层根因）· src/config.py:130 默认值 True→False 登记为 VDD 待办（交 Builder）· ② cleanup-dogfood-residue.py 加 --keep-worker 白名单（防误删 human worker）· ③ tracks/synapse.md frontmatter P13→P14 全量闭环 + 指针表补 P14 行 · 🟡 标准 · 6 files（1 pitfalls + 1 roadmap + 1 reqlog + 1 daily + 1 script + 1 track）
+- **P100-B140**：**PFL-240 根治（escalation 运行期不再写治理文档 · 触 src/）** ✅ — ① src/config.py:130 `pfl_auto_create_enabled` 默认 True→False（PFL 自动登记改 opt-in）· ② escalation_service.py 移除 `_maybe_auto_create_pfl_and_task()`（`create_pitfall` 写 pitfalls.md + auto tracking Task）—— escalation 只记 event + @Human/WS push · ③ +1 test（escalation 不调 create_pitfall）+ config 默认值断言 · ④ PFL-240 状态 🔴→🟢 · 🟡 标准 · 2 src + 1 test + 3 doc · 942 tests 零回归
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

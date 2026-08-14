@@ -127,7 +127,7 @@ class Settings(BaseSettings):
     verification_escalation_cooldown_minutes: int = 30  # 同任务不重复升级的最小间隔
 
     # P14-B2 G2: PFL auto-creation from escalations
-    pfl_auto_create_enabled: bool = True  # escalation 时自动创建 PFL + tracking Task
+    pfl_auto_create_enabled: bool = False  # PFL-240: 自动登记改 opt-in · 运行期 daemon 不默认写治理文档
     pfl_auto_create_cooldown_minutes: int = 60  # 同 escalation 不重复创建 PFL
 
     # O SLA metrics (P13-B12 · C11)

@@ -118,6 +118,7 @@ class TestVerificationEscalation:
         assert hasattr(settings, "verification_escalation_cooldown_minutes")
         assert settings.verification_escalation_minutes == 10
         assert settings.verification_escalation_cooldown_minutes == 30
+        assert settings.pfl_auto_create_enabled is False  # PFL-240: 自动登记改 opt-in
 
 
 # ── P13-B9 新增: 实际 escalation 触发路径 ─────────────────────────────
@@ -199,6 +200,68 @@ class TestEscalationActualTrigger:
             import json as _json
             payload = _json.loads(events[0].payload) if isinstance(events[0].payload, str) else events[0].payload
             assert payload["reason"] == "orchestrator_sla_timeout"
+
+    @pytest.mark.asyncio
+    async def test_escalation_does_not_auto_create_pfl(
+        self, client: AsyncClient, seed: SeedData, monkeypatch,
+    ):
+        """PFL-240: escalation 运行期不再以副作用写治理文档（create_pitfall）。"""
+        from src.services import pitfall_service
+
+        created = []
+        monkeypatch.setattr(
+            pitfall_service,
+            "create_pitfall",
+            lambda **kw: created.append(kw) or "PFL-STUB",
+        )
+
+        headers = auth_header(seed.token)
+        proj_resp = await client.post(
+            f"/v1/teams/{seed.team_id}/projects",
+            json={"name": "Esc NoAutoPFL", "slug": _uniq_slug("escna")},
+            headers=headers,
+        )
+        assert proj_resp.status_code == 201, proj_resp.text
+        pid = proj_resp.json()["id"]
+
+        task_resp = await client.post(
+            f"/v1/projects/{pid}/tasks",
+            json={
+                "title": "No auto PFL escalation test",
+                "description": "Escalation should fire but not write a PFL",
+                "priority": "p2",
+                "verifications": [
+                    {"type": "manual", "description": "Check output", "criteria": {"format": "json"}}
+                ],
+            },
+            headers=headers,
+        )
+        assert task_resp.status_code == 201, task_resp.text
+        tid = task_resp.json()["id"]
+
+        from src.db import async_session_factory
+        from src.constants import TaskStatus
+
+        async with async_session_factory() as db:
+            from src.models.task import Task
+            task = await db.get(Task, tid)
+            assert task is not None
+            task.status = TaskStatus.IN_VERIFICATION
+            tt = TimeTravel(db)
+            await tt.advance_updated_at(tid, minutes=15)
+            await db.commit()
+
+        async with async_session_factory() as db:
+            from src.services.escalation_service import detect_stale_verifications_escalation
+            result = await detect_stale_verifications_escalation(
+                db, escalation_minutes=10, revert_minutes=120,
+            )
+            await db.commit()
+            assert result["escalated_count"] == 1  # escalation 仍触发
+            assert tid in result["escalated_task_ids"]
+
+        # PFL-240 核心断言：运行期不再写治理文档
+        assert created == [], "escalation 不应再调用 create_pitfall 写治理文档"
 
     @pytest.mark.asyncio
     async def test_escalation_cooldown_prevents_duplicates(
