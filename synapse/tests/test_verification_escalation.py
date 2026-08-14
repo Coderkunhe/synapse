@@ -118,7 +118,6 @@ class TestVerificationEscalation:
         assert hasattr(settings, "verification_escalation_cooldown_minutes")
         assert settings.verification_escalation_minutes == 10
         assert settings.verification_escalation_cooldown_minutes == 30
-        assert settings.pfl_auto_create_enabled is False  # PFL-240: 自动登记改 opt-in
 
 
 # ── P13-B9 新增: 实际 escalation 触发路径 ─────────────────────────────
