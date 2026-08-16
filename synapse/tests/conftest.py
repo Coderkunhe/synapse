@@ -138,7 +138,7 @@ async def seed(client) -> AsyncGenerator[SeedData, None]:
             user_id=None,  # P100-B106: FK PRAGMA 启用后 user_id 必须指向存在的 User；测试中无 User 记录故设为 None
             actor_type=WorkerActorType.HUMAN,
             status=WorkerStatus.ACTIVE,
-            api_key_hash="",  # human workers use JWT, not API keys; TODO: make NULLABLE
+            api_key_hash=None,  # human workers use JWT, not API keys (nullable since P10-B8)
         )
         session.add_all([team, member, worker])
         await session.commit()

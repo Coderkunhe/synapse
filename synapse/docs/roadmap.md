@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-14（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · P100-B141 ✅ 孤儿 config 清理 · P100-B142 ✅ 死配置+stray清理+脚本修正 · L5 B140→B141 拉通 counter=0）
+> 最后更新：2026-08-16（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · P100-B141 ✅ 孤儿 config 清理 · P100-B142 ✅ 死配置+stray清理+脚本修正 · P100-B143 ✅ api_key_hash stale 注释清理 · L5 B140→B141 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -574,6 +574,7 @@
 - **P100-B140**：**PFL-240 根治（escalation 运行期不再写治理文档 · 触 src/）** ✅ — ① src/config.py:130 `pfl_auto_create_enabled` 默认 True→False（PFL 自动登记改 opt-in）· ② escalation_service.py 移除 `_maybe_auto_create_pfl_and_task()`（`create_pitfall` 写 pitfalls.md + auto tracking Task）—— escalation 只记 event + @Human/WS push · ③ +1 test（escalation 不调 create_pitfall）+ config 默认值断言 · ④ PFL-240 状态 🔴→🟢 · 🟡 标准 · 2 src + 1 test + 3 doc · 942 tests 零回归
 - **P100-B141**：**PFL-auto-create 孤儿 config 清理（死字段移除）** ✅ — B140 移除 `_maybe_auto_create_pfl_and_task()` 后，`pfl_auto_create_enabled` + `pfl_auto_create_cooldown_minutes` 两字段失去唯一消费方 → 一并删除（含 P14-B2 G2 段注释）· test 移除 `pfl_auto_create_enabled is False` 断言 · .env 删 stale `PFL_AUTO_CREATE_ENABLED`（本地 gitignored）· 🟢 微型 · 1 src + 1 test · 942 tests 零回归
 - **P100-B142**：**死配置 + stray 清理 + 脚本修正（3 项 · 0 业务风险）** ✅ — ① 删 src/config.py `host`/`port` 死配置（全仓 0 引用 · `debug` 仍被 db.py/auth.py 消费）② 删 synapse/test.db 0 字节 stray（8月10 遗留 · gitignored）③ tools/violations-review.sh grep 过宽修正（对齐 check-violations.sh index-section 范围 · 已防呆 43→27 · unguardedCount 1→3）· 🟢 微型 · 1 src + 1 脚本 + 1 stray 删除 · 942 tests 零回归
+- **P100-B143**：**conftest api_key_hash stale 注释清理（确认 P10-B8 已完成 nullable）** ✅ — 澄清「api_key_hash NULLABLE」账上待办实为 P10-B8 已完成（迁移 019f6ec74577 + 模型 worker.py:51 nullable=True + DB notnull:0）· 清理 conftest.py:141 过时 `TODO: make NULLABLE` 注释 + `""`→`None` 对齐生产 auth_service.py 模式 · 🟢 微型 · 1 test · 942 tests 零回归
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

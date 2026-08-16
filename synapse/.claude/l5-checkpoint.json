@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B140→B141 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B140 PFL-240 根治 + B141 孤儿 config 清理）· 📚 治理轨叙事链连贯（escalation 解耦→死字段清理）· 🎭 场景遍历: 942 tests 零回归",
   "lastL5Timestamp": "2026-08-14",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B140→B141 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B140 PFL-240 根治 + B141 孤儿 config 清理）· 📚 治理轨叙事链连贯（escalation 解耦→死字段清理）· 🎭 场景遍历: 942 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
