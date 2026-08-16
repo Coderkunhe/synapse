@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-16（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · P100-B141 ✅ 孤儿 config 清理 · P100-B142 ✅ 死配置+stray清理+脚本修正 · P100-B143 ✅ api_key_hash stale 注释清理 · L5 B140→B141 拉通 counter=0）
+> 最后更新：2026-08-16（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · P100-B141 ✅ 孤儿 config 清理 · P100-B142 ✅ 死配置+stray清理+脚本修正 · P100-B143 ✅ api_key_hash stale 注释清理 · L5 B142→B143 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
