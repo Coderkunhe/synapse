@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-17（P15 全量闭环 🎉 · 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 交付 Snippet Vault · P14 全量闭环 🎉 · P100-B147 ✅ · counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-17（P15 全量闭环 🎉 · 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 交付 Snippet Vault · P14 全量闭环 🎉 · P100-B147 ✅ · L5 B146→B147 拉通 · counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -114,7 +114,7 @@ synapse/
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B147 ✅** · pre-commit 死变量 HOOK_DIR + stale cp 安装注释清理（0 src code · 纯工具/门禁） | B148（无固定候选）|
-| **L5** | batchesSinceLastL5=1（B144→B145 L5 拉通 · counter 复位）|
+| **L5** | batchesSinceLastL5=0（B146→B147 L5 拉通 · counter 复位）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 
