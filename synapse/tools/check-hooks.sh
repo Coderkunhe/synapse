@@ -18,7 +18,9 @@ if [ -z "$REPO_ROOT" ]; then
   exit 0
 fi
 
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
+# P100-B144: worktree 中 .git 是文件非目录，`.git/hooks` 会误报缺失。
+# git rev-parse --git-path hooks 在主仓与 worktree 均解析到真正的 hooks 目录（共享主仓 .git/hooks）。
+HOOKS_DIR="$(git rev-parse --path-format=absolute --git-path hooks 2>/dev/null || echo "$REPO_ROOT/.git/hooks")"
 SYNAPSE_TOOLS="$REPO_ROOT/synapse/tools"
 MISSING=()
 TRUNCATED=()

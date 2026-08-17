@@ -8,6 +8,10 @@
 
 .DEFAULT_GOAL := help
 
+# Python venv 解析（P100-B144）：主仓 + git worktree 均可用。
+# 稀疏 worktree 无 .venv（gitignored + 未 checkout），回退主仓 synapse/.venv。
+PY := $(shell bash tools/resolve-venv.sh)/bin/python
+
 # ── 入口 ──────────────────────────────────────────────────
 
 help: ## 显示所有可用 target
@@ -77,12 +81,12 @@ check-comments: ## 代码注释质量扫描
 	@bash tools/check-comments.sh
 
 check-tests: ## 运行 pytest
-	@.venv/bin/python -m pytest -v --tb=short 2>&1 || { echo "❌ 测试未通过"; exit 1; }
+	@$(PY) -m pytest -v --tb=short 2>&1 || { echo "❌ 测试未通过"; exit 1; }
 	@echo "✅ 测试通过"
 
 check-types: ## Python 类型检查（mypy — V-004 防呆，首部署警告级）
 	@echo "--- Python mypy 类型检查 ---"
-	@MYPY_OUT=$$(.venv/bin/python -m mypy --config-file mypy.ini src/ 2>&1); EXIT=$$?; \
+	@MYPY_OUT=$$($(PY) -m mypy --config-file mypy.ini src/ 2>&1); EXIT=$$?; \
 	echo "$$MYPY_OUT"; \
 	ERRORS=$$(echo "$$MYPY_OUT" | grep -cE '^src/.*error:' || true); \
 	if [ $$EXIT -ne 0 ]; then \
@@ -112,11 +116,11 @@ check-violations: ## 违纪门禁（复发检测 + 防呆统计 + 回顾逾期�
 
 check-shared-modules: ## 共享模块治理（消费者统计 + Risk Assessment 覆盖扫描）
 	@echo "=== L2f Shared Module Governance ==="
-	@PYTHONPATH=. .venv/bin/python tools/check_shared_modules.py
+	@PYTHONPATH=. $(PY) tools/check_shared_modules.py
 	@echo "✅ check-shared-modules 完成"
 
 check-schema-audit: ## Schema Audit 继承一致性检查（所有 Response 类必须继承 AuditFields）
-	@PYTHONPATH=. .venv/bin/python tools/check-schema-audit.py
+	@PYTHONPATH=. $(PY) tools/check-schema-audit.py
 
 check-discussions: ## 讨论→登记管道（孤儿 D-ID 检测，警告级，不阻断）
 	@bash tools/check-discussions.sh
@@ -129,7 +133,7 @@ check-fresh-eyes: ## Fresh-eyes 契约层复审门禁（G-007，警告级，首�
 
 check-gate-tests: ## 防呆有效性验证 — 为 V-020/V-021/G-007 gate scripts 各写 trigger test（P100-B27）
 	@echo "--- Gate Tests (V-020/V-021/G-007) ---"
-	@.venv/bin/python -m pytest tests/gates/ -v --tb=short 2>&1 || { echo "❌ Gate tests 未通过"; exit 1; }
+	@$(PY) -m pytest tests/gates/ -v --tb=short 2>&1 || { echo "❌ Gate tests 未通过"; exit 1; }
 	@echo "✅ Gate tests 通过"
 
 check-doc-curl: ## onboarding.md curl 块结构校验（S-024b，首部署警告级）
@@ -148,7 +152,7 @@ check-db-consistency: ## DB ↔ docs 一致性检查（警告级）
 	@if [ ! -f "data/synapse.db" ]; then \
 		echo "⏭️  DB 不存在，跳过一致性检查（运行 make db-init 初始化）"; \
 	else \
-		JWT_SECRET=ci-db-check-not-for-production PYTHONPATH=. .venv/bin/python tools/seed-synapse-project.py --check 2>&1; EXIT=$$?; \
+		JWT_SECRET=ci-db-check-not-for-production PYTHONPATH=. $(PY) tools/seed-synapse-project.py --check 2>&1; EXIT=$$?; \
 		if [ $$EXIT -eq 1 ]; then \
 			echo ""; \
 			echo "⚠️  DB ↔ docs 不一致 — 运行 make db-sync 同步"; \
@@ -187,7 +191,7 @@ check-template-drift: ## 模板→部署 drift 检测（P100-B105 — SHA256 对
 check-db-migration: ## DB schema ↔ model 一致性检测（alembic check · P100-B106 · ⑲）
 	@echo "--- DB Migration Check (alembic) ---"
 	@JWT_SECRET=ci-alembic-check-not-for-production \
-		.venv/bin/python -m alembic check 2>&1 || { \
+		$(PY) -m alembic check 2>&1 || { \
 		echo "⚠️  alembic check 发现问题 — 可能存在 model ↔ migration 不一致"; \
 		echo "   运行 'python3 -m alembic revision --autogenerate -m \"fix_drift\"' 生成修复 migration"; \
 		exit 0; \
@@ -204,7 +208,7 @@ check-batch-sequence: ## 批次顺序机械校验（GAP-4 · G-032 — 验证 tr
 	@bash tools/check-batch-sequence.sh --track-only
 
 contracts-baseline: ## 生成/更新 API 契约基线快照
-	@PYTHONPATH=. .venv/bin/python tools/_gen_contracts_baseline.py
+	@PYTHONPATH=. $(PY) tools/_gen_contracts_baseline.py
 
 check-frontend: ## 前端门禁（oxlint + tsc typecheck）
 	@echo "--- 前端 lint ---"
@@ -265,7 +269,7 @@ db-init: ## 初始化数据库
 	fi
 
 db-sync: ## 从 DB 导出 Batch 状态到 docs/batch-status.md
-	@PYTHONPATH=. .venv/bin/python tools/seed-synapse-project.py --sync
+	@PYTHONPATH=. $(PY) tools/seed-synapse-project.py --sync
 
 dogfood-on: ## 多 Worker 协作狗粮期：激活 God's-eye src/ 写入门禁
 	@mkdir -p .claude

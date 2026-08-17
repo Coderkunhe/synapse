@@ -21,7 +21,7 @@ HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # ── Stage 1: Framework pre-commit (glassmind) ────────────
-FRAMEWORK_HOOK="$REPO_ROOT/.git/hooks/pre-commit.framework"
+FRAMEWORK_HOOK="$(git rev-parse --path-format=absolute --git-path hooks 2>/dev/null || echo "$REPO_ROOT/.git/hooks")/pre-commit.framework"
 if [ -x "$FRAMEWORK_HOOK" ]; then
   "$FRAMEWORK_HOOK" || {
     echo "❌ Framework pre-commit failed — fix issues before committing"
@@ -75,7 +75,8 @@ fi
 # ── Stage 5: Dependency change gate (GAP-10 · P100-B90) ──
 # 依赖文件变更 → 强制 make check 全量门禁，不可跳过
 STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || echo "")
-DEP_FILES=$(echo "$STAGED_FILES" | grep -E '(^|/)requirements\.txt$|(^|/)package\.json$' || true)
+# P100-B144: 锚定 synapse 自身 manifest，避免误伤嵌套独立项目（如 snippet-vault/frontend/package.json）
+DEP_FILES=$(echo "$STAGED_FILES" | grep -E '^synapse/requirements\.txt$|^synapse/frontend/package\.json$' || true)
 if [[ -n "$DEP_FILES" ]]; then
   echo ""
   echo "📦 检测到依赖文件变更："

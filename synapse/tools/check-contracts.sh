@@ -18,6 +18,8 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# P100-B144: 解析 venv（主仓 + worktree 均可用），替代硬编码 .venv/bin/python
+PYTHON="$(bash "$SCRIPT_DIR/resolve-venv.sh")/bin/python"
 BASELINE="$PROJECT_DIR/docs/contracts/openapi-baseline.json"
 CONTRACTS_DIR="$PROJECT_DIR/docs/contracts"
 ERRORS=0
@@ -38,7 +40,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 CURRENT="$TMPDIR/current-openapi.json"
 
 cd "$PROJECT_DIR"
-if ! JWT_SECRET="ci-contracts-check-not-for-production" PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
+if ! JWT_SECRET="ci-contracts-check-not-for-production" PYTHONPATH="$PROJECT_DIR" "$PYTHON" -c "
 from src.main import app
 import json
 schema = app.openapi()
@@ -73,7 +75,7 @@ fi
 echo "--- 路径变更 ---"
 
 # Extract paths as sorted lists for comparison
-CURRENT_PATHS=$(PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
+CURRENT_PATHS=$(PYTHONPATH="$PROJECT_DIR" "$PYTHON" -c "
 import json
 with open('$CURRENT') as f:
     schema = json.load(f)
@@ -81,7 +83,7 @@ paths = sorted(schema.get('paths', {}).keys())
 print('\n'.join(paths))
 ")
 
-BASELINE_PATHS=$(PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
+BASELINE_PATHS=$(PYTHONPATH="$PROJECT_DIR" "$PYTHON" -c "
 import json
 with open('$BASELINE') as f:
     schema = json.load(f)
@@ -119,7 +121,7 @@ echo ""
 echo "--- Response schema 字段变更 ---"
 
 # Compare schemas per path + method
-SCHEMA_DIFF=$(PYTHONPATH="$PROJECT_DIR" .venv/bin/python -c "
+SCHEMA_DIFF=$(PYTHONPATH="$PROJECT_DIR" "$PYTHON" -c "
 import json, sys
 
 with open('$CURRENT') as f:
