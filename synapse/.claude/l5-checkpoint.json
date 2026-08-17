@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B148→B149 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B148 hook 孤儿化根治 → B149 pitfalls 文档债拆分归档）· 🎭 场景遍历: B148/B149 均 0 src code → 跳过 · 942 tests 随批验证零回归",
+  "lastL5Batch": "P100-B150→B151 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B150 roadmap 归档 → B151 文档新鲜度诚实更新）· 🎭 场景遍历: B150/B151 均 0 src code → 跳过 · 942 tests 随批验证零回归",
   "lastL5Timestamp": "2026-08-17",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B148→B149 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B148 hook 孤儿化根治 → B149 pitfalls 文档债拆分归档）· 🎭 场景遍历: B148/B149 均 0 src code → 跳过 · 942 tests 随批验证零回归",
+  "lastL5Evidence": "P100-B150→B151 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B150 roadmap 归档 → B151 文档新鲜度诚实更新）· 🎭 场景遍历: B150/B151 均 0 src code → 跳过 · 942 tests 随批验证零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
