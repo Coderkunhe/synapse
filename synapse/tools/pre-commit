@@ -17,7 +17,6 @@
 
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # ── Stage 1: Framework pre-commit (glassmind) ────────────

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # post-commit hook — 项目感知的 Batch 计数门禁
-# 安装（从 synapse/ 目录执行）: cp tools/post-commit.sh ../.git/hooks/post-commit && chmod +x ../.git/hooks/post-commit
+# Install: ln -sf ../../synapse/tools/post-commit.sh .git/hooks/post-commit
 # 相邻 commit 间隔 >30 min 视为新会话，计数器重置
 # 来源: 从 glasscortex tools/post-commit.sh 移植 + 项目感知化 (2026-07-04)
 

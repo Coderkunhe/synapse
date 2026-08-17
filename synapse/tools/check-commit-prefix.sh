@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# commit-msg hook — 验证 monorepo 中 commit 前缀包含项目名
-# 安装（从 synapse/ 目录执行）: cp tools/check-commit-prefix.sh ../.git/hooks/commit-msg && chmod +x ../.git/hooks/commit-msg
+# commit-msg 前缀门禁 helper — 由 tools/commit-msg 调用（非独立 hook）· 验证 monorepo 中 commit 前缀包含项目名
 # 来源: 2026-07-04 隔离审计发现 — 5/6 synapse commits 缺少项目前缀
 
 set -euo pipefail
