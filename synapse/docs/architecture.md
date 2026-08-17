@@ -1,10 +1,10 @@
 # Synapse 系统架构
 
-> 版本：v2.2 · 2026-08-03（P11-B127 PFL 收尾审计 · 31/31 🟡 清零）
+> 版本：v2.3 · 2026-08-17（P100-B137 时区序列化补 UTC · B148 治理 hooks 迁根 .claude/settings.json）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
-> 最后更新：2026-08-10（P14-B10 角色围栏硬化 · L5 拉通 · 日期同步）
+> 最后更新：2026-08-17（P100-B151 新鲜度诚实更新 — 时区序列化 + 治理基建迁根）
 
 ---
 
@@ -126,6 +126,8 @@
 | 自增 ID | 不用，统一用 UUIDv7 | — | — |
 
 **原则**：只用 SQLAlchemy 通用类型，不用任何数据库专属特性。MVP 阶段不做 RLS，应用层 WHERE 条件实现租户隔离。RLS 升级路径预留。
+
+> **2026-08-17 更新（P100-B137）**：时间戳序列化补 UTC —— model 列 `DateTime(timezone=True)`（对齐 TimestampMixin · PG TIMESTAMPTZ），schema field_validator 序列化补 `Z`。SQLite 无原生时区，`timezone=True` 在 SQLite 是 no-op（仍存 naive 字符串），故真修在 schema 层（JSON 输出 `...Z`），model 层 timezone=True 只对齐 PG 语义。读侧 `replace(tzinfo=utc)` 补偿保留。
 
 ---
 

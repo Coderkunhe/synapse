@@ -3,7 +3,7 @@
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
 > 🔗 双向交叉引用：⇄ [`docs/pitfalls.md`](pitfalls.md)（P100-B110 已补齐）
-> 最后更新：2026-08-10（P14-B10 角色围栏硬化 · L5 拉通 · 日期同步）
+> 最后更新：2026-08-17（P100-B151 新鲜度诚实更新 — 治理波 B130-B150 三条可迁移教训 LL28~LL30）
 
 ---
 
@@ -559,3 +559,33 @@
 **关联 pitfalls**: [[PFL-151]]（SPoF——最典型的「单点故障需要三层防御」案例——B45 设计+B46/B47 实现+B48 验证+B49 修复+B50 收尾+B51 验证 = 完整闭环链路）
 
 **关联文档**: [`docs/plans/p12-retrospective.md`](plans/p12-retrospective.md)（全量复盘 · 51 批清单 · 四方向评估 · P11 vs P12 对比 · P13 储备）
+
+## LL28: 治理/文档脚本的机械 footgun 三连 — 假设越少越安全（2026-08-17）
+
+**场景**: P100 治理波（B130-B150）连续踩到三个同类脚本 bug，全部来自「脚本对输入做了隐含假设」：
+
+1. **join 分隔符**（B149）: `"".join(tail)` 把历史段所有换行吞掉，12 条 pitfalls 串成一行 → 应 `"\n".join(tail)`。join 列表必须显式指定分隔符。
+2. **`dirname $0` 路径推导**（B146/B147）: git 以 symlink 路径调用 hook，`dirname $0` 解析到 `.git/hooks` 而非 `synapse/tools`，门禁脚本 `[ -x ]` false → 静默跳过 → 应用已解析的 `REPO_ROOT` 或 `git rev-parse`。
+3. **substring 匹配**（B134/B135）: `'L5' in msg` 误判 `L50`/`batchesSinceLastL5` 为 L5 拉通 → 应用词边界正则 `\bL5\b`。
+
+**结论**: 三个 bug 同根——脚本对「分隔符」「调用方式」「内容边界」做了隐含假设。治理脚本比业务代码更容易出错：它处理的是高度不规则的文本/路径/配置，且运行频率低、反馈延迟长。
+
+**教训**: 写治理脚本时，每个字符串操作（join/路径解析/模式匹配）都显式化。路径用解析（`git rev-parse`）而非推导（`dirname $0`）；语义标记用词边界而非子串；join 列表显式指定分隔符。假设越少，静默失效越少。
+
+## LL29: 运行中进程的副作用会污染「只读」治理文档（2026-08-17）
+
+**场景**: P100-B132/B138 — 归档 escalation PFL 时发现「归档永不闭环」：运行中的 server（:8000，2 天）持续自动往 `pitfalls.md` 写 escalation PFL（PFL-239/240 引用已删 task）。B130 归档 24 条，B138 又 revert 掉 5 条新自动登记的。
+
+**结论**: 运行期进程以副作用写 git 跟踪的治理文档，是反模式——文档变成「写者不知情」的并发写目标，归档/清理永远追不上再生。止血 = 先停进程（`lsof -ti :8000`），根治 = 副作用写文档改 opt-in（PFL-240：`pfl_auto_create_enabled` 默认 False + escalation 解耦，只记 event 不写文档）。
+
+**教训**: 归档/清理治理文档前，先停掉会写它的进程。运行期副作用应写 event store（append-only 数据），不写 git 跟踪的治理文档。
+
+**关联 pitfalls**: [[PFL-240]]（escalation 运行期自动登记 PFL 的根因 — 三层根因 · 默认 True / 不拦测试 fixture / dedup 依赖文件内容）
+
+## LL30: 检测基建自身会漂移，需要 meta-governance（2026-08-17）
+
+**场景**: P100-B148 — canary hook 6 天 stale（8/11 起）才被发现：SessionStart hooks 配在 `synapse/.claude/settings.json`（子目录），但宿主（Claude Code）从项目根启动只读根 `.claude/settings.json`，hooks 静默失效。
+
+**结论**: 治理工具链（hooks/gates/checkpoints）本身也是会被孤儿化/漂移的资产，且它的失效是「静默」的——没有东西报错，只是不再检查。需要「检测检测器」：`check-session-hook-health.sh` 这类自我健康检测，且配置路径要确认宿主的真实读取路径（子目录配置可能孤儿化）。
+
+**教训**: 门禁脚本也需要门禁。任何「自动触发」的治理机制，都要配一个「检查它是否还在触发」的自检，否则它会在无人注意时静默死亡。

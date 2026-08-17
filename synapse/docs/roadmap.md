@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B150 ✅ · 封闭 Phase 归档 P12-P15 → archive）
+> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B151 ✅ · 3 stale-date 文档诚实更新）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -586,6 +586,8 @@
 - **P100-B148**：**SessionStart hook 孤儿化根治（0 src code · 纯工具/门禁）** ✅ — 根因: SessionStart hooks（canary + check-docs + reset-batch-counter）配在 `synapse/.claude/settings.json`（子目录），Claude Code 从项目根 `/ai-synapse` 启动只读根 `.claude/settings.json` → hooks 从 8/11 起静默失效（canary 6d stale）· 修法: ① 新建根 `.claude/settings.json` 迁移 3 hooks（相对路径 `tools/` → `synapse/tools/`）② 根 `.claude/settings.local.json` 补 3 条权限 allow ③ git rm 孤儿 `synapse/.claude/settings.json` ④ tools/check-session-hook-health.sh `SETTINGS_FILE` 指向根 settings + 恢复指引路径同步 · 🟢 微型 · 4 files（1 新 + 2 改 + 1 删）· 0 src code · 命令级等价验证（canary age=0s · check-session-hook-health --gate 恢复 HEALTHY）
 
 - **P100-B149**：**pitfalls.md 文档债拆分归档（0 src code · 纯文档）** ✅ — 根因: pitfalls.md 2084 行超注册表硬阈值 1100（122 PFL 中 111 条已 🔗合并/✅修复 仍滞留活跃区）· 处置: 脚本化拆分（按 `### ` 边界 · 原文件分隔符不一致）— 归档 113 条（111 PFL + AP-B37 + B73 补充发现）到 docs/archive/pitfalls-archive.md（1905→3799 行）· 活跃区只留 11 条未闭环（PFL-246~241/238/172/142/141/130）· 头部计数 122→11 · 🟢 微型 · 2 files（pitfalls.md 2084→209 + pitfalls-archive.md）· 0 src code · check-docs.sh pitfalls 硬阻断清除（5 硬错误 → 4）· B150 候选: roadmap.md 846>800 + 3 stale-date 文档
+- **P100-B150**：**roadmap.md 封闭 Phase 归档（0 src code · 纯文档）** ✅ — 根因: roadmap.md 848 行超硬阈值 800（Phase 12/13/14/15 全量闭环后完整批次表滞留活跃 roadmap · 与 Phase 10/11 已归档但 P12-P15 未随闭环归档的同类债务）· 处置: 归档 4 个全量闭环 Phase 批次表（P12 52 批 · P13 13 批 · P14 16 批 · P15 4 批）verbatim → docs/archive/roadmap-archive.md（292→539 行）· 头部补 4 条 📦 归档指针（对齐 Phase 10/11 范式）· Phase 历史表补 P12-P15 四行 · 🟢 微型 · 2 files（roadmap.md 848→613 + roadmap-archive.md 292→539）· 0 src code · check-docs.sh roadmap 硬阻断解除（4 硬错误 → 3）
+- **P100-B151**：**3 stale-date 文档新鲜度诚实更新（0 src code · 纯文档）** ✅ — 根因: check-docs.sh 报 architecture/lessons-learned/methodology 三文档最新日期 08-10 落后需求日志 08-17（B150 归档后剩 3 硬错误）· 处置（诚实原则禁只 bump）: ① lessons-learned.md 新增 LL28~LL30（治理波 B130-B150 三条可迁移教训 — 脚本 footgun 三连 / 运行期副作用污染治理文档 / 检测基建自我漂移）② architecture.md §3.3 补 B137 时区序列化 note + 版本 v2.2→v2.3 ③ methodology.md §5.6 补「新鲜度诚实原则 — 禁只 bump 日期」+ 版本 v2.0→v2.1 · 🟢 微型 · 3 files · 0 src code · check-docs.sh 3 硬错误 → 0（✅ 文档门禁通过 · 8 警告非阻断）
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
