@@ -56,24 +56,18 @@ if [[ "$FIX_MODE" == true ]]; then
   if [[ $total_issues -gt 0 ]]; then
     echo "🔧 check-hooks --fix: ${#MISSING[@]} missing + ${#TRUNCATED[@]} truncated → auto-repairing..."
 
-    # 尝试 make hooks（优先使用 synapse 的 Makefile）
+    # 尝试 make hooks（唯一正确的修复路径 — 安装 pre-commit/commit-msg/post-commit 三 hook）
     if [[ -f "$REPO_ROOT/synapse/Makefile" ]] || [[ -f "$REPO_ROOT/Makefile" ]]; then
       if make -C "$REPO_ROOT/synapse" hooks 2>/dev/null || make -C "$REPO_ROOT" hooks 2>/dev/null; then
         echo "   ✅ make hooks succeeded"
         FIXED+=("make hooks")
       else
-        echo "   ⚠️  make hooks failed — trying synapse-exec --install-hook"
+        # P100-B146: 移除 synapse-exec --install-hook fallback — 它只装 pre-push，
+        # 无法修复本脚本校验的 pre-commit/commit-msg/post-commit 缺失（装了仍 repair incomplete）
+        echo "   ⚠️  make hooks failed — 无法自动修复，请手工执行: cd synapse && make hooks"
       fi
-    fi
-
-    # Fallback: 使用 synapse-exec --install-hook（如果可用）
-    if [[ ${#FIXED[@]} -eq 0 ]]; then
-      if [[ -x "$REPO_ROOT/synapse/tools/synapse-exec" ]]; then
-        if "$REPO_ROOT/synapse/tools/synapse-exec" --install-hook "$REPO_ROOT" 2>/dev/null; then
-          echo "   ✅ synapse-exec --install-hook succeeded"
-          FIXED+=("synapse-exec --install-hook")
-        fi
-      fi
+    else
+      echo "   ⚠️  Makefile 未找到 — 无法自动修复，请手工执行: cd synapse && make hooks"
     fi
 
     # 重新检查修复结果

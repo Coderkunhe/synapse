@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B145 ✅ · L5 B144→B145 拉通 counter=0）
+> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B146 ✅ · counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -577,6 +577,7 @@
 - **P100-B143**：**conftest api_key_hash stale 注释清理（确认 P10-B8 已完成 nullable）** ✅ — 澄清「api_key_hash NULLABLE」账上待办实为 P10-B8 已完成（迁移 019f6ec74577 + 模型 worker.py:51 nullable=True + DB notnull:0）· 清理 conftest.py:141 过时 `TODO: make NULLABLE` 注释 + `""`→`None` 对齐生产 auth_service.py 模式 · 🟢 微型 · 1 test · 942 tests 零回归
 - **P100-B144**：**3 个 worktree 门禁缺陷修复（0 src code · 纯工具/门禁）** ✅ — ① check-hooks.sh + pre-commit `$REPO_ROOT/.git/hooks` → `git rev-parse --path-format=absolute --git-path hooks`（worktree 中 `.git` 是文件非目录 → 消除「hooks 缺失」误报）· ② pre-commit GAP-10 正则 `(^|/)package\.json$` → `^synapse/requirements\.txt$|^synapse/frontend/package\.json$`（锚定 synapse 自身 manifest · 消除误伤嵌套独立项目 `snippet-vault/frontend/package.json`）· ③ 新增 tools/resolve-venv.sh 单源解析 venv + Makefile `$(PY)` 替换 9 处 + check-contracts.sh venv 解析（稀疏 worktree 无 .venv → 回退主仓 synapse/.venv）· 🟢 微型 · 5 files（4 改 + 1 新）· 0 src code · 942 tests 零回归 · 排期遗留：Makefile hooks 目标 + synapse-exec --install-hook 的安装期 `.git/hooks` 硬编码（非门禁期 · 留待后续）
 - **P100-B145**：**安装期 `.git/hooks` 硬编码收口（0 src code · 纯工具/门禁）** ✅ — ① Makefile `hooks:` 目标 `../.git/hooks` → `git rev-parse --path-format=absolute --git-path hooks`（worktree 中 `.git` 是文件非目录 → `make hooks` 修复路径失效）② tools/synapse-exec `install_hook()` `${git_root}/.git/hooks` → 同款解析（`--install-hook` 修复路径失效）· 补 B144 只修「检查期」、漏「安装期」的盲区 · 🟢 微型 · 2 files（Makefile + synapse-exec）· 0 src code · 942 tests 零回归 · 排期遗留清零 · B146 候选登记：① commit-msg `HOOK_DIR` 静默绕过（prefix/batch-sequence 门禁不生效）② check-hooks.sh --fix fallback 只装 pre-push 不装 3 hooks
+- **P100-B146**：**commit-msg 门禁静默绕过 + check-hooks --fix fallback 根治（0 src code · 纯工具/门禁）** ✅ — ① tools/commit-msg `HOOK_DIR` 用 `dirname $0`（=.git/hooks 非 synapse/tools）→ check-commit-prefix.sh / check-batch-sequence.sh `[ -x ]` false → prefix + batch-sequence 两门禁静默失效（影响每次 commit）· 修法对齐 pre-commit 范式 `$REPO_ROOT/synapse/tools/...` + 删死变量 `HOOK_DIR` ② tools/check-hooks.sh --fix fallback 到 `synapse-exec --install-hook` 只装 pre-push 不装 pre-commit/commit-msg/post-commit → 3 hook 缺失时装完仍 repair incomplete · 修法移除无效 fallback（`make hooks` 是唯一正确修复路径）· 🟢 微型 · 2 files（commit-msg + check-hooks.sh）· 0 src code · 942 tests 零回归 · 实证：无前缀 msg → exit 1 阻断 ✅ · 合法前缀 → exit 0 + GAP-4 通过 ✅ · 删 post-commit → --fix 真正修复 ✅
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

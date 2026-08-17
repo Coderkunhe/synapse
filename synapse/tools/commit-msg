@@ -10,7 +10,6 @@
 
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 COMMIT_MSG_FILE="${1:-}"
 
@@ -20,14 +19,16 @@ if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
 fi
 
 # ── Stage 1: Commit prefix check ──────────────────────────
-PREFIX_CHECK="$HOOK_DIR/check-commit-prefix.sh"
+# P100-B146: 对齐 pre-commit 范式 — git 以 symlink 路径调用 hook，
+# dirname $0 = .git/hooks（非 synapse/tools）→ 旧 HOOK_DIR 解析令门禁静默跳过。
+PREFIX_CHECK="$REPO_ROOT/synapse/tools/check-commit-prefix.sh"
 if [ -x "$PREFIX_CHECK" ]; then
   "$PREFIX_CHECK" "$COMMIT_MSG_FILE" || exit 1
 fi
 
 # ── Stage 2: Batch sequence check (GAP-4 · P100-B92) ──────
 # 检测 commit message 中的 Batch 编号是否匹配 next_batch
-BATCH_SEQ="$HOOK_DIR/check-batch-sequence.sh"
+BATCH_SEQ="$REPO_ROOT/synapse/tools/check-batch-sequence.sh"
 if [ -x "$BATCH_SEQ" ]; then
   "$BATCH_SEQ" "$COMMIT_MSG_FILE" || exit 1
 fi
