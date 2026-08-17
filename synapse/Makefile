@@ -237,24 +237,25 @@ setup: hooks db-init ## 首次初始化
 		echo "⏭️  .venv 已存在，跳过"; \
 	fi
 
-hooks: ## 安装 git hooks（pre-commit + commit-msg + post-commit · 全部 symlink 防 copy 漂移）
-	@if [ ! -L "../.git/hooks/pre-commit" ]; then \
-		rm -f ../.git/hooks/pre-commit; \
-		ln -sf ../../synapse/tools/pre-commit ../.git/hooks/pre-commit && \
+hooks: ## 安装 git hooks（pre-commit + commit-msg + post-commit · 全部 symlink 防 copy 漂移 · P100-B145 worktree 兼容）
+	@HOOKS_DIR="$$(git rev-parse --path-format=absolute --git-path hooks 2>/dev/null || echo "$(CURDIR)/../.git/hooks")"; \
+	if [ ! -L "$$HOOKS_DIR/pre-commit" ]; then \
+		rm -f "$$HOOKS_DIR/pre-commit"; \
+		ln -sf ../../synapse/tools/pre-commit "$$HOOKS_DIR/pre-commit" && \
 		echo "✅ pre-commit hook 已安装 (symlink)"; \
 	else \
 		echo "⏭️  pre-commit hook 已就位 (symlink)，跳过"; \
-	fi
-	@if [ ! -L "../.git/hooks/commit-msg" ]; then \
-		rm -f ../.git/hooks/commit-msg; \
-		ln -sf ../../synapse/tools/commit-msg ../.git/hooks/commit-msg && \
+	fi; \
+	if [ ! -L "$$HOOKS_DIR/commit-msg" ]; then \
+		rm -f "$$HOOKS_DIR/commit-msg"; \
+		ln -sf ../../synapse/tools/commit-msg "$$HOOKS_DIR/commit-msg" && \
 		echo "✅ commit-msg hook 已安装 (symlink)"; \
 	else \
 		echo "⏭️  commit-msg hook 已就位 (symlink)，跳过"; \
-	fi
-	@if [ ! -L "../.git/hooks/post-commit" ]; then \
-		rm -f ../.git/hooks/post-commit; \
-		ln -sf ../../synapse/tools/post-commit.sh ../.git/hooks/post-commit && \
+	fi; \
+	if [ ! -L "$$HOOKS_DIR/post-commit" ]; then \
+		rm -f "$$HOOKS_DIR/post-commit"; \
+		ln -sf ../../synapse/tools/post-commit.sh "$$HOOKS_DIR/post-commit" && \
 		echo "✅ post-commit hook 已安装 (symlink)"; \
 	else \
 		echo "⏭️  post-commit hook 已就位 (symlink)，跳过"; \

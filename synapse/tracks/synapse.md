@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P15 B0→B3 ✅ · 全量闭环 🎉 · 主张 B 判「部分成立」· P100 治理轨道常开
-last_batch: P100-B144
-next_batch: P100-B145
+last_batch: P100-B145
+next_batch: P100-B146
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
@@ -14,7 +14,7 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B144 | P100-B145 | 治理轨道（常开待命 → B144 Reactivate）· B144 ✅ 3 worktree 门禁缺陷修复（check-hooks / GAP-10 / venv 解析）· 排期遗留 2 项 |
+| **P100** | P100-B145 | P100-B146 | 治理轨道（常开待命）· B145 ✅ 安装期 .git/hooks 硬编码收口（Makefile hooks + synapse-exec --install-hook）· B146 候选：commit-msg HOOK_DIR 静默绕过 + check-hooks.sh --fix fallback 只装 pre-push |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |

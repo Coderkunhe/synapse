@@ -586,7 +586,10 @@ install_hook() {
         exit 1
     }
 
-    local hooks_dir="${git_root}/.git/hooks"
+    # P100-B145: worktree 中 .git 是文件非目录，`${git_root}/.git/hooks` 会失效。
+    # git rev-parse --git-path hooks 在主仓与 worktree 均解析到真正的 hooks 目录（共享主仓 .git/hooks）。
+    local hooks_dir
+    hooks_dir="$(cd "$git_root" && git rev-parse --path-format=absolute --git-path hooks 2>/dev/null || echo "${git_root}/.git/hooks")"
     local hook_path="${hooks_dir}/pre-push"
 
     # 确保 hooks 目录存在
