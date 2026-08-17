@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-16（P14-B15 ✅ · 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B137 ✅ 时区序列化修复 · P100-B138 ✅ 善后清理 · P100-B139 ✅ escalation PFL 根因 + 脚本白名单 + tracks 刷新 · P100-B140 ✅ PFL-240 根治 · P100-B141 ✅ 孤儿 config 清理 · P100-B142 ✅ 死配置+stray清理+脚本修正 · P100-B143 ✅ api_key_hash stale 注释清理 · L5 B142→B143 拉通 counter=0）
+> 最后更新：2026-08-17（P15-B0 ✅ Scope 定义 — 独立外部功能 Snippet Vault · 1O+2B 真实客户端 · P14-B15 ✅ 全量闭环 · P100-B143 ✅ · L5 B142→B143 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -820,3 +820,20 @@
 | **PFL-130** | TaskUpdate schema 缺 depends_on 字段 — 依赖链创建后不可修改 | = C7 depends_on G1/G2 补齐 · 已在 C7 跟踪 |
 
 > 📋 PFL 未闭环清理盘点（2026-08-13 · B15 复盘后补）：24 条 escalation PFL（PFL-213~237）+ 4 条 header（PFL-207~210）+ PFL-172 正文状态 ✅ 已由 P100-B130 归档闭环。剩余 3 条 🟡 历史遗留（PFL-130/141/142）独立登记如上，不混入本批。
+
+---
+
+## 🎯 Phase 15 — 战略验证：独立外部功能（进行中）
+
+> **一句话**：用 1O+2B 真实客户端通过 Synapse 协作交付独立外部功能 Snippet Vault，验证核心假设「多 Agent 能自主协作交付真实产品功能」（主张 B）。
+> **Scope 文档**：`docs/plans/p15-scope.md` · **狗粮计划**：`docs/plans/p15-b1-dogfood-plan.md`
+> **背景**：P14-B15 复盘选项 C（真实外部功能/战略验证）· 否决 W2（平台功能 = P14 复盘 1.3 候选 B，重复「主张 A」验证）· 详见 scope「为什么独立外部功能」
+
+| Batch | 内容 | 状态 |
+|:---|:---|:--:|
+| **P15-B0** | **Scope 定义** — 独立外部功能 Snippet Vault · 1O+2B 分解（后端→前端 depends_on）· 成功标准 · In/Out · 批次路线 · 风险 · `p15-scope.md` + `p15-b1-dogfood-plan.md` + `tools/p15-dogfood-setup.py` | ✅ |
+| **P15-B1** | **狗粮（后端交付）** — Task A 后端 6 端点 + 13 tests 零回归 · O 验收 passed · depends_on 解锁 Task B · DB 已善后清理（重头来） | 🔜 进行中 |
+
+> **B1 摩擦点**（记入 B3 复盘）：① Builder 自主性失效（CronCreate 不 fire，O 发 blocking 消息才醒）② daemon/heartbeat 脆弱（`.session-alive` 依赖 CronCreate → daemon 自毁）③ O 替 assign 的 state 不一致（A 的 active_task_id 未置）④ 旧 worker 残留污染环境
+
+> **下一站（B2）**：注册 Builder B + p15-b worktree（分支 `p15/snippet-vault-frontend`）→ B 认领 Task B 交付前端 → O 验收 → B3 判 H。暗号 `p15-b1-done` · 详见 `memory/active/p15.md`。
