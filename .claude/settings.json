@@ -10,11 +10,11 @@
           },
           {
             "type": "command",
-            "command": "bash tools/check-docs.sh 2>&1"
+            "command": "bash synapse/tools/check-docs.sh 2>&1"
           },
           {
             "type": "command",
-            "command": "bash tools/reset-batch-counter.sh 2>&1"
+            "command": "bash synapse/tools/reset-batch-counter.sh 2>&1"
           }
         ]
       }

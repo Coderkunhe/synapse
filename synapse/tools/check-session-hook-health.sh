@@ -23,8 +23,9 @@ WARN_THRESHOLD=1800      # 30 分钟: 超过此值 → 🔴
 # ── 路径解析 ──────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"                       # synapse/
+REPO_ROOT="$(dirname "$PROJECT_DIR")"                        # ai-synapse/（git root · Claude Code 启动目录）
 CANARY_FILE="$PROJECT_DIR/.claude/session-hook-canary"
-SETTINGS_FILE="$PROJECT_DIR/.claude/settings.json"
+SETTINGS_FILE="$REPO_ROOT/.claude/settings.json"
 
 # ── 模式检测 ──────────────────────────────────────────
 GATE_MODE=false
@@ -100,7 +101,7 @@ check_canary() {
     RECOVERY_HINT="hook 最后执行于 $(age_human $AGE_SEC)，可能未在本会话触发。
   1. 尝试 /clear 重开会话（新会话触发 SessionStart hook）
   2. 检查 Claude Code 启动时是否有 permission prompt 被静默拒绝
-  3. 如果持续异常，手动运行: bash tools/reset-batch-counter.sh"
+  3. 如果持续异常，手动运行: bash synapse/tools/reset-batch-counter.sh"
   else
     STATUS="STALE"
     STATUS_LABEL="🔴 STALE"
@@ -109,20 +110,20 @@ check_canary() {
   2. 检查 Claude Code 版本 — SessionStart hook 可能需要特定版本
   3. 验证 $SETTINGS_FILE 语法是否正确 (trailing commas?)
   4. 检查 ~/.claude/settings.json 是否有冲突的 hook 配置
-  5. 手动兜底: bash tools/reset-batch-counter.sh"
+  5. 手动兜底: bash synapse/tools/reset-batch-counter.sh"
   fi
 }
 
 check_settings_exists() {
   if [ ! -f "$SETTINGS_FILE" ]; then
     if $JSON_MODE; then
-      echo '{"status":"NO_SETTINGS","label":"🔴 NO_SETTINGS","age_seconds":0,"age_human":"N/A","canary_file":"'$CANARY_FILE'","settings_file":"'$SETTINGS_FILE'","recovery":"settings.json 不存在 — 无法配置 SessionStart hook。创建 synapse/.claude/settings.json 并添加 SessionStart hook 配置。"}'
+      echo '{"status":"NO_SETTINGS","label":"🔴 NO_SETTINGS","age_seconds":0,"age_human":"N/A","canary_file":"'$CANARY_FILE'","settings_file":"'$SETTINGS_FILE'","recovery":"settings.json 不存在 — 无法配置 SessionStart hook。创建 .claude/settings.json（项目根目录）并添加 SessionStart hook 配置。"}'
     elif $GATE_MODE; then
       echo "🔴 SESSION-HOOK: NO_SETTINGS — $SETTINGS_FILE 不存在"
     else
       echo "🔴 NO_SETTINGS: $SETTINGS_FILE 不存在"
       echo "   SessionStart hook 无法在没有 settings.json 的情况下运行。"
-      echo "   修复: 创建 synapse/.claude/settings.json 并添加 SessionStart hook 配置。"
+      echo "   修复: 创建 .claude/settings.json（项目根目录）并添加 SessionStart hook 配置。"
     fi
     exit 1
   fi

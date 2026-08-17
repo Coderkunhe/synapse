@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B147 ✅ · L5 B146→B147 拉通 counter=0）
+> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B148 ✅ · L5 B146→B147 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -579,6 +579,7 @@
 - **P100-B145**：**安装期 `.git/hooks` 硬编码收口（0 src code · 纯工具/门禁）** ✅ — ① Makefile `hooks:` 目标 `../.git/hooks` → `git rev-parse --path-format=absolute --git-path hooks`（worktree 中 `.git` 是文件非目录 → `make hooks` 修复路径失效）② tools/synapse-exec `install_hook()` `${git_root}/.git/hooks` → 同款解析（`--install-hook` 修复路径失效）· 补 B144 只修「检查期」、漏「安装期」的盲区 · 🟢 微型 · 2 files（Makefile + synapse-exec）· 0 src code · 942 tests 零回归 · 排期遗留清零 · B146 候选登记：① commit-msg `HOOK_DIR` 静默绕过（prefix/batch-sequence 门禁不生效）② check-hooks.sh --fix fallback 只装 pre-push 不装 3 hooks
 - **P100-B146**：**commit-msg 门禁静默绕过 + check-hooks --fix fallback 根治（0 src code · 纯工具/门禁）** ✅ — ① tools/commit-msg `HOOK_DIR` 用 `dirname $0`（=.git/hooks 非 synapse/tools）→ check-commit-prefix.sh / check-batch-sequence.sh `[ -x ]` false → prefix + batch-sequence 两门禁静默失效（影响每次 commit）· 修法对齐 pre-commit 范式 `$REPO_ROOT/synapse/tools/...` + 删死变量 `HOOK_DIR` ② tools/check-hooks.sh --fix fallback 到 `synapse-exec --install-hook` 只装 pre-push 不装 pre-commit/commit-msg/post-commit → 3 hook 缺失时装完仍 repair incomplete · 修法移除无效 fallback（`make hooks` 是唯一正确修复路径）· 🟢 微型 · 2 files（commit-msg + check-hooks.sh）· 0 src code · 942 tests 零回归 · 实证：无前缀 msg → exit 1 阻断 ✅ · 合法前缀 → exit 0 + GAP-4 通过 ✅ · 删 post-commit → --fix 真正修复 ✅
 - **P100-B147**：**门禁脚本收尾（pre-commit 死变量 + stale 安装注释）** ✅ — ① tools/pre-commit `HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"` 死变量（B146 同款 footgun · 已全用 REPO_ROOT 零消费 · 留之则未来编辑者恢复使用即重新引入静默绕过）→ 删除 ② tools/check-commit-prefix.sh 头注释 stale `cp` 安装 + 误标「commit-msg hook」（实为 commit-msg 调用的 helper）+ tools/post-commit.sh 头注释 `cp` → `ln -sf`（对齐 B134 symlink 范式）· 🟢 微型 · 3 files（pre-commit + check-commit-prefix.sh + post-commit.sh）· 0 src code · bash -n 全绿 · 942 tests 零回归
+- **P100-B148**：**SessionStart hook 孤儿化根治（0 src code · 纯工具/门禁）** ✅ — 根因: SessionStart hooks（canary + check-docs + reset-batch-counter）配在 `synapse/.claude/settings.json`（子目录），Claude Code 从项目根 `/ai-synapse` 启动只读根 `.claude/settings.json` → hooks 从 8/11 起静默失效（canary 6d stale）· 修法: ① 新建根 `.claude/settings.json` 迁移 3 hooks（相对路径 `tools/` → `synapse/tools/`）② 根 `.claude/settings.local.json` 补 3 条权限 allow ③ git rm 孤儿 `synapse/.claude/settings.json` ④ tools/check-session-hook-health.sh `SETTINGS_FILE` 指向根 settings + 恢复指引路径同步 · 🟢 微型 · 4 files（1 新 + 2 改 + 1 删）· 0 src code · 命令级等价验证（canary age=0s · check-session-hook-health --gate 恢复 HEALTHY）
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 
