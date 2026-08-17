@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B146→B147 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B146 commit-msg 门禁静默绕过根治 + check-hooks --fix fallback 根治 + B147 pre-commit 死变量 + stale 安装注释收尾）· 📚 治理轨叙事链连贯（门禁静默失效根治 → 同款 footgun 收尾）· 🎭 场景遍历: B146/B147 均 0 src code（纯工具/门禁）→ 跳过 · 942 tests 随批验证零回归",
+  "lastL5Batch": "P100-B148→B149 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B148 hook 孤儿化根治 → B149 pitfalls 文档债拆分归档）· 🎭 场景遍历: B148/B149 均 0 src code → 跳过 · 942 tests 随批验证零回归",
   "lastL5Timestamp": "2026-08-17",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B146→B147 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B146 commit-msg 门禁静默绕过根治 + check-hooks --fix fallback 根治 + B147 pre-commit 死变量 + stale 安装注释收尾）· 📚 治理轨叙事链连贯（门禁静默失效根治 → 同款 footgun 收尾）· 🎭 场景遍历: B146/B147 均 0 src code（纯工具/门禁）→ 跳过 · 942 tests 随批验证零回归",
+  "lastL5Evidence": "P100-B148→B149 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步 · 📚 治理轨叙事链连贯（B148 hook 孤儿化根治 → B149 pitfalls 文档债拆分归档）· 🎭 场景遍历: B148/B149 均 0 src code → 跳过 · 942 tests 随批验证零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
