@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-17（P15-B0 ✅ Scope 定义 — 独立外部功能 Snippet Vault · 1O+2B 真实客户端 · P14-B15 ✅ 全量闭环 · P100-B143 ✅ · L5 B142→B143 拉通 counter=0）
+> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B143 ✅ · L5 P15-B3 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -823,7 +823,7 @@
 
 ---
 
-## 🎯 Phase 15 — 战略验证：独立外部功能（进行中）
+## 🎯 Phase 15 — 战略验证：独立外部功能（全量闭环 🎉）
 
 > **一句话**：用 1O+2B 真实客户端通过 Synapse 协作交付独立外部功能 Snippet Vault，验证核心假设「多 Agent 能自主协作交付真实产品功能」（主张 B）。
 > **Scope 文档**：`docs/plans/p15-scope.md` · **狗粮计划**：`docs/plans/p15-b1-dogfood-plan.md`
@@ -832,8 +832,10 @@
 | Batch | 内容 | 状态 |
 |:---|:---|:--:|
 | **P15-B0** | **Scope 定义** — 独立外部功能 Snippet Vault · 1O+2B 分解（后端→前端 depends_on）· 成功标准 · In/Out · 批次路线 · 风险 · `p15-scope.md` + `p15-b1-dogfood-plan.md` + `tools/p15-dogfood-setup.py` | ✅ |
-| **P15-B1** | **狗粮（后端交付）** — Task A 后端 6 端点 + 13 tests 零回归 · O 验收 passed · depends_on 解锁 Task B · DB 已善后清理（重头来） | 🔜 进行中 |
+| **P15-B1** | **狗粮（后端交付）** — Task A 后端 6 端点 + 13 tests 零回归 · O 验收 passed · depends_on 解锁 Task B · DB 已善后清理（重头来） | ✅ |
+| **P15-B2** | **狗粮（前端交付）** — Task B 前端三态 UI + 标签筛选 + CORS · commit `17e7ace` · O 验收 passed · 双 Task completed（A `f5d9ef4` + B `17e7ace`）· 3 worktree 门禁缺陷登记走 P100 | ✅ |
+| **P15-B3** | **判 H + 善后** — 主张 B「多 Agent 能自主协作交付真实产品功能」= 部分成立（交付 ✅ + 自主 ❌）· PFL-241~246 登记 · `p15-b2-retrospective.md` · DG-3 善后 · 代码保留 tag `snippet-vault-v1` | ✅ |
 
-> **B1 摩擦点**（记入 B3 复盘）：① Builder 自主性失效（CronCreate 不 fire，O 发 blocking 消息才醒）② daemon/heartbeat 脆弱（`.session-alive` 依赖 CronCreate → daemon 自毁）③ O 替 assign 的 state 不一致（A 的 active_task_id 未置）④ 旧 worker 残留污染环境
+> **主张 B 判「部分成立」**：交付 ✅（双 Task completed + verification passed + depends_on 首次在真实外部功能跑通）+ 自主 ❌（6 项摩擦点 · 3 项 P14 已宣称闭环却回归）。核心发现：P14「去人工断点」只改 prompt 措辞，未解决「交互式 Claude 会话无自动 user turn」机制根因 → PFL-168/146/173 全回归。
 
-> **下一站（B2）**：注册 Builder B + p15-b worktree（分支 `p15/snippet-vault-frontend`）→ B 认领 Task B 交付前端 → O 验收 → B3 判 H。暗号 `p15-b1-done` · 详见 `memory/active/p15.md`。
+> **遗留（走 P100 治理轨道）**：3 个 worktree 门禁缺陷 — ① check-hooks.sh 不兼容 worktree（`.git` 是文件非目录）② GAP-10 正则误伤嵌套独立项目 package.json ③ sparse worktree 无 `.venv` 无法 make check。详见 `docs/pitfalls.md` PFL-241~246 · `docs/plans/p15-b2-retrospective.md`。

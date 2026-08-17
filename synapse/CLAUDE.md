@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-16（P14-B15 ✅ · P14 全量闭环 🎉 · 16 批 · 7/7 VC · 942 tests · P100-B130 ✅ + B131 ✅ + B132 ✅ + B133 ✅ + B134 ✅ + B135 ✅ + B136 ✅ + B137 ✅ + B138 ✅ + B139 ✅ + B140 ✅ + B141 ✅ + B142 ✅ + B143 ✅ · L5 B142→B143 拉通 · counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-17（P15 全量闭环 🎉 · 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 交付 Snippet Vault · P14 全量闭环 🎉 · P100-B143 ✅ · L5 P15-B3 拉通 · counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -112,8 +112,9 @@ synapse/
 | **P12** | B52 ✅ 证据补全 · 诚实复盘 · PFL-158 登记 · 917 tests | **P12 全量闭环 🎉** · 52 批 · 复盘: docs/plans/p12-retrospective.md |
 | ✅ | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
+| ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B143 ✅** · conftest api_key_hash stale 注释清理（P10-B8 已完成） | — 🟢 常开待命（账上待办清空）|
-| **L5** | batchesSinceLastL5=1（B142→B143 L5 拉通 · counter 复位）|
+| **L5** | batchesSinceLastL5=0（P15-B3 L5 拉通 · counter 复位）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 
