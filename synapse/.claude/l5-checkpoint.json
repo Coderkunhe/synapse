@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B142→B143 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B142 死配置清理 + B143 stale 注释清理）· 📚 治理轨叙事链连贯（死配置→stray→脚本→stale注释）· 🎭 场景遍历: 942 tests 零回归",
   "lastL5Timestamp": "2026-08-16",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B142→B143 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B142 死配置清理 + B143 stale 注释清理）· 📚 治理轨叙事链连贯（死配置→stray→脚本→stale注释）· 🎭 场景遍历: 942 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
