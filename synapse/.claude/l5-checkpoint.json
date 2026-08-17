@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P15-B2→B3 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（P15 战略验证全量闭环 · 主张 B 判部分成立）· 📚 PFL-241~246 登记叙事连贯 · 🎭 交付 2 completed + verification passed 全链路验证",
+  "lastL5Batch": "P100-B144→B145 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B144 3 worktree 门禁缺陷修复 + B145 安装期 .git/hooks 硬编码收口）· 📚 治理轨叙事链连贯（检查期→安装期门禁缺陷收口）· 🎭 场景遍历: B144/B145 均 0 src code（纯工具/门禁）→ 跳过 · 942 tests 随批验证零回归",
   "lastL5Timestamp": "2026-08-17",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P15-B2→B3 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（P15 战略验证全量闭环 · 主张 B 判部分成立）· 📚 PFL-241~246 登记叙事连贯 · 🎭 交付 2 completed + verification passed 全链路验证",
+  "lastL5Evidence": "P100-B144→B145 L5 拉通完成 — 📄 roadmap.md+requirements-log.md+daily 三同步已确认（B144 3 worktree 门禁缺陷修复 + B145 安装期 .git/hooks 硬编码收口）· 📚 治理轨叙事链连贯（检查期→安装期门禁缺陷收口）· 🎭 场景遍历: B144/B145 均 0 src code（纯工具/门禁）→ 跳过 · 942 tests 随批验证零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
