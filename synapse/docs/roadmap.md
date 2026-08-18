@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-17（P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 B150→B151 拉通 counter=0）
+> 最后更新：2026-08-18（P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 B150→B151 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -523,6 +523,24 @@
 - **P10-B6**：远程授权 UI — 授权审批队列（人在 Web/手机端异步审批 Agent 提交的 L1/L2 操作请求，不再需要实时在电脑前点确认）
 - **P10-B7**：通知通道 — Web Push + Email + Webhook 基础设施（授权请求通知、Task 状态变更、Worker 异常告警）
 - **P10-B8**：Project 详情页增强 — API Docs 链接迁移到 Project 元数据层（当前全局侧边栏外链 → Project 级别配置项，对齐 D-P9-006）
+
+## P16 路线图：机制级修自主性 ▶️
+
+> **唯一目标**：消灭 human-as-message-bus —— 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完
+> **根因**：P15「自主 ❌」· 交互式 Claude 会话无自动 user turn · CronCreate session-only 不可靠
+> **范围**：[`docs/plans/p16-scope.md`](plans/p16-scope.md) · 启动 2026-08-18
+
+```
+P16-B0 ✅ Scope 定义（本批）
+  — 三决策：澄清=故障指示灯 · 确认不做状态机 · 可判定验收条件 master 判据
+  — 机制：heartbeat state-router + headless worker driver
+    │
+P16-B1 🔜 spike — claude -p headless 工具面验证（唯一硬门槛）
+P16-B2 heartbeat state-router（next_action + queue 计数）
+P16-B3 headless worker driver（start-worker.sh）
+P16-B4 狗粮 — 1O+2B 零 human turn 端到端
+P16-B5 lease 心跳判僵尸 + daemon 保活解耦
+```
 
 ## P100 治理批
 
