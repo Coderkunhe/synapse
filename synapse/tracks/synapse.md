@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P16 机制级修自主性 ▶️ · P15 B0→B3 ✅ 全量闭环 🎉 · P100 治理轨道常开
-last_batch: P16-B2
-next_batch: P16-B3
+last_batch: P16-B3
+next_batch: P16-B4
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
@@ -20,7 +20,7 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
 | **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 | **P15** | **P15-B3** | — ✅ P15 全量闭环 🎉 | B0-B3 ✅ · 主张 B 判「部分成立」· 复盘 docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
-| **P16** | P16-B2 | P16-B3 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ 🟢 放行 · B2 state-router ✅ · B3 driver 🔜 |
+| **P16** | P16-B3 | P16-B4 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ 🟢 放行 · B2 state-router ✅ · B3 driver ✅ · B4 狗粮 🔜 |
 
 ## P11 路线图：多 Agent 接入战
 
