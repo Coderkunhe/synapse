@@ -78,7 +78,7 @@ async def get_worker_projects(
         {
             "project_id": row.Project.id,
             "name": row.Project.name,
-            "display_name": row.Project.display_name,
+            "display_name": None,  # Project 模型无 display_name 列（原访问已潜伏 AttributeError）
             "role": row.role,
             "has_project_key": row.Project.project_key_hash is not None,
         }

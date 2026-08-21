@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-20（P16-B1 spike ✅ 🟢 放行 · P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 真实客户端交付 Snippet Vault · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 B150→B151 拉通 counter=0）
+> 最后更新：2026-08-21（P16-B2 heartbeat state-router ✅ · P16-B1 spike 🟢 放行 · P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 B150→B151 拉通 counter=0）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -536,7 +536,7 @@ P16-B0 ✅ Scope 定义（本批）
   — 机制：heartbeat state-router + headless worker driver
     │
 P16-B1 ✅ spike — claude -p headless 工具面验证（唯一硬门槛 · 🟢 放行）
-P16-B2 heartbeat state-router（next_action + queue 计数）
+P16-B2 ✅ heartbeat state-router（next_action + active_task_id + queue 计数 · Server 侧）
 P16-B3 headless worker driver（start-worker.sh）
 P16-B4 狗粮 — 1O+2B 零 human turn 端到端
 P16-B5 lease 心跳判僵尸 + daemon 保活解耦

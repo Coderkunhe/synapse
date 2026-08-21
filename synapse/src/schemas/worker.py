@@ -79,6 +79,9 @@ class WorkerHeartbeatRequest(BaseModel):
 
     P11-B94: Worker 可上报自己使用的模板版本，Server
     在响应中返回当前版本供 Worker 比对。
+
+    P16-B2: 可选 ``project_id`` 用于 state-router 的队列作用域。
+    缺省时 Server 按 Worker 的 project_actor_roles 解析单项目。
     """
     current_load: int = Field(default=0, ge=0)
     current_task_id: str | None = None
@@ -86,10 +89,26 @@ class WorkerHeartbeatRequest(BaseModel):
         None,
         description="Worker 当前使用的模板版本 — Server 返回最新版本供比对",
     )
+    project_id: str | None = Field(
+        None,
+        description="队列作用域的 Project ID — 缺省时按 Worker 单项目自动解析",
+    )
+
+
+class HeartbeatQueueState(BaseModel):
+    """Project 任务队列计数（P16-B2 state-router）。
+
+    用 API 状态名（``in_verification`` 记作 ``awaiting_verify``），
+    避免 scope 中「submitted」这个不存在的状态名踩坑。
+    """
+    backlog: int = Field(0, description="backlog 状态任务数 — O 需拆解")
+    ready: int = Field(0, description="ready 状态任务数 — B 可 claim / O 可 assign")
+    in_progress: int = Field(0, description="in_progress 状态任务数")
+    awaiting_verify: int = Field(0, description="in_verification 状态任务数 — O 需验收")
 
 
 class WorkerHeartbeatResponse(BaseModel):
-    """Worker 心跳的响应体（P11-B94 · PFL-084 升级链）。"""
+    """Worker 心跳的响应体（P11-B94 · PFL-084 升级链 · P16-B2 state-router）。"""
     status: str = Field(..., description="ok | error")
     runtime_status: str | None = Field(None, description="Worker 运行时状态")
     recovery_event: dict | None = Field(None, description="恢复事件（如存在）")
@@ -100,6 +119,22 @@ class WorkerHeartbeatResponse(BaseModel):
     role_warnings: list[str] = Field(
         default_factory=list,
         description="角色相关告警 — 如 default_fallback 时提示 Worker 缺少 role 配置",
+    )
+    role: str | None = Field(
+        None,
+        description="解析出的角色（orchestrator | builder）— state-router 路由依据",
+    )
+    next_action: str | None = Field(
+        None,
+        description="确定性路由信号 — verify|split|assign|monitor|execute|claim|idle",
+    )
+    active_task_id: str | None = Field(
+        None,
+        description="Worker 当前活跃任务 ID（回显 worker.active_task_id）",
+    )
+    queue: HeartbeatQueueState | None = Field(
+        None,
+        description="Project 任务队列计数 — 无/多项目时为 None",
     )
 
 

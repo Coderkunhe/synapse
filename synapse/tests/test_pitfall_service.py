@@ -91,8 +91,18 @@ class TestPitfallExists:
     """pitfall_exists() — 只读，使用真实文件。"""
 
     def test_existing_pfl_returns_true(self):
-        """已存在的 PFL 返回 True。"""
-        assert ps.pitfall_exists("PFL-143") is True
+        """已存在的 PFL 返回 True。
+
+        从当前 pitfalls.md 提取真实 PFL 再断言，避免硬编码已归档 ID
+        （如 PFL-143 归档进 pitfalls-archive.md 后此测试脆裂）。
+        """
+        content = ps._get_pitfalls_path().read_text(encoding="utf-8")
+        real_ids = sorted(
+            {m for m in re.findall(r"PFL-\d+", content)},
+            key=lambda s: int(s.split("-")[1]),
+        )
+        assert real_ids, "pitfalls.md 应至少包含一个 PFL 条目"
+        assert ps.pitfall_exists(real_ids[-1]) is True
 
     def test_nonexistent_pfl_returns_false(self):
         """不存在的 PFL 返回 False。"""

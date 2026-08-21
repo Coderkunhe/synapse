@@ -23,6 +23,7 @@ from src.permissions import require_permission
 from src.schemas.worker import (
     API_KEY_WARNING,
     AuthRequestStateSummary,
+    HeartbeatQueueState,
     TaskStateSummary,
     WorkerCreate,
     WorkerCreateResponse,
@@ -51,6 +52,7 @@ from src.services.worker_service import (
 )
 from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
+from src.services.state_router import compute_state_router
 
 from src.services.template_service import render_protocol, resolve_role, compute_template_versions
 
@@ -509,12 +511,20 @@ async def worker_heartbeat(
             "请通过 POST /v1/projects/{pid}/workers/{wid}/roles 设置正确角色。"
         )
 
+    # ── State-router (P16-B2) ──
+    routing = await compute_state_router(db, worker, body.project_id)
+    role_warnings.extend(routing["role_warnings"])
+
     return WorkerHeartbeatResponse(
         status="ok",
         runtime_status=worker.runtime_status,
         recovery_event=recovery_event,
         template_version=template_version,
         role_warnings=role_warnings,
+        role=routing["role"],
+        next_action=routing["next_action"],
+        active_task_id=routing["active_task_id"],
+        queue=HeartbeatQueueState(**routing["queue"]) if routing["queue"] else None,
     )
 
 

@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-21（P16-B1 spike ✅ 🟢 放行 · P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 · 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 交付 Snippet Vault · P14 全量闭环 🎉 · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 P16-B0→B1 拉通 · counter=0）
+> 不存代码，只协调工作。最后更新：2026-08-21（P16-B2 heartbeat state-router ✅ · P16-B1 spike ✅ 🟢 放行 · P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 · 主张 B 判「部分成立」· PFL-241~246 登记 · 1O+2B 交付 Snippet Vault · P14 全量闭环 🎉 · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 P16-B0→B1 拉通 · counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -113,7 +113,7 @@ synapse/
 | ✅ | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
-| 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B1 ✅** · spike 放行（headless 工具面等价 + O 判断不退化） | B2（heartbeat state-router）|
+| 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B2 ✅** · heartbeat state-router（next_action + queue 计数）· 955 tests | B3（headless worker driver）|
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B151 ✅** · 3 stale-date 文档诚实更新（0 src code · 纯文档） | B152（候选：门禁新鲜度模型适配）|
 | **L5** | batchesSinceLastL5=0（P16-B0→B1 L5 拉通 · counter 复位）|
 
