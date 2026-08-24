@@ -42,7 +42,7 @@ async def get_available_tasks(db, project_id, *, capability=None, cursor=None, l
     # A task is "dependency blocked" when depends_on is non-empty and any
     # dependency is not COMPLETED. Such tasks cannot be claimed (409).
     if hide_dependency_blocked:
-        items = await _filter_dependency_blocked(db, items)
+        items = await filter_dependency_blocked(db, items)
 
     count_stmt = select(func.count(Task.id)).where(*conditions)
     if capability:
@@ -51,7 +51,7 @@ async def get_available_tasks(db, project_id, *, capability=None, cursor=None, l
     return items, next_cursor, total
 
 
-async def _filter_dependency_blocked(
+async def filter_dependency_blocked(
     db: AsyncSession,
     tasks: list[Task],
 ) -> list[Task]:
@@ -59,6 +59,10 @@ async def _filter_dependency_blocked(
 
     P12-B33 G4: A task with unmet dependencies is not truly "available"
     because claiming it will return 409 TASK_DEPENDENCY_NOT_READY.
+
+    P16-B5 (PFL-248): 公开给 ``state_router`` 复用——「什么叫 dependency
+    blocked」必须只有一个定义。端点层拦了但路由层还把它当 ready，O/B 就会
+    在同一个不可操作的任务上空转（B4 狗粮实测）。
     """
     from src.models.task import Task as T
 

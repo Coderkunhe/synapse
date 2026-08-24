@@ -524,10 +524,13 @@ class TestAgentEventCoverage:
                        and e["target_id"] == agent_data["id"]]
         assert len(busy_events) >= 1
 
-        # 无任务的心跳 → BUSY → IDLE
+        # P16-B5 (PFL-247)：显式 null 才表示「任务结束」→ BUSY → IDLE。
+        # 此前这里传 json={}（字段缺省）也会清空，而 headless driver 每轮心跳
+        # 都不带该字段 → 每跳把活跃任务擦掉 → 执行环死循环。缺省现在表示
+        # 「保持不变」，所以这里改为显式传 null。
         resp = await client.post(
             f"/v1/agents/{agent_data['id']}/heartbeat",
-            json={},
+            json={"current_task_id": None},
             headers={"Authorization": f"Bearer {api_key}"},
         )
         assert resp.status_code == 200
@@ -537,6 +540,21 @@ class TestAgentEventCoverage:
                        if e["event_type"] == "worker.runtime.idle"
                        and e["target_id"] == agent_data["id"]]
         assert len(idle_events) >= 1
+
+        # 反向断言：字段缺省的心跳**不得**清掉活跃任务（B4 死循环根因）
+        resp = await client.post(
+            f"/v1/agents/{agent_data['id']}/heartbeat",
+            json={"current_task_id": "task-456"},
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert resp.status_code == 200
+        resp = await client.post(
+            f"/v1/agents/{agent_data['id']}/heartbeat",
+            json={"current_load": 1},
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["runtime_status"] == "busy"
 
     async def test_agent_deleted_event(self, client: AsyncClient, seed: SeedData):
         """agent.deleted 在硬删除时写入。"""

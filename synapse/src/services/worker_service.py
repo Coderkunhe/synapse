@@ -25,6 +25,22 @@ from src.utils.id_gen import generate_id
 from src.utils.json_utils import safe_dumps, safe_loads
 
 
+class _UnsetType:
+    """哨兵类型 — 区分「字段缺省」与「显式传 null」（P16-B5 PFL-247）。
+
+    心跳请求体里 ``current_task_id`` 缺省时不能等同于 ``None``：driver 每轮
+    心跳都不带这个字段，若按 ``None`` 处理就会把 claim 挂上的活跃任务擦掉。
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - 仅调试可读性
+        return "<UNSET>"
+
+
+UNSET = _UnsetType()
+
+
 # ── Worker CRUD ────────────────────────────────────────────────────
 
 async def register_worker(
@@ -192,13 +208,23 @@ async def worker_heartbeat(
     worker_id: str,
     *,
     current_load: int = 0,
-    current_task_id: str | None = None,
+    current_task_id: str | None | _UnsetType = UNSET,
     progress_summary: str | None = None,
 ) -> tuple[Worker, str | None]:
     """Worker 心跳 — 更新运行时列 (P8-B2)。
 
     更新 ``last_heartbeat_at`` 和可选的 ``active_task_id``。
     如果 Worker 之前处于 ERROR 状态，成功的心跳会将其转回 IDLE（恢复）。
+
+    ``current_task_id`` 三态语义（P16-B5 PFL-247）：
+
+    ==================  ====================================
+    传入                 行为
+    ==================  ====================================
+    缺省（``UNSET``）    **保持** 现有 ``active_task_id`` 不变
+    显式 ``None``        清空活跃任务（BUSY→IDLE）
+    task id              挂上/切换活跃任务（IDLE→BUSY）
+    ==================  ====================================
 
     返回：
         (worker, recovery_event_type_or_None)。
@@ -213,17 +239,24 @@ async def worker_heartbeat(
     # 心跳始终更新 last_heartbeat_at
     worker.last_heartbeat_at = now
 
-    # 追踪活跃任务变更
-    if current_task_id is not None and current_task_id != worker.active_task_id:
-        # Worker 开始或切换任务 → 标记进度
-        worker.last_progress_at = now
-    worker.active_task_id = current_task_id
+    # ── 追踪活跃任务变更（P16-B5 PFL-247：缺省 = 保持，显式 null = 清空）──
+    # 旧实现无条件 `worker.active_task_id = current_task_id`，而 headless
+    # driver 每轮心跳都不带这个字段 → 每跳把 claim 挂上的活跃任务擦成 None
+    # → state_router 永远路由不到 execute（B4 狗粮死循环的读取端根因）。
+    if not isinstance(current_task_id, _UnsetType):
+        if current_task_id is not None and current_task_id != worker.active_task_id:
+            # Worker 开始或切换任务 → 标记进度
+            worker.last_progress_at = now
+        worker.active_task_id = current_task_id
+
+    # 运行时状态按「Worker 实际有没有活」判定，而不是按本次心跳带没带字段
+    effective_task_id = worker.active_task_id
 
     # 将负载和摘要存入 metadata 以保持向后兼容（现有消费者）
     existing_meta = safe_loads(worker.metadata_) or {}
     existing_meta["current_load"] = current_load
-    if current_task_id:
-        existing_meta["current_task_id"] = current_task_id
+    if effective_task_id:
+        existing_meta["current_task_id"] = effective_task_id
     if progress_summary:
         existing_meta["progress_summary"] = progress_summary
     worker.metadata_ = safe_dumps(existing_meta)
@@ -237,7 +270,7 @@ async def worker_heartbeat(
             context={
                 "recovery": True,
                 "previous_status": worker.runtime_status,
-                "current_task_id": current_task_id,
+                "current_task_id": effective_task_id,
             },
         )
         await event_store.record(
@@ -246,19 +279,19 @@ async def worker_heartbeat(
             target_type="worker", target_id=worker_id, payload=payload,
         )
         recovery_event = event_type
-    elif current_task_id and worker.runtime_status == WorkerRuntimeStatus.IDLE:
+    elif effective_task_id and worker.runtime_status == WorkerRuntimeStatus.IDLE:
         # Worker 接收到工作 → BUSY
         event_type, payload = apply_runtime_transition(
             worker, WorkerRuntimeStatus.BUSY,
             actor_type=ActorType.WORKER, actor_id=worker_id,
-            context={"current_task_id": current_task_id},
+            context={"current_task_id": effective_task_id},
         )
         await event_store.record(
             db, event_type=event_type, team_id=worker.team_id,
             actor_type=ActorType.WORKER, actor_id=worker_id,
             target_type="worker", target_id=worker_id, payload=payload,
         )
-    elif not current_task_id and worker.runtime_status == WorkerRuntimeStatus.BUSY:
+    elif not effective_task_id and worker.runtime_status == WorkerRuntimeStatus.BUSY:
         # Worker 完成工作 → IDLE
         event_type, payload = apply_runtime_transition(
             worker, WorkerRuntimeStatus.IDLE,

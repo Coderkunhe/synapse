@@ -293,6 +293,35 @@ Workflow Layer 3: 各子系统 Builder 执行实现
 
 这标志着团队模型从 §4.5.1-4.5.5 的"架构理论"阶段进入"数据模型可用"阶段。UI 层面的角色分配和管理在后续 Phase 实现。
 
+### 4.6 Headless 执行环：heartbeat 作为路由信号源（P16 · 2026-08-25）
+
+P16 的目标是消灭 human-as-message-bus —— 执行环 `claim→execute→submit→verify` 零 human turn 自主跑完。机制上把 heartbeat 从「纯健康检查」升级为**路由信号源**：
+
+```
+tools/start-worker.sh（角色无关 driver）
+  └─ 轮询 POST /v1/workers/{id}/heartbeat
+       └─ state_router.compute_state_router()
+            ├─ queue 计数（backlog / ready / in_progress / awaiting_verify）
+            ├─ 解析 role（project_actor_roles 优先 → worker metadata 回退）
+            └─ 确定性路由 next_action
+                 O: verify > split > assign > monitor > idle
+                 B: execute > claim > idle
+  └─ 非 idle → 定向 prompt 分派 claude -p 一个动作单元
+  └─ idle → 指数退避
+```
+
+**关键契约：`active_task_id` 的写入与读取必须成对**（P16-B5 · PFL-247）。B 路由到 `execute` 完全依赖 `worker.active_task_id`，因此：
+
+| 环节 | 契约 |
+|:---|:---|
+| **写入** | `claim` / `assign` / `start` 三条「让 Worker 有活干」的路径，统一经 `worker_scheduler.attach_active_task()` 挂载（幂等 · 不抢占已有活跃任务 · 仅从 IDLE 转 BUSY）|
+| **清除** | `submit` / `failure_detector` 经 `finish_current_task()` 释放 |
+| **心跳三态** | `current_task_id` **缺省 = 保持** · **显式 null = 清空** · **给值 = 挂载/切换**。缺省与 null 必须区分——driver 每轮心跳都不带该字段，若按 null 处理会每跳擦掉活跃任务 |
+| **路由收口** | `_resolve_active_task_id()` 校验活跃任务仍存在、仍归本人、且处于 IN_PROGRESS/REJECTED，否则不路由 `execute`（防御 cancel/pause/lease 回收等所有 stale 来源）|
+| **队列一致** | `_count_queue` 的 ready 桶复用 `task_query.filter_dependency_blocked()` —— 路由层不得把端点层会拒绝的任务算作可操作 |
+
+> **教训来源**：B4 狗粮实测，写入端不写 + 读取端每跳擦，两边叠加使 headless 执行环死循环。详见 `docs/pitfalls.md` PFL-247/248。
+
 ---
 
 ## 5. 纪律执行模型

@@ -530,13 +530,27 @@ POST /v1/tasks/{id}/submit
 
 | 操作 | 端点 |
 |------|------|
-| 查看可认领 Task | `GET /projects/{id}/tasks/available` |
-| 认领 Task | `POST /tasks/{id}/claim` |
-| 查看 Task 详情 | `GET /tasks/{id}` |
-| 更新进度 | `PATCH /tasks/{id}` |
-| 提交验证 | `POST /tasks/{id}/submit` |
-| 查看验证结果 | `GET /tasks/{id}/verifications` |
-| 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages` |
+| 查看可认领 Task | `GET /v1/projects/{id}/tasks/available` |
+| 认领 Task | `POST /v1/tasks/{id}/claim` ⚠️ **全局前缀，不是 `/projects/{pid}/tasks/...`** · body 必带 `expected_version` |
+| 查看 Task 详情 | `GET /v1/tasks/{id}` |
+| 更新进度 | `PATCH /v1/tasks/{id}` · 必带 `expected_version` |
+| 提交验证 | `POST /v1/tasks/{id}/submit` · 必带 `expected_version` |
+| 查看验证结果 | `GET /v1/tasks/{id}/verifications` |
+| 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages`（**项目域** — 与上面 task 端点前缀不同）|
+
+> ⚠️ **前缀不统一，别靠猜（PFL-250 · B4 狗粮实测）**：task 的 claim/submit/update 挂在
+> **全局** `/v1/tasks/...`；`/v1/projects/{pid}/tasks/{id}/claim` 会返回 **404**。
+> 而评论区端点是**项目域**。headless worker 身边没有人「报错就改」——照表抄，别从
+> 其它端点的风格外推。
+>
+> ⚠️ **`expected_version` 是必填不是可选**：所有 mutation（claim/submit/assign/verify/
+> comment/update）缺了它直接 **422**。先 `GET /v1/tasks/{id}` 取 `version_no`，再填进
+> 请求体。详见 `_protocol.md` §5.6。
+>
+> claim 请求体最小形态：
+> ```json
+> {"expected_version": 3}
+> ```
 
 ---
 

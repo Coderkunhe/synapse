@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-21（P16-B3 headless worker driver ✅ · P16-B2 heartbeat state-router ✅ · P16-B1 spike 🟢 放行 · P16-B0 Scope 定义 ✅ · P15 全量闭环 🎉 — 主张 B 判「部分成立」· PFL-241~246 登记 · P100-B151 ✅ · 3 stale-date 文档诚实更新 · L5 P16-B0→B1 拉通 counter=1）
+> 最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -538,8 +538,19 @@ P16-B0 ✅ Scope 定义（本批）
 P16-B1 ✅ spike — claude -p headless 工具面验证（唯一硬门槛 · 🟢 放行）
 P16-B2 ✅ heartbeat state-router（next_action + active_task_id + queue 计数 · Server 侧）
 P16-B3 ✅ headless worker driver（start-worker.sh · O+B 通用 · idle backoff）
-P16-B4 狗粮 — 1O+2B 零 human turn 端到端
-P16-B5 lease 心跳判僵尸 + daemon 保活解耦
+P16-B4 🔴 狗粮第一轮 — 零 human turn 未达成 · 卡死 claim→execute · 7 发现（PFL-247~253）
+  — ✅ 跑通：O 拆解（14min40s）· B claim · depends_on 拦截
+  — 🔴 根因：claim 不挂 active_task_id + 心跳每跳擦掉它（双边断裂）
+  — 🔴 方法学修正：worker 必须多客户端独立终端，不得作 God's-eye 子进程
+    │
+P16-B5 ✅ 修执行环断裂（F1/F2/F3/F4）
+  — F1 active_task_id 双边（claim/assign 挂 + 心跳 UNSET 哨兵「缺省=保持」）
+  — F2 dep-blocked 不计 ready + 陈旧 active_task_id 路由层收口防御
+  — F3 driver 超时 360→900s + 失败指数退避 · F4 claim 端点文档 drift
+  — 964 tests（+9 回归测试 · 旧代码下 6/9 变红自证）
+    │
+P16-B6 🔜 狗粮重跑 — 多客户端（O/B1/B2 各独立终端）· F6 隔离判据重设计
+P16-B7 lease 心跳判僵尸 + daemon 保活解耦
 ```
 
 ## P100 治理批

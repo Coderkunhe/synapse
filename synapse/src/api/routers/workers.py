@@ -38,6 +38,7 @@ from src.schemas.worker import (
 from src.schemas.common import CursorPage
 from src.schemas.protocol import ProtocolResponse
 from src.services.worker_service import (
+    UNSET,
     worker_handshake as _worker_handshake,
     worker_heartbeat as _worker_heartbeat,
     worker_to_response,
@@ -490,11 +491,18 @@ async def worker_heartbeat(
             "Worker is not active",
         )
 
+    # P16-B5 PFL-247: 只有请求体**显式**给了 current_task_id 才传下去。
+    # 缺省 → 传 UNSET → 服务层保持现有 active_task_id（不再把 claim 挂上的
+    # 活跃任务擦掉）。显式 null 的「清空」语义原样保留。
     worker, recovery_event = await _worker_heartbeat(
         db,
         worker_id=worker_id,
         current_load=body.current_load,
-        current_task_id=body.current_task_id,
+        current_task_id=(
+            body.current_task_id
+            if "current_task_id" in body.model_fields_set
+            else UNSET
+        ),
     )
     await db.commit()
 

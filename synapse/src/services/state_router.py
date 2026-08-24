@@ -23,6 +23,7 @@ from src.constants import ProjectRole, TaskStatus
 from src.models.task import Task
 from src.models.worker import Worker
 from src.services.project_role_service import get_project_role, get_worker_projects
+from src.services.task_query import filter_dependency_blocked
 from src.services.template_service import resolve_role
 
 # ── next_action 取值 ────────────────────────────────────────────────
@@ -51,12 +52,56 @@ async def _count_queue(db: AsyncSession, project_id: str) -> dict[str, int]:
         .group_by(Task.status)
     )
     counts: dict[str, int] = {status: n for status, n in result.all()}
+
+    # P16-B5 (PFL-248): ready 桶必须排除 depends_on 未满足的任务。
+    # 端点层 claim/assign 会以 TASK_DEPENDENCY_NOT_READY 拒绝它们，若路由层
+    # 仍按 ready 计数，O 每轮 assign、B 每轮 claim 同一个 blocked task，双双
+    # 空转（B4 狗粮实测）。复用 /tasks/available 的同一份定义，保证两层一致。
+    ready_count = counts.get(TaskStatus.READY.value, 0)
+    if ready_count:
+        ready_rows = await db.execute(
+            select(Task).where(
+                Task.project_id == project_id,
+                Task.status == TaskStatus.READY,
+            )
+        )
+        ready_count = len(
+            await filter_dependency_blocked(db, list(ready_rows.scalars().all()))
+        )
+
     return {
         "backlog": counts.get(TaskStatus.BACKLOG.value, 0),
-        "ready": counts.get(TaskStatus.READY.value, 0),
+        "ready": ready_count,
         "in_progress": counts.get(TaskStatus.IN_PROGRESS.value, 0),
         "awaiting_verify": counts.get(TaskStatus.IN_VERIFICATION.value, 0),
     }
+
+
+async def _resolve_active_task_id(db: AsyncSession, worker: Worker) -> str | None:
+    """返回**仍可执行**的活跃任务 id，否则 None（P16-B5 · 只读）。
+
+    ``worker.active_task_id`` 可能是陈旧指针：任务被取消/暂停/租约回收/改派
+    之后，清理并非在所有路径上都发生（``terminate_task``/``pause_task``/
+    ``lease_detector`` 原先白嫖「下次心跳会擦」这条路径，而 PFL-247 修复后
+    心跳不再无条件擦）。路由层若照单全收，B 会被派去 execute 一个死任务。
+
+    这里做**收口防御**：只有任务存在、仍归本 worker、且处于可继续工作的状态
+    时才认。防的是所有 stale 来源，不只已知的那几处。
+
+    只读——``compute_state_router`` 在 ``db.commit()`` 之后运行，此处的写入
+    不会被持久化，所以不做清理，只做判断。
+    """
+    if not worker.active_task_id:
+        return None
+
+    task = await db.get(Task, worker.active_task_id)
+    if task is None:
+        return None
+    if task.owner_id != worker.id:
+        return None
+    if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.REJECTED):
+        return None
+    return worker.active_task_id
 
 
 def _route(role: str, queue: dict[str, int], active_task_id: str | None) -> str:
@@ -126,13 +171,15 @@ async def compute_state_router(
         role, _ = resolve_role(worker)
 
     # ── 3. queue 计数 + 4. next_action 路由 ────────────────────────
+    # P16-B5: 活跃任务先过一遍「还能不能干」，陈旧指针不参与路由
+    active_task_id = await _resolve_active_task_id(db, worker)
     queue = await _count_queue(db, project_id)
-    next_action = _route(role, queue, worker.active_task_id)
+    next_action = _route(role, queue, active_task_id)
 
     return {
         "role": role,
         "next_action": next_action,
-        "active_task_id": worker.active_task_id,
+        "active_task_id": active_task_id,
         "queue": queue,
         "role_warnings": [],
     }

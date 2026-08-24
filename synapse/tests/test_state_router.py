@@ -8,7 +8,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.auth import hash_api_key
-from src.constants import WorkerActorType, WorkerStatus
+from src.constants import OwnerType, TaskStatus, WorkerActorType, WorkerStatus
 from src.db import async_session_factory
 from src.models.project import Project
 from src.models.project_actor_role import ProjectActorRole
@@ -70,6 +70,23 @@ class TestStateRouter:
             await db.commit()
 
         return pids, worker_id, raw_key
+
+    async def _add_owned_task(
+        self, *, project_id: str, worker_id: str, status: str,
+    ) -> str:
+        """建一个归属该 worker 的任务，返回 task id（P16-B5）。
+
+        路由 execute 需要**真实存在且仍归本人**的任务——见
+        ``state_router._resolve_active_task_id`` 的 stale 防御。
+        """
+        task_id = generate_id("task")
+        async with async_session_factory() as db:
+            db.add(Task(
+                id=task_id, project_id=project_id, title=f"owned {status} task",
+                status=status, owner_type=OwnerType.WORKER, owner_id=worker_id,
+            ))
+            await db.commit()
+        return task_id
 
     async def _heartbeat(
         self, client: AsyncClient, worker_id: str, raw_key: str, body: dict | None = None,
@@ -136,14 +153,17 @@ class TestStateRouter:
     @pytest.mark.asyncio
     async def test_builder_execute(self, client: AsyncClient, seed: SeedData):
         """有 active task（current_task_id）→ execute。"""
-        _, worker_id, key = await self._setup(
+        pids, worker_id, key = await self._setup(
             team_id=seed.team_id, role="builder", statuses=("ready",),
         )
+        task_id = await self._add_owned_task(
+            project_id=pids[0], worker_id=worker_id, status=TaskStatus.IN_PROGRESS,
+        )
         data = await self._heartbeat(
-            client, worker_id, key, body={"current_task_id": "tsk_active_1"},
+            client, worker_id, key, body={"current_task_id": task_id},
         )
         assert data["next_action"] == "execute"
-        assert data["active_task_id"] == "tsk_active_1"
+        assert data["active_task_id"] == task_id
 
     @pytest.mark.asyncio
     async def test_builder_claim(self, client: AsyncClient, seed: SeedData):

@@ -84,6 +84,51 @@ async def get_next_task(db: AsyncSession, worker_id: str) -> Task | None:
     return result.scalar_one_or_none()
 
 
+async def attach_active_task(
+    db: AsyncSession, worker: Worker, task_id: str
+) -> Worker:
+    """把 ``task_id`` 挂为 Worker 的活跃任务（幂等 · 不抢占）。
+
+    P16-B5 (PFL-247)：``claim``/``assign``/``start`` 三条「让 Worker 有活干」
+    的路径共用此入口——**谁让 Worker 有活干，谁就要告诉 state_router**。
+    此前只有 ``start`` 写 ``active_task_id``，而 headless driver 的循环里
+    根本没有 ``start`` 这一步，导致 ``state_router`` 永远路由不到 ``execute``
+    （B4 狗粮 claim→execute 断裂）。
+
+    语义：
+      - 已挂同一个 task → 幂等（仅在 IDLE 时补一次 IDLE→BUSY）
+      - 已挂**其它** task → 不抢占，保持 FIFO 首个（调度规则 1/2），静默返回
+      - 未挂 → 挂上 + 刷新 ``last_progress_at``，且**仅当 IDLE** 才转 BUSY
+        （状态机禁止 BUSY→BUSY / ERROR→BUSY，见 worker_state_machine._TRANSITIONS）
+    """
+    if worker.active_task_id is not None and worker.active_task_id != task_id:
+        # 已有其它活跃任务 — 不抢占（规则 1：同一时间仅一个活跃 Task）
+        return worker
+
+    if worker.active_task_id is None:
+        worker.active_task_id = task_id
+        worker.last_progress_at = datetime.now(timezone.utc)
+
+    if worker.runtime_status == WorkerRuntimeStatus.IDLE:
+        rt_event_type, rt_payload = worker_apply_transition(
+            worker, WorkerRuntimeStatus.BUSY,
+            actor_type=ActorType.WORKER, actor_id=worker.id,
+            context={"task_id": task_id},
+        )
+        await event_store.record(
+            db,
+            event_type=rt_event_type,
+            team_id=worker.team_id,
+            actor_type=ActorType.WORKER,
+            actor_id=worker.id,
+            target_type="worker",
+            target_id=worker.id,
+            payload=rt_payload,
+        )
+
+    return worker
+
+
 async def start_task(
     db: AsyncSession, worker_id: str, task_id: str
 ) -> Worker:
@@ -92,6 +137,11 @@ async def start_task(
     当 Worker 开始处理任务时调用。
     校验任务属于此 Worker。
     若任务为 REJECTED (P8-B5)，通过状态机将其转回 IN_PROGRESS。
+
+    P16-B5：``claim``/``assign`` 现在已经把任务挂上了，所以对**同一个** task
+    再调 start 是幂等 no-op（此前会因 BUSY→BUSY 抛 InvalidStateTransition）。
+    Worker 持有**其它**活跃任务时抛 ``WORKER_BUSY``——保住「同一时间仅一个
+    活跃 Task」不变式，且比 InvalidStateTransition 的报错清晰。
     """
     worker = await _get_worker(db, worker_id)
 
@@ -102,6 +152,13 @@ async def start_task(
         raise ConflictError(
             "TASK_NOT_OWNED_BY_WORKER",
             f"Task {task_id} is not owned by worker {worker_id}",
+        )
+    if worker.active_task_id is not None and worker.active_task_id != task_id:
+        raise ConflictError(
+            "WORKER_BUSY",
+            f"Worker {worker_id} is already active on task {worker.active_task_id}. "
+            f"Submit or release it before starting {task_id}.",
+            {"workerId": worker_id, "activeTaskId": worker.active_task_id},
         )
 
     # P8-B5: Worker 重新介入时将 REJECTED → IN_PROGRESS
@@ -123,27 +180,8 @@ async def start_task(
             payload=payload,
         )
 
-    worker.active_task_id = task_id
-    worker.last_progress_at = datetime.now(timezone.utc)
-
-    # P8-B8: Worker 运行时 IDLE → BUSY 通过状态机（替代直接赋值）
-    rt_event_type, rt_payload = worker_apply_transition(
-        worker, WorkerRuntimeStatus.BUSY,
-        actor_type=ActorType.WORKER, actor_id=worker_id,
-        context={"task_id": task_id, "rework": task.status == TaskStatus.IN_PROGRESS},
-    )
-    await event_store.record(
-        db,
-        event_type=rt_event_type,
-        team_id=worker.team_id,
-        actor_type=ActorType.WORKER,
-        actor_id=worker_id,
-        target_type="worker",
-        target_id=worker.id,
-        payload=rt_payload,
-    )
-
-    return worker
+    # P16-B5: 挂载/幂等复用统一走 attach_active_task（含 IDLE→BUSY 状态机转换）
+    return await attach_active_task(db, worker, task_id)
 
 
 async def finish_current_task(db: AsyncSession, worker_id: str) -> Worker:

@@ -608,13 +608,17 @@ POST {{SYNAPSE_API_URL}}/v1/workers/{{SYNAPSE_WORKER_ID}}/heartbeat
 |------|------|------|
 | 查看项目任务 | `GET` | `/projects/{project_id}/tasks?status=ready` |
 | 查看任务详情 | `GET` | `/tasks/{task_id}` |
-| 认领任务 | `POST` | `/tasks/{task_id}/claim` |
+| 认领任务 | `POST` | `/tasks/{task_id}/claim` ⚠️ 全局前缀 · body 必带 `expected_version` |
 | 更新进度 | `PATCH` | `/tasks/{task_id}` |
 | 提交验证 | `POST` | `/tasks/{task_id}/submit` |
 | 查看验证结果 | `GET` | `/tasks/{task_id}/verifications` |
 | 验收验证 | `POST` | `/verifications/{ver_id}/verify` |
 | 评论/提问 | `POST` | `/projects/{pid}/tasks/{tid}/messages` |
 | 报告阻塞 | `POST` | `/tasks/{task_id}/blockers` |
+
+> ⚠️ **前缀不统一（PFL-250 · P16-B4 狗粮实测）**：task 的 claim/submit/update 挂在**全局**
+> `/v1/tasks/...`，`/v1/projects/{pid}/tasks/{id}/claim` 返回 **404**；而评论区 messages
+> 是**项目域**。headless worker 没有人在旁「报错就改」——照表抄，别从其它端点外推。
 
 ### 评论区消息类型语义（PFL-074 · B82 教训）
 

@@ -194,9 +194,12 @@ class TestSubmitTask:
             team_id=seeded["team_id"],
         )
         assert submitted.status == "in_verification"
-        # Worker 运行时不应受影响
+        # Worker 运行时不应受影响 —— member 提交不得触碰 Worker 的运行时状态。
+        # P16-B5：claim 现在会把 Worker 置为 BUSY（PFL-247），所以这里的期望值
+        # 从 IDLE 变成 BUSY；被测不变式（member 提交不清 Worker 活跃任务）不变。
         agent = await db.get(Worker, seeded["agent_id"])
-        assert agent.runtime_status == WorkerRuntimeStatus.IDLE
+        assert agent.runtime_status == WorkerRuntimeStatus.BUSY
+        assert agent.active_task_id == task.id
 
     async def test_submit_not_owner_fails(
         self, db: AsyncSession, seeded: dict,

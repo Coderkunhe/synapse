@@ -274,6 +274,14 @@ async def assign_task(
         payload=payload,
     )
 
+    # P16-B5 PFL-247: 分配即挂活跃任务 — 与 claim 对称。assign 是 O→B 的主通道
+    # （_protocol.md §5），此前同样不写 worker.active_task_id，主通道也是断的。
+    if owner_type == OwnerType.WORKER:
+        from src.services.worker_scheduler import attach_active_task
+        assignee = await db.get(Worker, owner_id)
+        if assignee is not None:
+            await attach_active_task(db, assignee, task.id)
+
     # P11-B21 PFL-041: WS push — notify assignee
     await ws_manager.broadcast_to_actor(
         owner_id,
@@ -419,6 +427,15 @@ async def claim_task(
         target_id=task.id,
         payload=payload,
     )
+
+    # P16-B5 PFL-247: 认领即挂活跃任务 — state_router 靠 worker.active_task_id
+    # 路由 execute。此前 claim 只写 task.owner_id，headless Builder 认领后
+    # 永远被路由回 claim（B4 狗粮 claim→execute 断裂）。
+    if actor_type == ActorType.WORKER:
+        from src.services.worker_scheduler import attach_active_task
+        claimer = await db.get(Worker, worker_id)
+        if claimer is not None:
+            await attach_active_task(db, claimer, task.id)
 
     # P11-B21 PFL-041: WS push — notify claimer
     await ws_manager.broadcast_to_actor(

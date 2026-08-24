@@ -38,8 +38,13 @@
 # 可选调参（环境变量覆盖）：
 #   SYNAPSE_IDLE_SLEEP_MIN   idle 初始退避秒数（默认 20）
 #   SYNAPSE_IDLE_SLEEP_MAX   idle 退避上限秒数（默认 300）
-#   SYNAPSE_CLAUDE_TIMEOUT   claude -p 单次超时秒数（默认 360 · ≥5min，
-#                            B1 spike 实测 O 判断单次 wall-clock 3min21s）
+#   SYNAPSE_CLAUDE_TIMEOUT   claude -p 单次超时秒数（默认 900 · 15min）
+#                            P16-B5 (PFL-249)：旧默认 360 来自 B1 spike「O 单次
+#                            判断 3min21s」，但一个 next_action 是完整 agentic
+#                            loop 而非单次判断——B4 实测 O 拆解 14min40s，360s
+#                            把它杀死、0 子任务，且超时后立即重派形成紧循环。
+#                            超时上限按最重的动作（split）估。
+#   SYNAPSE_FAIL_SLEEP_MAX   分派失败/超时后的退避上限秒数（默认 300）
 #   SYNAPSE_ALLOWED_TOOLS    claude -p 工具面白名单（默认 Bash,Read,Write,Edit,Grep,Glob）
 # ──────────────────────────────────────────────────────────────────
 
@@ -51,7 +56,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── 默认值（可被环境变量覆盖）──────────────────────────────
 IDLE_SLEEP_MIN="${SYNAPSE_IDLE_SLEEP_MIN:-20}"
 IDLE_SLEEP_MAX="${SYNAPSE_IDLE_SLEEP_MAX:-300}"
-CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-360}"
+CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-900}"
+FAIL_SLEEP_MIN=30
+FAIL_SLEEP_MAX="${SYNAPSE_FAIL_SLEEP_MAX:-300}"
 HEARTBEAT_TIMEOUT=10
 ALLOWED_TOOLS="${SYNAPSE_ALLOWED_TOOLS:-Bash,Read,Write,Edit,Grep,Glob}"
 
@@ -85,7 +92,7 @@ OPTIONS:
 EXAMPLES:
   $0 --project-dir .claude/worktrees/p16-b4-o
   $0 --once --dry-run
-  SYNAPSE_CLAUDE_TIMEOUT=600 $0
+  SYNAPSE_CLAUDE_TIMEOUT=1800 $0        # 超大拆解给更长上限
 EOF
     exit 1
 }
@@ -262,6 +269,8 @@ echo -e "${BOLD}└────────────────────�
 echo ""
 
 idle_sleep="$IDLE_SLEEP_MIN"
+fail_sleep="$FAIL_SLEEP_MIN"   # P16-B5 PFL-249: 连续失败/超时的退避
+consecutive_fails=0
 
 while true; do
     # ── 1. heartbeat → state-router ──
@@ -308,8 +317,27 @@ while true; do
                 printf '%s\n' "$PROMPT" | run_with_timeout "$CLAUDE_TIMEOUT" \
                     claude -p \
                     --allowedTools "$ALLOWED_TOOLS" \
-                    --permission-mode bypassPermissions 2>&1 \
-                    || echo -e "$(date -u +%H:%M:%S) ${YELLOW}⚠️  claude -p 异常退出（code=$?）— 下一轮重试${NC}"
+                    --permission-mode bypassPermissions 2>&1
+                dispatch_rc=$?
+
+                if [[ $dispatch_rc -eq 0 ]]; then
+                    consecutive_fails=0
+                    fail_sleep="$FAIL_SLEEP_MIN"
+                else
+                    # P16-B5 (PFL-249): 失败/超时路径必须退避。此前 idle_sleep
+                    # 一见「有活」就复位，超时后立即重派 → 紧循环烧 token
+                    # （B4 实测：360s 超时被杀 → 立刻再派 → 反复）。
+                    consecutive_fails=$((consecutive_fails + 1))
+                    if [[ $dispatch_rc -eq 124 ]]; then
+                        reason="超时 ${CLAUDE_TIMEOUT}s"
+                    else
+                        reason="异常退出 code=${dispatch_rc}"
+                    fi
+                    echo -e "$(date -u +%H:%M:%S) ${YELLOW}⚠️  claude -p ${reason} — 连续第 ${consecutive_fails} 次 · ${fail_sleep}s 后重试${NC}"
+                    sleep "$fail_sleep"
+                    fail_sleep=$((fail_sleep * 2))
+                    [[ $fail_sleep -gt $FAIL_SLEEP_MAX ]] && fail_sleep=$FAIL_SLEEP_MAX
+                fi
             fi
             ;;
 
