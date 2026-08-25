@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
+> 最后更新：2026-08-25（P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -617,6 +617,8 @@ P16-B7 lease 心跳判僵尸 + daemon 保活解耦
 - **P100-B149**：**pitfalls.md 文档债拆分归档（0 src code · 纯文档）** ✅ — 根因: pitfalls.md 2084 行超注册表硬阈值 1100（122 PFL 中 111 条已 🔗合并/✅修复 仍滞留活跃区）· 处置: 脚本化拆分（按 `### ` 边界 · 原文件分隔符不一致）— 归档 113 条（111 PFL + AP-B37 + B73 补充发现）到 docs/archive/pitfalls-archive.md（1905→3799 行）· 活跃区只留 11 条未闭环（PFL-246~241/238/172/142/141/130）· 头部计数 122→11 · 🟢 微型 · 2 files（pitfalls.md 2084→209 + pitfalls-archive.md）· 0 src code · check-docs.sh pitfalls 硬阻断清除（5 硬错误 → 4）· B150 候选: roadmap.md 846>800 + 3 stale-date 文档
 - **P100-B150**：**roadmap.md 封闭 Phase 归档（0 src code · 纯文档）** ✅ — 根因: roadmap.md 848 行超硬阈值 800（Phase 12/13/14/15 全量闭环后完整批次表滞留活跃 roadmap · 与 Phase 10/11 已归档但 P12-P15 未随闭环归档的同类债务）· 处置: 归档 4 个全量闭环 Phase 批次表（P12 52 批 · P13 13 批 · P14 16 批 · P15 4 批）verbatim → docs/archive/roadmap-archive.md（292→539 行）· 头部补 4 条 📦 归档指针（对齐 Phase 10/11 范式）· Phase 历史表补 P12-P15 四行 · 🟢 微型 · 2 files（roadmap.md 848→613 + roadmap-archive.md 292→539）· 0 src code · check-docs.sh roadmap 硬阻断解除（4 硬错误 → 3）
 - **P100-B151**：**3 stale-date 文档新鲜度诚实更新（0 src code · 纯文档）** ✅ — 根因: check-docs.sh 报 architecture/lessons-learned/methodology 三文档最新日期 08-10 落后需求日志 08-17（B150 归档后剩 3 硬错误）· 处置（诚实原则禁只 bump）: ① lessons-learned.md 新增 LL28~LL30（治理波 B130-B150 三条可迁移教训 — 脚本 footgun 三连 / 运行期副作用污染治理文档 / 检测基建自我漂移）② architecture.md §3.3 补 B137 时区序列化 note + 版本 v2.2→v2.3 ③ methodology.md §5.6 补「新鲜度诚实原则 — 禁只 bump 日期」+ 版本 v2.0→v2.1 · 🟢 微型 · 3 files · 0 src code · check-docs.sh 3 硬错误 → 0（✅ 文档门禁通过 · 8 警告非阻断）
+
+- **P100-B152**：**门禁测试隔离泄漏修复（PFL-259）** ✅ — 触发: P16-B6 按规则 15 写了 `docs/plans/p16-b6-dogfood-plan.md`，`make check` 里 `test_v020_scope_shift` 两条突然变红，而该批**没碰过门禁代码** · 根因: `check-plan-mode.sh` 用 `$0` 硬推导 `PROJECT_DIR`，而 `run_gate()` 用绝对路径调脚本 → 传 `cwd=temp_repo` **只隔离得了 `git diff --cached`**，隔离不掉 `tracks/synapse.md` 与 `docs/plans/` · **绿是偶然的**: 真实仓库当前批此前恰好没有 plan 文件 → 走「无 plan」分支 → V-020 触发 → 断言碰巧成立；**任何一批只要按规矩写了 plan 就会踩红 = 门禁反向惩罚守规矩的行为** · A/B 实证: 移走 plan 文件 3 passed / 放回 2 failed · 处置: `PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"` + `run_gate()` 有 cwd 时同步设该变量（生产路径不设 → 行为完全一致）· 自证: 新增 `test_v020_reads_temp_repo_track_not_real_one` 钉住隔离本身，旧脚本下**变红** · 修复后 plan 在/不在**均 4 passed**（状态无关性成立）· 🟢 微型 · 3 files（1 tool + 2 tests）· 0 src code
 
 **关联远景项**：S-012 WebSocket 增强 · S-013 多级授权 · S-019 per-Workflow 角色 · S-020 反馈协议 v2 · S-022 Steward 渐进策略 · PI-04 会话接力 · PI-13 Agent 间通信 · PI-14 跨 Agent 任务交接 · S-037 用户账户体系（P10-B5）· S-038 远程授权审批 UI（P10-B6）· S-039 通知通道基础设施（P10-B7）
 

@@ -78,3 +78,34 @@ def test_v020_micro_change_passes(tmp_path):
     assert result.returncode == 0
     assert "微型变更" in result.stdout
     assert "V-020" not in result.stdout  # no scope-shift on micro change
+
+
+def test_v020_reads_temp_repo_track_not_real_one(tmp_path):
+    """P100-B152 回归：门禁必须读 temp repo 的 track/plans，不得泄漏到真实仓库。
+
+    此前 check-plan-mode.sh 用 $0 硬推导 PROJECT_DIR，导致上面三条测试的绿是
+    **偶然**的 —— 真实仓库当前批次一旦有了对应 plan 文件，门禁就短路放行，
+    上面的 V-020 断言随即变红。等于「按规矩写 plan」反而踩红门禁。
+
+    本测试直接钉住隔离本身：temp repo 的 next_batch 是 T-B2，真实仓库不是。
+    只要输出里出现的是 T-B2，就证明 PROJECT_DIR 确实指向了 temp repo。
+    """
+    repo = make_temp_git_repo(tmp_path)
+    make_track_file(repo, next_batch="T-B2")
+    plans = make_empty_plans_dir(repo)
+    # temp repo 里放一个与 T-B2 匹配的 plan —— 真实仓库不可能有 t-b2 开头的计划
+    (plans / "t-b2-plan.md").write_text("# T-B2 plan\n")
+
+    src = repo / "src"
+    src.mkdir()
+    for i in range(5):
+        (src / f"module_{i}.py").write_text(f"x = {i}\n")
+    stage_files(repo, *[f"src/module_{i}.py" for i in range(5)])
+
+    result = run_gate("check-plan-mode.sh", cwd=repo)
+
+    assert result.returncode == 0
+    assert "T-B2" in result.stdout, (
+        f"门禁没读 temp repo 的 track 文件 —— 隔离泄漏到真实仓库了。stdout={result.stdout!r}"
+    )
+    assert "t-b2-plan.md" in result.stdout, "门禁没读 temp repo 的 docs/plans/"

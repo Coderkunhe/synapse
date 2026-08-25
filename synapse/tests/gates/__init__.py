@@ -22,12 +22,19 @@ def run_gate(script_name: str, cwd: Path | None = None, env: dict | None = None)
         script_name: e.g. "check-fresh-eyes.sh"
         cwd: working directory for the subprocess
         env: extra environment variables (merged with os.environ)
+
+    P100-B152: 脚本是用**绝对路径**调起的，所以 `$0`-推导的 PROJECT_DIR 永远指向
+    真实仓库 —— 传 cwd=temp_repo 只隔离得了 `git diff --cached`，隔离不掉
+    tracks/synapse.md 与 docs/plans/。这里在给了 cwd 时把 SYNAPSE_PROJECT_DIR
+    一并指过去，让「隔离」名副其实。显式传入的 env 优先级更高。
     """
     script_path = TOOLS_DIR / script_name
     if not script_path.exists():
         raise FileNotFoundError(f"Gate script not found: {script_path}")
 
     run_env = os.environ.copy()
+    if cwd is not None:
+        run_env["SYNAPSE_PROJECT_DIR"] = str(cwd)
     if env:
         run_env.update(env)
 

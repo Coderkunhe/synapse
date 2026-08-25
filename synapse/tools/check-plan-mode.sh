@@ -19,11 +19,18 @@
 #
 # 用法：bash tools/check-plan-mode.sh
 # 退出码：0 = 通过/警告 · 1 = 阻断（验证期后启用）
+#
+# P100-B152：PROJECT_DIR 支持 SYNAPSE_PROJECT_DIR 覆盖。
+#   此前用 $0 硬推导 → 门禁测试即使把 cwd 指向 temp repo，脚本仍去读**真实仓库**的
+#   tracks/synapse.md 和 docs/plans/，只有 `git diff --cached` 跟随 cwd。后果是
+#   test_v020_scope_shift 的绿是**偶然**的（真实仓库当前批恰好没有 plan 文件），
+#   任何一批只要按规矩写了 plan 就会把它踩红 —— 门禁在反向惩罚守规矩的行为。
+#   生产路径不设该变量，行为与此前完全一致。
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 
 red()    { echo -e "\033[31m$1\033[0m"; }
 green()  { echo -e "\033[32m$1\033[0m"; }
