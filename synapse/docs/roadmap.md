@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-25（P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
+> 最后更新：2026-08-25（P16-B6 狗粮环境就位 🟡 待 kickoff · PFL-258 隔离根因锤实 + B4-F6 归因修正 · 0 src code · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -549,8 +549,15 @@ P16-B5 ✅ 修执行环断裂（F1/F2/F3/F4）
   — F3 driver 超时 360→900s + 失败指数退避 · F4 claim 端点文档 drift
   — 964 tests（+9 回归测试 · 旧代码下 6/9 变红自证）
     │
-P16-B6 🔜 狗粮重跑 — 多客户端（O/B1/B2 各独立终端）· F6 隔离判据重设计
-P16-B7 lease 心跳判僵尸 + daemon 保活解耦
+P16-B6 🟡 狗粮重跑 — 环境已就位，待用户三终端 kickoff（0 src code）
+  — 环境：project prj_01a0390ea07479d2 · O ag_01a0390ea07c7949 · B1 ag_01a0390ea0807c6c
+  — worktree p16-b6-b1 @ 310a451（基点早于本计划 commit → F6-c 判据不可见）
+  — F6 判据重设计：进程树祖先链 / 结构性标记 / commit 顺序（弃可博弈的 grep 风格词）
+  — PFL-258 隔离根因锤实：plugin 级 SessionStart hook 对每次 claude -p 无条件注入
+    → worktree 隔离原理上挡不住；修复杠杆 --bare 已验证但顺延 B7
+  — 修正 B4-F6 错误归因 + 发现 B4 计划 §3 双 worktree 同分支死命令
+    │
+P16-B7 lease 心跳判僵尸 + daemon 保活解耦 · --bare 隔离改造 · F5/F7 · PFL-254/255/257
 ```
 
 ## P100 治理批
