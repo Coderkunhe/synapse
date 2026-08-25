@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉）
+> 最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---

@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P16-B4→B5 L5 拉通 — 📄 requirements-log.md 补登记 P16-B4 狗粮批 · 📚 双边断裂→三路收敛→stale 收口 叙事链连贯 · 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
+  "lastL5Batch": "P100 违纪回顾 L5 拉通 — 📄 docs/process-violations.md V-024/V-027 漂移修正 + docs/daily/2026-08-25.md 补登记 · 📚 30/30 🟢 无新增无复发 · 🎭 0 src code 纯治理批跳过场景遍历",
   "lastL5Timestamp": "2026-08-25",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P16-B4→B5 L5 拉通 — 📄 requirements-log.md 补登记 P16-B4 狗粮批 · 📚 双边断裂→三路收敛→stale 收口 叙事链连贯 · 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
+  "lastL5Evidence": "P100 违纪回顾 L5 拉通 — 📄 docs/process-violations.md V-024/V-027 漂移修正 + docs/daily/2026-08-25.md 补登记 · 📚 30/30 🟢 无新增无复发 · 🎭 0 src code 纯治理批跳过场景遍历",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
