@@ -317,7 +317,7 @@ tools/start-worker.sh（角色无关 driver）
 | **写入** | `claim` / `assign` / `start` 三条「让 Worker 有活干」的路径，统一经 `worker_scheduler.attach_active_task()` 挂载（幂等 · 不抢占已有活跃任务 · 仅从 IDLE 转 BUSY）|
 | **清除** | `submit` / `failure_detector` 经 `finish_current_task()` 释放 |
 | **心跳三态** | `current_task_id` **缺省 = 保持** · **显式 null = 清空** · **给值 = 挂载/切换**。缺省与 null 必须区分——driver 每轮心跳都不带该字段，若按 null 处理会每跳擦掉活跃任务 |
-| **路由收口** | `_resolve_active_task_id()` 校验活跃任务仍存在、仍归本人、且处于 IN_PROGRESS/REJECTED，否则不路由 `execute`（防御 cancel/pause/lease 回收等所有 stale 来源）|
+| **路由收口** | `resolve_workable_active_task()` 校验活跃任务仍存在、仍归本人、且处于 IN_PROGRESS/REJECTED，否则不路由 `execute`（防御 cancel/pause/lease 回收等所有 stale 来源）|
 | **队列一致** | `_count_queue` 的 ready 桶复用 `task_query.filter_dependency_blocked()` —— 路由层不得把端点层会拒绝的任务算作可操作 |
 
 > **教训来源**：B4 狗粮实测，写入端不写 + 读取端每跳擦，两边叠加使 headless 执行环死循环。详见 `docs/pitfalls.md` PFL-247/248。

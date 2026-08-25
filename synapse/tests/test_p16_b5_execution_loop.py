@@ -301,3 +301,55 @@ class TestDependencyBlockedNotReady:
         data = await _bare_heartbeat(client, worker_id, key, project_id)
         assert data["queue"]["ready"] == 1
         assert data["next_action"] == "claim"
+
+
+class TestStalePointerDoesNotBlockNewClaim:
+    """陈旧指针不得挡住新认领（PFL-256 · B5 自检发现的自伤 bug）。
+
+    ``resolve_workable_active_task``（路由层）认为陈旧指针无效，而
+    ``attach_active_task``（写入层）却认为「已有活跃任务」不可抢占 ——
+    两层对「Worker 到底有没有活」判断不一致，新认领的任务永远挂不上，
+    B 卡死。与 PFL-248 同一种缺陷（两层各说各话），修法也一样：共用判定。
+    """
+
+    @pytest.mark.asyncio
+    async def test_cancelled_pointer_then_claim_routes_execute(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """指针指向已取消任务时，认领新任务必须能挂上并路由 execute。"""
+        project_id, worker_id, key = await _setup(seed.team_id, "builder")
+        t1 = await _add_task(project_id)
+        await _claim(t1, worker_id, seed.team_id)
+
+        # t1 取消 —— cancel 路径不清 worker.active_task_id（PFL-254）
+        async with async_session_factory() as db:
+            task = await db.get(Task, t1)
+            task.status = TaskStatus.CANCELLED
+            await db.commit()
+
+        t2 = await _add_task(project_id)
+        assert (await _bare_heartbeat(
+            client, worker_id, key, project_id))["next_action"] == "claim"
+
+        await _claim(t2, worker_id, seed.team_id)
+
+        data = await _bare_heartbeat(client, worker_id, key, project_id)
+        assert data["next_action"] == "execute", (
+            f"陈旧指针挡住了新认领（得到 {data['next_action']}）— B4 死循环复现"
+        )
+        assert data["active_task_id"] == t2
+
+    @pytest.mark.asyncio
+    async def test_workable_active_task_is_not_preempted(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        """反向保证：活跃任务仍可执行时，第二次认领不得抢占（FIFO 规则 1）。"""
+        project_id, worker_id, key = await _setup(seed.team_id, "builder")
+        t1 = await _add_task(project_id)
+        t2 = await _add_task(project_id)
+        await _claim(t1, worker_id, seed.team_id)
+        await _claim(t2, worker_id, seed.team_id)
+
+        data = await _bare_heartbeat(client, worker_id, key, project_id)
+        assert data["active_task_id"] == t1, "第二次认领不应抢占仍在执行的 t1"
+        assert data["next_action"] == "execute"

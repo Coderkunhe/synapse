@@ -77,7 +77,7 @@ class TestStateRouter:
         """建一个归属该 worker 的任务，返回 task id（P16-B5）。
 
         路由 execute 需要**真实存在且仍归本人**的任务——见
-        ``state_router._resolve_active_task_id`` 的 stale 防御。
+        ``worker_scheduler.resolve_workable_active_task`` 的 stale 防御。
         """
         task_id = generate_id("task")
         async with async_session_factory() as db:

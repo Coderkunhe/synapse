@@ -24,6 +24,7 @@ from src.models.task import Task
 from src.models.worker import Worker
 from src.services.project_role_service import get_project_role, get_worker_projects
 from src.services.task_query import filter_dependency_blocked
+from src.services.worker_scheduler import resolve_workable_active_task
 from src.services.template_service import resolve_role
 
 # ── next_action 取值 ────────────────────────────────────────────────
@@ -77,31 +78,9 @@ async def _count_queue(db: AsyncSession, project_id: str) -> dict[str, int]:
     }
 
 
-async def _resolve_active_task_id(db: AsyncSession, worker: Worker) -> str | None:
-    """返回**仍可执行**的活跃任务 id，否则 None（P16-B5 · 只读）。
-
-    ``worker.active_task_id`` 可能是陈旧指针：任务被取消/暂停/租约回收/改派
-    之后，清理并非在所有路径上都发生（``terminate_task``/``pause_task``/
-    ``lease_detector`` 原先白嫖「下次心跳会擦」这条路径，而 PFL-247 修复后
-    心跳不再无条件擦）。路由层若照单全收，B 会被派去 execute 一个死任务。
-
-    这里做**收口防御**：只有任务存在、仍归本 worker、且处于可继续工作的状态
-    时才认。防的是所有 stale 来源，不只已知的那几处。
-
-    只读——``compute_state_router`` 在 ``db.commit()`` 之后运行，此处的写入
-    不会被持久化，所以不做清理，只做判断。
-    """
-    if not worker.active_task_id:
-        return None
-
-    task = await db.get(Task, worker.active_task_id)
-    if task is None:
-        return None
-    if task.owner_id != worker.id:
-        return None
-    if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.REJECTED):
-        return None
-    return worker.active_task_id
+# P16-B5：「Worker 还有没有活」的判定只有一份，与写入层（attach_active_task
+# 要不要抢占陈旧指针）共用同一个 resolve_workable_active_task。两层若各自实现，
+# 就会重演 PFL-248「端点层拦了、路由层还当它可操作」那一类不一致（PFL-256）。
 
 
 def _route(role: str, queue: dict[str, int], active_task_id: str | None) -> str:
@@ -172,7 +151,7 @@ async def compute_state_router(
 
     # ── 3. queue 计数 + 4. next_action 路由 ────────────────────────
     # P16-B5: 活跃任务先过一遍「还能不能干」，陈旧指针不参与路由
-    active_task_id = await _resolve_active_task_id(db, worker)
+    active_task_id = await resolve_workable_active_task(db, worker)
     queue = await _count_queue(db, project_id)
     next_action = _route(role, queue, active_task_id)
 

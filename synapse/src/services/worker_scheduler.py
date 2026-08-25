@@ -84,6 +84,35 @@ async def get_next_task(db: AsyncSession, worker_id: str) -> Task | None:
     return result.scalar_one_or_none()
 
 
+async def resolve_workable_active_task(
+    db: AsyncSession, worker: Worker
+) -> str | None:
+    """返回 Worker **仍可执行**的活跃任务 id，否则 None（只读）。
+
+    P16-B5：``worker.active_task_id`` 可能是陈旧指针——任务被取消/暂停/租约
+    回收/改派之后，并非所有路径都会清理它（``terminate_task``/``pause_task``/
+    ``lease_detector`` 原先白嫖「下次心跳会擦」这条路径，见 PFL-254）。
+
+    **「Worker 到底有没有活」必须只有一个判定。** 写入层（``attach_active_task``
+    要不要抢占）和路由层（``state_router`` 要不要派 execute）都用这一个，
+    否则两层各说各话：路由层认为陈旧值无效、写入层却认为它有效不可抢占 →
+    新认领的任务永远挂不上，B 卡死（PFL-256）。
+
+    只读——``state_router`` 在 ``db.commit()`` 之后调用，写入不会被持久化。
+    """
+    if not worker.active_task_id:
+        return None
+
+    task = await db.get(Task, worker.active_task_id)
+    if task is None:
+        return None
+    if task.owner_id != worker.id or task.owner_type != OwnerType.WORKER:
+        return None
+    if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.REJECTED):
+        return None
+    return worker.active_task_id
+
+
 async def attach_active_task(
     db: AsyncSession, worker: Worker, task_id: str
 ) -> Worker:
@@ -102,8 +131,12 @@ async def attach_active_task(
         （状态机禁止 BUSY→BUSY / ERROR→BUSY，见 worker_state_machine._TRANSITIONS）
     """
     if worker.active_task_id is not None and worker.active_task_id != task_id:
-        # 已有其它活跃任务 — 不抢占（规则 1：同一时间仅一个活跃 Task）
-        return worker
+        # 已有其它活跃任务 —— 但先确认它「还能不能干」。仍可执行 → 不抢占
+        # （规则 1：同一时间仅一个活跃 Task）；已失效（取消/改派/已提交）→
+        # 陈旧指针必须让位，否则新认领的任务永远挂不上，B 卡死（PFL-256）。
+        if await resolve_workable_active_task(db, worker) is not None:
+            return worker
+        worker.active_task_id = None   # 顺手清掉陈旧指针（本函数在写事务内）
 
     if worker.active_task_id is None:
         worker.active_task_id = task_id
