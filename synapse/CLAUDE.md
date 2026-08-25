@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100-B151 ✅ · L5 counter=1）
+> 不存代码，只协调工作。最后更新：2026-08-25（P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · 964 tests · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100-B151 ✅ · L5 counter=0）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -115,7 +115,7 @@ synapse/
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B5 ✅** 修执行环 claim→execute 断裂（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档）· 964 tests · B4 狗粮第一轮 🔴 | B6（多客户端狗粮重跑）|
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B151 ✅** · 3 stale-date 文档诚实更新（0 src code · 纯文档） | B152（候选：门禁新鲜度模型适配）|
-| **L5** | batchesSinceLastL5=1（P16-B1→B3 L5 拉通 · counter 复位）|
+| **L5** | batchesSinceLastL5=0（P16-B4→B5 L5 拉通 · counter 复位）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 

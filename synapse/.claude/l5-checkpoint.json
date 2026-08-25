@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P16-B1→B3 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已更新 · 📚 state-router→driver 叙事链连贯（B2 确定性路由 → B3 确定性驱动循环 · 0 src code）· 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
-  "lastL5Timestamp": "2026-08-21",
-  "batchesSinceLastL5": 1,
+  "lastL5Batch": "P16-B4→B5 L5 拉通 — 📄 requirements-log.md 补登记 P16-B4 狗粮批 · 📚 双边断裂→三路收敛→stale 收口 叙事链连贯 · 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
+  "lastL5Timestamp": "2026-08-25",
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P16-B1→B3 L5 拉通 — 📄 roadmap.md+requirements-log.md+daily 三同步已更新 · 📚 state-router→driver 叙事链连贯（B2 确定性路由 → B3 确定性驱动循环 · 0 src code）· 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
+  "lastL5Evidence": "P16-B4→B5 L5 拉通 — 📄 requirements-log.md 补登记 P16-B4 狗粮批 · 📚 双边断裂→三路收敛→stale 收口 叙事链连贯 · 🎭 0 src code 场景遍历跳过 · counter 复位 2→0",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
