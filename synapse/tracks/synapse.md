@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P16 机制级修自主性 ▶️ · B5 ✅ 执行环断裂已修（F1~F4）· B6 🟡 狗粮环境就位待用户三终端 kickoff（PFL-258 隔离根因锤实 + F6 判据重设计）· P15 B0→B3 ✅ 全量闭环 🎉 · P100 治理轨道常开
-last_batch: P16-B5
-next_batch: P16-B6
+last_batch: P16-B6
+next_batch: P16-B7
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
@@ -20,7 +20,7 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
 | **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 | **P15** | **P15-B3** | — ✅ P15 全量闭环 🎉 | B0-B3 ✅ · 主张 B 判「部分成立」· 复盘 docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
-| **P16** | P16-B5 | P16-B6 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🟡 环境就位待 kickoff**（PFL-258 plugin 级 hook 隔离根因 + F6 三层机械判据 + B4 死命令修正 · 0 src code）· B7 lease/daemon 收尾 + --bare 隔离改造 |
+| **P16** | P16-B6 | P16-B7 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🟡 环境就位待 kickoff**（PFL-258 plugin 级 hook 隔离根因 + F6 三层机械判据 + B4 死命令修正 · 0 src code）· B7 lease/daemon 收尾 + --bare 隔离改造 |
 
 ## P11 路线图：多 Agent 接入战
 
