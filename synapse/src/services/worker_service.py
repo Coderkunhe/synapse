@@ -14,7 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.worker_state_machine import apply_transition as apply_runtime_transition
 from src.auth import generate_api_key
-from src.constants import ActorType, BatchStatus, TaskStatus, WorkerActorType, WorkerRuntimeStatus, WorkerStatus
+from src.constants import (
+    ActorType,
+    BatchStatus,
+    EventType,
+    TaskStatus,
+    WorkerActorType,
+    WorkerRuntimeStatus,
+    WorkerStatus,
+)
 from src.exceptions import ConflictError, NotFoundError
 from src.models.worker import Worker
 from src.models.batch import Batch
@@ -260,6 +268,25 @@ async def worker_heartbeat(
     if progress_summary:
         existing_meta["progress_summary"] = progress_summary
     worker.metadata_ = safe_dumps(existing_meta)
+
+    # ── 心跳留痕 (P16-B6) ──────────────────────────────────────────────
+    # ``last_heartbeat_at`` 是被覆盖的单值列，只记得「最后一跳」——心跳历史
+    # 无处可查，「心跳次数 / 平均间隔」不可计算。每次成功心跳追加一条不可变
+    # Event，把心跳变成可聚合的时间序列。事件时间取 Event 默认时间源
+    # (_utcnow)，与本次心跳同一请求内，与 last_heartbeat_at 同步推进。
+    await event_store.record(
+        db,
+        event_type=EventType.WORKER_HEARTBEAT,
+        team_id=worker.team_id,
+        actor_type=ActorType.WORKER,
+        actor_id=worker_id,
+        target_type="worker",
+        target_id=worker_id,
+        payload={
+            "current_load": current_load,
+            "active_task_id": effective_task_id,
+        },
+    )
 
     # 运行时状态转换
     if worker.runtime_status in (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE):
