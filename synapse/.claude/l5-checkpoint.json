@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B152→P16-B6 L5 拉通 — 📄 修 2 项真漂移: docs/lessons-learned.md 头部 2026-08-17→2026-08-25 补登记 LL31（门禁被 LL31 标题日期喂饱=假新鲜）· CLAUDE.md:4 + docs/roadmap.md:3 现状口径 964→967 tests 修正（B5 补刀 ed237f4 +2 · B152 d239d85 +1 从未滚入现状）· 📚 叙事一致性验证通过: B4-F6 归因推翻已在 p16-b4-dogfood-plan.md:214 双向挂钩 PFL-258，无旧根因残留 · 🎭 967 passed 零回归 + 定点复验 B152 状态无关性（plan 文件真实入库下 tests/gates/test_v020_scope_shift.py 4 passed）",
-  "lastL5Timestamp": "2026-08-25",
+  "lastL5Batch": "P16-B6→B7 L5 拉通 — 📄 docs/plans/p16-b6-retrospective.md 新增 + docs/pitfalls.md 新登记 PFL-260~266 七条（split 收口/超时标定/模型卡死→stale 误判/僵尸授权死锁/worktree L5 门禁/recovery 500/me-state 500）+ requirements-log/roadmap/daily/tracks 四同步 · 📚 执行环零 human turn 叙事一致：A→B→C depends_on 三连 completed，B4 死循环未复现 · 🎭 0 src code 纯狗粮批跳过场景遍历",
+  "lastL5Timestamp": "2026-08-27",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B152→P16-B6 L5 拉通 — 📄 修 2 项真漂移: docs/lessons-learned.md 头部 2026-08-17→2026-08-25 补登记 LL31（门禁被 LL31 标题日期喂饱=假新鲜）· CLAUDE.md:4 + docs/roadmap.md:3 现状口径 964→967 tests 修正（B5 补刀 ed237f4 +2 · B152 d239d85 +1 从未滚入现状）· 📚 叙事一致性验证通过: B4-F6 归因推翻已在 p16-b4-dogfood-plan.md:214 双向挂钩 PFL-258，无旧根因残留 · 🎭 967 passed 零回归 + 定点复验 B152 状态无关性（plan 文件真实入库下 tests/gates/test_v020_scope_shift.py 4 passed）",
+  "lastL5Evidence": "P16-B6→B7 L5 拉通 — 📄 docs/plans/p16-b6-retrospective.md 新增 + docs/pitfalls.md 新登记 PFL-260~266 七条（split 收口/超时标定/模型卡死→stale 误判/僵尸授权死锁/worktree L5 门禁/recovery 500/me-state 500）+ requirements-log/roadmap/daily/tracks 四同步 · 📚 执行环零 human turn 叙事一致：A→B→C depends_on 三连 completed，B4 死循环未复现 · 🎭 0 src code 纯狗粮批跳过场景遍历",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

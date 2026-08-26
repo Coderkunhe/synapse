@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-25（P16-B6 狗粮环境就位 🟡 待 kickoff · 新登记 PFL-258 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · **967 tests** · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100-B151 ✅ · P100 违纪回顾 ✅ · **L5 拉通 ✅ counter=0**）
+> 不存代码，只协调工作。最后更新：2026-08-27（**P16-B6 狗粮闭环 🎉** · 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 新登记 PFL-258 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · **967 tests** · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · **L5 拉通 ✅ counter=0**）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -113,9 +113,9 @@ synapse/
 | ✅ | **P13 目标：基础设施可信度加固** — 软约定→机械门禁 · Worker 可观测性 · 跨客户端可靠性 | **P13** B1→B13 ✅ · 13 批 · 897 tests · 全量闭环 🎉 |
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
-| 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B6 🟡** 狗粮环境就位待用户三终端 kickoff（PFL-258 隔离根因锤实 + F6 三层机械判据 + B4 死命令修正 · 0 src code）· B5 ✅ 964 tests · B4 狗粮第一轮 🔴 | B6 kickoff（多客户端狗粮重跑）|
+| 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B6 🎉 闭环** 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266（0 src code）· B5 ✅ 964 tests · B4 狗粮第一轮 🔴 | B7（lease/daemon 收尾 · --bare 隔离 · PFL-260/261/262/266）|
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B152 ✅** 门禁测试隔离泄漏修复（PFL-259 · 门禁反向惩罚「按规矩写 plan」· 1 tool + 2 tests · 0 src code）· B151 ✅ 3 stale-date 文档诚实更新 | B153（候选：其它门禁 `$0` 泄漏扫面 · 门禁新鲜度模型适配）|
-| **L5** | batchesSinceLastL5=0（P100-B152→P16-B6 L5 拉通 · counter 复位 2→0）|
+| **L5** | batchesSinceLastL5=0（P16-B6→B7 L5 拉通 · B6 狗粮闭环 🎉 · 新登记 PFL-260~266）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 

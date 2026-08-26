@@ -1,6 +1,6 @@
 # Synapse 系统架构
 
-> 版本：v2.3 · 2026-08-17（P100-B137 时区序列化补 UTC · B148 治理 hooks 迁根 .claude/settings.json）
+> 版本：v2.4 · 2026-08-27（P16-B6 狗粮闭环 — headless worker 心跳与模型调用需解耦 · 见 §10 新增注）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
@@ -582,6 +582,8 @@ graph TB
 ---
 
 ## 10. 下一步
+
+> **P16-B6 架构注（2026-08-27）**：headless worker 的「模型调用」与「心跳/保活」当前在 `start-worker.sh` 里是**同步 wait**——派发 `claude -p` 后停心跳，模型调用一卡 worker 就变 offline，进而触发 stale 误判 unclaim（PFL-262）。这是 B7 的架构改造点：保活信号必须进独立循环，与业务执行解耦；停滞判定应看「进程活性」而非「时间戳」。
 
 - ✅ MVP 功能边界精确定义 — `docs/mvp-boundary.md`
 - ✅ 初始数据模型实现（SQLAlchemy models） — `src/models/`（11 实体）
