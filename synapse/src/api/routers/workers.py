@@ -31,6 +31,7 @@ from src.schemas.worker import (
     WorkerHeartbeatRequest,
     WorkerHeartbeatResponse,
     WorkerProjectResponse,
+    WorkerHealthSummaryResponse,
     WorkerResponse,
     WorkerStateResponse,
     OrchestratorStatusResponse,
@@ -50,6 +51,7 @@ from src.services.worker_service import (
     resume_worker as _resume_worker,
     suspend_worker as _suspend_worker,
     get_orchestrator_status,
+    get_worker_health_summary as _get_worker_health_summary,
 )
 from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
@@ -270,6 +272,42 @@ async def get_agent(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_worker(worker_id=agent_id, actor=actor, db=db)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Worker Health Summary (P16-B6 任务 B)
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/{worker_id}/health-summary",
+    response_model=WorkerHealthSummaryResponse,
+    responses={404: {"model": None}},
+)
+async def get_worker_health_summary_endpoint(
+    worker_id: str,
+    window_hours: int = Query(
+        24,
+        ge=1,
+        le=720,
+        description="统计窗口（小时），默认 24",
+    ),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Worker 心跳健康摘要 — 窗口内跳了多少次、多久一跳、现在还在不在线。
+
+    数据源是任务 A 落库的 ``worker.heartbeat`` 事件。CLI 健康报告（任务 C）
+    和人类排障靠它回答「这个 Worker 的心跳稳不稳」，而不只是「最后一跳是何时」。
+
+    认证与本 router 其它端点一致（未认证 → 401）；Worker 不存在或跨 team → 404。
+    """
+    worker = await _get_worker(db, worker_id)
+    if worker.team_id != actor.team_id:
+        raise NotFoundError("worker", worker_id)
+
+    summary = await _get_worker_health_summary(db, worker, window_hours=window_hours)
+    return WorkerHealthSummaryResponse(**summary)
 
 
 # ═══════════════════════════════════════════════════════════════════
