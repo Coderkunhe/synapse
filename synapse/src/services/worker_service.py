@@ -14,7 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.worker_state_machine import apply_transition as apply_runtime_transition
 from src.auth import generate_api_key
-from src.constants import ActorType, BatchStatus, TaskStatus, WorkerActorType, WorkerRuntimeStatus, WorkerStatus
+from src.constants import (
+    ActorType,
+    BatchStatus,
+    EventType,
+    TaskStatus,
+    WorkerActorType,
+    WorkerRuntimeStatus,
+    WorkerStatus,
+)
 from src.exceptions import ConflictError, NotFoundError
 from src.models.worker import Worker
 from src.models.batch import Batch
@@ -260,6 +268,25 @@ async def worker_heartbeat(
     if progress_summary:
         existing_meta["progress_summary"] = progress_summary
     worker.metadata_ = safe_dumps(existing_meta)
+
+    # ── 心跳留痕 (P16-B6) ──────────────────────────────────────────────
+    # ``last_heartbeat_at`` 是被覆盖的单值列，只记得「最后一跳」——心跳历史
+    # 无处可查，「心跳次数 / 平均间隔」不可计算。每次成功心跳追加一条不可变
+    # Event，把心跳变成可聚合的时间序列。事件时间取 Event 默认时间源
+    # (_utcnow)，与本次心跳同一请求内，与 last_heartbeat_at 同步推进。
+    await event_store.record(
+        db,
+        event_type=EventType.WORKER_HEARTBEAT,
+        team_id=worker.team_id,
+        actor_type=ActorType.WORKER,
+        actor_id=worker_id,
+        target_type="worker",
+        target_id=worker_id,
+        payload={
+            "current_load": current_load,
+            "active_task_id": effective_task_id,
+        },
+    )
 
     # 运行时状态转换
     if worker.runtime_status in (WorkerRuntimeStatus.ERROR, WorkerRuntimeStatus.OFFLINE):
@@ -706,4 +733,78 @@ async def get_orchestrator_status(
         "last_heartbeat_at": orchestrator.last_heartbeat_at,
         "heartbeat_age_seconds": hb_age,
         "detection_source": None,
+    }
+
+
+async def get_worker_health_summary(
+    db: AsyncSession,
+    worker: Worker,
+    *,
+    window_hours: int = 24,
+) -> dict:
+    """聚合 Worker 的心跳健康摘要（P16-B6 任务 B）。
+
+    数据源是任务 A 落库的 ``worker.heartbeat`` 事件——``last_heartbeat_at``
+    是被覆盖的单值列，只能回答「最后一跳」，回答不了「跳了多少次、多久一跳」。
+
+    在线阈值复用 ``get_provider_heartbeat_timeout()``（P13-B9 Provider 配置
+    注册中心，``failure_detector.py`` 判定心跳超时用的同一个 helper），
+    与 ``config.py`` 的 ``worker_heartbeat_timeout_seconds`` 系列默认值一致
+    （claude 300s / codex 1800s）。此处不新造阈值常量、不做 provider 分支。
+
+    Returns:
+        dict with keys: worker_id, last_heartbeat_at, heartbeat_count,
+        avg_interval_seconds, is_online, window_hours
+    """
+    from datetime import timedelta
+
+    from src.models.event import Event
+    from src.services.provider_config_service import get_provider_heartbeat_timeout
+
+    now = datetime.now(timezone.utc)
+
+    # ``Event.created_at`` 是 naive UTC 列（见 models/event.py）——比较边界必须
+    # 同样去掉 tzinfo，否则带偏移量的字面量在 SQLite 上按字符串比较会漏掉记录。
+    window_start = (now - timedelta(hours=window_hours)).replace(tzinfo=None)
+
+    result = await db.execute(
+        select(Event.created_at)
+        .where(
+            Event.event_type == EventType.WORKER_HEARTBEAT,
+            Event.target_id == worker.id,
+            Event.created_at >= window_start,
+        )
+        .order_by(Event.created_at.asc())
+    )
+    stamps = [
+        ts if ts.tzinfo is not None else ts.replace(tzinfo=timezone.utc)
+        for ts in result.scalars().all()
+    ]
+
+    heartbeat_count = len(stamps)
+
+    # 平均间隔 = 首末跳跨度 / 间隔数。窗口内 < 2 跳时没有「间隔」可言 → null，
+    # 不拿 0 或窗口长度冒充（那会让「跳过一次」看起来像「跳得很稳」）。
+    avg_interval_seconds: float | None = None
+    if heartbeat_count >= 2:
+        span = (stamps[-1] - stamps[0]).total_seconds()
+        avg_interval_seconds = span / (heartbeat_count - 1)
+
+    last_hb = worker.last_heartbeat_at
+    if last_hb is not None and last_hb.tzinfo is None:
+        last_hb = last_hb.replace(tzinfo=timezone.utc)
+
+    timeout_seconds = get_provider_heartbeat_timeout(worker.provider)
+    is_online = (
+        last_hb is not None
+        and (now - last_hb).total_seconds() <= timeout_seconds
+    )
+
+    return {
+        "worker_id": worker.id,
+        "last_heartbeat_at": last_hb,
+        "heartbeat_count": heartbeat_count,
+        "avg_interval_seconds": avg_interval_seconds,
+        "is_online": is_online,
+        "window_hours": window_hours,
     }

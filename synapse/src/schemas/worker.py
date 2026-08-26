@@ -221,6 +221,39 @@ class OrchestratorStatusResponse(BaseModel):
     )
 
 
+class WorkerHealthSummaryResponse(BaseModel):
+    """Worker 心跳健康摘要（P16-B6 任务 B）。
+
+    ``last_heartbeat_at`` 只告诉你「最后一跳是什么时候」，答不了「这段时间跳得
+    稳不稳」。本响应把窗口内的 ``worker.heartbeat`` 事件（任务 A 落库）聚合成
+    次数与平均间隔，供 CLI 健康报告（任务 C）与人类排障使用。
+
+    字段名为 O 定义的响应契约，不得擅改。
+    """
+
+    worker_id: str = Field(..., description="被查询的 Worker ID")
+    last_heartbeat_at: datetime | None = Field(
+        None,
+        description="最近一次心跳时间（UTC ISO8601）— 从未心跳为 null",
+    )
+    heartbeat_count: int = Field(
+        ...,
+        description="统计窗口内 worker.heartbeat 事件数",
+    )
+    avg_interval_seconds: float | None = Field(
+        None,
+        description="窗口内相邻心跳的平均间隔（秒）— 窗口内心跳数 < 2 时为 null",
+    )
+    is_online: bool = Field(
+        ...,
+        description="距最后一跳是否仍在 provider 心跳超时阈值内（claude 300s / codex 1800s）",
+    )
+    window_hours: int = Field(
+        ...,
+        description="统计窗口（小时）— 回显请求参数，默认 24",
+    )
+
+
 # ── P12-B5: Worker State Snapshot (Codex sandbox — replace _task-current.md) ──
 
 
