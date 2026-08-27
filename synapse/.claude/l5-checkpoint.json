@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P16-B6 合并后 L5 拉通 — 📄 dogfood 分支 A/B/C 交付合并进 master（991 tests · +24 新增）· roadmap/reqlog/CLAUDE.md 三源测试数 967→991 同步 · 📚 执行环零 human turn 叙事完整承接，无断层 · 🎭 合并批 991 passed 全量验证通过",
   "lastL5Timestamp": "2026-08-27",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P16-B6 合并后 L5 拉通 — 📄 dogfood 分支 A/B/C 交付合并进 master（991 tests · +24 新增）· roadmap/reqlog/CLAUDE.md 三源测试数 967→991 同步 · 📚 执行环零 human turn 叙事完整承接，无断层 · 🎭 合并批 991 passed 全量验证通过",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
