@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-08-27（**P16-B6 狗粮闭环 🎉** · 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 新登记 PFL-258 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · **967 tests** · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · **L5 拉通 ✅ counter=0**）
+> 不存代码，只协调工作。最后更新：2026-08-27（**P16-B6 狗粮闭环 🎉** · 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 新登记 PFL-258 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · **991 tests** · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · **L5 拉通 ✅ counter=0**）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
