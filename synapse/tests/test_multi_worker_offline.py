@@ -198,7 +198,8 @@ class TestStaleTaskDetection:
             result = await detect_stale_tasks(db, threshold_minutes=90, reassign_threshold_minutes=10)
             await db.commit()
 
-        # 30min < 90min threshold → not stale
+        # 30min < 90min threshold → not stale（P16-B7 PFL-262：owner worker 存活
+        # → 跳过，不回收也不记 stale，故不在 stale_task_ids 中）
         assert data["task_id"] not in result["stale_task_ids"], (
             f"Task 30min old with 90min threshold should not be stale"
         )

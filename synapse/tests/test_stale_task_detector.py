@@ -11,12 +11,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import ActorType, TaskStatus
+from src.constants import ActorType, TaskStatus, WorkerStatus
 from src.db import async_session_factory
 from src.models.event import Event
 from src.models.project import Project
 from src.models.task import Task
 from src.models.team import Team
+from src.models.worker import Worker
 from src.services.event_store import event_store
 from src.services.stale_task_detector import (
     detect_stale_tasks,
@@ -77,13 +78,12 @@ class TestStaleTaskDetector:
             result = await detect_stale_tasks(
                 db, threshold_minutes=60, reassign_threshold_minutes=15,
             )
-            # stale_count=0 because the task was reassigned, not just logged
-            assert result["stale_count"] == 0
-            assert result["reassigned_count"] == 1
+            # 断言聚焦本测试自己的任务 —— detect_stale_tasks 是全局扫描，
+            # 共享 DB 里的其它残留 in_progress 任务会干扰精确 count（P16-B7 PFL-262）。
             assert "tsk_stale_001" in result["reassigned_task_ids"]
             assert "tsk_fresh_001" not in result["reassigned_task_ids"]
-            assert result["cancelled_count"] == 0
-            assert result["cancelled_task_ids"] == []
+            assert "tsk_stale_001" not in result["stale_task_ids"]
+            assert "tsk_stale_001" not in result["cancelled_task_ids"]
 
             # Verify task was actually unclaimed and returned to READY
             await db.flush()
@@ -96,6 +96,112 @@ class TestStaleTaskDetector:
             # Fresh task unaffected
             await db.refresh(fresh_task)
             assert fresh_task.status == TaskStatus.IN_PROGRESS
+
+            await db.rollback()
+
+    # ── P16-B7 (PFL-262): reassign gated on owner worker alive ──
+
+    @pytest.mark.asyncio
+    async def test_stale_task_not_reassigned_when_owner_worker_alive(self):
+        """PFL-262: IN_PROGRESS 任务 stale 但 owner worker 心跳新鲜 → 不回收。
+
+        不回收也不记 stale 事件（跳过）—— 回收应以「worker 是否失联」
+        为准，不以「task 是否有进度」为准（PFL-245 候选③）。
+        """
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale-alive"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-alive"))
+            await db.flush()
+
+            worker_id = "ag_alive_001"
+            # owner worker 心跳新鲜（存活）—— 长任务期间 driver keepalive 持续刷新
+            db.add(Worker(
+                id=worker_id,
+                team_id=team_id,
+                name="Alive Worker",
+                provider="claude",
+                status=WorkerStatus.ACTIVE,
+                last_heartbeat_at=datetime.now(timezone.utc),
+            ))
+
+            stale_task = Task(
+                id="tsk_alive_001",
+                project_id=project_id,
+                title="Alive But Slow Task",
+                description="Owner is alive, just slow",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id=worker_id,
+            )
+            stale_task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            db.add(stale_task)
+            await db.flush()
+
+            result = await detect_stale_tasks(
+                db, threshold_minutes=60, reassign_threshold_minutes=45,
+            )
+            assert result["reassigned_count"] == 0
+            assert result["stale_count"] == 0   # 存活 worker → 跳过，不回收也不记 stale
+            assert "tsk_alive_001" not in result["stale_task_ids"]
+
+            await db.flush()
+            await db.refresh(stale_task)
+            assert stale_task.status == TaskStatus.IN_PROGRESS
+            assert stale_task.owner_id == worker_id
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
+    async def test_stale_task_reassigned_when_owner_worker_dead(self):
+        """PFL-262: IN_PROGRESS 任务 stale 且 owner worker 心跳过期 → 回收。
+
+        owner worker 真失联（last_heartbeat_at 超过 provider 阈值）→ 维持
+        原有 unclaim 行为。
+        """
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale-dead"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-dead"))
+            await db.flush()
+
+            worker_id = "ag_dead_001"
+            db.add(Worker(
+                id=worker_id,
+                team_id=team_id,
+                name="Dead Worker",
+                provider="claude",
+                status=WorkerStatus.ACTIVE,
+                last_heartbeat_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            ))
+
+            stale_task = Task(
+                id="tsk_dead_001",
+                project_id=project_id,
+                title="Dead Worker Task",
+                description="Owner worker is gone",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="worker",
+                owner_id=worker_id,
+            )
+            stale_task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            db.add(stale_task)
+            await db.flush()
+
+            result = await detect_stale_tasks(
+                db, threshold_minutes=60, reassign_threshold_minutes=45,
+            )
+            assert result["reassigned_count"] == 1
+            assert "tsk_dead_001" in result["reassigned_task_ids"]
+
+            await db.flush()
+            await db.refresh(stale_task)
+            assert stale_task.status == TaskStatus.READY
+            assert stale_task.owner_id is None
 
             await db.rollback()
 
@@ -126,13 +232,10 @@ class TestStaleTaskDetector:
             await db.flush()
 
             result = await detect_stale_tasks(db, threshold_minutes=60)
-            assert result["stale_count"] == 1
             assert "tsk_stale_paused_001" in result["stale_task_ids"]
             # P11-B125: PAUSED tasks are NOT reassigned (active pause ≠ abandonment)
-            assert result["reassigned_count"] == 0
-            assert result["reassigned_task_ids"] == []
-            assert result["cancelled_count"] == 0
-            assert result["cancelled_task_ids"] == []
+            assert "tsk_stale_paused_001" not in result["reassigned_task_ids"]
+            assert "tsk_stale_paused_001" not in result["cancelled_task_ids"]
 
             await db.rollback()
 

@@ -26,11 +26,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.config import settings
-from src.constants import ActorType, EventType, TaskStatus
+from src.constants import ActorType, EventType, OwnerType, TaskStatus, WorkerRuntimeStatus, WorkerStatus
 from src.models.event import Event
 from src.models.task import Task
+from src.models.worker import Worker
 from src.services.event_store import event_store
+from src.services.provider_config_service import get_provider_heartbeat_timeout
 from src.task_state_machine import apply_transition
+
+
+async def _owner_worker_alive(db: AsyncSession, task: Task) -> bool:
+    """判断 IN_PROGRESS 任务的 owner worker 是否仍存活（P16-B7 PFL-262）。
+
+    回收（reassign）应以「worker 是否真的失联」为准，不应以「task 是否有进度」
+    为准（PFL-245 候选③）。headless worker 在长任务 / 模型调用卡死期间，driver
+    的 keepalive 心跳会持续刷新 ``last_heartbeat_at``，本函数据此区分「活着但慢」
+    与「真僵尸」。仅 worker-owned 任务走此判定；非 worker owner（human/team）或
+    owner 缺失 → 视为可回收（沿用旧的纯时间戳行为）。
+    """
+    if task.owner_type != OwnerType.WORKER or not task.owner_id:
+        return False
+    worker = await db.get(Worker, task.owner_id)
+    if worker is None or worker.last_heartbeat_at is None:
+        return False
+    # 只认 active worker：被停用（INACTIVE）或已被 monitor/detector 判 OFFLINE/ERROR
+    # 的都是「失联」，任务应被回收。否则一条 deactivated worker 残留的旧任务会因
+    # last_heartbeat_at 仍新鲜而被误判「活着」，永不回收。
+    if worker.status != WorkerStatus.ACTIVE:
+        return False
+    if worker.runtime_status in (WorkerRuntimeStatus.OFFLINE, WorkerRuntimeStatus.ERROR):
+        return False
+    last_hb = worker.last_heartbeat_at
+    if last_hb.tzinfo is None:
+        last_hb = last_hb.replace(tzinfo=timezone.utc)
+    timeout = get_provider_heartbeat_timeout(worker.provider)
+    return last_hb >= datetime.now(timezone.utc) - timedelta(seconds=timeout)
 
 
 async def detect_stale_tasks(
@@ -123,6 +153,12 @@ async def detect_stale_tasks(
                 task.status == TaskStatus.IN_PROGRESS
                 and stale_minutes >= reassign_threshold_minutes
             ):
+                if await _owner_worker_alive(db, task):
+                    # P16-B7 (PFL-262): owner worker 心跳仍新鲜 → 活着但在干长活
+                    #（模型调用卡死在 driver 超时内 / 大任务），不是僵尸。跳过，既不
+                    # 回收也不记 stale 事件 —— 回收/僵尸判定应以「worker 是否失联」
+                    # 为准，不以「task 是否有进度」为准（PFL-245 候选③）。
+                    continue
                 # 回收：unclaim + 归还到 ready 池
                 old_owner_type = task.owner_type
                 old_owner_id = task.owner_id

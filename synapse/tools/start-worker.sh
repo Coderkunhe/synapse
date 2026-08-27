@@ -60,6 +60,7 @@ CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-900}"
 FAIL_SLEEP_MIN=30
 FAIL_SLEEP_MAX="${SYNAPSE_FAIL_SLEEP_MAX:-300}"
 HEARTBEAT_TIMEOUT=10
+KEEPALIVE_INTERVAL="${SYNAPSE_KEEPALIVE_INTERVAL:-30}"   # 后台保活心跳间隔（< worker_heartbeat_timeout 300s）
 ALLOWED_TOOLS="${SYNAPSE_ALLOWED_TOOLS:-Bash,Read,Write,Edit,Grep,Glob}"
 
 # ── Color helpers（对齐 bootstrap-worker.sh 风格）────────────
@@ -185,6 +186,33 @@ heartbeat() {
         -d "{\"current_load\":0,\"project_id\":\"${SYNAPSE_PROJECT_ID:-}\"}" 2>/dev/null
 }
 
+# ════════════════════════════════════════════════════════════
+# keepalive 心跳 — 与主循环解耦（P16-B7 PFL-262）
+# ════════════════════════════════════════════════════════════
+# 主循环在 run_with_timeout 同步 wait `claude -p` 期间不再发心跳，模型调用
+# 卡死 / 大 split 超过 300s 时 Worker.last_heartbeat_at 陈旧 → 被
+# _worker_heartbeat_monitor 判 OFFLINE、被 stale 回收误判僵尸。本函数在独立
+# 子进程里持续发心跳，与同步执行解耦。body 不带 active_task_id → 三态语义
+# 「缺省=保持」，不会擦掉 claim/assign 挂上的活跃任务。
+keepalive_loop() {
+    while true; do
+        heartbeat >/dev/null 2>&1
+        sleep "$KEEPALIVE_INTERVAL"
+    done
+}
+
+start_keepalive() {
+    keepalive_loop &
+    KEEPALIVE_PID=$!
+}
+
+stop_keepalive() {
+    if [[ -n "${KEEPALIVE_PID:-}" ]] && kill -0 "$KEEPALIVE_PID" 2>/dev/null; then
+        kill "$KEEPALIVE_PID" 2>/dev/null
+        wait "$KEEPALIVE_PID" 2>/dev/null
+    fi
+}
+
 # ── 用 python3 解析 heartbeat JSON（对齐 synapse-heartbeat.sh）──
 parse_field() {
     # $1 = JSON 文本 · $2 = 字段名（支持 dotted path）
@@ -257,6 +285,16 @@ run_with_timeout() {
     wait "$pid"
     return $?
 }
+
+# ════════════════════════════════════════════════════════════
+# 启动 keepalive 心跳（P16-B7 PFL-262 · dry-run 不发）
+# ════════════════════════════════════════════════════════════
+KEEPALIVE_PID=""
+if ! $DRY_RUN; then
+    trap stop_keepalive EXIT
+    start_keepalive
+    echo -e "${CYAN}🫀 keepalive 心跳已启动（每 ${KEEPALIVE_INTERVAL}s）${NC}"
+fi
 
 # ════════════════════════════════════════════════════════════
 # 主循环
