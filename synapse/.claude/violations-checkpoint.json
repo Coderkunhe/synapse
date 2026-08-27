@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100 违纪回顾完成 — P16-B0~B5 无新增违纪 · 30/30 🟢 · counter 复位 6→0",
-  "lastReviewTimestamp": "2026-08-25",
+  "lastReviewBatch": "P16-B6 违纪回顾 — B6 狗粮无新增违纪 · 0 活跃 🔴 · counter 复位 5→0",
+  "lastReviewTimestamp": "2026-08-27",
   "totalViolations": 30,
   "recurringCount": 0,
   "unguardedCount": 3,
-  "batchesSinceLastReview": 4,
+  "batchesSinceLastReview": 0,
   "notes": "违纪回顾完成，计数器复位"
 }

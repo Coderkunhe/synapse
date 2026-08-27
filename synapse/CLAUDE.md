@@ -115,7 +115,7 @@ synapse/
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B6 🎉 闭环** 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266（0 src code）· B5 ✅ 964 tests · B4 狗粮第一轮 🔴 | B7（lease/daemon 收尾 · --bare 隔离 · PFL-260/261/262/266）|
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B152 ✅** 门禁测试隔离泄漏修复（PFL-259 · 门禁反向惩罚「按规矩写 plan」· 1 tool + 2 tests · 0 src code）· B151 ✅ 3 stale-date 文档诚实更新 | B153（候选：其它门禁 `$0` 泄漏扫面 · 门禁新鲜度模型适配）|
-| **L5** | batchesSinceLastL5=0（P16-B6→B7 L5 拉通 · B6 狗粮闭环 🎉 · 新登记 PFL-260~266）|
+| **L5** | batchesSinceLastL5=0（P16-B6 合并后 L5 拉通 · dogfood 交付入 master · 991 tests）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 
