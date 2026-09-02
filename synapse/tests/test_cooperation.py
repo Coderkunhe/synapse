@@ -17,7 +17,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import TaskStatus
+from src.constants import TaskStatus, WorkerRuntimeStatus
 from src.exceptions import ConflictError, NotFoundError
 from src.models.worker import Worker
 from src.models.batch import Batch
@@ -210,6 +210,23 @@ class TestBatchClaim:
             assert t.owner_id == seeded["agent_id"]
             assert t.lease_expires_at is not None
 
+    async def test_claim_batch_attaches_active_task(self, db: AsyncSession, seeded: dict):
+        """批量认领也挂 active_task_id（P16-B9 PFL-255），否则 state_router 无活可路由。"""
+        tasks = [await _create_ready_task(db, seeded, title=f"批量 {i}") for i in range(2)]
+
+        result = await claim_batch(
+            db, seeded["batch_id"], worker_id=seeded["agent_id"],
+            worker_team_id=seeded["team_id"],
+        )
+        await db.flush()
+
+        assert result["claimed_count"] == 2
+        worker = await db.get(Worker, seeded["agent_id"])
+        assert worker.active_task_id == result["task_ids"][0], (
+            "批量认领未把首个任务挂为 active_task_id"
+        )
+        assert worker.runtime_status == WorkerRuntimeStatus.BUSY
+
     async def test_claim_batch_no_ready_tasks(self, db: AsyncSession, seeded: dict):
         """认领空批次引发冲突。"""
         # 创建任务但保留在 BACKLOG（不就绪）
@@ -310,6 +327,25 @@ class TestBatchAssign:
         await db.flush()
 
         assert result["assigned_count"] == 3
+
+    async def test_assign_batch_attaches_active_task(self, db: AsyncSession, seeded: dict):
+        """批量分配也挂 active_task_id（P16-B9 PFL-255）。"""
+        tasks = [await _create_ready_task(db, seeded, title=f"批量分配 {i}") for i in range(2)]
+
+        result = await assign_batch(
+            db, task_ids=[t.id for t in tasks],
+            owner_type="worker", owner_id=seeded["agent_id"],
+            actor_type="human", actor_id=derive_id(seeded["member_id"], "worker"),
+            team_id=seeded["team_id"],
+        )
+        await db.flush()
+
+        assert result["assigned_count"] == 2
+        worker = await db.get(Worker, seeded["agent_id"])
+        assert worker.active_task_id == result["task_ids"][0], (
+            "批量分配未把首个任务挂为 active_task_id"
+        )
+        assert worker.runtime_status == WorkerRuntimeStatus.BUSY
 
     async def test_assign_batch_too_large(self, db: AsyncSession, seeded: dict):
         """批量分配超过上限。"""

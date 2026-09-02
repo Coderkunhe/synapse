@@ -60,6 +60,11 @@ async def release_expired_leases(db: AsyncSession) -> dict:
         task.claimed_at = None
         task.lease_expires_at = None
 
+        # P16-B9 PFL-254: 租约回收后，若 Worker 的 active_task_id 还指着它，
+        # 主动清空（此前白嫖「下次心跳会擦」这条已被 B5 删除的副作用）。
+        from src.services.worker_scheduler import release_active_task
+        await release_active_task(db, previous_owner_id, task.id)
+
         await event_store.record(
             db,
             event_type=event_type,

@@ -253,6 +253,26 @@ async def finish_current_task(db: AsyncSession, worker_id: str) -> Worker:
     return worker
 
 
+async def release_active_task(
+    db: AsyncSession, worker_id: str | None, task_id: str
+) -> Worker | None:
+    """仅当 ``worker.active_task_id`` 指向 ``task_id`` 时清空（PFL-254）。
+
+    比 ``finish_current_task`` 保守：后者**无条件**清空指针。若 Worker 同时拥有
+    多个任务（如 claim t1 后又 claim t2，t2 成孤儿，active 仍 t1），租约回收 t2
+    时无条件清空会误杀 t1 的指针 —— 必须只清「指向本 task」的那个。
+
+    ``worker_id`` 为 None / 非 Worker（member / 已删）时安全 no-op ——
+    ``db.get(Worker, ...)`` 返回 None，天然挡掉。
+    """
+    if worker_id is None:
+        return None
+    worker = await db.get(Worker, worker_id)
+    if worker is not None and worker.active_task_id == task_id:
+        await finish_current_task(db, worker_id)
+    return worker
+
+
 # ── 主动状态校验 ─────────────────────────────────────────
 
 

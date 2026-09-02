@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-09-02（**P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · 993 tests · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 隔离根因锤实 + B4-F6 归因修正 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
+> 最后更新：2026-09-02（**P16-B9 active_task_id 收口 ✅** PFL-254/255 · 997 tests · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 隔离根因锤实 + B4-F6 归因修正 · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -565,7 +565,12 @@ P16-B8 ✅ 执行环 driver 收口 — PFL-260 split 收口 + PFL-261 超时标�
   — PFL-261：driver 超时按 next_action 分档（split 1800 / execute 2400 / 轻 900）· start-worker.sh
   — 993 tests（纯模板/脚本 · 零 src 触碰 · 零回归）
     │
-P16-B9 候选：API 缺陷（PFL-251/266/253）· active_task_id 收口（PFL-254/255/257）· --bare 隔离
+P16-B9 ✅ active_task_id 收口 — PFL-254 源头清理 + PFL-255 批量挂接（平台批 · 997 tests）
+  — PFL-255：claim_batch/assign_batch 挂首个任务（attach_active_task）· cooperation.py
+  — PFL-254：lease 过期新增 release_active_task 条件清空 · terminate/pause 保留指针（复核修正）+ docstring 修
+  — 方向修正：原「三处源头清空」会破坏 validate_task_active 的暂停/取消检测 → 仅 lease 清空
+    │
+P16-B10 候选：PFL-257（state_router 回落 get_next_task · 字段语义变更）· 之后 B11 API 缺陷（PFL-251/266/253）· B12 --bare 隔离
 ```
 
 ## P100 治理批

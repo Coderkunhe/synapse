@@ -17,6 +17,7 @@ B 无限循环 claim 一个被 depends_on 锁住的任务。双边根因：
 from __future__ import annotations
 
 import secrets
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -35,6 +36,7 @@ from src.models.project import Project
 from src.models.project_actor_role import ProjectActorRole
 from src.models.task import Task
 from src.models.worker import Worker
+from src.services.lease_detector import release_expired_leases
 from src.services.task_service import claim_task, submit_task
 from src.utils.id_gen import generate_id
 from src.utils.json_utils import safe_dumps
@@ -353,3 +355,58 @@ class TestStalePointerDoesNotBlockNewClaim:
         data = await _bare_heartbeat(client, worker_id, key, project_id)
         assert data["active_task_id"] == t1, "第二次认领不应抢占仍在执行的 t1"
         assert data["next_action"] == "execute"
+
+
+class TestActiveTaskIdTeardown:
+    """P16-B9 (PFL-254): active_task_id 收口 —— 拿走统一清（lease 过期）。
+
+    **不复核清 terminate/pause**：P16-B9 独立复核发现，若在源头清空指针，
+    ``validate_task_active`` 会失去「任务被暂停/取消」的检测信号（见
+    ``tests/test_submit_and_scheduling.py::TestValidateTaskActive``）。终止/暂停
+    的陈旧指针由 B5 路由层 ``resolve_workable_active_task`` + 认领时的
+    ``attach_active_task`` 惰性清理，源头保留指针。lease 过期是「认领后从未开工」
+    场景，清空指针正确。
+    """
+
+    @pytest.mark.asyncio
+    async def test_lease_expiry_clears_active_task(self, client: AsyncClient, seed: SeedData):
+        project_id, worker_id, key = await _setup(seed.team_id, "builder")
+        t1 = await _add_task(project_id)
+        await _claim(t1, worker_id, seed.team_id)
+
+        async with async_session_factory() as db:
+            task = await db.get(Task, t1)
+            task.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+            await db.flush()
+
+            result = await release_expired_leases(db)
+            await db.commit()
+
+        assert result["released_count"] == 1
+        after = await _bare_heartbeat(client, worker_id, key, project_id)
+        assert after["active_task_id"] is None, "lease 回收后 active_task_id 残留"
+        assert after["runtime_status"] == WorkerRuntimeStatus.IDLE
+
+    @pytest.mark.asyncio
+    async def test_lease_expiry_does_not_clear_other_active_task(self, client: AsyncClient, seed: SeedData):
+        """租约回收 Worker 拥有的**另一个**任务，不得误清当前活跃任务的指针。
+
+        场景：B 先 claim t1（active=t1），再 claim t2（t2 成孤儿，active 仍 t1）。
+        此时 t2 租约过期释放 —— ``release_active_task`` 必须只清「指向本 task」
+        的指针，若误用无条件 ``finish_current_task`` 会连 t1 一起清掉。
+        """
+        project_id, worker_id, key = await _setup(seed.team_id, "builder")
+        t1 = await _add_task(project_id)
+        t2 = await _add_task(project_id)
+        await _claim(t1, worker_id, seed.team_id)
+        await _claim(t2, worker_id, seed.team_id)  # active 仍 t1，t2 孤儿
+
+        async with async_session_factory() as db:
+            task2 = await db.get(Task, t2)
+            task2.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+            await db.flush()
+            await release_expired_leases(db)
+            await db.commit()
+
+        after = await _bare_heartbeat(client, worker_id, key, project_id)
+        assert after["active_task_id"] == t1, "lease 回收孤儿 t2 误清了 t1 的活跃指针"

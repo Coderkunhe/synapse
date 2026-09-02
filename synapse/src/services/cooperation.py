@@ -16,6 +16,7 @@ from src.constants import ActorType, OwnerType, TaskStatus, WorkerStatus
 from src.exceptions import ConflictError, NotFoundError
 from src.models.task import Task
 from src.services.event_store import event_store
+from src.services.worker_scheduler import attach_active_task
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_loads
 
@@ -173,6 +174,16 @@ async def claim_batch(
         )
         claimed_ids.append(task.id)
 
+    # P16-B9 PFL-255: 批量认领也要挂 active_task_id，让 state_router 知道有活干。
+    # 只挂首个（attach_active_task 幂等 · 不抢占）；多任务孤儿由 B10 get_next_task 兜底。
+    if actor_type == ActorType.WORKER and claimed_ids:
+        # worker 已在 actor_type==WORKER 分支校验非 None，但 mypy 无法跨分支收窄；
+        # 重新取一次（同 session identity map，命中即返回原对象）拿非空类型。
+        from src.models.worker import Worker as _Worker
+        _worker = await db.get(_Worker, worker_id)
+        if _worker is not None:
+            await attach_active_task(db, _worker, claimed_ids[0])
+
     return {"claimed_count": len(claimed_ids), "task_ids": claimed_ids}
 
 
@@ -306,5 +317,9 @@ async def assign_batch(
             f"{len(assigned_ids)} assigned, {len(errors)} failed",
             {"assigned": assigned_ids, "errors": errors},
         )
+
+    # P16-B9 PFL-255: 批量分配也要挂 active_task_id，让 state_router 知道有活干。
+    if owner_type == OwnerType.WORKER and assigned_ids:
+        await attach_active_task(db, owner, assigned_ids[0])
 
     return {"assigned_count": len(assigned_ids), "task_ids": assigned_ids}

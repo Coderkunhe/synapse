@@ -388,8 +388,10 @@ async def terminate_task(
     与 pause/resume 不同，CANCELLED 是永久的 — 任务永远不会完成。
     可从以下状态转入：READY、IN_PROGRESS、PAUSED（任意终态前状态）。
 
-    若任务有活跃 Worker，Worker 的 active_task_id 将在下次心跳时释放
-    （心跳检测到 status != IN_PROGRESS）。
+    注意：**不在源头清空** Worker 的 ``active_task_id`` —— 保留它让
+    ``validate_task_active`` 能检测到「任务被取消」（P16-B9 复核 PFL-254）。
+    陈旧指针由 B5 路由层 ``resolve_workable_active_task`` 兜底，认领新任务时
+    ``attach_active_task`` 惰性清理。
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
