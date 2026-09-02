@@ -130,7 +130,10 @@ class WorkerHeartbeatResponse(BaseModel):
     )
     active_task_id: str | None = Field(
         None,
-        description="Worker 当前活跃任务 ID（回显 worker.active_task_id）",
+        description=(
+            "Worker 应处理的下一个任务 ID（get_next_task FIFO：活跃 → 其它 "
+            "IN_PROGRESS → REJECTED；无/多 project 时为原始指针回显）"
+        ),
     )
     queue: HeartbeatQueueState | None = Field(
         None,

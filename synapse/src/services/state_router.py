@@ -24,7 +24,7 @@ from src.models.task import Task
 from src.models.worker import Worker
 from src.services.project_role_service import get_project_role, get_worker_projects
 from src.services.task_query import filter_dependency_blocked
-from src.services.worker_scheduler import resolve_workable_active_task
+from src.services.worker_scheduler import get_next_task
 from src.services.template_service import resolve_role
 
 # ── next_action 取值 ────────────────────────────────────────────────
@@ -150,8 +150,12 @@ async def compute_state_router(
         role, _ = resolve_role(worker)
 
     # ── 3. queue 计数 + 4. next_action 路由 ────────────────────────
-    # P16-B5: 活跃任务先过一遍「还能不能干」，陈旧指针不参与路由
-    active_task_id = await resolve_workable_active_task(db, worker)
+    # P16-B10 (PFL-257): 用 get_next_task 取代 resolve_workable_active_task。
+    # 它先过「活跃指针还能不能干」（内部收敛到 resolve_workable_active_task），
+    # 指针失效/为空时回落到 FIFO 队列（其它 IN_PROGRESS → REJECTED），
+    # 让「已有活跃任务时被 assign/claim 的第二个任务」不再成孤儿。
+    next_task = await get_next_task(db, worker.id)
+    active_task_id = next_task.id if next_task else None
     queue = await _count_queue(db, project_id)
     next_action = _route(role, queue, active_task_id)
 

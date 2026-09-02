@@ -50,20 +50,19 @@ async def get_next_task(db: AsyncSession, worker_id: str) -> Task | None:
 
     PAUSED 和 CANCELLED 任务被排除（规则 3）。
     每个优先级层级内按 claimed_at 排序。
+
+    P16-B10 (PFL-257)：``state_router`` 用它作为路由回落——活跃指针失效/为空时，
+    这里仍能按 FIFO 找到 Worker 拥有的其它未完成任务，让「已有活跃任务时被
+    assign/claim 的第二个任务」不再成孤儿。
     """
     worker = await _get_worker(db, worker_id)
 
-    # 规则 1：若 Worker 已有处于可工作状态的活跃任务，直接返回
-    if worker.active_task_id:
-        stmt = select(Task).where(
-            Task.id == worker.active_task_id,
-            Task.owner_id == worker_id,
-        )
-        result = await db.execute(stmt)
-        active = result.scalar_one_or_none()
-        if active and active.status in (TaskStatus.IN_PROGRESS, TaskStatus.REJECTED):
-            return active
-        # 活跃任务已暂停/取消/完成 — 继续查找下一个
+    # 规则 1：活跃任务——收敛到 resolve_workable_active_task（PFL-256 教训：
+    # 「什么算活跃」只有一个判定，不再手写第二份）。它覆盖 owner 校验，且排除
+    # PAUSED/CANCELLED/已提交/改派（旧手写实现漏了 owner_type 检查）。
+    workable_active_id = await resolve_workable_active_task(db, worker)
+    if workable_active_id:
+        return await db.get(Task, workable_active_id)
 
     # 查找下一个：先 IN_PROGRESS（按认领时间），再 REJECTED
     # SQL 排序：False (IN_PROGRESS) 排在 True (REJECTED) 之前

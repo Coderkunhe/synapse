@@ -170,7 +170,14 @@ class TestClaimToExecuteHandoff:
     async def test_explicit_null_still_clears(
         self, client: AsyncClient, seed: SeedData,
     ):
-        """显式传 null 仍然清空活跃任务 —— 老契约不能被顺手改掉。"""
+        """显式传 null 仍然清空活跃任务**指针**（BUSY→IDLE）—— 老契约不被顺手改掉。
+
+        P16-B10 (PFL-257)：heartbeat 响应的 ``active_task_id`` 语义从「回显指针」
+        改为「该干哪个任务」（get_next_task FIFO）。显式 null 清的是指针、不是任务
+        所有权——t1 仍被 Worker 持有（IN_PROGRESS），故 get_next_task 仍把它指回。
+        「显式 null=清空」这一态本身没变（见 runtime_status 断言），变的是响应字段
+        不再回显裸指针。
+        """
         project_id, worker_id, key = await _setup(seed.team_id, "builder")
         task_id = await _add_task(project_id)
         await _claim(task_id, worker_id, seed.team_id)
@@ -181,8 +188,10 @@ class TestClaimToExecuteHandoff:
             headers={"Authorization": f"Bearer {key}"},
         )
         assert resp.status_code == 200
-        assert resp.json()["active_task_id"] is None
+        # 指针确已清空（BUSY→IDLE）——「显式 null=清空」这一态没被改掉
         assert resp.json()["runtime_status"] == WorkerRuntimeStatus.IDLE
+        # 新语义：响应 active_task_id 反映「该干哪个任务」——t1 仍被持有 → 指回 t1
+        assert resp.json()["active_task_id"] == task_id
 
     @pytest.mark.asyncio
     async def test_submit_releases_worker_and_reroutes(
@@ -355,6 +364,46 @@ class TestStalePointerDoesNotBlockNewClaim:
         data = await _bare_heartbeat(client, worker_id, key, project_id)
         assert data["active_task_id"] == t1, "第二次认领不应抢占仍在执行的 t1"
         assert data["next_action"] == "execute"
+
+
+class TestOrphanSecondTaskFallback:
+    """PFL-257: 已有活跃任务时被 claim 的第二个任务，活跃任务提交后不得成孤儿。
+
+    场景：B claim t1（active=t1）再 claim t2（attach_active_task 幂等·不抢占，
+    t2 成 IN_PROGRESS + owner=B 但没被指针指着）。提交 t1 → finish_current_task
+    清空指针 → 旧路由只看指针 → idle，t2 永远没人干。B10 让 state_router 回落
+    get_next_task 的 FIFO 队列，把 t2 找回来。
+    """
+
+    @pytest.mark.asyncio
+    async def test_submit_first_routes_second_task_execute(
+        self, client: AsyncClient, seed: SeedData,
+    ):
+        project_id, worker_id, key = await _setup(seed.team_id, "builder")
+        t1 = await _add_task(project_id)
+        t2 = await _add_task(project_id)
+        await _claim(t1, worker_id, seed.team_id)
+        await _claim(t2, worker_id, seed.team_id)  # active 仍 t1，t2 孤儿
+
+        # 提交 t1 → finish_current_task 清空 active_task_id
+        async with async_session_factory() as db:
+            task = await db.get(Task, t1)
+            await submit_task(
+                db, t1,
+                summary="done",
+                evidence={"output_access": {"type": "inline", "value": "ok"}},
+                verification_results=[],
+                expected_version=task.version_no,
+                actor_type=ActorType.WORKER, actor_id=worker_id,
+                team_id=seed.team_id,
+            )
+            await db.commit()
+
+        after = await _bare_heartbeat(client, worker_id, key, project_id)
+        assert after["next_action"] == "execute", (
+            f"提交 t1 后 t2 成孤儿（得到 {after['next_action']}）— PFL-257 复现"
+        )
+        assert after["active_task_id"] == t2, "路由应回落到 FIFO 队列里的 t2"
 
 
 class TestActiveTaskIdTeardown:
