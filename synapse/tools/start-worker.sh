@@ -38,12 +38,15 @@
 # 可选调参（环境变量覆盖）：
 #   SYNAPSE_IDLE_SLEEP_MIN   idle 初始退避秒数（默认 20）
 #   SYNAPSE_IDLE_SLEEP_MAX   idle 退避上限秒数（默认 300）
-#   SYNAPSE_CLAUDE_TIMEOUT   claude -p 单次超时秒数（默认 900 · 15min）
+#   SYNAPSE_CLAUDE_TIMEOUT   claude -p 单次超时兜底秒数（默认 900 · 15min）
 #                            P16-B5 (PFL-249)：旧默认 360 来自 B1 spike「O 单次
 #                            判断 3min21s」，但一个 next_action 是完整 agentic
 #                            loop 而非单次判断——B4 实测 O 拆解 14min40s，360s
 #                            把它杀死、0 子任务，且超时后立即重派形成紧循环。
-#                            超时上限按最重的动作（split）估。
+#                            P16-B8 (PFL-261)：超时不再单值一刀切，按 next_action
+#                            分档——split 1800s（B4 实测 880s）、execute 2400s（写+
+#                            全量测试+mypy，B1 两次 900s 被刀切）、轻动作 900s。
+#                            见下方 SYNAPSE_TIMEOUT_SPLIT / _EXECUTE / _LIGHT。
 #   SYNAPSE_FAIL_SLEEP_MAX   分派失败/超时后的退避上限秒数（默认 300）
 #   SYNAPSE_ALLOWED_TOOLS    claude -p 工具面白名单（默认 Bash,Read,Write,Edit,Grep,Glob）
 # ──────────────────────────────────────────────────────────────────
@@ -56,7 +59,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── 默认值（可被环境变量覆盖）──────────────────────────────
 IDLE_SLEEP_MIN="${SYNAPSE_IDLE_SLEEP_MIN:-20}"
 IDLE_SLEEP_MAX="${SYNAPSE_IDLE_SLEEP_MAX:-300}"
-CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-900}"
+CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-900}"   # 兜底（轻动作默认）
+# P16-B8 (PFL-261)：超时按 next_action 分档，不再单值一刀切
+ACTION_TIMEOUT_SPLIT="${SYNAPSE_TIMEOUT_SPLIT:-1800}"
+ACTION_TIMEOUT_EXECUTE="${SYNAPSE_TIMEOUT_EXECUTE:-2400}"
+ACTION_TIMEOUT_LIGHT="${SYNAPSE_TIMEOUT_LIGHT:-900}"
 FAIL_SLEEP_MIN=30
 FAIL_SLEEP_MAX="${SYNAPSE_FAIL_SLEEP_MAX:-300}"
 HEARTBEAT_TIMEOUT=10
@@ -93,7 +100,8 @@ OPTIONS:
 EXAMPLES:
   $0 --project-dir .claude/worktrees/p16-b4-o
   $0 --once --dry-run
-  SYNAPSE_CLAUDE_TIMEOUT=1800 $0        # 超大拆解给更长上限
+  SYNAPSE_CLAUDE_TIMEOUT=1800 $0        # 兜底上限（分档默认已覆盖 split/execute）
+  SYNAPSE_TIMEOUT_EXECUTE=3600 $0       # 单独给 execute 更长上限
 EOF
     exit 1
 }
@@ -342,8 +350,14 @@ while true; do
         # ── 有活：分派 claude -p 一个动作单元 ──
         verify|split|assign|monitor|execute|claim)
             idle_sleep="$IDLE_SLEEP_MIN"  # 有活即复位退避
+            # P16-B8 (PFL-261)：超时按动作分档——split/execute 重，轻动作短
+            case "$NEXT_ACTION" in
+                split)   ACTION_TIMEOUT="$ACTION_TIMEOUT_SPLIT" ;;
+                execute) ACTION_TIMEOUT="$ACTION_TIMEOUT_EXECUTE" ;;
+                *)       ACTION_TIMEOUT="$ACTION_TIMEOUT_LIGHT" ;;
+            esac
             PROMPT=$(build_prompt "$NEXT_ACTION" "${ROLE:-${SYNAPSE_WORKER_ROLE:-builder}}" "$ACTIVE_TASK_ID" "$QUEUE")
-            echo -e "$(date -u +%H:%M:%S) ${GREEN}🎯 next_action=${NEXT_ACTION} · dispatch claude -p${NC}"
+            echo -e "$(date -u +%H:%M:%S) ${GREEN}🎯 next_action=${NEXT_ACTION} · dispatch claude -p（timeout=${ACTION_TIMEOUT}s）${NC}"
 
             if $DRY_RUN; then
                 echo -e "${YELLOW}── [dry-run] 将执行 ──${NC}"
@@ -352,7 +366,7 @@ while true; do
                 echo "$PROMPT" | sed 's/^/  | /'
                 echo ""
             else
-                printf '%s\n' "$PROMPT" | run_with_timeout "$CLAUDE_TIMEOUT" \
+                printf '%s\n' "$PROMPT" | run_with_timeout "$ACTION_TIMEOUT" \
                     claude -p \
                     --allowedTools "$ALLOWED_TOOLS" \
                     --permission-mode bypassPermissions 2>&1
@@ -367,7 +381,7 @@ while true; do
                     # （B4 实测：360s 超时被杀 → 立刻再派 → 反复）。
                     consecutive_fails=$((consecutive_fails + 1))
                     if [[ $dispatch_rc -eq 124 ]]; then
-                        reason="超时 ${CLAUDE_TIMEOUT}s"
+                        reason="超时 ${ACTION_TIMEOUT}s"
                     else
                         reason="异常退出 code=${dispatch_rc}"
                     fi

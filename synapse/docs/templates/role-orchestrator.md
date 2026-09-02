@@ -497,6 +497,15 @@ Task 创建时**必须设置 `required_capabilities`** 声明技术栈边界，�
 | A 和 B 操作不同文件/子系统 | ❌ 否 | 可并行，降低整体延迟 |
 | B 最好在 A 之后做（但技术上可并行） | ❌ 否 | 在 Task 描述中标注建议顺序即可 |
 
+#### 拆解收口（🚨 PFL-260 · 拆完必须清空 backlog 源）
+
+拆解是一个**收口单元**，不是「创建子任务就结束」。拆完必须：
+
+1. **全部子任务 ready** — 每个子任务（含带 `depends_on` 的）都 `POST /tasks/{id}/ready`（需 `expected_version`）。依赖阻塞由 claim 层处理（`409 TASK_DEPENDENCY_NOT_READY`），**不是**靠把 B/C 留在 backlog 逐个放行。
+2. **父容器转 CANCELLED** — 若创建了父需求（伞任务）作拆解容器，拆完后 `POST /tasks/{id}/cancel` 转 CANCELLED。伞任务不是执行单元，滞留 backlog 会触发永久 split。
+
+> 🚨 **为什么**：state-router 路由优先级 `verify > split > assign`——只要 backlog 桶 >0 就路由 split。父容器或未 ready 的子任务滞留 backlog，会结构性压过 assign，让 O 对着同一个父任务无限重拆烧 token（PFL-260）。
+
 ### Verification 条件编写
 
 #### 按 Task 类型分模板

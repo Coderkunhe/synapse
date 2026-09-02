@@ -299,11 +299,13 @@ Orchestrator 空闲中 ✅ — 喂我需求，我来拆解分配。
 | 步骤 | 操作 | API |
 |:---|:---|:---|
 | **① 创建** | 拆解需求为 Task，含 Verification 条件 | `POST /tasks` |
-| **② 就绪** | 确认 Task 完整（标题、描述、条件齐全），提升为 `ready` | `PATCH /tasks/{id}` |
+| **② 就绪** | **全部**子任务提升为 `ready`（含带 `depends_on` 的，阻塞由 claim 层 `409` 处理） | `POST /tasks/{id}/ready` |
 | **③ 分配** | 指派 Builder Worker | `POST /tasks/{id}/assign` |
 | **④ 监控** | 跟踪 Builder 进度（评论区 + 状态变更） | — |
 | **⑤ 验收** | Builder submit → 验收 Verification → approve/reject | `POST /verifications/{id}/verify` |
-| **⑥ 闭环** | — | — |
+| **⑥ 闭环** | 父容器（伞任务）拆完转 CANCELLED · backlog 清空 | `POST /tasks/{id}/cancel` |
+
+> 🚨 **拆解收口（PFL-260）**：拆完必须**全部子任务 ready**（依赖阻塞由 claim 层 `409` 处理，**不靠留 backlog 逐个放行**）+ **父容器转 CANCELLED**。否则 backlog 桶 >0 → state-router 永远路由 split → 无限重拆烧 token。
 
 ### Orchestrator CronCreate 保持响应（P12-B45 · 🚨 PFL-150）
 
