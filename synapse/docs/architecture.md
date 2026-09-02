@@ -1,10 +1,10 @@
 # Synapse 系统架构
 
-> 版本：v2.4 · 2026-08-27（P16-B6 狗粮闭环 — headless worker 心跳与模型调用需解耦 · 见 §10 新增注）
+> 版本：v2.5 · 2026-09-02（P16-B8 执行环 driver 收口 PFL-260/261 + P16-B9 active_task_id 收口 PFL-254/255 · 见 §10 + D-021）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
-> 最后更新：2026-08-17（P100-B151 新鲜度诚实更新 — 时区序列化 + 治理基建迁根）
+> 最后更新：2026-09-02（P16-B8/B9 — driver 执行环 + active_task_id 生命周期收口 · 新增 D-021 · failure_detector 未接线架构债见 §10）
 
 ---
 
@@ -578,12 +578,15 @@ graph TB
 | D-018 | **`project_actor_roles` 表 + `require_project_role` 依赖守卫** — P10-B18/B19。项目级权限不再依赖旧 `member.role`，统一经 `project_actor_roles` 管理。`require_project_role("admin", "lead")` 作为 FastAPI `Depends` 注入所有项目级端点，创建者自动 admin。详见 §5.4.1 | 2026-07-18 P10 议题 3 |
 | D-019 | **AuthorizationRequest 异步授权管道** — P10-B20~B23/B31。Worker 缺权限 → 403 拦截 → 自动创建 `api_auth` 请求 → 四通道通知 → Admin 审批 → Worker 轮询重试。双类型：`api_auth` + `interactive_prompt`。详见 §5.4.2-5.4.4 | 2026-07-18 P10 议题 3+⑦ |
 | D-020 | **`is_super_admin` 全系统权限绕过** — P10-B17。User 级超管标志，绕过所有 `require_role` / `require_project_role` 检查。仅限 `/admin/*` 使用。遵循 DB 宽列原则（P10-B16），字段直接在 `user` 表。详见 §5.4.1 L0 | 2026-07-18 P10 议题 3 |
+| D-021 | **`worker.active_task_id` 单一真源：写入口统一 `attach_active_task`，读入口统一 `resolve_workable_active_task`，清理分两层** — P16-B5/B9。三条「让 Worker 有活干」的路径（claim/assign/start）统一走 `attach_active_task`（幂等 · 不抢占 · 仅 IDLE→BUSY）；「Worker 到底有没有活」只在 `resolve_workable_active_task` 一处判定（陈旧指针统一无效），防写入层/路由层各说各话（PFL-256）。清理端分两种语义：`finish_current_task`（无条件清，submit/故障释放）vs `release_active_task`（保守清，仅当指针指向本 task，多任务下不误杀 — lease 回收用后者）。 | 2026-09-02 P16-B9 |
 
 ---
 
 ## 10. 下一步
 
-> **P16-B6 架构注（2026-08-27）**：headless worker 的「模型调用」与「心跳/保活」当前在 `start-worker.sh` 里是**同步 wait**——派发 `claude -p` 后停心跳，模型调用一卡 worker 就变 offline，进而触发 stale 误判 unclaim（PFL-262）。这是 B7 的架构改造点：保活信号必须进独立循环，与业务执行解耦；停滞判定应看「进程活性」而非「时间戳」。
+> **P16-B6 架构注（2026-08-27）**：headless worker 的「模型调用」与「心跳/保活」当前在 `start-worker.sh` 里是**同步 wait**——派发 `claude -p` 后停心跳，模型调用一卡 worker 就变 offline，进而触发 stale 误判 unclaim（PFL-262）。这是 B7 的架构改造点：保活信号必须进独立循环，与业务执行解耦；停滞判定应看「进程活性」而非「时间戳」。（**已落地** — B7 PFL-262 driver keepalive 独立循环 + stale 回收 `_owner_worker_alive` 存活门禁。）
+
+> **P16-B8/B9 架构注（2026-09-02）**：执行环 driver 收口（PFL-260 split 收口 + PFL-261 超时按角色×动作分档）+ `active_task_id` 生命周期收口（PFL-254 lease 源头清理 + PFL-255 批量挂接，见 D-021）。**复核附带发现（架构债）**：`failure_detector.run_all_detections`（P8-B7 四条检测线：心跳超时/进度超时/租约过期/审核超时）在生产侧**无自动调度**——唯一调用链是 admin 手动端点 `POST /failure-detection/run`，`main.py` 的 4 个后台循环（ws/auth/stale/heartbeat）都不调它。实际自动路径是 `_stale_task_reaper`（`detect_stale_tasks`，带 `_owner_worker_alive` 守卫）与 `_worker_heartbeat_monitor`（只标 OFFLINE 不释放任务）。故「租约过期→释放任务」这条线（`release_expired_leases`）当前是死代码路径（PFL-267 候选）。
 
 - ✅ MVP 功能边界精确定义 — `docs/mvp-boundary.md`
 - ✅ 初始数据模型实现（SQLAlchemy models） — `src/models/`（11 实体）

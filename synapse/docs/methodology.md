@@ -2,7 +2,7 @@
 
 > 从 GlassCortex 方法论移植 + Synapse 定制。
 > 适配人机混合团队协调平台的开发。
-> 版本：v2.2 · 2026-08-27（P16-B6 狗粮闭环 — 补 §狗粮环境预置 human admin + driver 超时按角色×动作标定 · 禁只 bump 日期）
+> 版本：v2.3 · 2026-09-02（P16-B8/B9 收口 — split 收口 + active_task_id 生命周期收口 · 补 §状态/动作的「收口」原则 · 禁只 bump 日期）
 > 子文档：[`methodology-reference.md`](methodology-reference.md) — 五层自检金字塔 · SMG · 反模式速查 · 流程改进 · 优先级框架 · 规则映射 · 移植指南 · 迁移策略
 
 ## 八步链路
@@ -442,4 +442,15 @@ P16-B5 实测 6/9 变红——那 3 条绿的是防御性用例（旧代码下�
 1. **human-in-the-loop 流程必须预置 human admin。** 任何依赖「等人点一下」的流程（授权审批、验收确认），其测试环境必须有一个真实可登录的 human admin 角色。否则「等 Human 审批」就是「等一个不存在的人」——B6 里一条僵尸授权请求因项目无 human admin 把 verify 锁死 8 小时。
 
 2. **driver 超时按角色×动作标定，不用单值。** O 的 split 和 B 的 execute 耗时谱系完全不同（split=几分钟思考，execute=几十分钟写+测）。`start-worker.sh` 的 `CLAUDE_TIMEOUT` 若按最重动作（split）估，B 的 execute 会被刀切在「写完刚要 submit」；若按 execute 估，O 空转烧 token。应让超时可被角色/动作覆盖。
+
+---
+
+## 状态/动作的「收口」原则（P16-B8/B9 新增）
+
+B8 和 B9 表面修的是不同的东西（B8 = 执行环 driver 收口，B9 = `active_task_id` 生命周期收口），底层是同一个方法论：**「谁让 X 发生」和「谁清掉 X」必须是显式、唯一、分层收口的，不能靠隐式副作用。**
+
+1. **入口统一。** 所有「让 Worker 有活干」的路径（claim/assign/start）走同一个 `attach_active_task`，而不是各自写字段。入口分散 = 漏挂，B4 的 claim→execute 断裂就是这么来的。
+2. **判定唯一。** 「Worker 到底有没有活」只在一个谓词里回答（`resolve_workable_active_task`）。每引入一个「什么算 X」的判断，先 grep 还有谁在回答同一个问题——否则两层各说各话（PFL-256）。
+3. **出口分语义。** 清理不是单一动作：「无条件清」（submit/故障释放）和「保守清」（只清指向本 task，多任务不误杀）是两个不同的函数。先问「读取端还拿不拿它当信号」，再决定清不清（见 lessons-learned LL33）。
+4. **拆分带收口。** B8 的 split 收口（PFL-260）就是：拆分动作必须有「什么时候不再拆」的终止语义，否则无限重拆。
 

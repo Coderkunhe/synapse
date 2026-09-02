@@ -3,7 +3,7 @@
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
 > 🔗 双向交叉引用：⇄ [`docs/pitfalls.md`](pitfalls.md)（P100-B110 已补齐）
-> 最后更新：2026-08-27（P16-B6 新增 **LL32** — 自动化系统的保活信号必须与被阻塞的执行解耦 · 共 32 条 · 此前 2026-08-25 P16-B5 新增 LL31）
+> 最后更新：2026-09-02（P16-B9 新增 **LL33/LL34** — 指针清空 vs 保留非一刀切 · 死代码未接线会复现 · 共 34 条 · 此前 2026-08-27 P16-B6 新增 LL32）
 
 ---
 
@@ -620,4 +620,24 @@
 1. **心跳/保活必须在独立循环里发，不能和业务执行串行。** 派发动作单元要么异步、要么在 wait 期间保持心跳 tick，否则任何「慢但没死」的调用都会伪装成死亡。
 2. **停滞判定必须看「进程是否真在干活」，不能只看时间戳。** `stale_task_detector` 只看 `updated_at` 不刷新就判死，而 git commit/pytest/评论区发言都不刷新该字段——三个传感器全在拿时间戳猜「还活着吗」，没有一个是真实活性信号。
 3. **human-in-the-loop 流程的测试环境必须预置一个 human admin。** B6 项目只注册了 system/O/B，没有人类 admin → 一条僵尸授权请求把 verify 锁死 8 小时，「等人点」就是「等一个不存在的人」。
+
+## LL33: 「清空指针 vs 保留指针」不是一刀切 — 取决于读取端是否还拿它当信号（2026-09-02）
+
+**场景**: P16-B9 收口 `worker.active_task_id` 生命周期。PFL-254 原文写「terminate/pause/lease 三处源头都调 `finish_current_task`」。实施时全量测试推翻：terminate/pause 若在源头清空指针，`validate_task_active` 会失去「任务被暂停/取消」的检测信号（指针空了 → 返回 `no_active_task`，Worker 不知道任务被夺）。收敛为「仅 lease 清空，terminate/pause 保留指针」。
+
+**结论**：
+
+1. **同一个字段的「清理」动作，先问「还有谁在拿它当信号」。** terminate/pause 保留指针，是因为 `validate_task_active` 依赖它检测 `task_paused`/`task_cancelled`（Worker 需要知道「任务被夺了」）；lease 清空，是因为「认领后从未开工」场景下 Worker 不需要这个信号，且陈旧指针会让新认领挂不上（PFL-256）。
+2. **「无条件清」与「保守清」要拆成两个函数。** `finish_current_task` 无条件清（submit/故障释放）；`release_active_task` 保守清（仅当指针指向本 task）。多任务场景下无条件清会误杀——Worker 认领 t1（active=t1）再认领 t2（t2 成孤儿），t2 租约过期若无条件清会连 t1 一起清掉。
+3. **反证法锁定「保留指针」不是臆断。** 独立复核时临时给 terminate_task 注入清指针 → `test_detects_cancelled_task` 变红。红绿变异比「读代码 + 看测试绿」更可靠地证明某条约束是硬约束。
+
+## LL34: 「函数存在 + 有单测」≠「在生产里跑」— 死代码（未接线）会反复出现（2026-09-02）
+
+**场景**: P16-B9 复核。lease 边界问题（活跃计算 >10min 被 release）需要确认 `release_expired_leases` 是否真的在生产侧被调度。grep 生产调用者发现：唯一调用链是 admin 手动端点 `POST /failure-detection/run`（`require_role("admin","lead")`），`main.py` 的 4 个后台循环没有一个调它。这跟 P16-B6 发现的 `cancel_worker_requests`/`expire_stale_requests`「全仓 0 生产调用者」是同族问题——授权清理层、故障检测层都实现好了却从没接调度器。
+
+**结论**：
+
+1. **「这条路径会不会自动触发」必须 grep 生产调用者**（`main.py` 的 `asyncio.create_task`），不能只看函数定义 + 单测。有测试只证明「函数本身正确」，不证明「它被接线」。
+2. **死代码会伪装成「安全网」。** 一个写好了但没接线的检测器，比没有更危险——团队会默认「我们有租约过期回收/授权过期清理」，而实际上这些能力在生产里从未运行。**每隔一段就要做一次「接线审计」：把每个检测器/清理器的生产调用者列出来。**
+3. **理论缺陷要先确认它是否真的会触发，再决定要不要修。** lease 不续期的语义缺口（pre-existing）因为「lease 释放本身是死代码」而降级——它不会自动伤人，只有手动跑 admin 端点才触发。分清「真实暴露的 bug」和「潜在的 latent bug」，避免为一个不会触发的缺陷返工。
 
