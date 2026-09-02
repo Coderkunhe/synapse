@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P16-B8→B9 L5 拉通 — 📄 architecture.md+lessons-learned.md+methodology.md 补齐 09-02 文档新鲜度（D-021/LL33/LL34/收口原则）· 📚 active_task_id 收口叙事承接 · 🎭 check-docs 3 硬错误清零 + 997 tests 零回归",
   "lastL5Timestamp": "2026-09-02",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P16-B8→B9 L5 拉通 — 📄 architecture.md+lessons-learned.md+methodology.md 补齐 09-02 文档新鲜度（D-021/LL33/LL34/收口原则）· 📚 active_task_id 收口叙事承接 · 🎭 check-docs 3 硬错误清零 + 997 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
