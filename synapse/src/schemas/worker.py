@@ -118,7 +118,7 @@ class WorkerHeartbeatResponse(BaseModel):
     )
     role_warnings: list[str] = Field(
         default_factory=list,
-        description="角色相关告警 — 如 default_fallback 时提示 Worker 缺少 role 配置",
+        description="路由作用域告警 — 由 state-router 返回（如 Worker 无 Project 归属、多 Project 需指定 project_id）。P16-B11 起不再含 metadata 级 default_fallback 告警（角色真源为 project_actor_roles）",
     )
     role: str | None = Field(
         None,
