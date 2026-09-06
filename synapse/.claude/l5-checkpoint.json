@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P16-B9→B11 L5 拉通 — 📄 architecture.md+lessons-learned.md+methodology.md 补齐 09-06 新鲜度（LL35 Worker 定向面须自洽）· 📚 role 单真源叙事承接 · 🎭 1001 tests 零回归",
   "lastL5Timestamp": "2026-09-06",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P16-B9→B11 L5 拉通 — 📄 architecture.md+lessons-learned.md+methodology.md 补齐 09-06 新鲜度（LL35 Worker 定向面须自洽）· 📚 role 单真源叙事承接 · 🎭 1001 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
