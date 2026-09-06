@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100 违纪回顾 + L5 拉通 — 📄 docs/process-violations.md 违纪索引 30/30 🟢 复核 · 📚 P16-B7~B11 无新增违纪 0 复发 · 🎭 0 src code 跳过场景遍历",
+  "lastL5Batch": "B12→B13 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-09-06.md 已更新 · 📚 P16 残留机制缺陷扫面（4 缺陷 PFL-263/264/265/267 路由 P100 · 登记 PFL-267）叙事一致 · 🎭 0 src code 跳过场景遍历",
   "lastL5Timestamp": "2026-09-06",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100 违纪回顾 + L5 拉通 — 📄 docs/process-violations.md 违纪索引 30/30 🟢 复核 · 📚 P16-B7~B11 无新增违纪 0 复发 · 🎭 0 src code 跳过场景遍历",
+  "lastL5Evidence": "B12→B13 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-09-06.md 已更新 · 📚 P16 残留机制缺陷扫面（4 缺陷 PFL-263/264/265/267 路由 P100 · 登记 PFL-267）叙事一致 · 🎭 0 src code 跳过场景遍历",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
