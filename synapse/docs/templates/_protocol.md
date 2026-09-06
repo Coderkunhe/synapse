@@ -435,9 +435,12 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
   ├─ GET /tasks/{id} → 检查 depends_on 字段
   │   └─ depends_on 为空 → 直接 claim ✅
   │
-  ├─ depends_on 非空 → 逐项检查每个依赖 Task 的 status
-  │   ├─ 全部 COMPLETED → claim ✅
-  │   └─ 有未完成 → 不能 claim ❌
+  ├─ depends_on 非空 → 查依赖链 status
+  │   └─ GET /tasks/{id}/dependency-chain?direction=upstream
+  │       （team 内可见，无需 owner 权限——与 GET /tasks/{dep_id} 不同，
+  │         后者对未认领/他人拥有的 Task 一律 404）
+  │       ├─ 上游链里每个依赖 Task 的 status 全 COMPLETED → claim ✅
+  │       └─ 有未完成 → 不能 claim ❌
   │
   └─ 依赖未就绪时的行为：
       ├─ 记录: "Task tsk_xxx 依赖 tsk_yyy (status: IN_PROGRESS)，等待完成"
@@ -452,6 +455,7 @@ ScheduleWakeup 自唤醒 → 新 response → 循环继续
 | 规则 | 说明 |
 |------|------|
 | **claim 前检查 depends_on** | 每次 claim 前读 Task 详情，确认 `depends_on` 字段。即使列表接口返回了 ready Task，claim 时也可能因依赖未就绪被拒绝（409 `TASK_DEPENDENCY_NOT_READY`） |
+| **查依赖链用 dependency-chain** | `GET /tasks/{id}/dependency-chain?direction=upstream` 返回完整依赖链（含各依赖 status），且 team 内可见。**不要**逐项 `GET /tasks/{dep_id}`——该端点对未认领/他人拥有的 Task 一律 404（Worker 可见性规则） |
 | **不空转等待** | 依赖未就绪时检查其他 ready Task。只当所有可做 Task 都依赖未就绪时才进入 poll 等待 |
 | **409 不是错误** | claim 返回 409 `TASK_DEPENDENCY_NOT_READY` → 依赖未就绪，不是系统故障。记录状态后继续轮询 |
 | **依赖完成 → WS 自动通知（P12-B33）** | 上游 Task COMPLETED 后，Server 自动检查下游依赖并推送 `task.dependencies_met` WS 事件。Worker 订阅 `task.*` 即可实时感知，无需盲等 poll |

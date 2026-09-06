@@ -57,7 +57,7 @@ from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
 from src.services.state_router import compute_state_router
 
-from src.services.template_service import render_protocol, resolve_role, compute_template_versions
+from src.services.template_service import render_protocol, compute_template_versions
 
 from src.services.event_store import event_store
 from src.services.pitfall_service import create_pitfall
@@ -506,8 +506,8 @@ async def worker_heartbeat(
     """Worker heartbeat — manual API key validation.
 
     P11-B94 (PFL-084): Response includes ``template_version`` so the Worker
-    can detect template staleness on every heartbeat.  When ``resolve_role``
-    falls back to the default "builder", ``role_warnings`` carries a hint.
+    can detect template staleness on every heartbeat.  ``role_warnings``
+    carries project-scope routing hints from the state-router (P16-B2).
     """
     token = await extract_bearer_token(request)
     if not token:
@@ -548,18 +548,13 @@ async def worker_heartbeat(
     versions = compute_template_versions()
     template_version: str | None = versions.get("version")
 
-    # ── Role warnings (P11-B94 · B93 附属) ──
-    role_warnings: list[str] = []
-    _role, role_source = resolve_role(worker)
-    if role_source == "default_fallback":
-        role_warnings.append(
-            "Worker metadata 中缺少 role 字段，已默认分配 builder 角色。"
-            "请通过 POST /v1/projects/{pid}/workers/{wid}/roles 设置正确角色。"
-        )
-
     # ── State-router (P16-B2) ──
+    # P16-B11 (PFL-253): role_warnings 只来自 state-router。metadata 级
+    # resolve_role 的 default_fallback 告警与真实角色源（project_actor_roles）
+    # 脱节——角色经 get_project_role 解析，缺角色时 state-router 给出
+    # project 作用域警告，不再误报「默认分配 builder」。
     routing = await compute_state_router(db, worker, body.project_id)
-    role_warnings.extend(routing["role_warnings"])
+    role_warnings: list[str] = list(routing["role_warnings"])
 
     return WorkerHeartbeatResponse(
         status="ok",

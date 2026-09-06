@@ -533,6 +533,7 @@ POST /v1/tasks/{id}/submit
 | 查看可认领 Task | `GET /v1/projects/{id}/tasks/available` |
 | 认领 Task | `POST /v1/tasks/{id}/claim` ⚠️ **全局前缀，不是 `/projects/{pid}/tasks/...`** · body 必带 `expected_version` |
 | 查看 Task 详情 | `GET /v1/tasks/{id}` |
+| 查看依赖链 | `GET /v1/tasks/{id}/dependency-chain?direction=upstream`（team 内可见，检查 `depends_on` 依赖 status 用这个，别逐项 GET 依赖 task——未认领 Task 会 404）|
 | 更新进度 | `PATCH /v1/tasks/{id}` · 必带 `expected_version` |
 | 提交验证 | `POST /v1/tasks/{id}/submit` · 必带 `expected_version` |
 | 查看验证结果 | `GET /v1/tasks/{id}/verifications` |

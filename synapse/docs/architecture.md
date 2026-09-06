@@ -1,10 +1,10 @@
 # Synapse 系统架构
 
-> 版本：v2.5 · 2026-09-02（P16-B8 执行环 driver 收口 PFL-260/261 + P16-B9 active_task_id 收口 PFL-254/255 · 见 §10 + D-021）
+> 版本：v2.6 · 2026-09-06（P16-B11 API 缺陷三连 — role 解析单真源 + state 快照 depends_on 修复 · 见 §10 + D-021）
 > 来源：Round 1 产品对齐讨论
 > 依赖：PRD · data-model.md · protocol.md · security-model.md
 > 被引用：roadmap.md
-> 最后更新：2026-09-02（P16-B8/B9 — driver 执行环 + active_task_id 生命周期收口 · 新增 D-021 · failure_detector 未接线架构债见 §10）
+> 最后更新：2026-09-06（P16-B11 — Worker 定向 API 面收口：role 解析收敛到 project_actor_roles 单真源（get_project_role），metadata resolve_role 降为 fallback · /workers/me/state depends_on 解析 · 此前 P16-B8/B9 新增 D-021）
 
 ---
 

@@ -42,10 +42,11 @@ from src.services.worker_service import (
 )
 from src.services.event_store import event_store
 from src.services.pitfall_service import create_pitfall
-from src.services.project_role_service import get_worker_projects
+from src.services.project_role_service import get_worker_projects, get_project_role
 from src.services.template_service import render_protocol, resolve_role, compute_template_versions
 
 from .helpers import _parse_event_payload, _events_to_error_summaries, get_team_or_404
+from src.utils.json_utils import safe_loads
 
 logger = logging.getLogger(__name__)
 
@@ -88,15 +89,30 @@ async def get_worker_state(
             "Worker and project belong to different teams",
         )
 
-    # Resolve role
-    from src.services.template_service import resolve_role
-    resolved_role, _role_source = resolve_role(worker)
+    # Resolve role — P16-B11 (PFL-253): 与 state-router 同源，优先 project 级
+    # project_actor_roles，缺记录才回退 metadata 级 resolve_role。
+    resolved_role = await get_project_role(db, project_id, worker.id)
+    if resolved_role is None:
+        resolved_role, _ = resolve_role(worker)
 
     # ── Query tasks by status ──
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     STALE_THRESHOLD_MINUTES = 15
 
     def _task_summary(t) -> TaskStateSummary:
+        # P16-B11 (PFL-251/266): ``Task.depends_on`` 是 JSON 字符串列
+        # （``[{"task_id": ..., "type": ...}]``），不是 list。直接塞给
+        # ``list[str]`` 会在非空依赖时触发 ResponseValidationError → 500。
+        # 这里解析后只提取 task_id 列表，供 Worker 定位依赖。
+        deps = safe_loads(t.depends_on)
+        depends_on_ids: list[str] = []
+        if isinstance(deps, list):
+            for d in deps:
+                if isinstance(d, dict):
+                    tid = d.get("task_id")
+                    if isinstance(tid, str):
+                        depends_on_ids.append(tid)
+
         return TaskStateSummary(
             id=t.id,
             title=t.title,
@@ -106,7 +122,7 @@ async def get_worker_state(
             owner_type=getattr(t, "owner_type", None),
             priority=t.priority,
             batch_id=t.batch_id,
-            depends_on=t.depends_on or [],
+            depends_on=depends_on_ids,
             updated_at=t.updated_at,
             created_at=t.created_at,
         )

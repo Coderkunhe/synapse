@@ -3,7 +3,7 @@
 > 目的：提炼开发 Synapse 过程中的通用方法论，可迁移到其他项目。
 > 与 pitfalls.md 的区别：pitfalls 是"不要做什么"；lessons-learned 是"应该怎么做"。
 > 🔗 双向交叉引用：⇄ [`docs/pitfalls.md`](pitfalls.md)（P100-B110 已补齐）
-> 最后更新：2026-09-02（P16-B9 新增 **LL33/LL34** — 指针清空 vs 保留非一刀切 · 死代码未接线会复现 · 共 34 条 · 此前 2026-08-27 P16-B6 新增 LL32）
+> 最后更新：2026-09-06（P16-B11 新增 **LL35** — Worker 自主定向面须自洽：500/误报/文档-API drift 都会逼回 human-as-message-bus · 共 35 条 · 此前 2026-09-02 P16-B9 新增 LL33/LL34）
 
 ---
 
@@ -640,4 +640,14 @@
 1. **「这条路径会不会自动触发」必须 grep 生产调用者**（`main.py` 的 `asyncio.create_task`），不能只看函数定义 + 单测。有测试只证明「函数本身正确」，不证明「它被接线」。
 2. **死代码会伪装成「安全网」。** 一个写好了但没接线的检测器，比没有更危险——团队会默认「我们有租约过期回收/授权过期清理」，而实际上这些能力在生产里从未运行。**每隔一段就要做一次「接线审计」：把每个检测器/清理器的生产调用者列出来。**
 3. **理论缺陷要先确认它是否真的会触发，再决定要不要修。** lease 不续期的语义缺口（pre-existing）因为「lease 释放本身是死代码」而降级——它不会自动伤人，只有手动跑 admin 端点才触发。分清「真实暴露的 bug」和「潜在的 latent bug」，避免为一个不会触发的缺陷返工。
+
+## LL35: Worker 的「自主定向面」必须自洽——500 / 误报 / 文档-API drift 都会把 worker 逼回 human-as-message-bus（2026-09-06）
+
+**场景**: P16-B11 一口气修了三个 API 缺陷，它们不是三个孤立 bug，而是同一根因的三张脸：headless worker 靠 state 端点、heartbeat、role 模板三个通道「自我定向」，任何一个通道给错信号，worker 就会卡住等人。① PFL-251/266 — `/workers/me/state` 把 `Task.depends_on` 的 JSON 字符串原样塞进 `list[str]`，非空依赖直接 500（worker 连状态都读不到）；② PFL-253 — heartbeat 用 metadata 级 `resolve_role` 发「默认分配 builder」告警，而真实角色来自 `project_actor_roles`（两条 role 解析路径并存，旧路径误导）；③ PFL-266b — role 模板要求「claim 前逐项 GET /tasks/{dep_id} 校验依赖」，但 Worker 可见性规则对未认领 task 一律 404，文档说的操作在 API 层跑不通。
+
+**结论**：
+
+1. **Worker 的定向面是「产品」，不是「顺手做的接口」。** 消灭 human-as-message-bus 的成败，取决于 worker 能否零人工地读到「我是谁、该干啥、依赖满足没」。任何一个端点的 500、一个字段的误报、一条模板与实现的 drift，都会把 worker 打回「看不懂就等人」——那正是 P16 要消灭的东西。
+2. **「文档化的自检步骤」每一条都要在 API 层可执行。** role 模板写「逐项 GET 依赖 task」，但 Worker 可见性规则（PFL-032 刻意边界）让它必然 404。模板与实现的 drift 会逼 worker 每次临时发明 workaround（B1 改从列表端点读）。写自检清单前，先确认对应端点的可见性/权限边界。
+3. **同一属性（role）的解析路径只能留一条真源。** metadata 级 `resolve_role` 与 `project_actor_roles` 级 `get_project_role` 并存，旧路径必然误报（PFL-253，与 PFL-256「两份独立实现必漂移」同族）。修法不是「两处都修」，是「删掉旧路径，只留真源」。
 

@@ -2,7 +2,7 @@
 
 > 从 GlassCortex 方法论移植 + Synapse 定制。
 > 适配人机混合团队协调平台的开发。
-> 版本：v2.3 · 2026-09-02（P16-B8/B9 收口 — split 收口 + active_task_id 生命周期收口 · 补 §状态/动作的「收口」原则 · 禁只 bump 日期）
+> 版本：v2.4 · 2026-09-06（P16-B11 API 缺陷三连 — 模板自检步骤必须 API 可执行（PFL-266）· role 解析单真源（PFL-253）· 禁只 bump 日期）
 > 子文档：[`methodology-reference.md`](methodology-reference.md) — 五层自检金字塔 · SMG · 反模式速查 · 流程改进 · 优先级框架 · 规则映射 · 移植指南 · 迁移策略
 
 ## 八步链路
