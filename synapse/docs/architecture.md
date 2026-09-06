@@ -586,7 +586,7 @@ graph TB
 
 > **P16-B6 架构注（2026-08-27）**：headless worker 的「模型调用」与「心跳/保活」当前在 `start-worker.sh` 里是**同步 wait**——派发 `claude -p` 后停心跳，模型调用一卡 worker 就变 offline，进而触发 stale 误判 unclaim（PFL-262）。这是 B7 的架构改造点：保活信号必须进独立循环，与业务执行解耦；停滞判定应看「进程活性」而非「时间戳」。（**已落地** — B7 PFL-262 driver keepalive 独立循环 + stale 回收 `_owner_worker_alive` 存活门禁。）
 
-> **P16-B8/B9 架构注（2026-09-02）**：执行环 driver 收口（PFL-260 split 收口 + PFL-261 超时按角色×动作分档）+ `active_task_id` 生命周期收口（PFL-254 lease 源头清理 + PFL-255 批量挂接，见 D-021）。**复核附带发现（架构债）**：`failure_detector.run_all_detections`（P8-B7 四条检测线：心跳超时/进度超时/租约过期/审核超时）在生产侧**无自动调度**——唯一调用链是 admin 手动端点 `POST /failure-detection/run`，`main.py` 的 4 个后台循环（ws/auth/stale/heartbeat）都不调它。实际自动路径是 `_stale_task_reaper`（`detect_stale_tasks`，带 `_owner_worker_alive` 守卫）与 `_worker_heartbeat_monitor`（只标 OFFLINE 不释放任务）。故「租约过期→释放任务」这条线（`release_expired_leases`）当前是死代码路径（PFL-267 候选）。
+> **P16-B8/B9 架构注（2026-09-02）**：执行环 driver 收口（PFL-260 split 收口 + PFL-261 超时按角色×动作分档）+ `active_task_id` 生命周期收口（PFL-254 lease 源头清理 + PFL-255 批量挂接，见 D-021）。**复核附带发现（架构债）**：`failure_detector.run_all_detections`（P8-B7 四条检测线：心跳超时/进度超时/租约过期/审核超时）在生产侧**无自动调度**——唯一调用链是 admin 手动端点 `POST /failure-detection/run`，`main.py` 的 4 个后台循环（ws/auth/stale/heartbeat）都不调它。实际自动路径是 `_stale_task_reaper`（`detect_stale_tasks`，带 `_owner_worker_alive` 守卫）与 `_worker_heartbeat_monitor`（只标 OFFLINE 不释放任务）。故「租约过期→释放任务」这条线（`release_expired_leases`）当前是死代码路径（PFL-267 · 已于 P16-B13 扫面正式登记，见 pitfalls.md）。
 
 - ✅ MVP 功能边界精确定义 — `docs/mvp-boundary.md`
 - ✅ 初始数据模型实现（SQLAlchemy models） — `src/models/`（11 实体）

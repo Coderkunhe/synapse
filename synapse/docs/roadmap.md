@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-09-06（**P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · 1001 tests · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · 998 tests · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · 997 tests · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 ✅ 隔离闭环（--bare + session-init 补偿） · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
+> 最后更新：2026-09-06（**P16-B13 残留机制缺陷扫面 ✅** · **P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · 1001 tests · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · 998 tests · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · 997 tests · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 ✅ 隔离闭环（--bare + session-init 补偿） · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -579,6 +579,12 @@ P16-B11 ✅ API 缺陷三连 — PFL-251/266/253（平台批 · 1001 tests）
   — PFL-251/266a：/workers/me/state 的 depends_on JSON 字符串未解析 → 500（safe_loads 提取 task_id）
   — PFL-253：role 解析脑裂 — heartbeat 删 metadata 级 resolve_role 告警 + state role 改 get_project_role
   — PFL-266b：_protocol.md §4.2 + role-builder.md 依赖自检对齐 dependency-chain（替代逐项 GET 依赖 task）
+P16-B12 ✅ --bare 隔离 — PFL-258（工具批 · 0 src code）
+  — claude -p --bare 拦截 plugin 级 SessionStart hook（PUA）注入 + run_session_init() 补偿 session-init 被跳过
+  — auth 副作用经机械探针证伪（--bare 仍读 settings env）→ 无需 auth 重注入
+P16-B13 ✅ 残留机制缺陷扫面（侦察批 · 0 src code）
+  — 确认 4 残留缺陷（PFL-263/264/265/267）全部 🔴 活跃 · 死代码/类型/未接线三扫面无新增
+  — 正式登记 PFL-267 · P16 核心机制闭环 · 4 缺陷路由 P100 治理轨
 ```
 
 ## P100 治理批
