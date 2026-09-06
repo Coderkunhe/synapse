@@ -173,15 +173,12 @@ if ! command -v claude &>/dev/null; then
     exit 1
 fi
 
-# ── PUA/settings 继承检查（B1 spike 连带发现）────────────────
-# B1 发现嵌套 claude -p 会继承父环境 settings.json/hook，导致 flavor 泄漏进
-# worker 输出。B3 只能从 worker 目录启动 + 提示，worktree 隔离的完整验证在 B4。
-if [[ -f ".claude/settings.json" ]]; then
-    echo -e "${GREEN}✅${NC} worker 自有 .claude/settings.json（隔离基线存在）"
-else
-    echo -e "${YELLOW}⚠️${NC}  worker 目录无 .claude/settings.json — 可能继承父环境 hook/flavor"
-    echo -e "  ${CYAN}💡${NC} B4 狗粮需验证 worktree 隔离（bootstrap-worker.sh 应已生成）"
-fi
+# ── PUA/hook 隔离说明（P16-B12 PFL-258）──────────────────────
+# PUA 是 plugin 级 SessionStart hook（~/.claude/plugins），对每次 `claude -p`
+# 无条件注入，与 cwd 无关——worktree 隔离和 project 级 .claude/settings.json
+# 从原理上挡不住（B6 机械探针已锤）。真实隔离靠下方 dispatch 的 `--bare`。
+# 此处不再把「settings.json 存在」当隔离信号（PFL-258 已证其为假阳性）。
+echo -e "${CYAN}🛡️${NC}  隔离由 \`--bare\` 提供（PFL-258）— 拦截 plugin 级 hook 注入"
 
 # ════════════════════════════════════════════════════════════
 # heartbeat — 调用 state-router，返回原始 JSON（供 parse 函数解析）
@@ -241,6 +238,29 @@ except Exception:
 }
 
 # ════════════════════════════════════════════════════════════
+# P16-B12 (PFL-258)：--bare 补偿 — session-init.js 自跑
+# ════════════════════════════════════════════════════════════
+# `claude -p --bare` 会跳过 SessionStart hook → session-init.js 不跑 →
+# _task-current.md 停更、handshake/daemon 缺失。driver 在这里自跑它弥补。
+#
+# 注：--bare 不掉 auth。机械探针（env -i 清空 + claude -p --bare）证明它仍读
+# ~/.claude/settings.json 的 env 段（ANTHROPIC_AUTH_TOKEN/BASE_URL/MODEL），
+# 故无需 auth 重注入 —— PFL-258 原 note 第 2 点「掉 auth」经实测不成立（已修正）。
+run_session_init() {
+    local mode="${1:-full}"   # full | quick
+    local init_script=".claude/skills/synapse/scripts/session-init.js"
+    if [[ ! -f "$init_script" ]]; then
+        echo -e "${YELLOW}⚠️${NC}  未找到 ${init_script} — 跳过 session-init（worker 目录可能未 bootstrap）"
+        return 0
+    fi
+    if [[ "$mode" == "quick" ]]; then
+        node "$init_script" --quick >/dev/null 2>&1 || true
+    else
+        node "$init_script" >/dev/null 2>&1 || true
+    fi
+}
+
+# ════════════════════════════════════════════════════════════
 # 构造分派 prompt — 定向 + 有界（一个动作单元）+ 明确退出
 # ════════════════════════════════════════════════════════════
 build_prompt() {
@@ -293,6 +313,14 @@ run_with_timeout() {
     wait "$pid"
     return $?
 }
+
+# ════════════════════════════════════════════════════════════
+# P16-B12 (PFL-258)：--bare 补偿 — 启动期一次性准备
+# ════════════════════════════════════════════════════════════
+# run_session_init full：弥补被 --bare 跳过的 SessionStart hook（handshake+protocol+daemon）
+if ! $DRY_RUN; then
+    run_session_init full
+fi
 
 # ════════════════════════════════════════════════════════════
 # 启动 keepalive 心跳（P16-B7 PFL-262 · dry-run 不发）
@@ -356,18 +384,22 @@ while true; do
                 execute) ACTION_TIMEOUT="$ACTION_TIMEOUT_EXECUTE" ;;
                 *)       ACTION_TIMEOUT="$ACTION_TIMEOUT_LIGHT" ;;
             esac
+            # P16-B12 (PFL-258)：--bare 跳过 SessionStart hook → driver 每轮先刷新 _task-current.md
+            if ! $DRY_RUN; then
+                run_session_init quick
+            fi
             PROMPT=$(build_prompt "$NEXT_ACTION" "${ROLE:-${SYNAPSE_WORKER_ROLE:-builder}}" "$ACTIVE_TASK_ID" "$QUEUE")
-            echo -e "$(date -u +%H:%M:%S) ${GREEN}🎯 next_action=${NEXT_ACTION} · dispatch claude -p（timeout=${ACTION_TIMEOUT}s）${NC}"
+            echo -e "$(date -u +%H:%M:%S) ${GREEN}🎯 next_action=${NEXT_ACTION} · dispatch claude -p --bare（timeout=${ACTION_TIMEOUT}s）${NC}"
 
             if $DRY_RUN; then
                 echo -e "${YELLOW}── [dry-run] 将执行 ──${NC}"
-                echo "  claude -p <prompt> --allowedTools \"$ALLOWED_TOOLS\" --permission-mode bypassPermissions"
+                echo "  claude -p --bare <prompt> --allowedTools \"$ALLOWED_TOOLS\" --permission-mode bypassPermissions"
                 echo -e "${YELLOW}── [dry-run] prompt 预览 ──${NC}"
                 echo "$PROMPT" | sed 's/^/  | /'
                 echo ""
             else
                 printf '%s\n' "$PROMPT" | run_with_timeout "$ACTION_TIMEOUT" \
-                    claude -p \
+                    claude -p --bare \
                     --allowedTools "$ALLOWED_TOOLS" \
                     --permission-mode bypassPermissions 2>&1
                 dispatch_rc=$?
