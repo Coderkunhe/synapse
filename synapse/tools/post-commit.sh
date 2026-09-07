@@ -57,20 +57,20 @@ if [ "$TOUCHES_SYNAPSE" -gt 0 ]; then
     L5_COMMIT_MSG="$COMMIT_MSG" python3 -c "
 import json, os, re
 commit_msg = os.environ.get('L5_COMMIT_MSG', '')
-is_l5 = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg)
+is_governance_reset = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg) or ('违纪回顾' in commit_msg)
 with open('$L5_CHECKPOINT') as f:
     data = json.load(f)
-if not is_l5:
+if not is_governance_reset:
     data['batchesSinceLastL5'] = data.get('batchesSinceLastL5', 0) + 1
-# L5 commit itself does NOT increment — it IS the synchronization point
+# 治理复位 commit（L5 拉通 / 违纪回顾）本身不 increment — 它 IS 复位点
 with open('$L5_CHECKPOINT', 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.write('\n')
 # B133 (P12-3 脚本化): sync CLAUDE.md counter — post-commit bumped the checkpoint
 # but left CLAUDE.md header `counter=N` + status `batchesSinceLastL5=N` one behind,
 # causing the pre-commit 三源校验 (check-l5-consistency --critical-only) to drift/block.
-# Now they move together. L5 commit (is_l5) skips both — it IS the reset point.
-if not is_l5:
+# Now they move together. 治理复位 commit（L5 拉通 / 违纪回顾）skips both — it IS the reset point.
+if not is_governance_reset:
     new_count = data.get('batchesSinceLastL5', 0)
     claude_md = '$SYNAPSE_DIR/CLAUDE.md'
     if os.path.exists(claude_md):
@@ -100,10 +100,10 @@ if not is_l5:
     V_COMMIT_MSG="$COMMIT_MSG" python3 -c "
 import json, os, re
 commit_msg = os.environ.get('V_COMMIT_MSG', '')
-is_l5 = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg)
+is_governance_reset = bool(re.search(r'\bL5\b', commit_msg)) or ('拉通' in commit_msg) or ('违纪回顾' in commit_msg)
 with open('$VIOLATIONS_CHECKPOINT') as f:
     data = json.load(f)
-if not is_l5:
+if not is_governance_reset:
     data['batchesSinceLastReview'] = data.get('batchesSinceLastReview', 0) + 1
 with open('$VIOLATIONS_CHECKPOINT', 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)

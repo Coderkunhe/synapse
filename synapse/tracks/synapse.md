@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P16 机制级修自主性 ✅ 核心机制闭环 · B13 ✅ 残留扫面（4 缺陷→P100）· B12 ✅ --bare 隔离（PFL-258 · session-init 补偿）· B11 ✅ API 缺陷三连（PFL-251/266/253 · 1001 tests）· B10 ✅ 路由回落 get_next_task（PFL-257 孤儿兜底）· B9 ✅ active_task_id 收口（PFL-254/255 · 997 tests）· B8 ✅ 执行环 driver 收口（PFL-260/261）· B7 ✅ PFL-262 · B6 🎉 狗粮闭环（执行环零 human turn）· B5 ✅ 执行环断裂已修（F1~F4）· P15 B0→B3 ✅ 全量闭环 🎉 · P100 治理轨道常开
-last_batch: P100-B155
-next_batch: P100-B156
+last_batch: P100-B156
+next_batch: P100-B157
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
