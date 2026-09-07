@@ -115,7 +115,7 @@ synapse/
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B13 ✅** 残留扫面（4 缺陷 → P100）· **B12 ✅** --bare 隔离 PFL-258（session-init driver 补偿 · 0 src code）· B11 ✅ API 缺陷三连 PFL-251/266/253（平台批 · 1001 tests）· B10 ✅ PFL-257 · B9 ✅ PFL-254/255 · B8 ✅ PFL-260/261 · B7 ✅ PFL-262 · B6 🎉 狗粮闭环 | — ✅ 核心机制闭环 🎉（残留 4 缺陷 → P100 治理轨）|
 | 🛡️ | **P100**（治理轨道 · 常开待命）| **B157 ✅** 租约释放死代码根治（PFL-267 guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **B156 ✅** post-commit 治理复位识别（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src code）· **B155 ✅** 授权门禁颗粒度（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 27 tools · 0 src code） | B158（候选：心跳/进度硬故障释放接线 · 另 PFL-263 层3 human admin 预置）|
-| **L5** | batchesSinceLastL5=0（B155→B156 L5 拉通 · B155 授权门禁颗粒度 + B156 治理复位叙事一致 · 1005 tests）|
+| **L5** | batchesSinceLastL5=0（B157 L5 拉通 · B157 租约释放死代码根治叙事一致 + B158/B159 plan chore · 1008 tests）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 
