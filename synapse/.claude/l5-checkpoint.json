@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B153→B154 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-09-07.md 已更新 · 📚 B154 PFL-265 存量 500 根治叙事一致 · 🎭 B154 触 src 全量 pytest 1002 passed 零回归",
+  "lastL5Batch": "B155→B156 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/daily/2026-09-07.md 已更新 · 📚 B155 授权门禁颗粒度 + B156 治理复位叙事一致 · 🎭 B155 触 src 全量 pytest 1005 passed 零回归",
   "lastL5Timestamp": "2026-09-07",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B153→B154 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-09-07.md 已更新 · 📚 B154 PFL-265 存量 500 根治叙事一致 · 🎭 B154 触 src 全量 pytest 1002 passed 零回归",
+  "lastL5Evidence": "B155→B156 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/daily/2026-09-07.md 已更新 · 📚 B155 授权门禁颗粒度 + B156 治理复位叙事一致 · 🎭 B155 触 src 全量 pytest 1005 passed 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }

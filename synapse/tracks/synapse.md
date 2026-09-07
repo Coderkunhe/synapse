@@ -14,7 +14,7 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B155 | P100-B156 | 治理轨道（常开待命）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B156 候选：PFL-267 lease 死代码 · B157：PFL-263 层3 human admin 预置 |
+| **P100** | P100-B156 | P100-B157 | 治理轨道（常开待命）· **B156 ✅ post-commit 治理复位识别**（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B157 候选：PFL-267 lease 死代码 · B158：PFL-263 层3 human admin 预置 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
