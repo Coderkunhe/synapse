@@ -16,6 +16,10 @@ B6 专属注意（B4 未暴露的坑）：
   p16/b6-dogfood tip 拉独立分支 p16/b6-dogfood-b2 —— 既绕开限制，
   又让 B2 天然拿到 B1 的代码（depends_on 语义正好对上）。
 
+  human admin 注意：本脚本只注册 agent Worker（O/B1/B2），不注册 human admin。
+  human admin 是 post-login 步骤 —— human User 登录后再跑
+  `python tools/provision-human-admin.py --email <human-email>`（PFL-263 层3）。
+
 Usage:
   cd synapse && .venv/bin/python tools/p16-b6-dogfood-setup.py
   # 分步注册（默认 o,b1；B1 交付后再补 b2）：
@@ -180,6 +184,10 @@ async def main():
     print()
     for w in WORKERS:
         print(f"     {w['name']:12} bash tools/start-worker.sh --project-dir {w['dir']}")
+    print()
+    print("   ⚠️  human admin 预置（PFL-263 层3）：human 登录后执行")
+    print("       python tools/provision-human-admin.py --email <human-email>")
+    print("       （赋 admin 角色，否则无 human-in-the-loop 可解锁授权死锁）")
     return 0
 
 

@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B157 L5 拉通 — 📄 docs/daily/2026-09-07.md 已更新 · 📚 B157 租约释放死代码根治叙事一致（PFL-267 guard+clear-on-start+接线）+ B158/B159 plan chore 只计划不执行 · 🎭 B157 触 src 全量 pytest 1008 passed 零回归",
   "lastL5Timestamp": "2026-09-07",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B157 L5 拉通 — 📄 docs/daily/2026-09-07.md 已更新 · 📚 B157 租约释放死代码根治叙事一致（PFL-267 guard+clear-on-start+接线）+ B158/B159 plan chore 只计划不执行 · 🎭 B157 触 src 全量 pytest 1008 passed 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
