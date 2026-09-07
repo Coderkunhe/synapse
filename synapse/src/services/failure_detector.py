@@ -6,6 +6,19 @@
   3. 租约过期：委托给 lease_detector.release_expired_leases()
   4. 审核超时：Task IN_VERIFICATION > T_REVIEW → 仅 WS 通知
 
+接线状态（P100-B158 定性收口 · PFL-267/PFL-262）：
+  - 租约线（lease）         ✅ 已接后台循环（main._stale_task_reaper · B157）。
+  - 心跳线（heartbeat）     manual-only by design — 非死代码。与
+                            _worker_heartbeat_monitor 的 OFFLINE 语义重叠，
+                            且 ERROR/OFFLINE + failure_count 语义统一是独立议题。
+  - 进度线（progress）      manual-only by design — 非死代码。PFL-262 定调
+                            「回收以 worker 是否失联为准，不以 task 是否有进度为准」；
+                            last_progress_at 是「task 启动/切换时间」非真实进度，
+                            自动接线会误伤 >T_PROG 的合法长任务（PFL-245/262 同族）。
+  - 审核线（review）        仅 WS 通知，与 _stale_task_reaper 的
+                            detect_stale_verifications 重叠（自动路径已有）。
+  心跳/进度两条线仅由 admin 手动端点 POST /failure-detection/run 触发。
+
 同时提供 ``report_blocker()`` 用于 Worker 提交阻塞报告。
 
 所有操作在调用方的 DB 事务中执行 — 本模块不提交。
@@ -66,6 +79,8 @@ async def detect_heartbeat_failures(
       - last_heartbeat_at 为 None 且 Worker 注册距今超过 standard_timeout（从未发送心跳）
 
     故障 Worker 拥有的所有任务被释放回 READY。
+
+    ⚠️ manual-only by design — 见模块 docstring「接线状态」（P100-B158）。
     """
     now = datetime.now(timezone.utc)
 
@@ -149,6 +164,9 @@ async def detect_progress_failures(db: AsyncSession) -> dict:
       - last_heartbeat_at 是近期的（Worker 存活，只是卡住了）
 
     仅检查近期有心跳的 Worker — 无心跳 = 硬故障。
+
+    ⚠️ manual-only by design — last_progress_at 是 task 启动/切换时间非真实进度，
+    自动接线会误伤 >T_PROG 的合法长任务（PFL-262）。见模块 docstring「接线状态」。
     """
     now = datetime.now(timezone.utc)
     prog_cutoff = now - timedelta(seconds=T_PROG)
@@ -334,6 +352,8 @@ async def run_all_detections(
     P13-B9: 参数改为可选 — 不传时使用 provider_config_service 查询。
 
     调用方必须在此返回后提交事务。
+
+    ⚠️ 仅 admin 手动端点调用（by design · P100-B158）。
     """
     hb_result = await detect_heartbeat_failures(
         db, standard_timeout=standard_timeout, codex_timeout=codex_timeout,

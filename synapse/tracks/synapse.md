@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P16 机制级修自主性 ✅ 核心机制闭环 · B13 ✅ 残留扫面（4 缺陷→P100）· B12 ✅ --bare 隔离（PFL-258 · session-init 补偿）· B11 ✅ API 缺陷三连（PFL-251/266/253 · 1001 tests）· B10 ✅ 路由回落 get_next_task（PFL-257 孤儿兜底）· B9 ✅ active_task_id 收口（PFL-254/255 · 997 tests）· B8 ✅ 执行环 driver 收口（PFL-260/261）· B7 ✅ PFL-262 · B6 🎉 狗粮闭环（执行环零 human turn）· B5 ✅ 执行环断裂已修（F1~F4）· P15 B0→B3 ✅ 全量闭环 🎉 · P100 治理轨道常开
-last_batch: P100-B157
-next_batch: P100-B158
+last_batch: P100-B158
+next_batch: P100-B159
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
@@ -14,7 +14,7 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B157 | P100-B158 | 治理轨道（常开待命）· **B157 ✅ 租约释放死代码根治**（PFL-267 guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **B156 ✅ post-commit 治理复位识别**（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B158 候选：心跳/进度硬故障释放 / PFL-263 层3 human admin 预置 |
+| **P100** | P100-B158 | P100-B159 | 治理轨道（常开待命）· **B158 ✅ 心跳/进度硬故障释放定性收口**（PFL-267 manual-only by design · 0 src）· **B157 ✅ 租约释放死代码根治**（PFL-267 guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **B156 ✅ post-commit 治理复位识别**（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B159 候选：PFL-263 层3 human admin 预置 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
