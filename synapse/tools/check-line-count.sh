@@ -5,8 +5,8 @@
 # 来源: P5-B16 · P100-B104 阈值 1000→1100 (task_service.py 1073行暂缓 · P11-B79 Builder 拆分)
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 LIMIT="${1:-1100}"
 ERRORS=0
 

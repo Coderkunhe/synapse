@@ -16,8 +16,8 @@
 #   4. 参数类型变更（type changes）
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 # P100-B144: 解析 venv（主仓 + worktree 均可用），替代硬编码 .venv/bin/python
 PYTHON="$(bash "$SCRIPT_DIR/resolve-venv.sh")/bin/python"
 BASELINE="$PROJECT_DIR/docs/contracts/openapi-baseline.json"

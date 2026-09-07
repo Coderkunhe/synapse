@@ -21,8 +21,8 @@ STALE_THRESHOLD=1800     # 30 分钟: 开始变黄（当前未使用分层）
 WARN_THRESHOLD=1800      # 30 分钟: 超过此值 → 🔴
 
 # ── 路径解析 ──────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"                       # synapse/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"                       # synapse/
 REPO_ROOT="$(dirname "$PROJECT_DIR")"                        # ai-synapse/（git root · Claude Code 启动目录）
 CANARY_FILE="$PROJECT_DIR/.claude/session-hook-canary"
 SETTINGS_FILE="$REPO_ROOT/.claude/settings.json"

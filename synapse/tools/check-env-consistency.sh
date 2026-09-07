@@ -40,8 +40,8 @@ for arg in "$@"; do
 done
 
 # ── Path resolution ──
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 # Workers live alongside the ai-synapse repo, not inside it
 # ai-synapse/synapse/tools → ai-synapse/synapse → ai-synapse → ai/
 GRANDPARENT_DIR="$(dirname "$(dirname "$PROJECT_DIR")")"

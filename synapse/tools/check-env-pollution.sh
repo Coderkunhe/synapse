@@ -44,8 +44,8 @@ for arg in "$@"; do
 done
 
 # ── Path resolution (same as ENV-2) ──
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 GRANDPARENT_DIR="$(dirname "$(dirname "$PROJECT_DIR")")"
 
 # ── Counters ──

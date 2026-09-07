@@ -4,8 +4,8 @@
 # 用法: bash tools/check-docs.sh
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 ERRORS=0
 WARNINGS=0
 
@@ -44,7 +44,8 @@ if [ -f "$PROJECT_DIR/docs/requirements-log.md" ]; then
 fi
 
 if [ -n "$REQ_DATE" ]; then
-  for doc in docs/roadmap.md docs/architecture.md docs/lessons-learned.md docs/methodology.md; do
+  # 档一：活跃日志（ERROR）— 批次追踪器须跟随需求日志（每批追加）节奏
+  for doc in docs/roadmap.md docs/pitfalls.md; do
     if [ -f "$PROJECT_DIR/$doc" ]; then
       DOC_DATE=$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' "$PROJECT_DIR/$doc" 2>/dev/null | sort -r | head -1 || echo "")
       if [ -n "$DOC_DATE" ] && [ "$DOC_DATE" \< "$REQ_DATE" ]; then
@@ -58,6 +59,22 @@ if [ -n "$REQ_DATE" ]; then
 else
   yellow "  ⚠️  requirements-log.md 无日期条目，跳过新鲜度检查"
 fi
+
+# 档二：参考文档（informational + 90 天 WARN）— 点时间设计文档，低频更新，不与需求日志比较。
+# P100-B153：参考文档本就不该按日志频率刷新（B151 教训「禁只 bump 日期」），30 天阈值会对
+# 稳定设计文档（protocol/data-model 等）误报。用 90 天作「被遗忘文档」软提醒，非硬门禁。
+NINETY_DAYS_AGO=$(date -v-90d +%Y-%m-%d 2>/dev/null || date -d "90 days ago" +%Y-%m-%d 2>/dev/null || echo "")
+for doc in docs/architecture.md docs/lessons-learned.md docs/methodology.md docs/prd.md docs/security-model.md docs/data-model.md docs/protocol.md docs/glossary.md docs/onboarding.md; do
+  if [ -f "$PROJECT_DIR/$doc" ]; then
+    DOC_DATE=$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' "$PROJECT_DIR/$doc" 2>/dev/null | sort -r | head -1 || echo "")
+    if [ -n "$DOC_DATE" ] && [ -n "$NINETY_DAYS_AGO" ] && [ "$DOC_DATE" \< "$NINETY_DAYS_AGO" ]; then
+      yellow "  ⚠️  $doc 最后更新($DOC_DATE) 距今超 90 天 — 设计文档，核实是否漂移"
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  📅 $doc 最后更新 ${DOC_DATE:-未知}"
+    fi
+  fi
+done
 echo ""
 
 # ── 需求验证覆盖率 ──────────────────────────────────

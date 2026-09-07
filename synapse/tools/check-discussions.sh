@@ -19,8 +19,8 @@
 # 退出码: 始终 0（警告级门禁，不阻断 make check）
 
 set -eo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 MEM_DIR="$HOME/.claude/projects/-Users-hunter-projects-personal-ai-agent-instances/memory"
 ERRORS=0
 WARNINGS=0

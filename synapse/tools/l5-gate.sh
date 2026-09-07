@@ -10,13 +10,23 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 CHECKPOINT="$PROJECT_DIR/.claude/l5-checkpoint.json"
 
 red()   { echo -e "\033[31m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow(){ echo -e "\033[33m$1\033[0m"; }
+
+# P100-B153 (PFL-264): 治理计数器是全局主仓状态 — worktree 里不卡 Builder。
+# worktree 自带一份 .claude/l5-checkpoint.json 陈旧副本（创建时拷自旧 commit），
+# 用它卡 Builder 的 commit = 门禁反向惩罚守规矩的人。只作用于主仓。
+GIT_DIR_ABS="$(git -C "$PROJECT_DIR" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)"
+GIT_COMMON_ABS="$(git -C "$PROJECT_DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_DIR_ABS" ] && [ -n "$GIT_COMMON_ABS" ] && [ "$GIT_DIR_ABS" != "$GIT_COMMON_ABS" ]; then
+  yellow "⚠️  git worktree — 治理计数器门禁只作用于主仓，跳过 L5 gate"
+  exit 0
+fi
 
 # ── Only gate on synapse commits ────────────────────────
 if [ "${1:-}" != "--all" ]; then

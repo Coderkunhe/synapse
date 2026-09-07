@@ -25,8 +25,8 @@
 
 set -o pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 STRICT=false
 CRITICAL_ONLY=false
 SKIP_CHECK=false
@@ -82,6 +82,18 @@ die() { red "FATAL: $*"; exit 2; }
 warn() { yellow "  ⚠️  $*"; WARNINGS=$((WARNINGS + 1)); }
 err()  { red "  ❌ $*"; ERRORS=$((ERRORS + 1)); }
 ok()   { green "  ✅ $*"; }
+
+# P100-B153 (PFL-264): 治理计数器是全局主仓状态 — worktree 里跳过 critical-only 门禁。
+# worktree 自带陈旧 .claude/l5-checkpoint.json + CLAUDE.md + memory 副本，
+# 三源 counter 在 worktree 里必然不一致 → 门禁反向惩罚守规矩的 Builder。
+if [ "$CRITICAL_ONLY" = true ]; then
+  GIT_DIR_ABS="$(git -C "$PROJECT_DIR" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)"
+  GIT_COMMON_ABS="$(git -C "$PROJECT_DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$GIT_DIR_ABS" ] && [ -n "$GIT_COMMON_ABS" ] && [ "$GIT_DIR_ABS" != "$GIT_COMMON_ABS" ]; then
+    yellow "⚠️  git worktree — 治理计数器门禁只作用于主仓，跳过 L5 一致性门禁"
+    exit 0
+  fi
+fi
 
 # ── Helper: safe integer from possibly-multiline grep output ─────
 safe_int() {

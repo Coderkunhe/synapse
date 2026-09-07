@@ -39,7 +39,7 @@ for arg in "$@"; do
 done
 
 # ── Config: paths to scan ──
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="${SYNAPSE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 PARENT_DIR="$(dirname "$PROJECT_ROOT")"
 
 # ── Detect keychain availability ──

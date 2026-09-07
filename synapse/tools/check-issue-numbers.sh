@@ -5,8 +5,8 @@
 # 退出码: 0 = 一致, 1 = 发现不一致（WARNING 级，不阻断 commit）
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 ERRORS=0
 
 red()   { echo -e "\033[31m$1\033[0m"; }

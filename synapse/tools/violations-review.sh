@@ -28,8 +28,8 @@ if [ -z "$DESCRIPTION" ]; then
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
 VIOLATIONS_FILE="$PROJECT_DIR/docs/process-violations.md"
 CHECKPOINT="$PROJECT_DIR/.claude/violations-checkpoint.json"
 NOW=$(date +%Y-%m-%d)
