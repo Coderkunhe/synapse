@@ -12,7 +12,7 @@ from sqlalchemy import func as sa_func, select as sa_select
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import OwnerType, TaskStatus
+from src.constants import AuthorizationOperation, OwnerType, TaskStatus
 from src.exceptions import (
     ConflictError,
     InvalidStateTransition,
@@ -55,11 +55,16 @@ async def _check_no_pending_auth(
     *,
     task_id: str,
     actor_id: str,
+    operation: str,
 ) -> None:
     """PFL-046: 若存在该 Worker 对此 Task 的 pending 授权请求，硬拒绝 409。
 
     在每次 mutation（assign/claim/submit/cancel/ready/pause/resume/terminate）
     前调用。防止 Worker 在授权审批 pending 期间绕过审批直接操作。
+
+    PFL-263: ``operation`` 维度过滤 — 只拦截与当前 mutation 匹配的 operation
+    类型。僵尸 pending 请求（如 ``task.assign``）不再误伤其它 mutation
+    （如 ``verification.verify``）。
     """
     result = await db.execute(
         select(AuthorizationRequest).where(
@@ -67,6 +72,7 @@ async def _check_no_pending_auth(
             AuthorizationRequest.target_resource_type == "task",
             AuthorizationRequest.target_resource_id == task_id,
             AuthorizationRequest.status == "pending",
+            AuthorizationRequest.operation == operation,
         )
     )
     pending = result.scalars().all()
@@ -122,7 +128,10 @@ async def update_task(
 ) -> Task:
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_UPDATE,
+    )
 
     changed = False
     if title is not None:

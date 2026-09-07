@@ -18,13 +18,13 @@ from src.exceptions import (
     InvalidStateTransition,
     NotFoundError,
 )
-from src.models.authorization_request import AuthorizationRequest
 from src.models.event import Event
 from src.models.task import Task
 from src.models.verification import Verification
 from src.services.event_store import event_store
+from src.services.task_core import _check_no_pending_auth
 from src.services.ws_manager import ws_manager
-from src.constants import TaskStatus, VerificationStatus, VerificationType
+from src.constants import AuthorizationOperation, TaskStatus, VerificationStatus, VerificationType
 from src.config import settings
 from src.task_state_machine import apply_transition
 from src.utils.json_utils import safe_dumps, safe_loads
@@ -343,25 +343,11 @@ async def execute_verification(
     if task is None:
         raise NotFoundError("task", ver.task_id)
     _check_version(task, expected_version)
-    # PFL-046: 检查是否有 pending 授权请求
-    auth_result = await db.execute(
-        select(AuthorizationRequest).where(
-            AuthorizationRequest.worker_id == actor_id,
-            AuthorizationRequest.target_resource_type == "task",
-            AuthorizationRequest.target_resource_id == task.id,
-            AuthorizationRequest.status == "pending",
-        )
+    # PFL-046 + PFL-263: 检查是否有 pending 授权请求（operation 维度 · 共享门禁）
+    await _check_no_pending_auth(
+        db, task_id=task.id, actor_id=actor_id,
+        operation=AuthorizationOperation.VERIFICATION_VERIFY,
     )
-    pending_auths = auth_result.scalars().all()
-    if pending_auths:
-        request_ids = [r.id for r in pending_auths]
-        raise ConflictError(
-            "PENDING_AUTHORIZATION",
-            f"Worker {actor_id} has {len(pending_auths)} pending authorization "
-            f"request(s) for Task {task.id}: {request_ids}. "
-            f"Wait for approval before retrying this operation.",
-            {"pendingRequestIds": request_ids, "taskId": task.id, "workerId": actor_id},
-        )
     if task.status != TaskStatus.IN_VERIFICATION:
         raise InvalidStateTransition(
             "verification_execute",

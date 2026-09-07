@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import ActorType, OwnerType, TaskStatus, VerificationStatus
+from src.constants import AuthorizationOperation, ActorType, OwnerType, TaskStatus, VerificationStatus
 from src.exceptions import (
     ConflictError,
     ForbiddenError,
@@ -54,7 +54,10 @@ async def submit_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_SUBMIT,
+    )
     ok = task.owner_type == actor_type and task.owner_id == actor_id  # P10-B7
     if not ok and task.owner_type == OwnerType.MEMBER and actor_type == ActorType.HUMAN:
         ok = derive_id(task.owner_id, "worker") == actor_id
@@ -278,7 +281,10 @@ async def pause_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_PAUSE,
+    )
 
     event_type, payload = apply_transition(
         task, TaskStatus.PAUSED,
@@ -332,7 +338,10 @@ async def resume_task(
     """将暂停的任务恢复为 IN_PROGRESS。"""
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_RESUME,
+    )
 
     event_type, payload = apply_transition(
         task, TaskStatus.IN_PROGRESS,
@@ -395,7 +404,10 @@ async def terminate_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_TERMINATE,
+    )
 
     previous_owner_id = task.owner_id
 

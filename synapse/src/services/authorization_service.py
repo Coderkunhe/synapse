@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.constants import (
     MAX_PENDING_AUTH_REQUESTS,
     ActorType,
+    AuthorizationOperation,
     EventType,
 )
 from src.exceptions import ConflictError, ForbiddenError, InvalidStateTransition, NotFoundError
@@ -714,7 +715,7 @@ def _assess_risk_level(record: AuthorizationRequest) -> str:
     - 其他 → low
     """
     if record.request_type == "api_auth":
-        if record.operation == "task.assign":
+        if record.operation == AuthorizationOperation.TASK_ASSIGN:
             return "medium"
     return "low"
 

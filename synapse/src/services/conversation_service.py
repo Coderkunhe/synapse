@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import EventType
+from src.constants import AuthorizationOperation, EventType
 from src.exceptions import NotFoundError
 from src.models.task_worker_conversation import TaskWorkerConversation
 from src.models.task import Task
@@ -411,7 +411,7 @@ async def _create_handoff_auth_request(
         project_id=project_id,
         worker_id=sender_worker_id,
         request_type="api_auth",
-        operation="task.assign",
+        operation=AuthorizationOperation.TASK_ASSIGN,
         target_resource_type="task",
         target_resource_id=task_id,
         team_id=team_id,

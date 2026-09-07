@@ -21,6 +21,24 @@ MAX_PENDING_AUTH_REQUESTS = 5
 """单个 Worker 最多同时有 5 个 pending 授权请求。"""
 
 
+class AuthorizationOperation(StrEnum):
+    """授权请求 operation 维度（PFL-263 门禁颗粒度单源）。
+
+    命名约定：``{entity}.{action}``。铸造侧 + 门禁侧必须共用，防 typo 漂移。
+    """
+
+    TASK_ASSIGN = "task.assign"            # 唯一当前会真实铸造的（conversation handoff）
+    TASK_UPDATE = "task.update"
+    TASK_SUBMIT = "task.submit"
+    TASK_PAUSE = "task.pause"
+    TASK_RESUME = "task.resume"
+    TASK_TERMINATE = "task.terminate"
+    TASK_READY = "task.ready"
+    TASK_CLAIM = "task.claim"
+    TASK_CANCEL = "task.cancel"
+    VERIFICATION_VERIFY = "verification.verify"
+
+
 # ── 状态枚举 ────────────────────────────────────────────────────────────
 
 class WorkerActorType(StrEnum):

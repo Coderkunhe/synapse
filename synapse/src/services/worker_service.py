@@ -186,7 +186,12 @@ async def worker_handshake(
     worker.capability_tags = {"names": cap_names, "count": len(cap_names)}
 
     # 首次握手时初始化运行时字段；OFFLINE 恢复时重置为 IDLE（P11-B128）
-    if worker.runtime_status is None or worker.runtime_status == WorkerRuntimeStatus.OFFLINE:
+    if worker.runtime_status == WorkerRuntimeStatus.OFFLINE:
+        # PFL-263 层2：Worker 重启级联取消 stale pending 授权请求（防 TTL 内孤儿阻塞）
+        from src.services.authorization_service import cancel_worker_requests
+        await cancel_worker_requests(db, worker_id=worker_id)
+        worker.runtime_status = WorkerRuntimeStatus.IDLE
+    elif worker.runtime_status is None:
         worker.runtime_status = WorkerRuntimeStatus.IDLE
 
     # 记录事件

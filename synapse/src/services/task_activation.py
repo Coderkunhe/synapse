@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import ActorType, OwnerType, TaskStatus, WorkerStatus
+from src.constants import AuthorizationOperation, ActorType, OwnerType, TaskStatus, WorkerStatus
 from src.exceptions import (
     ConflictError,
     ForbiddenError,
@@ -52,7 +52,10 @@ async def ready_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_READY,
+    )
 
     if not task.description:
         raise ConflictError(
@@ -195,7 +198,10 @@ async def assign_task(
 ) -> Task:
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_ASSIGN,
+    )
 
     # P11-B72: 必须处于 ready — 不可从 backlog 直接分配（绕过 decidability gate）
     if task.status != TaskStatus.READY:
@@ -316,7 +322,10 @@ async def claim_task(
     """
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=worker_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=worker_id,
+        operation=AuthorizationOperation.TASK_CLAIM,
+    )
 
     # 任务必须未分配或已分配给此认领者（在校验状态转换之前检查，
     # 以便返回清晰的 TASK_ALREADY_CLAIMED 而非 InvalidStateTransition）
@@ -467,7 +476,10 @@ async def cancel_task(
     """取消任务。任意非终态 → cancelled。"""
     task = await get_task(db, task_id)
     _check_version(task, expected_version)
-    await _check_no_pending_auth(db, task_id=task_id, actor_id=actor_id)
+    await _check_no_pending_auth(
+        db, task_id=task_id, actor_id=actor_id,
+        operation=AuthorizationOperation.TASK_CANCEL,
+    )
 
     _validate_transition(task, TaskStatus.CANCELLED)
 
