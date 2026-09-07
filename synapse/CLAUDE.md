@@ -1,7 +1,7 @@
 # 🚨 第零条：不得回避问题，要深入根因分析，彻底解决问题，要发挥 owner 精神。
 
 # Synapse — 人机混合团队分布式协调平台
-> 不存代码，只协调工作。最后更新：2026-09-07（**P100-B153 门禁基建治理 ✅**（PFL-264 worktree + $0 扫面 + 新鲜度模型 · 0 src）· **P16-B13 残留机制缺陷扫面 ✅**（4 缺陷 PFL-263/264/265/267 → P100）· **P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · **1001 tests** · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · **998 tests** · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · **997 tests** · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 PFL-262 心跳/执行解耦 ✅** · P16-B6 狗粮闭环 🎉 · 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · PFL-258 ✅ · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · **L5 拉通 ✅ counter=0**）
+> 不存代码，只协调工作。最后更新：2026-09-07（**P100-B154 存量 500 根治 ✅**（PFL-265 recovery_event 类型 · 1 src + 1 test）· **P100-B153 门禁基建治理 ✅**（PFL-264 worktree + $0 扫面 + 新鲜度模型 · 0 src）· **P16-B13 残留机制缺陷扫面 ✅**（4 缺陷 PFL-263/264/265/267 → P100）· **P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · **1001 tests** · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · **998 tests** · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · **997 tests** · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 PFL-262 心跳/执行解耦 ✅** · P16-B6 狗粮闭环 🎉 · 执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · PFL-258 ✅ · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · **L5 拉通 ✅ counter=1**）
 
 本文件是跨角色通用纪律。角色专属职责以 Protocol API `role_instructions` 为准。
 完整条款（Why/案例/执行协议）→ [`CLAUDE-rules-pool.md`](CLAUDE-rules-pool.md)。
@@ -114,8 +114,8 @@ synapse/
 | ✅ | **P14 目标：从平台建造到平台使用** — 验证 1O+2B 协作交付真实功能 · 零 God's-eye 代码干预 | **P14 全量闭环 🎉** · 16 批 (B0-B15) · 7/7 VC · 939 tests 零回归 · 复盘: docs/plans/p14-b15-retrospective.md |
 | ✅ | **P15 目标：战略验证（独立外部功能）** — 1O+2B 真实客户端交付 Snippet Vault · 验证多 Agent 自主协作 | **P15 全量闭环 🎉** · 主张 B 判「部分成立」· B0-B3 · 交付 ✅ + 自主 ❌ · PFL-241~246 · 复盘: docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | 🚀 | **P16** 目标：机制级修自主性 — 消灭 human-as-message-bus · 执行 loop（claim→execute→submit→verify）零 human turn 自主跑完 | **B13 ✅** 残留扫面（4 缺陷 → P100）· **B12 ✅** --bare 隔离 PFL-258（session-init driver 补偿 · 0 src code）· B11 ✅ API 缺陷三连 PFL-251/266/253（平台批 · 1001 tests）· B10 ✅ PFL-257 · B9 ✅ PFL-254/255 · B8 ✅ PFL-260/261 · B7 ✅ PFL-262 · B6 🎉 狗粮闭环 | — ✅ 核心机制闭环 🎉（残留 4 缺陷 → P100 治理轨）|
-| 🛡️ | **P100**（治理轨道 · 常开待命）| **B153 ✅** 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 27 tools · 0 src code）· B152 ✅ 门禁测试隔离泄漏修复（PFL-259） | B154（候选：PFL-265 + PFL-263 直接根治 · 另 B155 PFL-267）|
-| **L5** | batchesSinceLastL5=0（B12→B13 L5 拉通 · P16 残留扫面叙事一致 · 0 src code）|
+| 🛡️ | **P100**（治理轨道 · 常开待命）| **B154 ✅** 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 27 tools · 0 src code） | B155（候选：PFL-263 授权门禁颗粒度 · 另 B156 PFL-267）|
+| **L5** | batchesSinceLastL5=1（B12→B13 L5 拉通 · P16 残留扫面叙事一致 · 0 src code）|
 
 ### 🏁 L5 考古三批（B124→B126）完成声明
 

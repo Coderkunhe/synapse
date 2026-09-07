@@ -111,7 +111,10 @@ class WorkerHeartbeatResponse(BaseModel):
     """Worker 心跳的响应体（P11-B94 · PFL-084 升级链 · P16-B2 state-router）。"""
     status: str = Field(..., description="ok | error")
     runtime_status: str | None = Field(None, description="Worker 运行时状态")
-    recovery_event: dict | None = Field(None, description="恢复事件（如存在）")
+    recovery_event: str | None = Field(
+        None,
+        description="恢复事件类型（如 worker.runtime.idle）— 服务层返回 event_type 字符串，非结构化 dict",
+    )
     template_version: str | None = Field(
         None,
         description="Server 当前模板版本 — Worker 应对比自身版本，不一致则需升级",

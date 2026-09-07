@@ -2,7 +2,11 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
+from src.constants import WorkerRuntimeStatus
+from src.db import async_session_factory
+from src.models.worker import Worker
 from tests.conftest import SeedData, auth_header
 
 
@@ -193,3 +197,56 @@ class TestAgentLifecycle:
             headers=headers,
         )
         assert get_resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_recovery_event_serializes_as_str(self, client: AsyncClient, seed: SeedData):
+        """PFL-265 回归：ERROR→IDLE 恢复路径的 recovery_event 是 str，response_model 校验不炸。
+
+        服务层 `_worker_heartbeat` 返回的是 ``event_type`` 字符串（如
+        ``"worker.runtime.idle"``），但旧 schema 声明 ``recovery_event: dict | None``。
+        纯 service 单测（test_worker_runtime）走不到 HTTP 层 response_model 校验，
+        于是「首次心跳 500、第二次 200」这个 bug 一直漏网。本测试走 ASGI client
+        真实触发恢复路径，锁定 response_model 序列化不炸。
+        """
+        headers = auth_header(seed.token)
+
+        # 1. 注册 + 握手
+        resp = await client.post(
+            f"/v1/teams/{seed.team_id}/agents",
+            json={"name": "Recovery Worker", "provider": "claude", "provider_model": "sonnet"},
+            headers=headers,
+        )
+        assert resp.status_code == 201, resp.text
+        worker_id = resp.json()["worker"]["id"]
+        api_key = resp.json()["api_key"]
+
+        handshake_resp = await client.post(
+            f"/v1/agents/{worker_id}/handshake",
+            json={
+                "worker_version": "1.0.0",
+                "capabilities": [],
+                "supported_events": [],
+                "preferred_channel": "websocket",
+            },
+            headers=auth_header(api_key),
+        )
+        assert handshake_resp.status_code == 200, handshake_resp.text
+
+        # 2. 直接把 worker 打到 ERROR（模拟 B7 失败检测器）
+        async with async_session_factory() as session:
+            result = await session.execute(select(Worker).where(Worker.id == worker_id))
+            worker = result.scalar_one()
+            worker.runtime_status = WorkerRuntimeStatus.ERROR
+            await session.commit()
+
+        # 3. ERROR 状态下心跳 → 恢复到 IDLE，recovery_event 应为 str
+        hb_resp = await client.post(
+            f"/v1/workers/{worker_id}/heartbeat",
+            json={"current_load": 0},
+            headers=auth_header(api_key),
+        )
+        assert hb_resp.status_code == 200, hb_resp.text
+        body = hb_resp.json()
+        assert body["status"] == "ok"
+        assert body["recovery_event"] == "worker.runtime.idle"
+        assert isinstance(body["recovery_event"], str)

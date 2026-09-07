@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P16 机制级修自主性 ✅ 核心机制闭环 · B13 ✅ 残留扫面（4 缺陷→P100）· B12 ✅ --bare 隔离（PFL-258 · session-init 补偿）· B11 ✅ API 缺陷三连（PFL-251/266/253 · 1001 tests）· B10 ✅ 路由回落 get_next_task（PFL-257 孤儿兜底）· B9 ✅ active_task_id 收口（PFL-254/255 · 997 tests）· B8 ✅ 执行环 driver 收口（PFL-260/261）· B7 ✅ PFL-262 · B6 🎉 狗粮闭环（执行环零 human turn）· B5 ✅ 执行环断裂已修（F1~F4）· P15 B0→B3 ✅ 全量闭环 🎉 · P100 治理轨道常开
-last_batch: P100-B153
-next_batch: P100-B154
+last_batch: P100-B154
+next_batch: P100-B155
 description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippet Vault · B0-B3 ✅ · 主张 B 判「部分成立」· PFL-241~246 登记 · P100 治理轨道常开
 ---
 
@@ -14,13 +14,13 @@ description: Synapse 主项目 — P15 战略验证 · 独立外部功能 Snippe
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B153 | P100-B154 | 治理轨道（常开待命）· **B153 ✅ 门禁基建治理**（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 27 tools · 0 src code）· B154 候选：PFL-265 + PFL-263 直接根治 · B155：PFL-267 lease 死代码 |
+| **P100** | P100-B154 | P100-B155 | 治理轨道（常开待命）· **B154 ✅ 存量 500 根治**（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B155 候选：PFL-263 授权门禁颗粒度 · B156：PFL-267 lease 死代码 |
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
 | **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 | **P15** | **P15-B3** | — ✅ P15 全量闭环 🎉 | B0-B3 ✅ · 主张 B 判「部分成立」· 复盘 docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
-| **P16** | P16-B13 | P100-B154 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🎉 闭环**（执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 0 src code）· **B7 ✅ PFL-262 心跳/执行解耦**（driver keepalive + stale 回收存活门禁 · 993 tests）· **B8 ✅ 执行环 driver 收口**（PFL-260 split 收口 + PFL-261 超时分档 · 993 tests）· **B9 ✅ active_task_id 收口**（PFL-254 lease 源头清理 + PFL-255 批量挂接 · 997 tests）· **B10 ✅ 路由回落 get_next_task**（PFL-257 孤儿兜底 · 998 tests）· **B11 ✅ API 缺陷三连**（PFL-251/266/253 定向面收口 · 1001 tests）· **B12 ✅ --bare 隔离**（PFL-258 · session-init driver 补偿 · 0 src code）· **B13 ✅ 残留机制缺陷扫面**（4 缺陷 PFL-263/264/265/267 → P100 · 0 src code · 核心机制闭环） |
+| **P16** | P16-B13 | P100-B155 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🎉 闭环**（执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 0 src code）· **B7 ✅ PFL-262 心跳/执行解耦**（driver keepalive + stale 回收存活门禁 · 993 tests）· **B8 ✅ 执行环 driver 收口**（PFL-260 split 收口 + PFL-261 超时分档 · 993 tests）· **B9 ✅ active_task_id 收口**（PFL-254 lease 源头清理 + PFL-255 批量挂接 · 997 tests）· **B10 ✅ 路由回落 get_next_task**（PFL-257 孤儿兜底 · 998 tests）· **B11 ✅ API 缺陷三连**（PFL-251/266/253 定向面收口 · 1001 tests）· **B12 ✅ --bare 隔离**（PFL-258 · session-init driver 补偿 · 0 src code）· **B13 ✅ 残留机制缺陷扫面**（4 缺陷 PFL-263/264/265/267 → P100 · 0 src code · 核心机制闭环） |
 
 ## P11 路线图：多 Agent 接入战
 
