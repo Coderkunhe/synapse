@@ -14,6 +14,7 @@ from src.config import limiter, settings  # P100-B105: limiter for rate limiting
 from src.db import async_session_factory
 from src.exceptions import SynapseError, synapse_error_handler
 from src.services.authorization_service import expire_stale_requests
+from src.services.lease_detector import release_expired_leases
 from src.services.stale_task_detector import (
     detect_stale_tasks,
     detect_stale_verifications,
@@ -211,6 +212,14 @@ async def _stale_task_reaper() -> None:
                         "unclaimed_count": 0, "unclaimed_task_ids": [],
                     }
 
+                # P100-B157 (PFL-267): lease-expired task reclaim — release
+                # lease-expired IN_PROGRESS tasks back to READY (live-worker guarded).
+                try:
+                    lease_result = await release_expired_leases(db)
+                except Exception:
+                    _logger.warning("lease_detector failed", exc_info=True)
+                    lease_result = {"released_count": 0, "released_task_ids": []}
+
                 await db.commit()
 
                 # P11-B128 (PFL-123): increment scan counter so health
@@ -224,7 +233,8 @@ async def _stale_task_reaper() -> None:
                     _system_intervention_verify_reverted, \
                     _system_intervention_verify_cancelled, \
                     _system_intervention_ready_unclaimed, \
-                    _system_intervention_verify_escalated
+                    _system_intervention_verify_escalated, \
+                    _system_intervention_lease_released
                 _system_intervention_stale_detected += result["stale_count"]
                 _system_intervention_stale_reassigned += result.get("reassigned_count", 0)
                 _system_intervention_stale_cancelled += result.get("cancelled_count", 0)
@@ -232,6 +242,7 @@ async def _stale_task_reaper() -> None:
                 _system_intervention_verify_cancelled += verify_result.get("cancelled_count", 0)
                 _system_intervention_ready_unclaimed += ready_result["unclaimed_count"]
                 _system_intervention_verify_escalated += escalation_result["escalated_count"]
+                _system_intervention_lease_released += lease_result["released_count"]
 
                 # ── WS broadcast for reassigned tasks (P11-B125) ──
                 reassigned = result.get("reassigned_tasks", [])
@@ -468,6 +479,7 @@ _system_intervention_verify_reverted: int = 0
 _system_intervention_verify_cancelled: int = 0
 _system_intervention_ready_unclaimed: int = 0  # P12-B25 (PFL-128)
 _system_intervention_verify_escalated: int = 0  # P12-B47 (PFL-151 Option B)
+_system_intervention_lease_released: int = 0  # P100-B157 (PFL-267)
 
 
 # ── PFL-154: system worker bootstrap ─────────────────────────────────────────
@@ -645,6 +657,7 @@ def create_app() -> FastAPI:
                 "verify_cancelled": _system_intervention_verify_cancelled,
                 "ready_unclaimed": _system_intervention_ready_unclaimed,
                 "verify_escalated": _system_intervention_verify_escalated,
+                "lease_released": _system_intervention_lease_released,
             },
         }
 

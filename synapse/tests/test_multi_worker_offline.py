@@ -215,7 +215,7 @@ class TestLeaseExpiry:
     async def test_expired_lease_releases_task(
         self, client: AsyncClient, seed: SeedData,
     ):
-        """租约过期后 release_expired_leases 应释放任务。"""
+        """租约过期 + owner worker 失联 → release_expired_leases 应释放任务。"""
         from src.db import async_session_factory
         from tests.harness.time_travel import TimeTravel
 
@@ -224,8 +224,13 @@ class TestLeaseExpiry:
         )
         data = await _create_claimed_task(client, seed, worker, "Lease Expiry")
 
-        # Expire the lease
+        # PFL-267: 免死守卫 — 先让 owner worker 失联（无心跳），否则过期 lease
+        # 会被活 worker 守卫跳过。释放以「worker 是否失联」为准，不以「lease
+        # 是否过期」为准（PFL-245 候选③）。
         async with async_session_factory() as db:
+            from src.models.worker import Worker
+            owner = await db.get(Worker, worker["worker_id"])
+            owner.last_heartbeat_at = None
             tt = TimeTravel(db)
             await tt.expire_lease(data["task_id"])
             await db.commit()

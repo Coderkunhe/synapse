@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.task import Task
 from src.services.event_store import event_store
+from src.services.stale_task_detector import owner_worker_alive
 from src.constants import ActorType, TaskStatus
 from src.task_state_machine import apply_transition
 
@@ -25,6 +26,10 @@ async def release_expired_leases(db: AsyncSession) -> dict:
     当 ``lease_expires_at < now`` 且任务仍处于 IN_PROGRESS
     （Worker 认领了但从未开始），通过状态机将任务转回 READY，
     供其他 Worker 认领。
+
+    PFL-267 / PFL-245 候选③: 释放前先过 ``owner_worker_alive`` 免死守卫 —
+    回收以「worker 是否失联」为准，不以「lease 是否过期」为准。卡在
+    门禁但心跳仍新鲜的活 builder 不得被误释放。
 
     返回：
         ``{"released_count": N, "released_task_ids": [...]}``。
@@ -41,6 +46,11 @@ async def release_expired_leases(db: AsyncSession) -> dict:
 
     released_ids: list[str] = []
     for task in expired:
+        # PFL-267 / PFL-245 候选③: 活 worker 免死守卫 — 心跳仍新鲜的 owner worker
+        # 视为「活着但在干长活 / 卡在门禁」，跳过不释放。只有真失联才回收。
+        if await owner_worker_alive(db, task):
+            continue
+
         previous_owner_id = task.owner_id
 
         # 通过状态机转回 READY

@@ -212,6 +212,10 @@ async def start_task(
             payload=payload,
         )
 
+    # PFL-267: Worker 真正开工即清 lease — lease 语义收敛为「claim→start 窗口」，
+    # 已开工的任务不再被 lease 回收（活 worker 免死守卫之外的第二道防线）。
+    task.lease_expires_at = None
+
     # P16-B5: 挂载/幂等复用统一走 attach_active_task（含 IDLE→BUSY 状态机转换）
     return await attach_active_task(db, worker, task_id)
 

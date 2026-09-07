@@ -35,7 +35,7 @@ from src.services.provider_config_service import get_provider_heartbeat_timeout
 from src.task_state_machine import apply_transition
 
 
-async def _owner_worker_alive(db: AsyncSession, task: Task) -> bool:
+async def owner_worker_alive(db: AsyncSession, task: Task) -> bool:
     """判断 IN_PROGRESS 任务的 owner worker 是否仍存活（P16-B7 PFL-262）。
 
     回收（reassign）应以「worker 是否真的失联」为准，不应以「task 是否有进度」
@@ -153,7 +153,7 @@ async def detect_stale_tasks(
                 task.status == TaskStatus.IN_PROGRESS
                 and stale_minutes >= reassign_threshold_minutes
             ):
-                if await _owner_worker_alive(db, task):
+                if await owner_worker_alive(db, task):
                     # P16-B7 (PFL-262): owner worker 心跳仍新鲜 → 活着但在干长活
                     #（模型调用卡死在 driver 超时内 / 大任务），不是僵尸。跳过，既不
                     # 回收也不记 stale 事件 —— 回收/僵尸判定应以「worker 是否失联」

@@ -27,6 +27,7 @@ from src.models.project_actor_role import ProjectActorRole
 from src.models.task import Task
 from src.models.team import Team
 from src.services.lease_detector import release_expired_leases
+from src.services.worker_scheduler import start_task
 from src.services.task_service import (
     LEASE_DURATION_SECONDS,
     assign_batch,
@@ -425,6 +426,60 @@ class TestLeaseExpiry:
 
         result = await release_expired_leases(db)
         assert result["released_count"] == 0
+
+    async def test_expired_lease_alive_worker_not_released(self, db: AsyncSession, seeded: dict):
+        """PFL-267: 租约过期但 owner worker 心跳仍新鲜 → 免死守卫跳过，不释放。
+
+        卡在门禁 / 干长活的活 builder 不得被 lease 回收（PFL-245 候选③）。
+        """
+        task = await _create_ready_task(db, seeded)
+        claimed = await claim_task(
+            db, task.id, worker_id=seeded["agent_id"],
+            worker_team_id=seeded["team_id"], expected_version=task.version_no,
+        )
+        await db.flush()
+
+        # 租约过期，但 worker 心跳新鲜（活着但在干长活 / 卡门禁）
+        claimed.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        worker = await db.get(Worker, seeded["agent_id"])
+        worker.last_heartbeat_at = datetime.now(timezone.utc)
+        await db.flush()
+
+        result = await release_expired_leases(db)
+        assert result["released_count"] == 0
+
+    async def test_expired_lease_offline_worker_released(self, db: AsyncSession, seeded: dict):
+        """PFL-267: 心跳虽新鲜但已 OFFLINE 的 owner worker → 视为失联，正常释放。"""
+        task = await _create_ready_task(db, seeded)
+        claimed = await claim_task(
+            db, task.id, worker_id=seeded["agent_id"],
+            worker_team_id=seeded["team_id"], expected_version=task.version_no,
+        )
+        await db.flush()
+
+        claimed.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        worker = await db.get(Worker, seeded["agent_id"])
+        worker.last_heartbeat_at = datetime.now(timezone.utc)  # 心跳新鲜
+        worker.runtime_status = WorkerRuntimeStatus.OFFLINE       # 但已被判 OFFLINE
+        await db.flush()
+
+        result = await release_expired_leases(db)
+        assert result["released_count"] == 1
+
+    async def test_start_task_clears_lease(self, db: AsyncSession, seeded: dict):
+        """PFL-267: Worker 真正开工即清 lease — lease 语义收敛为 claim→start 窗口。"""
+        task = await _create_ready_task(db, seeded)
+        await claim_task(
+            db, task.id, worker_id=seeded["agent_id"],
+            worker_team_id=seeded["team_id"], expected_version=task.version_no,
+        )
+        await db.flush()
+        assert task.lease_expires_at is not None
+
+        await start_task(db, seeded["agent_id"], task.id)
+        await db.flush()
+        await db.refresh(task)
+        assert task.lease_expires_at is None
 
     async def test_multiple_expired_leases(self, db: AsyncSession, seeded: dict):
         """多个过期租约 → 全部释放。"""
