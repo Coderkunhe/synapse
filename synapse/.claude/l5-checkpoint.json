@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B158→B159 L5 拉通 — 📄 docs/daily/2026-09-08.md 已更新 · 📚 B158 定性收口 + B159 human admin 预置叙事一致 · 🎭 B158 comment-only 触 src 全量 pytest 1008 passed 零回归",
   "lastL5Timestamp": "2026-09-08",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B158→B159 L5 拉通 — 📄 docs/daily/2026-09-08.md 已更新 · 📚 B158 定性收口 + B159 human admin 预置叙事一致 · 🎭 B158 comment-only 触 src 全量 pytest 1008 passed 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

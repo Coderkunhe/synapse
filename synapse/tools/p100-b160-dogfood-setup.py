@@ -18,7 +18,10 @@ Usage:
   cd synapse && .venv/bin/python tools/p100-b160-dogfood-setup.py
   # 分步注册（默认 o,a；A 交付后再补 b）：
   P160_SETUP_WORKERS=b .venv/bin/python tools/p100-b160-dogfood-setup.py
+  # 干跑自检（不 commit · 不写 .env/skill · 事务 ROLLBACK 无副作用）：
+  cd synapse && .venv/bin/python tools/p100-b160-dogfood-setup.py --dry-run
 """
+import argparse
 import asyncio
 import os
 import sys
@@ -64,6 +67,17 @@ WORKERS = [_ALL[k] for k in (w.strip() for w in _which) if k in _ALL]
 
 
 async def main():
+    parser = argparse.ArgumentParser(
+        description="P100-B160 狗粮环境搭建：注册 O/A/B + Project + 生成 .env + skill",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="只打印将执行的变更，不 commit、不写 .env/skill（无副作用干跑 · 对齐 B159 ROLLBACK 范式）",
+    )
+    args = parser.parse_args()
+    dry_run = args.dry_run
+
     if not WORKERS:
         print(f"❌ P160_SETUP_WORKERS={_which!r} 未匹配任何 worker（可选 o,a,b）")
         return 1
@@ -97,8 +111,11 @@ async def main():
                 metadata={"phase": "P100", "batch": "B160"},
                 is_protected=False, actor_type="system", actor_id="system",
             )
-            await db.commit()
-            print(f"✅ Project: {project.name} ({project.id})")
+            if dry_run:
+                print(f"🔍 [dry-run] would commit: Project {project.name} ({project.id})")
+            else:
+                await db.commit()
+                print(f"✅ Project: {project.name} ({project.id})")
 
         # 3. Register workers
         from src.models.worker import Worker
@@ -120,8 +137,14 @@ async def main():
                     batch_size=1, project_id=project.id, project_role=w["role"],
                 )
                 results.append({"worker": worker_obj, "api_key": api_key, "role": w["role"], "dir": w["dir"]})
-                print(f"✅ Worker: {w['name']} ({worker_obj.id}) · Key: {api_key}")
-        await db.commit()
+                if dry_run:
+                    print(f"🔍 [dry-run] would register: {w['name']} ({worker_obj.id}) · Key（非持久）: {api_key}")
+                else:
+                    print(f"✅ Worker: {w['name']} ({worker_obj.id}) · Key: {api_key}")
+        if dry_run:
+            print(f"🔍 [dry-run] would commit: {len(results)} worker(s) + 项目角色（事务回滚 · 无副作用）")
+        else:
+            await db.commit()
 
         # 4. Generate .env + skill（worker cwd = worktree 根，.env 在 <dir>/.claude/.env）
         print()
@@ -130,6 +153,15 @@ async def main():
             w = r["worker"]; name = w.name; api_key = r["api_key"]; role = r["role"]; wdir = r["dir"]
             if api_key == "ALREADY_REGISTERED":
                 print(f"⚠️  {name}: 已存在，需手动获取 API key，跳过 .env")
+                continue
+
+            if dry_run:
+                env_path = wdir / ".claude" / ".env"
+                print(f"🔍 [dry-run] would write .env → {env_path}")
+                if gen_script.exists():
+                    print(f"🔍 [dry-run] would run generate-skill.sh → {wdir}")
+                else:
+                    print(f"⚠️  generate-skill.sh not found at {gen_script}")
                 continue
 
             claude_dir = wdir / ".claude"
@@ -166,7 +198,10 @@ async def main():
 
     print()
     print("=" * 60)
-    print(f"🏁 P100-B160 狗粮环境就绪（本轮：{', '.join(w['name'] for w in WORKERS)}）")
+    if dry_run:
+        print(f"🔍 P100-B160 狗粮环境 dry-run 完成（本轮：{', '.join(w['name'] for w in WORKERS)}）· 未 commit · 无副作用")
+    else:
+        print(f"🏁 P100-B160 狗粮环境就绪（本轮：{', '.join(w['name'] for w in WORKERS)}）")
     print("=" * 60)
     print(f"   Team:    {team.name} ({team.id})")
     print(f"   Project: {project.name} ({project.id})")
