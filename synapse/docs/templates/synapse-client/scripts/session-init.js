@@ -1529,10 +1529,7 @@ async function main() {
   // ── Step 4: Handshake ──────────────────────────────────────────
   const handshakeRes = await client.post(`/v1/workers/${workerId}/handshake`, {
     agent_version: '1.0.0',
-    capabilities: [
-      { name: 'code-generation', description: 'Generate and modify code files' },
-      { name: 'code-review', description: 'Review code for correctness and quality' },
-    ],
+    capabilities: sessionCore.buildCapabilityDeclarations(process.env.SYNAPSE_WORKER_CAPABILITIES),
     supported_events: ['task.assigned', 'task.updated', 'verification.completed'],
     preferred_channel: 'websocket',
   });

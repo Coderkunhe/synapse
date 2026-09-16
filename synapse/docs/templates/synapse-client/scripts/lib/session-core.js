@@ -273,6 +273,33 @@ function readRecentWsEvents(n, eventsFile) {
   }
 }
 
+// ── PFL-268: Capability Declarations ─────────────────────────────────
+
+/**
+ * PFL-268: 从 SYNAPSE_WORKER_CAPABILITIES env（逗号分隔，如 "backend,python"）
+ * 构建 handshake capabilities 声明列表。
+ * 空/未设 → 回退通用能力集（保持历史行为）。
+ *
+ * @param {string|undefined} envValue — SYNAPSE_WORKER_CAPABILITIES 原始值
+ * @returns {Array<{name: string, description: string}>}
+ */
+function buildCapabilityDeclarations(envValue) {
+  if (typeof envValue === 'string' && envValue.trim() !== '') {
+    const names = [];
+    for (const raw of envValue.split(',')) {
+      const name = raw.trim();
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+    return names.map((name) => ({ name, description: '' }));
+  }
+  return [
+    { name: 'code-generation', description: 'Generate and modify code files' },
+    { name: 'code-review', description: 'Review code for correctness and quality' },
+  ];
+}
+
 module.exports = {
   now,
   ownerLabel,
@@ -283,4 +310,5 @@ module.exports = {
   getExistingSnapshotAge,
   isExistingSnapshotHealthy,
   readRecentWsEvents,
+  buildCapabilityDeclarations,
 };

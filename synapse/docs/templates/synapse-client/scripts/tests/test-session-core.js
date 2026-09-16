@@ -529,6 +529,38 @@ function reloadModule() {
   restoreMocks();
 })();
 
+// ── Tests: buildCapabilityDeclarations() ────────────────────────────────
+
+(function() {
+  const mod = reloadModule();
+
+  test('buildCapabilityDeclarations: 空/未设 → 通用能力集', () => {
+    for (const v of [undefined, null, '', '   ', '  \t  ']) {
+      const caps = mod.buildCapabilityDeclarations(v);
+      assert(Array.isArray(caps), 'should return array');
+      assert(caps.length === 2, `expected 2 for ${JSON.stringify(v)}, got ${caps.length}`);
+      assert(caps[0].name === 'code-generation', 'first should be code-generation');
+      assert(caps[1].name === 'code-review', 'second should be code-review');
+    }
+  });
+
+  test('buildCapabilityDeclarations: "backend,python" → 两个声明', () => {
+    const caps = mod.buildCapabilityDeclarations('backend,python');
+    assert(caps.length === 2, `expected 2, got ${caps.length}`);
+    assert(caps[0].name === 'backend');
+    assert(caps[0].description === '');
+    assert(caps[1].name === 'python');
+    assert(caps[1].description === '');
+  });
+
+  test('buildCapabilityDeclarations: " backend, python ,backend" → trim + 去重', () => {
+    const caps = mod.buildCapabilityDeclarations(' backend, python ,backend');
+    assert(caps.length === 2, `expected 2 (dedup), got ${caps.length}`);
+    assert(caps[0].name === 'backend');
+    assert(caps[1].name === 'python');
+  });
+})();
+
 // ── Summary ──────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed, ${passed + failed} total`);
