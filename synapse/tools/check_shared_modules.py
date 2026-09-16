@@ -2,16 +2,20 @@
 """Shared Module Governance — consumer count + Risk Assessment coverage scan.
 
 Scans src/ and frontend/src/ for import relationships, counts unique
-consumers per module, and cross-checks against requirements-log for
-Risk Assessment records.
+consumers per module, and cross-checks against the SMG Risk Assessment
+records (docs/shared-module-risk-assessments.md) + requirements-log archive.
 
 Adapted from GlassCortex tools/check_shared_modules.py (P100-B16).
-Thresholds lowered for Synapse's smaller codebase.
+Thresholds aligned to methodology (methodology-reference.md §SMG) — P100-B165:
+classified by consumer count N (blast radius); abstraction-layer count K is
+reported as metadata, not a gate. Rationale: a flat-but-wide module
+(constants.py, 94 consumers, K=1) has blast radius ≥ a 3-layer module
+(db.py, 75 consumers), so gating on K under-classifies it.
 
 Risk levels:
-  🔴 Critical — N≥5 consumers AND ≥3 abstraction layers → exit 1 (block commit)
-  🟠 High     — N≥3 consumers → exit 2 (warning, non-blocking)
-  🟡 Medium   — N≥2 consumers → exit 0 (informational)
+  🔴 Critical — N≥10 consumers → exit 1 (block commit)
+  🟠 High     — N≥5 consumers → exit 2 (warning, non-blocking)
+  🟡 Medium   — N≥3 consumers → exit 0 (informational)
 
 Exit codes:
   0 — All shared modules assessed, or no Critical/High gaps
@@ -37,15 +41,16 @@ MODULE_DIRS = ["src"]
 # Frontend source root (TypeScript)
 FRONTEND_SRC = "frontend/src"
 
-# Minimum unique consumers to qualify as a "shared module"
-MIN_CONSUMERS = 2
+# Minimum unique consumers to qualify as a "shared module" (methodology: N≥3)
+MIN_CONSUMERS = 3
 
-# Risk thresholds (lowered for Synapse scale)
-CRITICAL_CONSUMERS = 5
-HIGH_CONSUMERS = 3
+# Risk thresholds (aligned to methodology-reference.md §SMG · P100-B165)
+CRITICAL_CONSUMERS = 10
+HIGH_CONSUMERS = 5
 
-# Known abstraction layer counts per module.
-# These are the canonical counts derived from Synapse architecture.
+# Known abstraction layer counts per module — REPORTING METADATA ONLY.
+# K is no longer a classification gate (see module docstring). Defaults to 1.
+# Authoritative layer enumeration lives in docs/shared-module-risk-assessments.md.
 KNOWN_LAYERS: dict[str, int] = {
     # Config — 3 layers: Env parse → Defaults → Type coercion
     "config.py": 3,
@@ -70,6 +75,18 @@ KNOWN_LAYERS: dict[str, int] = {
     # Task service — 2 layers: CRUD → Query
     "task_service.py": 2,
 }
+
+# 品类-level Risk Assessment coverage — directory prefix per category name.
+# The category names must match the "### 品类 RA: <name>" sections in
+# docs/shared-module-risk-assessments.md (P100-B165).
+CATEGORY_DIRS: dict[str, str] = {
+    "models": "src/models/",
+    "schemas": "src/schemas/",
+    "services": "src/services/",
+    "frontend": "frontend/src/",
+}
+
+_RA_FILE = PROJECT_ROOT / "docs" / "shared-module-risk-assessments.md"
 
 
 # --- Python Import Resolution ---
@@ -262,10 +279,33 @@ def _search_ra_in_file(filepath: Path, module_filename: str) -> bool:
     return False
 
 
+def _category_assessed(module_rel_path: str) -> bool:
+    """Return True if *module_rel_path* is covered by a 品类 RA section."""
+    try:
+        content = _RA_FILE.read_text()
+    except (FileNotFoundError, OSError):
+        return False
+
+    for name, dir_prefix in CATEGORY_DIRS.items():
+        if not module_rel_path.startswith(dir_prefix):
+            continue
+        for line in content.split("\n"):
+            if line.startswith("###") and ("品类 RA: " + name) in line:
+                return True
+    return False
+
+
 def _has_risk_assessment(module_rel_path: str) -> bool:
     """Return True if *module_rel_path* has a Risk Assessment entry."""
     module_filename = Path(module_rel_path).name
 
+    # Primary: dedicated SMG RA file (individual basename entries + 品类 sections)
+    if _search_ra_in_file(_RA_FILE, module_filename):
+        return True
+    if _category_assessed(module_rel_path):
+        return True
+
+    # Legacy: requirements-log (active) + archive (P100-B83 entries)
     req_log = PROJECT_ROOT / "docs" / "requirements-log.md"
     if _search_ra_in_file(req_log, module_filename):
         return True
@@ -335,7 +375,7 @@ def main() -> int:
 
         if _has_risk_assessment(mod_path):
             assessed.append((mod_path, n, layers))
-        elif n >= CRITICAL_CONSUMERS and layers >= 3:
+        elif n >= CRITICAL_CONSUMERS:
             critical.append((mod_path, n, layers))
         elif n >= HIGH_CONSUMERS:
             high.append((mod_path, n, layers))
@@ -352,8 +392,7 @@ def main() -> int:
     # Print: critical
     if critical:
         print(
-            f"  🔴 Critical — N≥{CRITICAL_CONSUMERS} consumers + ≥3 layers，"
-            "缺 Risk Assessment："
+            f"  🔴 Critical — N≥{CRITICAL_CONSUMERS} consumers，缺 Risk Assessment："
         )
         for mod_path, n, layers in critical:
             print(f"     {mod_path}  ({n} consumers, {layers} layers)")

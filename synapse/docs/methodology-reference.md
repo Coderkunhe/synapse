@@ -156,9 +156,11 @@ Risk = N(消费者数) × Σ(每层未枚举的边界条件数)
 
 | 等级 | 条件 | 动作 |
 |------|------|------|
-| 🔴 Critical | N ≥ 10 且 K ≥ 3 | Plan 必须做完整 Consumer Impact Analysis + Layer Enumeration |
-| 🟠 High | N ≥ 5 且 K ≥ 2 | Plan 必须做两项分析 |
+| 🔴 Critical | N ≥ 10 | Plan 必须做完整 Consumer Impact Analysis + Layer Enumeration |
+| 🟠 High | N ≥ 5 | Plan 必须做两项分析 |
 | 🟡 Medium | N ≥ 3 | Plan 建议做分析 |
+
+> P100-B165：分类按消费者数 N（blast radius），抽象层数 K 降级为报告元数据（非分类门槛）——flat-but-wide 模块（如 `constants.py` 94 消费者、K=1）的爆炸半径 ≥ 三层模块（`db.py` 75 消费者），用 K 做门槛会低估它。K 仍记入 RA 条目的 Layer Enumeration，供变更时做边界枚举。
 
 ### 品类-层模板（参考框架）
 
