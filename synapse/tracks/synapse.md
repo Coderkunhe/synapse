@@ -1,9 +1,9 @@
 ---
 project: synapse
-phase: P17 人机协作协调层 🔄 · 战略重定向（护城河 = 协作层）· 收尾智能化三件事 + 协作第一增量（人认领/读规范/同步）
-last_batch: P16-B13
-next_batch: P17-B1
-description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · 护城河在协作层不在智能层 · P16 全量闭环 → P17 战略重定向 · P100 治理轨道常开
+phase: P17 人机协作协调层 🔄 · 战略重定向（护城河 = 协作层）· 协作第一增量（人认领/读规范/同步）
+last_batch: P17-B1
+next_batch: P17-B2
+description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · 护城河在协作层不在智能层 · P16 全量闭环 → P17 战略重定向 · 能力层善后（资产切分 + 债务清账）→ P100 治理轨
 ---
 
 # Synapse 轨道
@@ -14,14 +14,14 @@ description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · �
 |------|:---:|:---:|------|
 | **P10** | P10-B47 | — ✅ | P10 全量闭环 🎉 · 47 批 |
 | **P9** | P9-B100 | — ✅ | P9 全量闭环 🎉 · 100 批 |
-| **P100** | P100-B166 | P100-B167 | 治理轨道（常开待命）· **B160 ✅ 自主性重验证计划+环境**（0 src · Phase 1）· **B159 ✅ human admin 预置**（PFL-263 层3 · DG 脚本 · 0 src）· **B158 ✅ 心跳/进度硬故障释放定性收口**（PFL-267 manual-only by design · 0 src）· **B157 ✅ 租约释放死代码根治**（PFL-267 guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **B156 ✅ post-commit 治理复位识别**（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B162 ✅ 跑狗粮（自主 ✅）· B163 ✅ 善后清理 + PFL-268 + 复盘 · B164 ✅ PFL-268 能力声明动态化（env 声明 + 409 自愈 · 0 src code）· **B165 ✅ Shared Module Governance 补课（S-005 假闭环 · RA 全覆盖 77/77 · 0 src）** · **B166 ✅ reqlog 旧 Phase 归档（0 src · 主 reqlog 5176→1673 行）**|
+| **P100** | P100-B166 | P100-B167（候选：P17 资产切分 + PFL-241/242 封存）| 治理轨道（常开待命）· **B160 ✅ 自主性重验证计划+环境**（0 src · Phase 1）· **B159 ✅ human admin 预置**（PFL-263 层3 · DG 脚本 · 0 src）· **B158 ✅ 心跳/进度硬故障释放定性收口**（PFL-267 manual-only by design · 0 src）· **B157 ✅ 租约释放死代码根治**（PFL-267 guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **B156 ✅ post-commit 治理复位识别**（violations-review 误 bump 双 counter 根治 · 1 tool · 0 src）· **B155 ✅ 授权门禁颗粒度**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· B154 ✅ 存量 500 根治（PFL-265 recovery_event 类型 · 2 files · 1002 tests）· B153 ✅ 门禁基建治理（PFL-264 worktree + $0 泄漏扫面 + 新鲜度模型 · 0 src）· B162 ✅ 跑狗粮（自主 ✅）· B163 ✅ 善后清理 + PFL-268 + 复盘 · B164 ✅ PFL-268 能力声明动态化（env 声明 + 409 自愈 · 0 src code）· **B165 ✅ Shared Module Governance 补课（S-005 假闭环 · RA 全覆盖 77/77 · 0 src）** · **B166 ✅ reqlog 旧 Phase 归档（0 src · 主 reqlog 5176→1673 行）**|
 | **P11** | P11-B137 | — ✅ P11 全量闭环 · P12 已启动 | B137 ✅ Worker Harness 三层建设 · P11 137 批全量闭环 🎉 |
 | **P12** | P12-B52 | — ✅ P12 全量闭环 🎉 | B1-B52 ✅ · 52 批 · 1O+2B 协作达成 · 诚实复盘完成 |
 | **P13** | **P13-B13** | — ✅ P13 全量闭环 🎉 | B1→B13 ✅ · 13 批 · 897 tests · 5/5 成功标准 · P14 已闭环 |
 | **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 | **P15** | **P15-B3** | — ✅ P15 全量闭环 🎉 | B0-B3 ✅ · 主张 B 判「部分成立」· 复盘 docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | **P16** | P16-B13 | — ✅ P16 全量闭环 🎉 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🎉 闭环**（执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 0 src code）· **B7 ✅ PFL-262 心跳/执行解耦**（driver keepalive + stale 回收存活门禁 · 993 tests）· **B8 ✅ 执行环 driver 收口**（PFL-260 split 收口 + PFL-261 超时分档 · 993 tests）· **B9 ✅ active_task_id 收口**（PFL-254 lease 源头清理 + PFL-255 批量挂接 · 997 tests）· **B10 ✅ 路由回落 get_next_task**（PFL-257 孤儿兜底 · 998 tests）· **B11 ✅ API 缺陷三连**（PFL-251/266/253 定向面收口 · 1001 tests）· **B12 ✅ --bare 隔离**（PFL-258 · session-init driver 补偿 · 0 src code）· **B13 ✅ 残留机制缺陷扫面**（4 缺陷 PFL-263/264/265/267 → P100 · 0 src code · 全量闭环） |
-| **P17** | P17-B1 | P17-B2 | 人机协作协调层 🔄 — 战略重定向（护城河 = 协作层）· 收尾三件事（①战略定性锚 ②资产切分 ③债务清账）+ 协作第一增量（人认领/读规范/同步） |
+| **P17** | P17-B1 | P17-B2 | 人机协作协调层 🔄 — 战略重定向（护城河 = 协作层）· 协作第一增量（人认领/读规范/同步 · 前置还 PFL-244/245/246）· 能力层善后 → P100 治理轨（资产切分 + PFL-241/242 封存） |
 
 ## P11 路线图：多 Agent 接入战
 
