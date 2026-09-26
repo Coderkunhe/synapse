@@ -1,6 +1,6 @@
 # Synapse 开发路线图
 
-> 最后更新：2026-09-18（**P100-B166 reqlog 旧 Phase 归档 ✅**（0 src code · 主 reqlog 5176→1673 行）· **P100-B165 Shared Module Governance 补课 ✅**（S-005 假闭环 · RA 全覆盖 77/77）· **P100-B164 PFL-268 能力声明动态化 ✅**（env 声明 + 409 自愈 · 0 src code）· **P100-B163 善后清理 + PFL-268 + B162 复盘 ✅**（DG-3 · 0 src code）· **P100-B162 跑狗粮 Phase 2 ✅**（自主 ✅ · 主判据 1-5 全达标）· **P100-B161 setup 脚本 dry-run 自检 ✅**（0 src code · --dry-run + ROLLBACK 无副作用）· **P100-B160 自主性重验证计划+环境 ✅**（0 src code · plan + setup 脚本）· **P100-B159 human admin 预置 ✅**（PFL-263 层3 · DG 脚本 · 0 src）· **P100-B158 心跳/进度硬故障释放定性收口 ✅**（PFL-267 manual-only by design · 0 src code）· **P100-B157 租约释放死代码根治 ✅**（PFL-267 · guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **P100-B156 post-commit 治理复位识别 ✅**（violations-review 误 bump 双 counter 根治 · 1 tool）· **P100-B155 授权门禁颗粒度 ✅**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· **P100-B154 存量 500 根治 ✅**（PFL-265 recovery_event 类型 · 1 src + 1 test）· **P100-B153 门禁基建治理 ✅**（PFL-264 + $0 扫面 + 新鲜度模型 · 0 src）· **P16-B13 残留机制缺陷扫面 ✅** · **P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · 1001 tests · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · 998 tests · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · 997 tests · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 ✅ 隔离闭环（--bare + session-init 补偿） · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
+> 最后更新：2026-09-26（**P17-B1 战略定性（锚）🔄** — agent 能力层告一段落 · 主攻人机协作协调层 · **P100-B166 reqlog 旧 Phase 归档 ✅**（0 src code · 主 reqlog 5176→1673 行）· **P100-B165 Shared Module Governance 补课 ✅**（S-005 假闭环 · RA 全覆盖 77/77）· **P100-B164 PFL-268 能力声明动态化 ✅**（env 声明 + 409 自愈 · 0 src code）· **P100-B163 善后清理 + PFL-268 + B162 复盘 ✅**（DG-3 · 0 src code）· **P100-B162 跑狗粮 Phase 2 ✅**（自主 ✅ · 主判据 1-5 全达标）· **P100-B161 setup 脚本 dry-run 自检 ✅**（0 src code · --dry-run + ROLLBACK 无副作用）· **P100-B160 自主性重验证计划+环境 ✅**（0 src code · plan + setup 脚本）· **P100-B159 human admin 预置 ✅**（PFL-263 层3 · DG 脚本 · 0 src）· **P100-B158 心跳/进度硬故障释放定性收口 ✅**（PFL-267 manual-only by design · 0 src code）· **P100-B157 租约释放死代码根治 ✅**（PFL-267 · guard + clear-on-start + 接线 · 4 src + 2 test · 1008 tests）· **P100-B156 post-commit 治理复位识别 ✅**（violations-review 误 bump 双 counter 根治 · 1 tool）· **P100-B155 授权门禁颗粒度 ✅**（PFL-263 operation 维度 + cancel 接线 · 8 src + 1 test · 1005 tests）· **P100-B154 存量 500 根治 ✅**（PFL-265 recovery_event 类型 · 1 src + 1 test）· **P100-B153 门禁基建治理 ✅**（PFL-264 + $0 扫面 + 新鲜度模型 · 0 src）· **P16-B13 残留机制缺陷扫面 ✅** · **P16-B12 --bare 隔离 ✅** PFL-258 · session-init driver 补偿 · **P16-B11 API 缺陷三连 ✅** PFL-251/266/253 · 1001 tests · **P16-B10 路由回落 get_next_task ✅** PFL-257 孤儿兜底 · 998 tests · **P16-B9 active_task_id 收口 ✅** PFL-254/255 · 997 tests · **P16-B8 执行环 driver 收口 ✅** PFL-260/261 · **P16-B7 首刀 ✅** PFL-262 心跳/执行解耦 · **P16-B6 狗粮闭环 🎉** · 执行环零 human turn · 新登记 PFL-260~266 · PFL-258 ✅ 隔离闭环（--bare + session-init 补偿） · P100-B152 门禁隔离泄漏修复 ✅ PFL-259 · P16-B5 修执行环 claim→execute 断裂 ✅ · PFL-247/248/249/250 闭环 · 新登记 PFL-254/255 · P16-B4 狗粮第一轮 🔴 · P16-B3 driver ✅ · P16-B2 state-router ✅ · P16-B1 spike 🟢 放行 · P15 全量闭环 🎉 · P100 违纪回顾 ✅）
 > 执行规则：Phase + Batch 两级编号。每批 2-4 个任务，完成即验证。
 
 ---
@@ -588,6 +588,32 @@ P16-B13 ✅ 残留机制缺陷扫面（侦察批 · 0 src code）
   — 2026-09-26 标记升级：P16 全量闭环 🎉（残留 4 缺陷 PFL-263/264/265/267 已在 P100-B153~B158 全关）
 ```
 
+## P17 路线图：人机协作协调层 🔄
+
+> **战略重定向（2026-09-26 · owner 对齐）**：护城河从「智能层（让 agent 更自主）」切回「协作层（人机混合协调）」。基模/agent 产品升级会免费吃掉能力层，但「多个 agent + 人如何协作」（组织/状态/约束/上下文）基模解决不了——这才是 Synapse 的护城河。
+>
+> **锚**：agent 能力层告一段落，不再主攻「让 agent 更自主」；下一阶段主攻「人机协作协调层」。
+>
+> **跑偏轨迹（回归初心）**：P7/P8/P9 方向本就对（P7-D2 人机混合团队模型 · P8 整个 Phase 就叫「人机协调引擎」· P9 定调「Task 是入口，其余都是标签」）→ P10 拐进四实体基础设施 → P11 陷单 agent 稳定（137 批未达成 PMF）→ P12-P16 继续 agent 自主。方向从协调层滑到能力层，P7-D2「人机混合团队模型」从没落地。
+>
+> **上下文卸载是命门**：worker 只带「任务切片 + 依赖」，全貌按需查平台。这哲学是双向的，但只做了 agent 侧——人现在是 `human-as-context-bus`（脑子承载全团队全貌）。P16 消灭了 `human-as-message-bus`，没消灭这个。
+
+### 收尾三件事（增量 · 不憋大招 · P11 憋 9 批膨胀 137 批是教训）
+
+1. **战略定性（锚）** ← 本批 —— roadmap/PRD 落战略锚，防 P10 式跑偏重演。
+2. **资产切分** —— 继承协作层地基（Task 状态机 · depends_on · 授权门禁 · 租约 · verification · Event Store · O/B/Steward 角色协议）；封存能力层（headless driver · daemon · `--bare` · session-init · 心跳自愈 · Capability 声明）。
+3. **债务清账** —— ~11 条 🟡 已知项分类：能力层债（PFL-241/242）封存不追；协作层债（PFL-244 GAP-10 / PFL-245 lease 误判 / PFL-246 pre-push 只护 master）必须还。
+
+### 协作第一增量（收尾后立刻开始）
+
+- 让真人能像 agent 一样：**认领任务 · 读项目规范（skills）· 同步状态**——不再是「写需求 + 点批准」两个端点（P7-D2 落地最小版）。
+
+| Batch | 内容 | 状态 |
+|-------|------|:----:|
+| P17-B1 | 战略定性（锚）— roadmap/PRD 落「能力层告一段落 · 主攻协作层」· 登记 P17 轨道 | 🔄 |
+| P17-B2 | 资产切分 — 继承/封存清单落地 | ⬜ |
+| P17-B3 | 债务清账 — 协作层债必须还（PFL-244/245/246） | ⬜ |
+
 ## P100 治理批
 
 - **P100-B91**：GAP-2 质量三板斧机械门禁 + GAP-3 checkpoint新鲜度门禁 ✅ — check-quality-gate.sh (G-030) + check-checkpoint-freshness.sh (G-031) · pre-commit Stage 6+7 · Makefile 接线 · 5/7 GAP 闭环 · 6 files · 298 insertions · commit `0c694b5`
@@ -694,3 +720,5 @@ P16-B13 ✅ 残留机制缺陷扫面（侦察批 · 0 src code）
 | **P13** | **P13-B1→B13** | **13** | ✅ **全量闭环 🎉** · 基础设施可信度加固 |
 | **P14** | **P14-B0→B15** | **16** | ✅ **全量闭环 🎉** · 从平台建造到平台使用 |
 | **P15** | **P15-B0→B3** | **4** | ✅ **全量闭环 🎉** · 战略验证 · 主张 B 部分成立 |
+| **P16** | **P16-B1→B13** | **13** | ✅ **全量闭环 🎉** · 机制级修自主性 · 消灭 human-as-message-bus |
+| **P17** | **P17-B1** | — | 🔄 人机协作协调层 · 战略重定向（护城河 = 协作层） |
