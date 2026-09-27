@@ -253,7 +253,7 @@ function statusBadgeSimpleClass(status: string): string {
 }
 
 export default function Approvals() {
-  const { token, teamId } = useAuth()
+  const { token, teamId, logout } = useAuth()
   const { t } = useI18n()
 
   const [items, setItems] = useState<ApprovalItem[]>([])
@@ -377,7 +377,7 @@ export default function Approvals() {
   }, [viewTab, loadHistory])
 
   // ── P11-B22: WebSocket real-time updates ──────────────────────────────────
-  const { lastEvent } = useWebSocket(token, AUTH_EVENT_TYPES)
+  const { lastEvent } = useWebSocket(token, AUTH_EVENT_TYPES, logout)
   const pendingRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

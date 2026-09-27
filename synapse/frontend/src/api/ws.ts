@@ -129,10 +129,19 @@ export function useWebSocket(
       }
     }
 
-    ws.onclose = () => {
+    ws.onclose = (event: CloseEvent) => {
       if (!mountedRef.current) return
       setStatus('disconnected')
       clearTimers()
+
+      // P100-B172: 4001 = auth failure (missing/invalid token). The cookie is
+      // gone, and reconnecting would just re-trigger 4001, so log out instead
+      // (the ProtectedRoute then redirects to /login). Non-4001 keeps the
+      // exponential-backoff reconnect below.
+      if (event.code === 4001) {
+        onTokenExpired?.()
+        return
+      }
 
       const attempt = reconnectAttemptRef.current
       if (attempt >= MAX_RETRY_ATTEMPTS) {

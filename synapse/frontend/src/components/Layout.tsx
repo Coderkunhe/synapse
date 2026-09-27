@@ -27,7 +27,7 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   const { token, displayName, logout } = useAuth()
-  const { status } = useWebSocket(token)
+  const { status } = useWebSocket(token, [], logout)
   const { t, lang, setLang } = useI18n()
   const push = usePushNotification()
 
