@@ -2,7 +2,7 @@
 project: synapse
 phase: P17 人机协作协调层 🔄 · 战略重定向（护城河 = 协作层）· 协作第一增量（人认领/读规范/同步）
 last_batch: P17-B1
-next_batch: P17-B2a
+next_batch: P17-B2
 description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · 护城河在协作层不在智能层 · P16 全量闭环 → P17 战略重定向 · 能力层善后（资产切分 + 债务清账）→ P100 治理轨
 ---
 
@@ -21,7 +21,7 @@ description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · �
 | **P14** | **P14-B15** | — ✅ P14 全量闭环 🎉 | B0-B15 ✅ · 16 批 · 7/7 VC · 939 tests 零回归 · 复盘 docs/plans/p14-b15-retrospective.md |
 | **P15** | **P15-B3** | — ✅ P15 全量闭环 🎉 | B0-B3 ✅ · 主张 B 判「部分成立」· 复盘 docs/plans/p15-b2-retrospective.md · 代码 tag `snippet-vault-v1` |
 | **P16** | P16-B13 | — ✅ P16 全量闭环 🎉 | 机制级修自主性 — 消灭 human-as-message-bus · 执行 loop 自动化 · B1 spike ✅ · B2 state-router ✅ · B3 driver ✅ · B4 狗粮第一轮 🔴（claim→execute 断裂 · PFL-247~253）· **B5 ✅ 修复**（active_task_id 双边 + dep-blocked 计数 + driver 超时 + claim 文档 · 964 tests）· **B6 🎉 闭环**（执行环零 human turn 跑完 A→B→C · 主判据 1-5 全 🟢 · 新登记 PFL-260~266 · 0 src code）· **B7 ✅ PFL-262 心跳/执行解耦**（driver keepalive + stale 回收存活门禁 · 993 tests）· **B8 ✅ 执行环 driver 收口**（PFL-260 split 收口 + PFL-261 超时分档 · 993 tests）· **B9 ✅ active_task_id 收口**（PFL-254 lease 源头清理 + PFL-255 批量挂接 · 997 tests）· **B10 ✅ 路由回落 get_next_task**（PFL-257 孤儿兜底 · 998 tests）· **B11 ✅ API 缺陷三连**（PFL-251/266/253 定向面收口 · 1001 tests）· **B12 ✅ --bare 隔离**（PFL-258 · session-init driver 补偿 · 0 src code）· **B13 ✅ 残留机制缺陷扫面**（4 缺陷 PFL-263/264/265/267 → P100 · 0 src code · 全量闭环） |
-| **P17** | P17-B1 | P17-B2a | 人机协作协调层 🔄 — 战略重定向（护城河 = 协作层）· 协作第一增量（B2a 还 PFL-245 lease 对 human owner 免死 · B2b 人认领/读规范/同步最小闭环 · PFL-244/246 → P100 backlog）· 能力层善后 → P100 治理轨（资产切分 + PFL-241/242 封存） |
+| **P17** | P17-B1 | P17-B2 | 人机协作协调层 🔄 — 战略重定向（护城河 = 协作层）· 协作第一增量（B2 还 PFL-245 lease 对 human owner 免死 · B3 人认领/读规范/同步最小闭环 · PFL-244/246 → P100 backlog）· 能力层善后 → P100 治理轨（资产切分 + PFL-241/242 封存） |
 
 ## P11 路线图：多 Agent 接入战
 
