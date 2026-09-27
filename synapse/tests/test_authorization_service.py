@@ -36,6 +36,7 @@ from src.services.authorization_service import (
     get_pending_count,
     get_request,
     heartbeat,
+    report_execution,
     respond_to_request,
 )
 from src.utils.id_gen import generate_id
@@ -423,6 +424,43 @@ class TestRespondToRequest:
                 request_id="areq_nonexistent",
                 responder_worker_id=actor_info["actor_id"],
                 status="approved",
+                **actor_info,
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# report_execution
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestReportExecution:
+    """上报 capability 执行结果 — P100-B168 修 InvalidStateTransition 传参."""
+
+    async def test_report_non_approved_raises_invalid_transition(
+        self, db_session, test_project, test_worker, actor_info
+    ):
+        """非 approved 请求上报 → InvalidStateTransition（P100-B168 修 TypeError）."""
+        record = AuthorizationRequest(
+            id=generate_id("authorization_request"),
+            project_id=test_project,
+            worker_id=test_worker,
+            request_type="capability_exec",
+            capability_id="git_push_main",
+            status="pending",
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            last_heartbeat_at=datetime.now(timezone.utc),
+        )
+        db_session.add(record)
+        await db_session.flush()
+
+        with pytest.raises(InvalidStateTransition):
+            await report_execution(
+                db_session,
+                request_id=record.id,
+                worker_id=test_worker,
+                outcome="success",
+                exit_code=0,
+                duration_ms=100,
                 **actor_info,
             )
 

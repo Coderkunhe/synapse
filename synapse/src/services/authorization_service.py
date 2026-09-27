@@ -445,10 +445,10 @@ async def report_execution(
 
     if record.status != "approved":
         raise InvalidStateTransition(
-            request_id=request_id,
+            entity_type="AuthorizationRequest",
+            entity_id=request_id,
             from_status=record.status,
             to_status="reported",
-            message="只有已批准的请求才能上报执行结果",
         )
 
     if record.worker_id != worker_id:
