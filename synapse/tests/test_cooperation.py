@@ -17,7 +17,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import ActorType, TaskStatus, WorkerRuntimeStatus
+from src.constants import ActorType, OwnerType, TaskStatus, WorkerActorType, WorkerRuntimeStatus
 from src.exceptions import ConflictError, NotFoundError
 from src.models.worker import Worker
 from src.models.batch import Batch
@@ -36,6 +36,7 @@ from src.services.task_service import (
     claim_task,
     create_task,
     ready_task,
+    submit_task,
     task_to_response,
 )
 from src.utils.id_gen import derive_id, generate_id
@@ -595,3 +596,74 @@ class TestLeaseExpiry:
         assert reclaimed.owner_id == agent2_id
         assert reclaimed.claimed_at is not None
         assert reclaimed.lease_expires_at is not None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P17-B3: 人认领/读规范/同步/提交最小闭环（P7-D2 最小落地）
+# ═══════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+class TestHumanClaimLoop:
+    async def test_human_claim_sets_human_owner_and_survives_reaping(
+        self, db: AsyncSession, seeded: dict
+    ):
+        """P17-B3: human 认领 → owner_type=human → 不被回收 → submit 闭环。
+
+        锁住「人认领/同步/提交」最小闭环：
+        - claim 显式落 OwnerType.HUMAN（修 actor_type 混用，非字符串巧合）
+        - owner_is_alive 对 human owner 恒 True（P17-B2 PFL-245 免死）
+        - submit 走完 owner 校验 → in_verification
+        """
+        from src.services.stale_task_detector import owner_is_alive
+
+        # ADR-004: 人类统一建模为 Worker，actor_type=human 驱动 UI 分层渲染
+        human_worker_id = generate_id("worker")
+        db.add(Worker(
+            id=human_worker_id, team_id=seeded["team_id"], name="Human Owner",
+            actor_type=WorkerActorType.HUMAN,
+            provider="claude", provider_model="sonnet", status="active",
+            registered_by=None, api_key_hash="test-hash", api_key_prefix="sk-test",
+        ))
+        await db.flush()
+
+        task = await _create_ready_task(db, seeded)
+
+        claimed = await claim_task(
+            db, task.id, worker_id=human_worker_id,
+            worker_team_id=seeded["team_id"], expected_version=task.version_no,
+            actor_type=ActorType.HUMAN,
+        )
+        await db.flush()
+
+        # owner_type 显式落 OwnerType.HUMAN（P17-B3 修混用）
+        assert claimed.owner_type == OwnerType.HUMAN
+        assert claimed.owner_id == human_worker_id
+
+        # 免死：human owner 无心跳/租约续期，恒视为存活
+        assert await owner_is_alive(db, claimed) is True
+
+        # 提交闭环：owner 校验通过 → in_verification（manual verification 待 O 验收）
+        submitted = await submit_task(
+            db, claimed.id, summary="human 完成",
+            evidence={"output_access": {"type": "inline", "value": "done"}},
+            verification_results=[], expected_version=claimed.version_no,
+            actor_type=ActorType.HUMAN, actor_id=human_worker_id,
+            team_id=seeded["team_id"],
+        )
+        await db.flush()
+
+        assert submitted.status == "in_verification"
+        assert submitted.owner_type == OwnerType.HUMAN
+
+    async def test_claim_rejects_non_claimable_actor_type(
+        self, db: AsyncSession, seeded: dict
+    ):
+        """P17-B3: actor_type 仅 worker/human 可认领，SYSTEM 等非法值显式拒绝。"""
+        task = await _create_ready_task(db, seeded)
+        with pytest.raises(ConflictError, match="INVALID_OWNER_TYPE"):
+            await claim_task(
+                db, task.id, worker_id=generate_id("worker"),
+                worker_team_id=seeded["team_id"], expected_version=task.version_no,
+                actor_type=ActorType.SYSTEM,
+            )

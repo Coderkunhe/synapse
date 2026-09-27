@@ -409,7 +409,19 @@ async def claim_task(
 
     previous_status = task.status
     now = datetime.now(timezone.utc)
-    task.owner_type = actor_type
+    # P17-B3: actor_type（事件参与者）≠ owner_type（任务所有者）——两个 enum 语义不同。
+    # 此前 owner_type = actor_type 靠字符串巧合对齐（"worker"/"human"），若 ActorType.SYSTEM
+    # 漏进 claim 会写入非法 owner_type="system"。显式映射 + 拒绝非法值。
+    owner_type = {
+        ActorType.WORKER: OwnerType.WORKER,
+        ActorType.HUMAN: OwnerType.HUMAN,
+    }.get(actor_type)
+    if owner_type is None:
+        raise ConflictError(
+            "INVALID_OWNER_TYPE",
+            f"actor_type '{actor_type}' cannot claim a task",
+        )
+    task.owner_type = owner_type
     task.owner_id = worker_id
     task.claimed_at = now
     task.lease_expires_at = now + timedelta(seconds=LEASE_DURATION_SECONDS)
@@ -455,7 +467,7 @@ async def claim_task(
                 "event_type": event_type,
                 "task_id": task.id,
                 "status": task.status,
-                "owner_type": actor_type,
+                "owner_type": owner_type,
                 "owner_id": worker_id,
             },
         },
