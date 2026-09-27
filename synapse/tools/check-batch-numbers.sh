@@ -25,13 +25,17 @@ red()   { echo -e "\033[31m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow(){ echo -e "\033[33m$1\033[0m"; }
 
+# ── 子编号统一正则（V-008 防呆 · 单一来源 · staged 与 full-scan 共用）────
+# 4 支：Batch Nx / Px-By[a-z] / Px-By.x / 裸 B<数字><字母>。
+# 裸「B<数字><字母>」是 V-008 第3次复发的漏网形态（P17-B2 用 B2·a/B2·b 落文档）。
+SUB_NUMBER_PATTERN='\b(Batch [0-9]+[a-z]|P[0-9]+-B[0-9]+[a-z]|P[0-9]+-B[0-9]+\.[a-z]|B[0-9]+[a-z])\b'
+
 # ── staged 模式：只扫 staged 内容子编号（V-008 防呆 · P100-B169）──────
 # 真根因：check-batch-numbers 之前只接 `make check`（手动），未接 commit 门禁，
 # 且 SCAN_FILES 缺 pitfalls/tracks/daily → V-008 第3次复发（字母后缀子编号落文档漏网）。
 # 此处扫 `git diff --cached` 新增行，覆盖所有文件 + 补裸「B<数字><字母>」模式。
 check_staged_subnumbers() {
   local sub_found=0
-  local pattern='\b(Batch [0-9]+[a-z]|P[0-9]+-B[0-9]+[a-z]|P[0-9]+-B[0-9]+\.[a-z]|B[0-9]+[a-z])\b'
   local staged_files
   staged_files=$(git diff --cached --name-only 2>/dev/null || echo "")
   if [ -z "$staged_files" ]; then
@@ -45,7 +49,7 @@ check_staged_subnumbers() {
       continue
     fi
     local hits
-    hits=$(echo "$added" | grep -oE "$pattern" 2>/dev/null | sort -u || true)
+    hits=$(echo "$added" | grep -oE "$SUB_NUMBER_PATTERN" 2>/dev/null | sort -u || true)
     if [ -n "$hits" ]; then
       while IFS= read -r h; do
         red "  ❌ 子编号发现: $h (in $f)"
@@ -109,20 +113,27 @@ CLAUDE_BATCHES=$(extract_batches_from_claude)
 echo "--- 子编号检查 ---"
 SUB_FOUND=0
 
-# Regex patterns for illegal sub-numbering:
-#   1. Batch Na / Batch Nb          (e.g. "Batch 6a" — old format)
-#   2. Px-By[a-z]                   (e.g. "P3-B6a" — Phase.Batch format)
-#   3. Px-By.a / Px-By.b            (e.g. "P3-B6.a" — dotted variant)
-SUB_PATTERN1='\bBatch [0-9]+[a-z]\b'
-SUB_PATTERN2='\bP[0-9]+-B[0-9]+[a-z]\b'
-SUB_PATTERN3='\bP[0-9]+-B[0-9]+\.[a-z]\b'
+# 子编号正则统一走 SUB_NUMBER_PATTERN（含裸 B<数字><字母> · P100-B169 对齐 staged 模式）
 
-# Files to scan (project docs + plan files + CLAUDE.md)
+# Files to scan（活跃治理文档 + plan 文件 · P100-B169 扩 pitfalls/tracks/daily/process-violations/lessons-learned）
+# 注：docs/archive/（封存墓碑）与 docs/decisions/（历史决策）不在扫描范围——其历史引用天然含子编号，
+# 且未来若编辑它们，pre-commit Stage 10 仍会拦截新子编号。历史日期的子编号引用已用「·」间隔号转写。
 SCAN_FILES=(
   "$PROJECT_DIR/docs/roadmap.md"
   "$PROJECT_DIR/docs/requirements-log.md"
   "$PROJECT_DIR/CLAUDE.md"
+  "$PROJECT_DIR/docs/pitfalls.md"
+  "$PROJECT_DIR/docs/process-violations.md"
+  "$PROJECT_DIR/docs/lessons-learned.md"
+  "$PROJECT_DIR/tracks/synapse.md"
 )
+
+# daily/*.md — 活跃日志（历史日期的子编号引用已用 · 间隔号转写）
+if [ -d "$PROJECT_DIR/docs/daily" ]; then
+  while IFS= read -r -d '' f; do
+    SCAN_FILES+=("$f")
+  done < <(find "$PROJECT_DIR/docs/daily" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
+fi
 
 # Also scan plan files if the directory exists
 if [ -d "$PROJECT_DIR/docs/plans" ]; then
@@ -149,16 +160,14 @@ fi
 
 for f in "${SCAN_FILES[@]}"; do
   if [ -f "$f" ]; then
-    for pattern in "$SUB_PATTERN1" "$SUB_PATTERN2" "$SUB_PATTERN3"; do
-      hits=$(grep -oE "$pattern" "$f" 2>/dev/null || true)
-      if [ -n "$hits" ]; then
-        for h in $hits; do
-          red "  ❌ 子编号发现: $h (in $(basename "$f"))"
-          ERRORS=$((ERRORS + 1))
-          SUB_FOUND=1
-        done
-      fi
-    done
+    hits=$(grep -oE "$SUB_NUMBER_PATTERN" "$f" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
+      for h in $hits; do
+        red "  ❌ 子编号发现: $h (in $(basename "$f"))"
+        ERRORS=$((ERRORS + 1))
+        SUB_FOUND=1
+      done
+    fi
   fi
 done
 if [ "$SUB_FOUND" -eq 0 ]; then

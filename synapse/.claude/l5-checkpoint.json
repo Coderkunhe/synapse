@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P100-B167→B168 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步（授权列表过期修复 + report_execution 传参修复）· 📚 治理轨叙事一致（B167 前端死代码 + 后端硬门禁 → B168 顺带发现传参 bug）· 🎭 两批触 src/ → 1014 tests 零回归",
   "lastL5Timestamp": "2026-09-27",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P100-B167→B168 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步（授权列表过期修复 + report_execution 传参修复）· 📚 治理轨叙事一致（B167 前端死代码 + 后端硬门禁 → B168 顺带发现传参 bug）· 🎭 两批触 src/ → 1014 tests 零回归",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
