@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B169→B170 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步（check-batch-numbers full-scan 对齐 staged 模式）· 📚 治理轨叙事一致（B169 staged 门禁 → B170 full-scan 对齐消除两套判据）· 🎭 两批 0 src code → 无需 pytest · 1014 tests 基线不变",
-  "lastL5Timestamp": "2026-09-27",
-  "batchesSinceLastL5": 1,
+  "lastL5Batch": "P100-B171→B172 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 WS 鉴权线两批递进叙事一致（B171 cookie 根修 → B172 onclose 4001 失败退登录）· 🎭 B171 触 src+frontend+test 1017 tests 零回归 · B172 前端-only tsc 0 新增 · counter 2→0 三源对齐",
+  "lastL5Timestamp": "2026-09-28",
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B169→B170 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步（check-batch-numbers full-scan 对齐 staged 模式）· 📚 治理轨叙事一致（B169 staged 门禁 → B170 full-scan 对齐消除两套判据）· 🎭 两批 0 src code → 无需 pytest · 1014 tests 基线不变",
+  "lastL5Evidence": "P100-B171→B172 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 WS 鉴权线两批递进叙事一致（B171 cookie 根修 → B172 onclose 4001 失败退登录）· 🎭 B171 触 src+frontend+test 1017 tests 零回归 · B172 前端-only tsc 0 新增 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
