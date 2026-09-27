@@ -14,12 +14,63 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${SYNAPSE_PROJECT_DIR:-$(dirname "$SCRIPT_DIR")}"
+STAGED_MODE=0
+if [ "${1:-}" = "--staged" ]; then
+  STAGED_MODE=1
+fi
 ERRORS=0
 WARNINGS=0
 
 red()   { echo -e "\033[31m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow(){ echo -e "\033[33m$1\033[0m"; }
+
+# ── staged 模式：只扫 staged 内容子编号（V-008 防呆 · P100-B169）──────
+# 真根因：check-batch-numbers 之前只接 `make check`（手动），未接 commit 门禁，
+# 且 SCAN_FILES 缺 pitfalls/tracks/daily → V-008 第3次复发（字母后缀子编号落文档漏网）。
+# 此处扫 `git diff --cached` 新增行，覆盖所有文件 + 补裸「B<数字><字母>」模式。
+check_staged_subnumbers() {
+  local sub_found=0
+  local pattern='\b(Batch [0-9]+[a-z]|P[0-9]+-B[0-9]+[a-z]|P[0-9]+-B[0-9]+\.[a-z]|B[0-9]+[a-z])\b'
+  local staged_files
+  staged_files=$(git diff --cached --name-only 2>/dev/null || echo "")
+  if [ -z "$staged_files" ]; then
+    green "  ✅ 无 staged 变更 — 跳过子编号检查"
+    return 0
+  fi
+  for f in $staged_files; do
+    local added
+    added=$(git diff --cached -- "$f" 2>/dev/null | grep -E '^\+' | grep -vE '^\+\+\+' || true)
+    if [ -z "$added" ]; then
+      continue
+    fi
+    local hits
+    hits=$(echo "$added" | grep -oE "$pattern" 2>/dev/null | sort -u || true)
+    if [ -n "$hits" ]; then
+      while IFS= read -r h; do
+        red "  ❌ 子编号发现: $h (in $f)"
+        ERRORS=$((ERRORS + 1))
+        sub_found=1
+      done <<< "$hits"
+    fi
+  done
+  if [ "$sub_found" -eq 0 ]; then
+    green "  ✅ staged 内容无子编号"
+  fi
+}
+
+if [ "$STAGED_MODE" -eq 1 ]; then
+  echo "=== Batch 子编号检查（staged 模式）==="
+  echo ""
+  check_staged_subnumbers
+  echo ""
+  if [ "$ERRORS" -gt 0 ]; then
+    red "❌ staged 子编号检查: $ERRORS 个硬错误"
+    exit 1
+  fi
+  green "✅ staged 子编号检查通过"
+  exit 0
+fi
 
 echo "=== Batch 编号连续性 ==="
 echo ""

@@ -149,4 +149,20 @@ if [[ -n "$STAGED_JS_FILES" ]]; then
   fi
 fi
 
+# ── Stage 10: Batch 子编号门禁（V-008 · P100-B169）──────────
+# 扫描 staged 内容子编号（字母后缀 a/b 模式），接 commit 门禁防 V-008 复发
+BATCH_NUMBERS="$REPO_ROOT/synapse/tools/check-batch-numbers.sh"
+if [ -x "$BATCH_NUMBERS" ]; then
+  "$BATCH_NUMBERS" --staged || {
+    echo ""
+    echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔴  Batch 子编号门禁失败（V-008）"
+    echo "🔴"
+    echo "🔴  staged 内容含字母后缀子编号（Batch 编号 + a/b 后缀）。"
+    echo "🔴  请改连续编号（如 B2 + B3）后重新提交。"
+    echo "🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+  }
+fi
+
 exit 0
