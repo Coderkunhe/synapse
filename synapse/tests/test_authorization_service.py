@@ -380,6 +380,41 @@ class TestRespondToRequest:
                 **actor_info,
             )
 
+    async def test_cannot_respond_expired_pending_request(
+        self, db_session, test_project, test_worker, actor_info
+    ):
+        """已过期但仍 pending（reaper 30s 窗口内）→ 拒绝响应（P100-B167）."""
+        now = datetime.now(timezone.utc)
+        past = now - timedelta(seconds=60)
+
+        record = AuthorizationRequest(
+            id=generate_id("authorization_request"),
+            project_id=test_project,
+            worker_id=test_worker,
+            request_type="api_auth",
+            operation="test.expired_pending",
+            status="pending",
+            expires_at=past,
+            last_heartbeat_at=past,
+        )
+        db_session.add(record)
+        await db_session.commit()
+
+        with pytest.raises(ConflictError) as exc_info:
+            await respond_to_request(
+                db_session,
+                request_id=record.id,
+                responder_worker_id=actor_info["actor_id"],
+                status="approved",
+                **actor_info,
+            )
+        assert exc_info.value.code == "AUTHORIZATION_REQUEST_EXPIRED"
+
+        # 清理：expire_stale_requests 是全局查询，泄漏的 expired-pending
+        # 记录会污染后续测试（如 test_expire_stale_requests 的 count 断言）
+        await db_session.delete(record)
+        await db_session.commit()
+
     async def test_respond_nonexistent_request(self, db_session, actor_info):
         """响应不存在的请求 → NotFoundError."""
         with pytest.raises(NotFoundError):

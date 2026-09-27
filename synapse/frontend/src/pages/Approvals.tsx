@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ShieldCheck, Clock, Check, X, History, AlertTriangle } from 'lucide-react'
+import { ShieldCheck, Clock, Check, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import {
@@ -185,11 +185,6 @@ function AuthRequestModal({ isOpen, item, onClose }: AuthRequestModalProps) {
             <span className={styles.detailLabel}>Expires</span>
             <span className={styles.detailValue}>
               {new Date(item.expires_at).toLocaleString()}
-              {isExpired(item.expires_at) && (
-                <span className={styles.expiredLabel}>
-                  <AlertTriangle size={12} /> Expired
-                </span>
-              )}
             </span>
           </div>
           {item.responded_by_worker_id && (
@@ -474,11 +469,6 @@ export default function Approvals() {
     return id ? `${label} ${id}` : label
   }
 
-  /** P12-B39: Check if a pending request has expired. */
-  function isExpired(expiresAt: string): boolean {
-    return new Date(expiresAt).getTime() <= Date.now()
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
@@ -631,12 +621,6 @@ export default function Approvals() {
                     {cardErrors[item.id] && (
                       <span className={styles.cardError}>{cardErrors[item.id]}</span>
                     )}
-                    {isExpired(item.expires_at) && (
-                      <span className={styles.expiredLabel}>
-                        <AlertTriangle size={12} />
-                        {t('approvals.expiredLabel')}
-                      </span>
-                    )}
                     <input
                       type="text"
                       className={styles.noteInput}
@@ -645,14 +629,14 @@ export default function Approvals() {
                       onChange={(e) =>
                         setNoteInputs((prev) => ({ ...prev, [item.id]: e.target.value }))
                       }
-                      disabled={respondingId === item.id || isExpired(item.expires_at)}
+                      disabled={respondingId === item.id}
                     />
                     <div className={styles.actions}>
                       <button
                         type="button"
                         className={`${styles.actionBtn} ${styles.denyBtn}`}
                         onClick={() => handleRespond(item.id, 'denied')}
-                        disabled={respondingId !== null || isExpired(item.expires_at)}
+                        disabled={respondingId !== null}
                       >
                         {respondingId === item.id ? (
                           t('approvals.denying')
@@ -666,7 +650,7 @@ export default function Approvals() {
                         type="button"
                         className={`${styles.actionBtn} ${styles.approveBtn}`}
                         onClick={() => handleRespond(item.id, 'approved')}
-                        disabled={respondingId !== null || isExpired(item.expires_at)}
+                        disabled={respondingId !== null}
                       >
                         {respondingId === item.id ? (
                           t('approvals.approving')

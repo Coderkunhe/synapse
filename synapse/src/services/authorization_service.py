@@ -278,6 +278,8 @@ async def respond_to_request(
     """响应授权请求 — 批准或拒绝。
 
     只有 pending 状态的请求可以被响应。
+    已过期（expires_at < now）的 pending 请求即使 reaper 尚未翻转为
+    expired 状态，也不可响应（P100-B167 硬门禁）。
 
     P10-B31 (S-065): api_auth 类型被批准时，自动为 Worker 授予
     project 的 member 角色，使 Worker 重试时能通过权限检查。
@@ -288,12 +290,33 @@ async def respond_to_request(
     """
     record = await get_request(db, request_id)
 
+    now = datetime.now(timezone.utc)
+
     if record.status != "pending":
         raise InvalidStateTransition(
             entity_type="AuthorizationRequest",
             entity_id=request_id,
             from_status=record.status,
             to_status=status,
+        )
+
+    # P100-B167: 过期硬门禁 — expires_at 已过的请求不可批准/拒绝，即使
+    # 30s 的 _auth_expiry_reaper 尚未把 status 从 pending 翻成 expired。
+    # 时区归一：SQLite 返回 naive UTC datetime（B137），PostgreSQL 返回 aware。
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
+        raise ConflictError(
+            code="AUTHORIZATION_REQUEST_EXPIRED",
+            message=(
+                f"Authorization request {request_id} has expired and can no "
+                f"longer be approved or denied"
+            ),
+            details={
+                "request_id": request_id,
+                "expires_at": expires_at.isoformat(),
+            },
         )
 
     # B44 PFL-147: Defensive guard — verify responder has a Worker row
@@ -304,7 +327,6 @@ async def respond_to_request(
     if responder_worker is None:
         raise NotFoundError("Worker", responder_worker_id)
 
-    now = datetime.now(timezone.utc)
     record.status = status
     record.responded_by_worker_id = responder_worker_id
     record.responded_at = now
