@@ -1,6 +1,6 @@
 """WebSocket endpoint — real-time event channel.
 
-Endpoint:  /v1/ws?token=<jwt_or_apikey>
+Endpoint:  /v1/ws (auth: ?token=<jwt_or_apikey> query param, or access_token httpOnly cookie)
 Protocol:  JSON messages over WebSocket (see protocol.md §2.2 and §10)
 
 Client → Server messages:
@@ -147,16 +147,33 @@ async def _heartbeat_sender(client: WSClient, stop_event: asyncio.Event) -> None
 @router.websocket("/ws")
 async def websocket_endpoint(
     ws: WebSocket,
-    token: str = Query(...),
+    token: str | None = Query(None),
 ) -> None:
     """Upgrade to WebSocket and handle the event stream.
 
-    Query parameters:
-        token: JWT (member) or API Key (worker) for authentication.
+    Authentication:
+        token (query, optional): JWT (member) or API Key (worker).
+        access_token (cookie): browser clients authenticate via the httpOnly
+        ``access_token`` cookie (P100-B58), sent automatically on the WS
+        handshake when same-site — no ``?token=`` query param.
+
+    P100-B171: browser clients no longer pass ``?token=``; the cookie is the
+    primary auth channel (symmetric with ``dependencies.get_current_actor``).
+    The query param is retained for Workers using ``?token=sk-syn-…`` API keys.
     """
+    # P100-B171: cookie fallback — browser clients authenticate via the httpOnly
+    # access_token cookie. Query param still honored first (Worker API keys).
+    if not token:
+        token = ws.cookies.get(settings.access_token_cookie_name)
+
     # Verify token BEFORE accepting the connection.
     # We validate first, then accept/close — this avoids Starlette
     # returning an opaque HTTP 403 on failed auth.
+    if not token:
+        await ws.accept()
+        await ws.close(code=4001, reason="Missing token")
+        return
+
     actor = await _verify_ws_token(token)
     if actor is None:
         await ws.accept()

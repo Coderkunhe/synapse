@@ -84,7 +84,11 @@ export function useWebSocket(
 
     setStatus('connecting')
 
-    const url = `${WS_BASE}?token=${encodeURIComponent(token)}`
+    // P100-B171: browser clients authenticate via the httpOnly access_token
+    // cookie (P100-B58), sent automatically on the WS handshake — no
+    // ?token= query param (avoids token-in-URL logging). The `token` arg is
+    // the "cookie" sentinel from AuthContext, used only as an auth gate here.
+    const url = WS_BASE
     const ws = new WebSocket(url)
     wsRef.current = ws
 
