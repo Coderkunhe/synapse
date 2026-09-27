@@ -35,15 +35,21 @@ from src.services.provider_config_service import get_provider_heartbeat_timeout
 from src.task_state_machine import apply_transition
 
 
-async def owner_worker_alive(db: AsyncSession, task: Task) -> bool:
-    """判断 IN_PROGRESS 任务的 owner worker 是否仍存活（P16-B7 PFL-262）。
+async def owner_is_alive(db: AsyncSession, task: Task) -> bool:
+    """判断 IN_PROGRESS 任务的 owner 是否仍存活（P16-B7 PFL-262 + P17-B2 PFL-245）。
 
-    回收（reassign）应以「worker 是否真的失联」为准，不应以「task 是否有进度」
-    为准（PFL-245 候选③）。headless worker 在长任务 / 模型调用卡死期间，driver
-    的 keepalive 心跳会持续刷新 ``last_heartbeat_at``，本函数据此区分「活着但慢」
-    与「真僵尸」。仅 worker-owned 任务走此判定；非 worker owner（human/team）或
-    owner 缺失 → 视为可回收（沿用旧的纯时间戳行为）。
+    回收（reassign / lease release）应以「owner 是否真的失联」为准，不应以
+    「task 是否有进度」为准（PFL-245 候选③）。
+
+    - **worker owner**：headless worker 在长任务 / 模型调用卡死期间，driver 的
+      keepalive 心跳会持续刷新 ``last_heartbeat_at``，本函数据此区分「活着但慢」
+      与「真僵尸」。
+    - **human/member owner**：没有心跳 / 租约续期机制，「无进度」不代表「失联」，
+      恒视为存活 → lease/stale 回收不适用于人类认领者（P17-B2 PFL-245 免死）。
+    - owner 缺失或非 worker → 视为可回收（沿用旧的纯时间戳行为）。
     """
+    if task.owner_type in (OwnerType.HUMAN, OwnerType.MEMBER):
+        return True
     if task.owner_type != OwnerType.WORKER or not task.owner_id:
         return False
     worker = await db.get(Worker, task.owner_id)
@@ -153,10 +159,11 @@ async def detect_stale_tasks(
                 task.status == TaskStatus.IN_PROGRESS
                 and stale_minutes >= reassign_threshold_minutes
             ):
-                if await owner_worker_alive(db, task):
-                    # P16-B7 (PFL-262): owner worker 心跳仍新鲜 → 活着但在干长活
-                    #（模型调用卡死在 driver 超时内 / 大任务），不是僵尸。跳过，既不
-                    # 回收也不记 stale 事件 —— 回收/僵尸判定应以「worker 是否失联」
+                if await owner_is_alive(db, task):
+                    # P16-B7 (PFL-262) + P17-B2 (PFL-245): owner 仍存活（worker
+                    # 心跳新鲜 / human owner 免死）→ 活着但在干长活（模型调用卡死
+                    # 在 driver 超时内 / 大任务 / 人类在写），不是僵尸。跳过，既不
+                    # 回收也不记 stale 事件 —— 回收/僵尸判定应以「owner 是否失联」
                     # 为准，不以「task 是否有进度」为准（PFL-245 候选③）。
                     continue
                 # 回收：unclaim + 归还到 ready 池

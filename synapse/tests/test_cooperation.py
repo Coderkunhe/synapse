@@ -17,7 +17,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.constants import TaskStatus, WorkerRuntimeStatus
+from src.constants import ActorType, TaskStatus, WorkerRuntimeStatus
 from src.exceptions import ConflictError, NotFoundError
 from src.models.worker import Worker
 from src.models.batch import Batch
@@ -465,6 +465,38 @@ class TestLeaseExpiry:
 
         result = await release_expired_leases(db)
         assert result["released_count"] == 1
+
+    async def test_expired_lease_human_owner_not_released(self, db: AsyncSession, seeded: dict):
+        """P17-B2 (PFL-245): 租约过期但 owner 是 human → 免死，不释放。
+
+        人类认领者没有心跳/续期机制，lease 过期不应把活人误判僵尸（PFL-245
+        根因：claim 写 600s lease 但 human 永不续期 → 原实现 10 分钟后被踢）。
+        """
+        task = await _create_ready_task(db, seeded)
+        claimed = await claim_task(
+            db, task.id, worker_id=seeded["member_id"],
+            worker_team_id=seeded["team_id"], expected_version=task.version_no,
+            actor_type=ActorType.HUMAN,
+        )
+        await db.flush()
+        assert claimed.owner_type == "human"
+
+        # 手动使租约过期
+        claimed.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        await db.flush()
+
+        result = await release_expired_leases(db)
+        await db.flush()
+
+        assert task.id not in result["released_task_ids"]
+
+        from sqlalchemy import select as sa_select
+        stmt = sa_select(Task).where(Task.id == task.id)
+        released = (await db.execute(stmt)).scalar_one()
+        assert released.status == "in_progress"
+        assert released.owner_type == "human"
+        assert released.owner_id == seeded["member_id"]
+        assert released.lease_expires_at is not None  # 免死不释放 → lease 字段原样保留
 
     async def test_start_task_clears_lease(self, db: AsyncSession, seeded: dict):
         """PFL-267: Worker 真正开工即清 lease — lease 语义收敛为 claim→start 窗口。"""

@@ -155,6 +155,48 @@ class TestStaleTaskDetector:
             await db.rollback()
 
     @pytest.mark.asyncio
+    async def test_stale_task_not_reassigned_when_owner_human(self):
+        """P17-B2 (PFL-245): IN_PROGRESS 任务 stale 但 owner 是 human → 不回收。
+
+        人类认领者没有心跳/续期机制，「无进度」不代表「失联」→ lease/stale
+        回收不适用（免死）。不回收也不记 stale 事件。
+        """
+        async with async_session_factory() as db:
+            team_id = generate_id("team")
+            project_id = generate_id("project")
+            db.add(Team(id=team_id, name="Test", slug="test-stale-human"))
+            db.add(Project(id=project_id, team_id=team_id, name="Test Project", slug="test-proj-human"))
+            await db.flush()
+
+            stale_task = Task(
+                id="tsk_human_001",
+                project_id=project_id,
+                title="Human Owned Task",
+                description="Owner is a human, no heartbeat to check",
+                status=TaskStatus.IN_PROGRESS,
+                owner_type="human",
+                owner_id="human_001",
+            )
+            stale_task.claimed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            stale_task.updated_at = datetime.now(timezone.utc) - timedelta(hours=2)
+            db.add(stale_task)
+            await db.flush()
+
+            result = await detect_stale_tasks(
+                db, threshold_minutes=60, reassign_threshold_minutes=15,
+            )
+            assert "tsk_human_001" not in result["reassigned_task_ids"]
+            assert "tsk_human_001" not in result["stale_task_ids"]
+
+            await db.flush()
+            await db.refresh(stale_task)
+            assert stale_task.status == TaskStatus.IN_PROGRESS
+            assert stale_task.owner_type == "human"
+            assert stale_task.owner_id == "human_001"
+
+            await db.rollback()
+
+    @pytest.mark.asyncio
     async def test_stale_task_reassigned_when_owner_worker_dead(self):
         """PFL-262: IN_PROGRESS 任务 stale 且 owner worker 心跳过期 → 回收。
 
