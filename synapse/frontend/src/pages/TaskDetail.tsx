@@ -26,6 +26,10 @@ export default function TaskDetail() {
   const [summary, setSummary] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // ── Output access evidence (PFL-270) ─────────────────
+  const [outputAccessType, setOutputAccessType] = useState('inline')
+  const [outputAccessValue, setOutputAccessValue] = useState('')
+
   // ── Verification state ─────────────────────────────────
   const [verifications, setVerifications] = useState<VerificationResponse[]>([])
   const [verifyError, setVerifyError] = useState<string | null>(null)
@@ -151,7 +155,16 @@ export default function TaskDetail() {
     try {
       const updated = await submitTask(
         taskId,
-        { summary: summary.trim(), expected_version: task.version_no },
+        {
+          summary: summary.trim(),
+          evidence: {
+            output_access: {
+              type: outputAccessType,
+              value: outputAccessValue.trim() || summary.trim(),
+            },
+          },
+          expected_version: task.version_no,
+        },
         token,
       )
       setTask(updated)
@@ -392,6 +405,32 @@ export default function TaskDetail() {
               onChange={e => setSummary(e.target.value)}
               rows={3}
             />
+            {/* PFL-270: 采集 output_access 证据，避免后端 409 OUTPUT_ACCESS_REQUIRED */}
+            <div className={styles.editRow}>
+              <div className={styles.editField}>
+                <label htmlFor="task-submit-output-type">{t('taskDetail.outputAccessType')}</label>
+                <select
+                  id="task-submit-output-type"
+                  value={outputAccessType}
+                  onChange={e => setOutputAccessType(e.target.value)}
+                >
+                  <option value="git_branch">git_branch</option>
+                  <option value="file_url">file_url</option>
+                  <option value="web_link">web_link</option>
+                  <option value="inline">inline</option>
+                </select>
+              </div>
+              <div className={styles.editField}>
+                <label htmlFor="task-submit-output-value">{t('taskDetail.outputAccessValue')}</label>
+                <input
+                  id="task-submit-output-value"
+                  type="text"
+                  value={outputAccessValue}
+                  onChange={e => setOutputAccessValue(e.target.value)}
+                  placeholder={t('taskDetail.outputAccessValuePlaceholder')}
+                />
+              </div>
+            </div>
             <button
               className={styles.btnPrimary}
               onClick={handleSubmit}

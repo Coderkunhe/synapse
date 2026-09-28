@@ -616,6 +616,7 @@ P16-B13 ✅ 残留机制缺陷扫面（侦察批 · 0 src code）
 | P17-B1 | 战略定性（锚）— roadmap/PRD 落「能力层告一段落 · 主攻协作层」· 登记 P17 轨道 | ✅ |
 | P17-B2 | 还 PFL-245（lease 对 human owner 免死）— 协作第一增量前置 | ✅ |
 | P17-B3 | 人认领/读规范/同步 最小闭环（P7-D2 最小落地） | ✅ |
+| P17-B4 | 人机闭环狗粮验证（真人 claim→读规范→同步→submit · 6/6 🟢）· 暴露+修复 2 gap（PFL-269 event actor_type 遗留值 · PFL-270 前端 submit 缺 evidence 采集） | ✅ |
 | P100-B169 | 资产切分（继承协作层地基 7 项 / 封存能力层 6 项）+ PFL-241/242 封存不追 + check-batch-numbers 防呆补漏 | ✅ |
 
 ## P100 治理批
