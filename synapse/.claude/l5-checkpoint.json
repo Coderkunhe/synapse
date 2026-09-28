@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B171→B172 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 WS 鉴权线两批递进叙事一致（B171 cookie 根修 → B172 onclose 4001 失败退登录）· 🎭 B171 触 src+frontend+test 1017 tests 零回归 · B172 前端-only tsc 0 新增 · counter 2→0 三源对齐",
+  "lastL5Batch": "P100-B173→P17-B4 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机闭环叙事一致（B173 清陈旧提示 → P17-B4 真人 claim→读规范→同步→submit 6/6 🟢 · 暴露+修复 PFL-269/270）· 🎭 P17-B4 触 frontend+i18n tsc 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "lastL5Timestamp": "2026-09-28",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B171→B172 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 WS 鉴权线两批递进叙事一致（B171 cookie 根修 → B172 onclose 4001 失败退登录）· 🎭 B171 触 src+frontend+test 1017 tests 零回归 · B172 前端-only tsc 0 新增 · counter 2→0 三源对齐",
+  "lastL5Evidence": "P100-B173→P17-B4 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机闭环叙事一致（B173 清陈旧提示 → P17-B4 真人 claim→读规范→同步→submit 6/6 🟢 · 暴露+修复 PFL-269/270）· 🎭 P17-B4 触 frontend+i18n tsc 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
