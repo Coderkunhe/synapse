@@ -37,20 +37,6 @@
   max-width: 360px;
 }
 
-.hint {
-  margin-top: var(--gm-space-4, 16px);
-  font-size: 12px !important;
-  font-family: var(--gm-font-mono, monospace);
-}
-
-.hint code {
-  display: inline-block;
-  background: var(--gm-surface, #141820);
-  padding: 2px 6px;
-  border-radius: var(--gm-radius-sm, 4px);
-  margin-top: 4px;
-}
-
 /* ── Grid ────────────────────────────────────────────────── */
 
 .grid {

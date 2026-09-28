@@ -134,23 +134,6 @@
   max-width: 500px;
 }
 
-.hint {
-  background: var(--gm-surface);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  padding: var(--gm-space-4);
-  margin-top: var(--gm-space-4);
-  text-align: left;
-}
-
-.hint code {
-  display: block;
-  font-family: var(--gm-font-mono);
-  font-size: 12px;
-  color: var(--gm-primary);
-  margin: var(--gm-space-1) 0;
-}
-
 .loading {
   color: var(--gm-text-secondary);
   font-size: 14px;

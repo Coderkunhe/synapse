@@ -58,13 +58,7 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <EmptyState icon={Lock} title={t('auth.connectToSynapse')} description={error}>
-        <p className={styles.hint}>
-          {t('dashboard.authHint')}<br />
-          <code>localStorage.setItem('synapse_token', '&lt;your-jwt&gt;')</code><br />
-          <code>localStorage.setItem('synapse_team_id', '&lt;team-id&gt;')</code>
-        </p>
-      </EmptyState>
+      <EmptyState icon={Lock} title={t('auth.connectToSynapse')} description={error} />
     )
   }
 
