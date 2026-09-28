@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P100 违纪回顾完成 — 无新增违纪（30 项）· V-008 第3次复发 🔴（Batch 子编号 · 索引同步 2→3）· counter 复位 6→0",
-  "lastReviewTimestamp": "2026-09-27",
+  "lastReviewBatch": "P100-B173 后违纪回顾 — V-008 关闭 🔴→🟢（P100-B169 防呆落地 · check-batch-numbers 扫 staged 文档 + 接 pre-commit · B170~B173 无复发）· 30/30 🟢 · 0 新增 · counter 复位 5→0",
+  "lastReviewTimestamp": "2026-09-28",
   "totalViolations": 30,
-  "recurringCount": 1,
+  "recurringCount": 0,
   "unguardedCount": 3,
-  "batchesSinceLastReview": 4,
+  "batchesSinceLastReview": 0,
   "notes": "违纪回顾完成，计数器复位"
 }
