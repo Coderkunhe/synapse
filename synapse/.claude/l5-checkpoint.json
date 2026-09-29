@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B4→P17-B5 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机协作叙事一致（B4 人机闭环狗粮 · B5 项目态势视图 · 人侧上下文卸载最小版 · 0 src 后端 · 7 frontend）· 🎭 tsc 0 新增 4 预存 · oxlint 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
+  "lastL5Batch": "P17-B5→P17-B6 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机协作叙事一致（B6 态势视图 WS 实时化 = 人侧上下文卸载从静态快照变实时 · B5 完整 DAG + 事件流）· 🎭 tsc 0 新增 4 预存 · oxlint 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "lastL5Timestamp": "2026-09-29",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B4→P17-B5 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机协作叙事一致（B4 人机闭环狗粮 · B5 项目态势视图 · 人侧上下文卸载最小版 · 0 src 后端 · 7 frontend）· 🎭 tsc 0 新增 4 预存 · oxlint 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
+  "lastL5Evidence": "P17-B5→P17-B6 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 人机协作叙事一致（B6 态势视图 WS 实时化 = 人侧上下文卸载从静态快照变实时 · B5 完整 DAG + 事件流）· 🎭 tsc 0 新增 4 预存 · oxlint 0 新增 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
