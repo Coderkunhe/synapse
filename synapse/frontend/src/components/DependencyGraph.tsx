@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { fetchTask } from '../api/client'
-import type { TaskSummary } from '../api/client'
+import { fetchProjectDependencyGraph } from '../api/client'
+import type { ProjectDependencyGraph } from '../api/client'
 import { STATUS_COLORS, STATUS_LABELS } from './statusColors'
 import styles from './DependencyGraph.module.css'
 
@@ -23,6 +23,7 @@ interface DepEdge {
 }
 
 interface Props {
+  projectId: string
   taskId: string
   token: string
   currentTask: {
@@ -50,105 +51,77 @@ function truncate(text: string, max: number): string {
 // ── Layout engine ──────────────────────────────────────────
 
 /**
- * BFS from the current task outward through depends_on chains.
- * Returns nodes arranged in layers (layer 0 = current task, layer 1 = direct deps, etc.)
- * and edges connecting them.
+ * Build the upstream dependency closure for a single task from the project-wide
+ * dependency graph (already fetched once by the caller). Walks `depends_on`
+ * edges backward (dep → dependent) via local BFS — no per-node network calls.
  *
- * Max depth: 3 layers to avoid infinite recursion and API spam.
+ * Returns nodes arranged in layers (layer 0 = current task, layer 1 = direct deps, etc.)
+ * and edges connecting them. Max depth: 3 layers, matching the previous behavior.
  */
-async function buildGraph(
+function buildGraph(
+  graph: ProjectDependencyGraph,
   taskId: string,
-  token: string,
   dependsOn: Array<{ task_id: string; type?: string }> | null,
-): Promise<{ nodes: DepNode[]; edges: DepEdge[] }> {
+): { nodes: DepNode[]; edges: DepEdge[] } {
   const nodeMap = new Map<string, DepNode>()
   const edges: DepEdge[] = []
   const MAX_DEPTH = 3
 
-  // Layer 0: current task (status already known from props)
-  // We'll add it after building deeper layers so we know totalInLayer per layer
+  // id → { title, status } from the project graph
+  const graphNodeById = new Map(graph.nodes.map(n => [n.id, n]))
 
-  // BFS queue: [taskId, layer, parentId?]
-  // Start with direct deps at layer 1
-  const queue: Array<{ tid: string; layer: number; parentId: string }> = []
+  // Reverse adjacency: a node's upstream deps = edges whose `to` is that node.
+  const upstream = new Map<string, string[]>()
+  for (const e of graph.edges) {
+    const list = upstream.get(e.to) || []
+    list.push(e.from)
+    upstream.set(e.to, list)
+  }
+
+  // BFS queue: [taskId, layer]. Start with direct deps at layer 1.
+  const queue: Array<{ tid: string; layer: number }> = []
   const visited = new Set<string>([taskId])
 
+  // Layer 1 seeds come from currentTask.depends_on (preserves the [Missing]
+  // placeholder for a dep that no longer exists in the project graph).
   if (dependsOn) {
     for (const d of dependsOn) {
       if (!visited.has(d.task_id)) {
         visited.add(d.task_id)
-        queue.push({ tid: d.task_id, layer: 1, parentId: taskId })
+        queue.push({ tid: d.task_id, layer: 1 })
         edges.push({ from: d.task_id, to: taskId })
       }
     }
   }
 
-  // BFS
+  // BFS — resolve node data from the graph (placeholder if absent), expand
+  // deeper layers from the graph's reverse adjacency.
   while (queue.length > 0) {
     const { tid, layer } = queue.shift()!
     if (layer > MAX_DEPTH) continue
 
-    // Fetch task detail to get status + its own depends_on
-    let taskSummary: TaskSummary | null = null
-    try {
-      const detail = await fetchTask(tid, token)
-      taskSummary = {
-        id: detail.id,
-        title: detail.title,
-        status: detail.status,
-        priority: detail.priority,
-        version_no: detail.version_no,
-        owner_type: detail.owner_type,
-        owner_id: detail.owner_id,
-        batch_id: detail.batch_id,
-        tags: detail.tags,
-        depends_on: detail.depends_on,
-        deadline_at: detail.deadline_at,
-        is_overdue: detail.is_overdue,
-        completed_at: detail.completed_at,
-        created_at: detail.created_at,
-      }
-    } catch {
-      // Task not found — create a placeholder node
-      taskSummary = {
-        id: tid,
-        title: `[Missing: ${tid.slice(0, 12)}…]`,
-        status: 'cancelled',
-        priority: 'p3',
-        version_no: 0,
-        owner_type: null,
-        owner_id: null,
-        batch_id: null,
-        tags: null,
-        depends_on: null,
-        deadline_at: null,
-        is_overdue: false,
-        completed_at: null,
-        created_at: '',
-      }
-    }
-
-    // Register node
+    const g = graphNodeById.get(tid)
     if (!nodeMap.has(tid)) {
       nodeMap.set(tid, {
         id: tid,
-        title: taskSummary.title,
-        status: taskSummary.status,
-        priority: taskSummary.priority,
-        version_no: taskSummary.version_no,
+        title: g ? g.title : `[Missing: ${tid.slice(0, 12)}…]`,
+        status: g ? g.status : 'cancelled',
+        priority: 'p3',
+        version_no: 0,
         layer,
         index: 0,       // will be set after BFS
         totalInLayer: 0, // will be set after BFS
       })
     }
 
-    // Enqueue children if not at max depth
-    if (layer < MAX_DEPTH && taskSummary.depends_on) {
-      for (const d of taskSummary.depends_on) {
-        if (!visited.has(d.task_id)) {
-          visited.add(d.task_id)
-          queue.push({ tid: d.task_id, layer: layer + 1, parentId: tid })
-          edges.push({ from: d.task_id, to: tid })
+    // Enqueue children if not at max depth. A node absent from the graph
+    // (placeholder) has no deeper deps, mirroring the old `depends_on: null`.
+    if (layer < MAX_DEPTH && g) {
+      for (const depId of upstream.get(tid) || []) {
+        if (!visited.has(depId)) {
+          visited.add(depId)
+          queue.push({ tid: depId, layer: layer + 1 })
+          edges.push({ from: depId, to: tid })
         }
       }
     }
@@ -194,7 +167,7 @@ function nodeY(index: number, total: number, svgH: number): number {
 
 // ── Component ──────────────────────────────────────────────
 
-export default function DependencyGraph({ taskId, token, currentTask }: Props) {
+export default function DependencyGraph({ projectId, taskId, token, currentTask }: Props) {
   const [nodes, setNodes] = useState<DepNode[]>([])
   const [edges, setEdges] = useState<DepEdge[]>([])
   const [loading, setLoading] = useState(true)
@@ -206,7 +179,8 @@ export default function DependencyGraph({ taskId, token, currentTask }: Props) {
       setLoading(true)
       setError(null)
       try {
-        const result = await buildGraph(taskId, token, currentTask.depends_on)
+        const graph = await fetchProjectDependencyGraph(projectId, token)
+        const result = buildGraph(graph, taskId, currentTask.depends_on)
 
         // Add current task node (layer 0)
         const currentDepNode: DepNode = {
@@ -235,7 +209,7 @@ export default function DependencyGraph({ taskId, token, currentTask }: Props) {
     }
     load()
     return () => { cancelled = true }
-  }, [taskId, token, currentTask.depends_on, currentTask.id, currentTask.title, currentTask.status, currentTask.priority, currentTask.version_no])
+  }, [projectId, taskId, token, currentTask.depends_on, currentTask.id, currentTask.title, currentTask.status, currentTask.priority, currentTask.version_no])
 
   // ── Empty state ────────────────────────────────────────
   if (!loading && !error && nodes.length <= 1 && (!currentTask.depends_on || currentTask.depends_on.length === 0)) {

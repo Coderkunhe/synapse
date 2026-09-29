@@ -763,6 +763,7 @@ export default function TaskDetail() {
 
       {/* ── Dependency Graph ─────────────────────────────── */}
       <DependencyGraph
+        projectId={task.project_id}
         taskId={task.id}
         token={token!}
         currentTask={{
