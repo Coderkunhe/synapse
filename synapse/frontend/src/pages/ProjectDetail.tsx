@@ -402,6 +402,7 @@ export default function ProjectDetail() {
             key={tab}
             type="button"
             className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
+            data-testid={`tab-${tab}`}
             onClick={() => setActiveTab(tab)}
           >
             {t(`projectDetail.${tab}`)}

@@ -270,6 +270,7 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
           <span className={styles.count}>{t('overview.nodeCount', { count: dagNodes.length })}</span>
           <span
             className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
+            data-testid="live-dot"
             title={status}
           />
         </h3>
@@ -325,7 +326,7 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
                 const x = nodeX(node.layer)
                 const y = nodeY(node.index, node.totalInLayer, svgH)
                 return (
-                  <g key={node.id}>
+                  <g key={node.id} data-testid={`dag-node-${node.id}`} data-status={node.status}>
                     <rect
                       x={x}
                       y={y}
@@ -375,7 +376,7 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
         ) : (
           <div className={styles.eventList}>
             {events.map(evt => (
-              <div key={evt.id} className={styles.eventRow}>
+              <div key={evt.id} className={styles.eventRow} data-event-type={evt.event_type} data-target-id={evt.target_id}>
                 <span className={`${styles.eventBadge} ${eventBadgeClass(evt.event_type)}`}>
                   {evt.event_type}
                 </span>
