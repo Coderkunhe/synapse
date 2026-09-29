@@ -18,6 +18,7 @@ import {
 import ConfirmModal from '../components/ConfirmModal'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
+import ProjectOverview from '../components/ProjectOverview'
 import { formatDate } from '../utils/format'
 import styles from './ProjectDetail.module.css'
 
@@ -74,7 +75,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState<string | null>(null)
 
   // Tab
-  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions' | 'overview'>('info')
 
   // Info tab edit mode
   const [editing, setEditing] = useState(false)
@@ -396,7 +397,7 @@ export default function ProjectDetail() {
 
       {/* Tab bar */}
       <div className={styles.tabBar}>
-        {(['info', 'roles', 'conventions'] as const).map(tab => (
+        {(['info', 'roles', 'conventions', 'overview'] as const).map(tab => (
           <button
             key={tab}
             type="button"
@@ -763,6 +764,13 @@ export default function ProjectDetail() {
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Tab: Overview (态势) ──────────────────────────── */}
+      {activeTab === 'overview' && (
+        <div className={styles.tabContent}>
+          <ProjectOverview projectId={projectId!} teamId={project.team_id} />
         </div>
       )}
 

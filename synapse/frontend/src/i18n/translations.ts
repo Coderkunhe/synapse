@@ -242,6 +242,16 @@ const en: TranslationMap = {
     canDelete: 'can delete',
   },
 
+  // ── Project Overview (态势) ───────────────────────────────────────────
+  overview: {
+    dependencyGraph: 'Dependency Graph',
+    events: 'Activity',
+    nodeCount: '{count} nodes',
+    noTasks: 'No tasks in this project yet.',
+    noEvents: 'No activity yet.',
+    loadMore: 'Load more',
+  },
+
   // ── Project Detail ─────────────────────────────────────────────────────
   projectDetail: {
     heading: 'Project Detail',
@@ -250,6 +260,7 @@ const en: TranslationMap = {
     info: 'Info',
     roles: 'Roles',
     conventions: 'Conventions',
+    overview: 'Overview',
     addRole: 'Add Role',
     selectWorker: 'Select Worker…',
     selectRole: 'Select Role…',
@@ -1069,6 +1080,15 @@ const zh: TranslationMap = {
     canDelete: '可删除',
   },
 
+  overview: {
+    dependencyGraph: '依赖全景',
+    events: '事件流',
+    nodeCount: '{count} 个节点',
+    noTasks: '该项目暂无任务。',
+    noEvents: '暂无动态。',
+    loadMore: '加载更多',
+  },
+
   projectDetail: {
     heading: '项目详情',
     loading: '加载项目…',
@@ -1076,6 +1096,7 @@ const zh: TranslationMap = {
     info: '信息',
     roles: '角色',
     conventions: '约定',
+    overview: '态势',
     addRole: '分配角色',
     selectWorker: '选择 Worker…',
     selectRole: '选择角色…',

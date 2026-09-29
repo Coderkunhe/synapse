@@ -1,0 +1,111 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.count {
+  margin-left: 8px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.svgWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eventRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.06);
+  font-size: 0.85rem;
+}
+
+.eventBadge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.evtCreate { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+.evtSuccess { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.evtDanger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.evtWarning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.evtInfo { background: rgba(148, 163, 184, 0.15); color: #8892a6; }
+
+.eventMeta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventTime {
+  flex-shrink: 0;
+  opacity: 0.6;
+  font-size: 0.8rem;
+}
+
+.loadMore {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.loadMore:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.emptyText {
+  opacity: 0.6;
+  font-size: 0.9rem;
+}
+
+.loading {
+  opacity: 0.6;
+}
+
+.error {
+  color: var(--gm-danger, #ef4444);
+}

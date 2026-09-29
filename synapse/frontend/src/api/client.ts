@@ -927,6 +927,44 @@ export function fetchTeamEvents(teamId: string, token: string) {
   )
 }
 
+// ── Project Overview (态势) ─────────────────────────────────
+
+export interface ProjectDependencyNode {
+  id: string
+  title: string
+  status: string
+}
+
+export interface ProjectDependencyEdge {
+  from: string
+  to: string
+  type: string
+}
+
+export interface ProjectDependencyGraph {
+  nodes: ProjectDependencyNode[]
+  edges: ProjectDependencyEdge[]
+}
+
+export function fetchProjectDependencyGraph(projectId: string, token: string) {
+  return request<ProjectDependencyGraph>(
+    `/v1/projects/${projectId}/tasks/dependency-graph`,
+    { token },
+  )
+}
+
+export function fetchProjectEvents(projectId: string, token: string, opts?: {
+  cursor?: string
+  limit?: number
+}) {
+  const params = new URLSearchParams({ limit: String(opts?.limit ?? 50) })
+  if (opts?.cursor) params.set('cursor', opts.cursor)
+  return request<{ items: EventSummary[]; next_cursor: string | null; total: number | null }>(
+    `/v1/projects/${projectId}/events?${params}`,
+    { token },
+  )
+}
+
 // ── Compliance Scans ───────────────────────────────────────
 
 export interface ScanVerdict {
