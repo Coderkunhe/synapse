@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   fetchProjectDependencyGraph,
   fetchProjectEvents,
@@ -9,6 +9,7 @@ import type {
   ProjectDependencyGraph,
   WorkerSummary,
 } from '../api/client'
+import { useWebSocket, type WSEvent } from '../api/ws'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { formatDate } from '../utils/format'
@@ -121,10 +122,38 @@ function eventBadgeClass(type: string): string {
   return styles.evtInfo
 }
 
+/** Task lifecycle topics the server auto-subscribes humans to (ws.py task_topics). */
+const TASK_EVENT_TYPES = [
+  'task.created',
+  'task.readied',
+  'task.assigned',
+  'task.claimed',
+  'task.submitted',
+  'task.completed',
+  'task.rejected',
+  'task.cancelled',
+  'task.paused',
+  'task.resumed',
+]
+
+/** WSEvent → EventSummary (drop the extra `team_id` WS carries). */
+function toEventSummary(evt: WSEvent): EventSummary {
+  return {
+    id: evt.id,
+    event_type: evt.event_type,
+    actor_type: evt.actor_type,
+    actor_id: evt.actor_id,
+    target_type: evt.target_type,
+    target_id: evt.target_id,
+    payload: evt.payload,
+    created_at: evt.created_at,
+  }
+}
+
 // ── Component ──────────────────────────────────────────────
 
 export default function ProjectOverview({ projectId, teamId }: Props) {
-  const { token } = useAuth()
+  const { token, logout } = useAuth()
   const { t, lang } = useI18n()
   const [graph, setGraph] = useState<ProjectDependencyGraph | null>(null)
   const [events, setEvents] = useState<EventSummary[]>([])
@@ -158,6 +187,50 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
     workers.forEach(w => map.set(w.id, w.name))
     return map
   }, [workers])
+
+  // ── P17-B6: WebSocket real-time updates ─────────────────────────────
+  const { lastEvent, status } = useWebSocket(token, TASK_EVENT_TYPES, logout)
+  const dagNodeIdsRef = useRef<Set<string>>(new Set())
+  const dagRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Keep dagNodeIdsRef current with the latest graph, without re-triggering the
+  // WS effect below on every graph change (which would loop refetch→setGraph).
+  useEffect(() => {
+    dagNodeIdsRef.current = new Set((graph?.nodes ?? []).map(n => n.id))
+  }, [graph])
+
+  useEffect(() => {
+    if (!lastEvent) return
+    if (!TASK_EVENT_TYPES.includes(lastEvent.event_type)) return
+
+    // Event stream: prepend if the event targets a task in this project's DAG
+    // (WS payload carries no project_id → isolate by target_id ∈ dagNodeIds).
+    if (lastEvent.target_type === 'task' && dagNodeIdsRef.current.has(lastEvent.target_id)) {
+      setEvents(prev =>
+        prev.some(e => e.id === lastEvent.id)
+          ? prev
+          : [toEventSummary(lastEvent), ...prev],
+      )
+    }
+
+    // DAG: debounced refetch on any task.* event. task.created's id isn't in
+    // dagNodeIds yet, but the endpoint is project-scoped and self-corrects;
+    // 300ms aggregates a burst (claim→submit→complete) into a single fetch.
+    if (dagRefreshRef.current) clearTimeout(dagRefreshRef.current)
+    dagRefreshRef.current = setTimeout(() => {
+      if (!token) return
+      fetchProjectDependencyGraph(projectId, token)
+        .then(g => setGraph(g))
+        .catch(() => { /* keep last known graph — non-critical refresh */ })
+    }, 300)
+  }, [lastEvent, projectId, token])
+
+  // Clear the pending DAG refresh on unmount
+  useEffect(() => {
+    return () => {
+      if (dagRefreshRef.current) clearTimeout(dagRefreshRef.current)
+    }
+  }, [])
 
   const loadMore = () => {
     if (!token || !nextCursor || loadingMore) return
@@ -195,6 +268,10 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
         <h3 className={styles.sectionTitle}>
           {t('overview.dependencyGraph')}
           <span className={styles.count}>{t('overview.nodeCount', { count: dagNodes.length })}</span>
+          <span
+            className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
+            title={status}
+          />
         </h3>
         {dagNodes.length === 0 ? (
           <p className={styles.emptyText}>{t('overview.noTasks')}</p>
