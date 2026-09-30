@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
-import { fetchTask, fetchTeamEvents, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
+import { fetchTask, fetchTaskEvents, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
 import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -59,7 +59,7 @@ export default function TaskDetail() {
   const [editError, setEditError] = useState<string | null>(null)
   const [dismissedGuidance, setDismissedGuidance] = useState(false)
 
-  const { token, teamId, role } = useAuth()
+  const { token, role } = useAuth()
 
   // P12-B18: project-level role for permission checks (not team-level role from AuthContext)
   const [projectRole, setProjectRole] = useState<string | null>(null)
@@ -99,11 +99,11 @@ export default function TaskDetail() {
     }
     Promise.all([
       fetchTask(taskId, token),
-      teamId ? fetchTeamEvents(teamId, token) : Promise.resolve({ items: [] }),
+      fetchTaskEvents(taskId, token),
     ])
       .then(([tk, e]) => {
         setTask(tk)
-        setEvents(e.items.filter(evt => evt.target_id === taskId).slice(0, 30))
+        setEvents(e.items)
         setLoading(false)
         // Fetch verifications if task is in verification
         if (tk.status === 'in_verification') {
@@ -131,7 +131,7 @@ export default function TaskDetail() {
         }
       })
       .catch(err => { setError(err.message); setLoading(false) })
-  }, [taskId, token, teamId, t])
+  }, [taskId, token, t])
 
   const handleClaim = async () => {
     if (!taskId || !token || !task) return

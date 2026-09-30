@@ -93,3 +93,46 @@ async def get_project_events(
         next_cursor=next_cursor,
         total=total,
     )
+
+
+@router.get(
+    "/tasks/{task_id}/events",
+    response_model=CursorPage[EventResponse],
+)
+async def get_task_events(
+    task_id: str,
+    cursor: str | None = Query(None, max_length=40),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """列出单个任务的事件流（PFL-272 · 实体级过滤下推 SQL WHERE）。
+
+    区别于 team 级聚合端点：按 target_id 精确过滤，避免本 task 事件被
+    team 内其他 task 事件挤掉。权限对齐 tasks.py 的 get_task（跨 team 返回 404 不泄露存在性）。
+    """
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise NotFoundError("task", task_id)
+
+    project = await get_project_or_404(db, task.project_id)
+    if project.team_id != actor.team_id:
+        raise NotFoundError("task", task_id)
+
+    items, next_cursor = await event_store.query_project_events(
+        db,
+        team_id=project.team_id,
+        task_ids=[task_id],
+        cursor=cursor,
+        limit=limit,
+    )
+    count_stmt = select(func.count(Event.id)).where(
+        Event.team_id == project.team_id,
+        Event.target_id == task_id,
+    )
+    total = (await db.execute(count_stmt)).scalar()
+    return CursorPage(
+        items=[EventResponse.model_validate(event_to_response(e)) for e in items],
+        next_cursor=next_cursor,
+        total=total,
+    )

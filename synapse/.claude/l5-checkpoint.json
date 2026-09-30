@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B6→P17-B7 · P100-B173→P100-B174 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 态势视图 WS 实时化 + DependencyGraph N+1 叙事一致 · 🎭 0 src 后端 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "lastL5Timestamp": "2026-09-30",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B6→P17-B7 · P100-B173→P100-B174 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 态势视图 WS 实时化 + DependencyGraph N+1 叙事一致 · 🎭 0 src 后端 · 1017 tests 基线不变 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

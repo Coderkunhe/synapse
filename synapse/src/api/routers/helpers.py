@@ -6,10 +6,28 @@ import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.constants import ActorType
 from src.exceptions import NotFoundError
 from src.models.event import Event
 from src.models.project import Project
 from src.models.team import Team
+
+
+# PFL-269: 历史改名迁移（B40 agent→worker · B10 member→human）漏迁 event.actor_type
+# 字符串值，遗留脏值会拖垮整个事件端点。读取侧做遗留值映射，未知值 fallback system。
+_LEGACY_ACTOR_TYPE_MAP = {"agent": "worker", "member": "human"}
+
+
+def _coerce_actor_type(value: str | None) -> str:
+    """将 Event.actor_type 归一为 ActorType 枚举值，容错遗留/未知脏值。"""
+    if value is None:
+        return ActorType.SYSTEM.value
+    normalized = str(value).strip().lower()
+    normalized = _LEGACY_ACTOR_TYPE_MAP.get(normalized, normalized)
+    try:
+        return ActorType(normalized).value
+    except ValueError:
+        return ActorType.SYSTEM.value  # 未知值 fallback
 
 
 def event_to_response(event: Event) -> dict:
@@ -18,7 +36,7 @@ def event_to_response(event: Event) -> dict:
         "id": event.id,
         "team_id": event.team_id,
         "event_type": event.event_type,
-        "actor_type": event.actor_type,
+        "actor_type": _coerce_actor_type(event.actor_type),
         "actor_id": event.actor_id,
         "target_type": event.target_type,
         "target_id": event.target_id,

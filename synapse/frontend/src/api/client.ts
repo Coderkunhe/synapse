@@ -927,6 +927,18 @@ export function fetchTeamEvents(teamId: string, token: string) {
   )
 }
 
+export function fetchTaskEvents(taskId: string, token: string, opts?: {
+  cursor?: string
+  limit?: number
+}) {
+  const params = new URLSearchParams({ limit: String(opts?.limit ?? 50) })
+  if (opts?.cursor) params.set('cursor', opts.cursor)
+  return request<{ items: EventSummary[]; next_cursor: string | null; total: number | null }>(
+    `/v1/tasks/${taskId}/events?${params}`,
+    { token },
+  )
+}
+
 // ── Project Overview (态势) ─────────────────────────────────
 
 export interface ProjectDependencyNode {
