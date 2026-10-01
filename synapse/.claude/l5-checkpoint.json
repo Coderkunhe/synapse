@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P100-B175→P100-B176 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 PFL-269 coerce + PFL-272 事件流修复叙事一致 · 🎭 2 src + 2 frontend · 1021 tests 零回归 · counter 2→0 三源对齐",
-  "lastL5Timestamp": "2026-09-30",
+  "lastL5Batch": "P17-B7→P17-B8 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 S-020 反馈协议 v2 叙事一致（mention 投递 + 协作消息面板）· 🎭 2 src + 4 frontend + 2 tests · 1023 tests 零回归 · counter 2→0 三源对齐",
+  "lastL5Timestamp": "2026-10-01",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P100-B175→P100-B176 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 PFL-269 coerce + PFL-272 事件流修复叙事一致 · 🎭 2 src + 2 frontend · 1021 tests 零回归 · counter 2→0 三源对齐",
+  "lastL5Evidence": "P17-B7→P17-B8 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily 已同步 · 📚 S-020 反馈协议 v2 叙事一致（mention 投递 + 协作消息面板）· 🎭 2 src + 4 frontend + 2 tests · 1023 tests 零回归 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
