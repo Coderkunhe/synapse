@@ -558,6 +558,44 @@
   word-break: break-word;
 }
 
+.messageTypeGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2, 8px);
+}
+
+.resolvedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gm-success, #4ade80);
+  background: rgba(74, 222, 128, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.resolveButton {
+  align-self: flex-end;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius-sm, 6px);
+  background: transparent;
+  color: var(--gm-text-secondary, #8892a6);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.resolveButton:hover {
+  border-color: var(--gm-success, #4ade80);
+  color: var(--gm-success, #4ade80);
+}
+
+.resolveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .composer {
   display: flex;
   gap: var(--gm-space-2, 8px);

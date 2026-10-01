@@ -985,6 +985,19 @@ export function createTaskMessage(
   )
 }
 
+export function resolveTaskMessage(
+  projectId: string,
+  taskId: string,
+  messageId: string,
+  isResolved: boolean,
+  token: string,
+) {
+  return request<ConversationMessage>(
+    `/v1/projects/${projectId}/tasks/${taskId}/messages/${messageId}`,
+    { method: 'PATCH', token, body: JSON.stringify({ is_resolved: isResolved }) },
+  )
+}
+
 // ── Project Overview (态势) ─────────────────────────────────
 
 export interface ProjectDependencyNode {

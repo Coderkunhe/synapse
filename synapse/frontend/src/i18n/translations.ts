@@ -516,6 +516,11 @@ const en: TranslationMap = {
     send: 'Send',
     sending: 'Sending…',
     failedToSendMessage: 'Failed to send message.',
+    resolve: 'Resolve',
+    reopen: 'Reopen',
+    resolved: 'Resolved',
+    resolving: 'Resolving…',
+    failedToResolveMessage: 'Failed to update message.',
     msgTypeLabel: 'Message type',
     msgType: {
       clarification: 'Clarification',
@@ -1362,6 +1367,11 @@ const zh: TranslationMap = {
     send: '发送',
     sending: '发送中…',
     failedToSendMessage: '发送消息失败。',
+    resolve: '标记已解决',
+    reopen: '重新打开',
+    resolved: '已解决',
+    resolving: '处理中…',
+    failedToResolveMessage: '更新消息失败。',
     msgTypeLabel: '消息类型',
     msgType: {
       clarification: '澄清请求',

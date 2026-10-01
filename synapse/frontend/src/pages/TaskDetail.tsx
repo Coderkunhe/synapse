@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
-import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
+import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, resolveTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
 import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse, ConversationMessage } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -16,7 +16,7 @@ import styles from './TaskDetail.module.css'
 const PRIORITIES = ['p0', 'p1', 'p2', 'p3']
 const EFFORTS = ['xs', 's', 'm', 'l', 'xl']
 // 模块级常量 — useWebSocket 用 topics.join(',') 做 stableTopics，内联字面量会触发重连循环
-const MESSAGE_EVENT_TYPES = ['conversation.message.created']
+const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.message.resolved']
 
 export default function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
@@ -51,6 +51,7 @@ export default function TaskDetail() {
   const [messageType, setMessageType] = useState('clarification')
   const [messageBody, setMessageBody] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [resolvingMessageId, setResolvingMessageId] = useState<string | null>(null)
   const [messageError, setMessageError] = useState<string | null>(null)
 
   // ── Edit state ─────────────────────────────────────────
@@ -163,11 +164,12 @@ export default function TaskDetail() {
   // 初始拉取
   useEffect(() => { loadMessages() }, [loadMessages])
 
-  // WS 事件触发刷新（新消息到达 → refetch 线程）
+  // WS 事件触发刷新（新消息到达 / 消息被解决 → refetch 线程）
   useEffect(() => {
     if (
       lastEvent &&
-      lastEvent.event_type === 'conversation.message.created' &&
+      (lastEvent.event_type === 'conversation.message.created' ||
+        lastEvent.event_type === 'conversation.message.resolved') &&
       lastEvent.payload.task_id === taskId
     ) {
       loadMessages()
@@ -191,6 +193,20 @@ export default function TaskDetail() {
       setMessageError(t('taskDetail.failedToSendMessage'))
     } finally {
       setSendingMessage(false)
+    }
+  }
+
+  const handleToggleResolve = async (msg: ConversationMessage) => {
+    if (!task?.project_id || !taskId || !token) return
+    setMessageError(null)
+    setResolvingMessageId(msg.id)
+    try {
+      await resolveTaskMessage(task.project_id, taskId, msg.id, !msg.is_resolved, token)
+      loadMessages()
+    } catch {
+      setMessageError(t('taskDetail.failedToResolveMessage'))
+    } finally {
+      setResolvingMessageId(null)
     }
   }
 
@@ -874,18 +890,33 @@ export default function TaskDetail() {
         {messages.length === 0 ? (
           <p className={styles.noData}>{t('taskDetail.noMessages')}</p>
         ) : (
-          <div className={styles.messageList}>
+          <div className={styles.messageList} data-testid="message-list">
             {messages.map(msg => (
-              <div key={msg.id} className={styles.messageItem}>
+              <div key={msg.id} className={styles.messageItem} data-testid="message-item" data-resolved={msg.is_resolved}>
                 <div className={styles.messageHeader}>
-                  <span className={styles.messageType}>
-                    {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
+                  <span className={styles.messageTypeGroup}>
+                    <span className={styles.messageType}>
+                      {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
+                    </span>
+                    {msg.is_resolved && <span className={styles.resolvedBadge}>{t('taskDetail.resolved')}</span>}
                   </span>
                   <span className={styles.messageMeta}>
                     {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
                   </span>
                 </div>
                 <span className={styles.messageText}>{msg.body}</span>
+                <button
+                  className={styles.resolveButton}
+                  data-testid="message-toggle-resolve"
+                  onClick={() => handleToggleResolve(msg)}
+                  disabled={resolvingMessageId === msg.id}
+                >
+                  {resolvingMessageId === msg.id
+                    ? t('taskDetail.resolving')
+                    : msg.is_resolved
+                      ? t('taskDetail.reopen')
+                      : t('taskDetail.resolve')}
+                </button>
               </div>
             ))}
           </div>
@@ -893,6 +924,7 @@ export default function TaskDetail() {
         <div className={styles.composer}>
           <select
             className={styles.messageTypeSelect}
+            data-testid="message-type-select"
             value={messageType}
             onChange={e => setMessageType(e.target.value)}
             aria-label={t('taskDetail.msgTypeLabel')}
@@ -904,6 +936,7 @@ export default function TaskDetail() {
           </select>
           <textarea
             className={styles.messageInput}
+            data-testid="message-input"
             value={messageBody}
             onChange={e => setMessageBody(e.target.value)}
             placeholder={t('taskDetail.composerPlaceholder')}
@@ -911,6 +944,7 @@ export default function TaskDetail() {
           />
           <button
             className={styles.sendButton}
+            data-testid="message-send"
             onClick={handleSendMessage}
             disabled={sendingMessage || !messageBody.trim()}
           >
