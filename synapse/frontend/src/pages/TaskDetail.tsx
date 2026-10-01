@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
 import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, resolveTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
@@ -52,7 +52,11 @@ export default function TaskDetail() {
   const [messageBody, setMessageBody] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [resolvingMessageId, setResolvingMessageId] = useState<string | null>(null)
+  const [replyToId, setReplyToId] = useState<string | null>(null)
   const [messageError, setMessageError] = useState<string | null>(null)
+
+  // 反查父消息（threading：reply 标识展示父 sender）
+  const messagesById = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages])
 
   // ── Edit state ─────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -186,8 +190,10 @@ export default function TaskDetail() {
         task_id: taskId,
         message_type: messageType,
         body: messageBody.trim(),
+        in_reply_to_id: replyToId ?? undefined,
       }, token)
       setMessageBody('')
+      setReplyToId(null)
       loadMessages()
     } catch {
       setMessageError(t('taskDetail.failedToSendMessage'))
@@ -208,6 +214,14 @@ export default function TaskDetail() {
     } finally {
       setResolvingMessageId(null)
     }
+  }
+
+  const handleReply = (msg: ConversationMessage) => {
+    setReplyToId(msg.id)
+  }
+
+  const handleCancelReply = () => {
+    setReplyToId(null)
   }
 
   const handleClaim = async () => {
@@ -891,34 +905,68 @@ export default function TaskDetail() {
           <p className={styles.noData}>{t('taskDetail.noMessages')}</p>
         ) : (
           <div className={styles.messageList} data-testid="message-list">
-            {messages.map(msg => (
-              <div key={msg.id} className={styles.messageItem} data-testid="message-item" data-resolved={msg.is_resolved}>
-                <div className={styles.messageHeader}>
-                  <span className={styles.messageTypeGroup}>
-                    <span className={styles.messageType}>
-                      {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
-                    </span>
-                    {msg.is_resolved && <span className={styles.resolvedBadge}>{t('taskDetail.resolved')}</span>}
-                  </span>
-                  <span className={styles.messageMeta}>
-                    {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
-                  </span>
-                </div>
-                <span className={styles.messageText}>{msg.body}</span>
-                <button
-                  className={styles.resolveButton}
-                  data-testid="message-toggle-resolve"
-                  onClick={() => handleToggleResolve(msg)}
-                  disabled={resolvingMessageId === msg.id}
+            {messages.map(msg => {
+              const parent = msg.in_reply_to_id ? messagesById.get(msg.in_reply_to_id) : undefined
+              return (
+                <div
+                  key={msg.id}
+                  className={msg.in_reply_to_id ? styles.messageItemReply : styles.messageItem}
+                  data-testid="message-item"
+                  data-resolved={msg.is_resolved}
+                  data-in-reply-to={msg.in_reply_to_id ?? ''}
                 >
-                  {resolvingMessageId === msg.id
-                    ? t('taskDetail.resolving')
-                    : msg.is_resolved
-                      ? t('taskDetail.reopen')
-                      : t('taskDetail.resolve')}
-                </button>
-              </div>
-            ))}
+                  {parent && (
+                    <span className={styles.replyIndicator}>
+                      ↩ {t('taskDetail.by')} {parent.sender_worker_id?.slice(0, 12)}
+                    </span>
+                  )}
+                  <div className={styles.messageHeader}>
+                    <span className={styles.messageTypeGroup}>
+                      <span className={styles.messageType}>
+                        {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
+                      </span>
+                      {msg.is_resolved && <span className={styles.resolvedBadge}>{t('taskDetail.resolved')}</span>}
+                    </span>
+                    <span className={styles.messageMeta}>
+                      {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
+                    </span>
+                  </div>
+                  <span className={styles.messageText}>{msg.body}</span>
+                  <div className={styles.messageActions}>
+                    <button
+                      className={styles.replyButton}
+                      data-testid="message-reply"
+                      onClick={() => handleReply(msg)}
+                    >
+                      {t('taskDetail.reply')}
+                    </button>
+                    <button
+                      className={styles.resolveButton}
+                      data-testid="message-toggle-resolve"
+                      onClick={() => handleToggleResolve(msg)}
+                      disabled={resolvingMessageId === msg.id}
+                    >
+                      {resolvingMessageId === msg.id
+                        ? t('taskDetail.resolving')
+                        : msg.is_resolved
+                          ? t('taskDetail.reopen')
+                          : t('taskDetail.resolve')}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {replyToId && (
+          <div className={styles.replyBanner} data-testid="message-reply-banner">
+            <span>
+              {t('taskDetail.replyingTo')}{' '}
+              {messagesById.get(replyToId)?.sender_worker_id?.slice(0, 12) ?? ''}
+            </span>
+            <button className={styles.replyBannerCancel} onClick={handleCancelReply}>
+              {t('taskDetail.cancelReply')}
+            </button>
           </div>
         )}
         <div className={styles.composer}>

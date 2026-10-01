@@ -947,6 +947,7 @@ export interface ConversationMessage {
   sender_worker_id: string
   message_type: string
   body: string
+  in_reply_to_id: string | null
   is_resolved: boolean
   resolved_at: string | null
   proposal_status: string | null

@@ -85,6 +85,40 @@ test('@mention 往返：composer 发含 @worker:<name> 的 body → 正常创建
   await context.close()
 })
 
+test('threading：回复 → data-in-reply-to 非空 + 回复标识渲染', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  const taskId = p.taskIds['MsgTask']
+  await page.goto(`/tasks/${taskId}`)
+
+  // 发父消息
+  const parentBody = 'threading parent message'
+  await page.getByTestId('message-input').fill(parentBody)
+  await page.getByTestId('message-send').click()
+  const parent = page.getByTestId('message-item').filter({ hasText: parentBody })
+  await expect(parent).toBeVisible({ timeout: 15_000 })
+
+  // 点回复 → banner 出现
+  await parent.getByTestId('message-reply').click()
+  await expect(page.getByTestId('message-reply-banner')).toBeVisible()
+
+  // 发回复
+  const replyBody = 'threading reply message'
+  await page.getByTestId('message-input').fill(replyBody)
+  await page.getByTestId('message-send').click()
+  const reply = page.getByTestId('message-item').filter({ hasText: replyBody })
+  await expect(reply).toBeVisible({ timeout: 15_000 })
+
+  // 断言回复带 in_reply_to_id（非空）→ threading 已接线
+  await expect(reply).toHaveAttribute('data-in-reply-to', /^.+$/)
+  // 回复标识（↩ by <sender>）渲染
+  await expect(reply.getByText(/↩/)).toBeVisible()
+
+  await context.close()
+})
+
 test.afterAll(async ({ request }) => {
   try {
     await loginAsHunter(request)

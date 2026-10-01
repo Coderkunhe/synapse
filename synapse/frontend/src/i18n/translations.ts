@@ -521,6 +521,9 @@ const en: TranslationMap = {
     resolved: 'Resolved',
     resolving: 'Resolving…',
     failedToResolveMessage: 'Failed to update message.',
+    reply: 'Reply',
+    replyingTo: 'Replying to',
+    cancelReply: 'Cancel',
     msgTypeLabel: 'Message type',
     msgType: {
       clarification: 'Clarification',
@@ -1372,6 +1375,9 @@ const zh: TranslationMap = {
     resolved: '已解决',
     resolving: '处理中…',
     failedToResolveMessage: '更新消息失败。',
+    reply: '回复',
+    replyingTo: '回复给',
+    cancelReply: '取消',
     msgTypeLabel: '消息类型',
     msgType: {
       clarification: '澄清请求',
