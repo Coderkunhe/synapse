@@ -73,16 +73,16 @@ async def _handle_message(client: WSClient, raw: str) -> None:
     try:
         msg: dict[str, Any] = json.loads(raw)
     except json.JSONDecodeError:
-        await ws_manager.broadcast_to_actor(
-            client.actor_id,
+        await ws_manager.send_to_client(
+            client,
             {"type": "error", "detail": "Invalid JSON"},
         )
         return
 
     # Rate limit check
-    if not ws_manager.check_rate_limit(client.actor_id):
-        await ws_manager.broadcast_to_actor(
-            client.actor_id,
+    if not ws_manager.check_rate_limit(client):
+        await ws_manager.send_to_client(
+            client,
             {"type": "error", "detail": "Rate limit exceeded"},
         )
         return
@@ -91,19 +91,19 @@ async def _handle_message(client: WSClient, raw: str) -> None:
 
     if msg_type == "subscribe":
         topics: list[str] = msg.get("topics", [])
-        await ws_manager.subscribe(client.actor_id, topics)
+        await ws_manager.subscribe(client, topics)
 
     elif msg_type == "unsubscribe":
         topics = msg.get("topics", [])
-        await ws_manager.unsubscribe(client.actor_id, topics)
+        await ws_manager.unsubscribe(client, topics)
 
     elif msg_type == "ping":
-        await ws_manager.update_pong(client.actor_id)
-        await ws_manager.broadcast_to_actor(client.actor_id, {"type": "pong"})
+        await ws_manager.update_pong(client)
+        await ws_manager.send_to_client(client, {"type": "pong"})
 
     else:
-        await ws_manager.broadcast_to_actor(
-            client.actor_id,
+        await ws_manager.send_to_client(
+            client,
             {"type": "error", "detail": f"Unknown message type: {msg_type}"},
         )
 
@@ -219,7 +219,7 @@ async def websocket_endpoint(
     ]
     if actor["actor_type"] == ActorType.WORKER:
         await ws_manager.subscribe(
-            client.actor_id,
+            client,
             [
                 EventType.AUTHORIZATION_REQUEST_CREATED,
                 EventType.AUTHORIZATION_REQUEST_RESPONDED,
@@ -232,7 +232,7 @@ async def websocket_endpoint(
         # P11-B21: Humans auto-subscribe to task topics for real-time VDD loop
         # P11-B22: + authorization_request.* for real-time Approvals page updates
         await ws_manager.subscribe(
-            client.actor_id,
+            client,
             [
                 *task_topics,
                 EventType.AUTHORIZATION_REQUEST_CREATED,
@@ -243,8 +243,8 @@ async def websocket_endpoint(
         )
 
     # Send welcome message
-    await ws_manager.broadcast_to_actor(
-        client.actor_id,
+    await ws_manager.send_to_client(
+        client,
         {
             "type": "connected",
             "actor_id": client.actor_id,
@@ -265,8 +265,8 @@ async def websocket_endpoint(
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=HEARTBEAT_INTERVAL + 5)
                 # P11-B23: 消息大小限制 — 拒绝超大消息
                 if len(raw) > settings.ws_max_message_size:
-                    await ws_manager.broadcast_to_actor(
-                        client.actor_id,
+                    await ws_manager.send_to_client(
+                        client,
                         {
                             "type": "error",
                             "detail": f"Message too large: {len(raw)} bytes "
@@ -291,4 +291,4 @@ async def websocket_endpoint(
                 await heartbeat_task
             except asyncio.CancelledError:
                 pass
-        await ws_manager.disconnect(client.actor_id)
+        await ws_manager.disconnect(client)

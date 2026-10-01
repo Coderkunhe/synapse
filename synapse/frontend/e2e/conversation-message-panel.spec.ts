@@ -118,11 +118,3 @@ test('threading：回复 → data-in-reply-to 非空 + 回复标识渲染', asyn
 
   await context.close()
 })
-
-test.afterAll(async ({ request }) => {
-  try {
-    await loginAsHunter(request)
-  } catch {
-    // Best-effort — residue is namespaced and handled by cleanup-dogfood-residue.py.
-  }
-})

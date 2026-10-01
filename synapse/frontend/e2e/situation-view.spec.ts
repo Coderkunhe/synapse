@@ -39,7 +39,11 @@ test('#2 态势 live 绿点 + DAG 渲染', async ({ browser }) => {
 
   // live dot green → WS connected
   await expect(page.getByTestId('live-dot')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByTestId('live-dot')).toHaveAttribute('title', 'connected')
+  // P100-B178 (PFL-273): WS onopen can exceed the 15s default expect timeout
+  // under full-suite load (timing contention, not a product bug) — allow 30s.
+  await expect(page.getByTestId('live-dot')).toHaveAttribute('title', 'connected', {
+    timeout: 30_000,
+  })
 
   // DAG node for task A renders and is `ready`
   const taskA = p1.taskIds['A']
@@ -93,10 +97,11 @@ test('#3 claim → DAG 实时变色 + 事件流 prepend + 项目隔离', async (
 })
 
 // Best-effort cleanup: cancel the claimed smoke tasks. The e2e-smoke-* projects
-// themselves are left for review / cleanup-dogfood-residue.py.
+// themselves are left for review / cleanup-dogfood-residue.py. The `request`
+// context is already authenticated from beforeAll's login (its cookie jar), so
+// no second login is needed here (P100-B178 · PFL-273 — avoids a 429th login).
 test.afterAll(async ({ request }) => {
   try {
-    await loginAsHunter(request)
     for (const [project, key] of [[p1, 'A'], [p2, 'X']] as const) {
       const taskId = project.taskIds[key]
       const taskRes = await request.get(`${API_BASE}/v1/tasks/${taskId}`)

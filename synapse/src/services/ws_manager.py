@@ -5,8 +5,7 @@
 
 架构：
     ws_manager（单例）──► ConnectionManager
-        ├── _connections: {actor_id → WebSocket}
-        ├── _subscriptions: {actor_id → set[topic]}
+        ├── _connections: {actor_id → [WSClient, ...]}  （同 actor 可多连接）
         └── _team_index: {team_id → set[actor_id]}
 """
 
@@ -58,51 +57,47 @@ class ConnectionManager:
     """线程安全的 WebSocket 连接管理器，支持发布/订阅。"""
 
     def __init__(self) -> None:
-        self._connections: dict[str, WSClient] = {}          # actor_id → WSClient
+        # P100-B178 (PFL-273): 每个 actor 可有多条连接（前端 Layout + 页面组件
+        # 各开一条 WS，同 actor 多条并行）。原单连接模型导致新连接踢旧连接。
+        self._connections: dict[str, list[WSClient]] = {}     # actor_id → [WSClient, ...]
         self._team_index: dict[str, set[str]] = {}            # team_id → {actor_id}
         self._lock: asyncio.Lock = asyncio.Lock()
 
     # ── 连接生命周期 ───────────────────────────────────────────────
 
     async def connect(self, client: WSClient) -> None:
-        """注册新的 WebSocket 连接。"""
+        """注册新的 WebSocket 连接（同 actor 可有多条连接）。"""
         async with self._lock:
-            # 若同一 actor 已有连接则关闭旧连接
-            if client.actor_id in self._connections:
-                existing = self._connections[client.actor_id]
-                await self._safe_close(existing.ws)
-
-            self._connections[client.actor_id] = client
+            self._connections.setdefault(client.actor_id, []).append(client)
             self._team_index.setdefault(client.team_id, set()).add(client.actor_id)
 
-    async def disconnect(self, actor_id: str) -> None:
-        """移除 WebSocket 连接。"""
+    async def disconnect(self, client: WSClient) -> None:
+        """移除指定的 WebSocket 连接（按连接身份，而非 actor——同 actor 可能有多条连接）。"""
         async with self._lock:
-            client = self._connections.pop(actor_id, None)
-            if client is None:
+            conns = self._connections.get(client.actor_id)
+            if not conns:
                 return
-            team_members = self._team_index.get(client.team_id)
-            if team_members:
-                team_members.discard(actor_id)
-                if not team_members:
-                    del self._team_index[client.team_id]
+            remaining = [c for c in conns if c is not client]
+            if remaining:
+                self._connections[client.actor_id] = remaining
+            else:
+                del self._connections[client.actor_id]
+                team_members = self._team_index.get(client.team_id)
+                if team_members:
+                    team_members.discard(client.actor_id)
+                    if not team_members:
+                        del self._team_index[client.team_id]
             await self._safe_close(client.ws)
 
     # ── 订阅管理 ────────────────────────────────────────────
 
-    async def subscribe(self, actor_id: str, topics: list[str]) -> None:
-        """订阅一个或多个事件主题。"""
-        client = self._connections.get(actor_id)
-        if client is None:
-            return
+    async def subscribe(self, client: WSClient, topics: list[str]) -> None:
+        """为指定连接订阅一个或多个事件主题。"""
         valid_topics = [t for t in topics if t in TOPICS]
         client.subscribed_topics.update(valid_topics)
 
-    async def unsubscribe(self, actor_id: str, topics: list[str]) -> None:
-        """取消订阅一个或多个事件主题。"""
-        client = self._connections.get(actor_id)
-        if client is None:
-            return
+    async def unsubscribe(self, client: WSClient, topics: list[str]) -> None:
+        """为指定连接取消订阅一个或多个事件主题。"""
         client.subscribed_topics.difference_update(topics)
 
     # ── 广播 ──────────────────────────────────────────────────────────
@@ -115,58 +110,59 @@ class ConnectionManager:
         """
         topic = event.get("event_type", "")
         async with self._lock:
-            actor_ids = list(self._team_index.get(team_id, set()))
+            clients = [
+                client
+                for actor_id in self._team_index.get(team_id, set())
+                for client in self._connections.get(actor_id, [])
+            ]
 
-        for actor_id in actor_ids:
-            client = self._connections.get(actor_id)
-            if client is None:
-                continue
+        for client in clients:
             if topic not in client.subscribed_topics:
                 continue
             await self._safe_send(client, {"type": "event", "data": event})
 
     async def broadcast_to_actor(self, actor_id: str, message: dict[str, Any]) -> None:
-        """直接向特定 actor 发送消息。"""
-        client = self._connections.get(actor_id)
-        if client is None:
-            return
+        """向特定 actor 的所有连接发送消息。"""
+        async with self._lock:
+            clients = list(self._connections.get(actor_id, []))
+        for client in clients:
+            await self._safe_send(client, message)
+
+    async def send_to_client(self, client: WSClient, message: dict[str, Any]) -> None:
+        """向特定连接发送消息（pong/error/welcome 等连接级响应）。"""
         await self._safe_send(client, message)
 
     # ── 心跳 ──────────────────────────────────────────────────────────
 
-    async def update_pong(self, actor_id: str) -> None:
-        """记录客户端的 pong 响应。"""
-        client = self._connections.get(actor_id)
-        if client:
-            client.last_pong = time.monotonic()
+    async def update_pong(self, client: WSClient) -> None:
+        """记录指定连接的 pong 响应。"""
+        client.last_pong = time.monotonic()
 
-    async def check_heartbeats(self) -> list[str]:
+    async def check_heartbeats(self) -> list[WSClient]:
         """检查所有连接的心跳超时。
 
-        返回已超时应断开连接的 actor_id 列表。
+        返回已超时应断开的连接列表。
         """
         now = time.monotonic()
-        timed_out: list[str] = []
+        timed_out: list[WSClient] = []
         async with self._lock:
-            for actor_id, client in list(self._connections.items()):
-                if now - client.last_pong > HEARTBEAT_TIMEOUT:
-                    timed_out.append(actor_id)
+            for conns in self._connections.values():
+                for client in conns:
+                    if now - client.last_pong > HEARTBEAT_TIMEOUT:
+                        timed_out.append(client)
         return timed_out
 
     async def reap_dead_connections(self) -> int:
         """断开所有已超时的客户端。返回断开数量。"""
         dead = await self.check_heartbeats()
-        for actor_id in dead:
-            await self.disconnect(actor_id)
+        for client in dead:
+            await self.disconnect(client)
         return len(dead)
 
     # ── 速率限制 ──────────────────────────────────────────────────────
 
-    def check_rate_limit(self, actor_id: str) -> bool:
-        """若 actor 在速率限制内则返回 True。"""
-        client = self._connections.get(actor_id)
-        if client is None:
-            return True
+    def check_rate_limit(self, client: WSClient) -> bool:
+        """若指定连接在速率限制内则返回 True。"""
         now = time.monotonic()
         limit = RATE_LIMIT_WORKER if client.actor_type == ActorType.WORKER else RATE_LIMIT_MEMBER
         # 清理 1 秒之前的时间戳
@@ -185,13 +181,10 @@ class ConnectionManager:
         返回已关闭的连接数。
         """
         async with self._lock:
-            actor_ids = list(self._connections.keys())
+            clients = [c for conns in self._connections.values() for c in conns]
 
         # 第一遍：通知所有客户端服务器即将关闭
-        for actor_id in actor_ids:
-            client = self._connections.get(actor_id)
-            if client is None:
-                continue
+        for client in clients:
             try:
                 await self._safe_send(client, {
                     "type": "shutdown",
@@ -202,9 +195,9 @@ class ConnectionManager:
 
         # 第二遍：断开所有连接
         closed = 0
-        for actor_id in actor_ids:
+        for client in clients:
             try:
-                await self.disconnect(actor_id)
+                await self.disconnect(client)
                 closed += 1
             except Exception:
                 pass
@@ -215,10 +208,10 @@ class ConnectionManager:
 
     @property
     def connection_count(self) -> int:
-        return len(self._connections)
+        return sum(len(conns) for conns in self._connections.values())
 
     def team_connection_count(self, team_id: str) -> int:
-        return len(self._team_index.get(team_id, set()))
+        return sum(len(self._connections.get(aid, [])) for aid in self._team_index.get(team_id, set()))
 
     # ── 内部辅助方法 ───────────────────────────────────────────────────
 

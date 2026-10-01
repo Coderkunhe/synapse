@@ -59,12 +59,3 @@ test('TaskDetail DAG 渲染传递闭包 · 零 N+1（单次 dependency-graph）'
 
   await context.close()
 })
-
-// Best-effort cleanup — cancel the claimed smoke tasks if any were touched.
-test.afterAll(async ({ request }) => {
-  try {
-    await loginAsHunter(request)
-  } catch {
-    // Best-effort only — residue is namespaced and handled by cleanup-dogfood-residue.py.
-  }
-})
