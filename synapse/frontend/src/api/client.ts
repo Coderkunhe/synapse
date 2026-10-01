@@ -939,6 +939,52 @@ export function fetchTaskEvents(taskId: string, token: string, opts?: {
   )
 }
 
+// ── Conversation Messages (A2A 协作消息) ────────────────────
+
+export interface ConversationMessage {
+  id: string
+  task_id: string
+  sender_worker_id: string
+  message_type: string
+  body: string
+  is_resolved: boolean
+  resolved_at: string | null
+  proposal_status: string | null
+  created_at: string
+}
+
+export interface ConversationMessageList {
+  task_id: string
+  messages: ConversationMessage[]
+  next_cursor: string | null
+  total: number | null
+}
+
+export function fetchTaskMessages(projectId: string, taskId: string, token: string) {
+  return request<ConversationMessageList>(
+    `/v1/projects/${projectId}/tasks/${taskId}/messages`,
+    { token },
+  )
+}
+
+export function createTaskMessage(
+  projectId: string,
+  taskId: string,
+  body: {
+    task_id: string
+    message_type: string
+    body: string
+    workflow_id?: string
+    in_reply_to_id?: string
+  },
+  token: string,
+) {
+  return request<ConversationMessage>(
+    `/v1/projects/${projectId}/tasks/${taskId}/messages`,
+    { method: 'POST', token, body: JSON.stringify(body) },
+  )
+}
+
 // ── Project Overview (态势) ─────────────────────────────────
 
 export interface ProjectDependencyNode {

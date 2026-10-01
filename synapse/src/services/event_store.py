@@ -158,16 +158,12 @@ event_store = EventStore()
 # ── WebSocket 广播钩子 ────────────────────────────────────────────────
 
 
-def _broadcast_event(team_id: str | None, event: Event) -> None:
-    """Fire-and-forget 方式将新记录的事件广播给 WebSocket 客户端。
+def event_to_dict(event: Event) -> dict:
+    """将 Event ORM 对象序列化为 WebSocket 广播字典（`{"type": "event", "data": ...}` 的 data 部分）。
 
-    作为后台任务运行以避免阻塞 HTTP 响应。
-    失败静默忽略 — WebSocket 是尽力推送；
-    客户端始终可以回退到 REST 轮询。
+    供 `_broadcast_event`（team 广播）与 service 层的精确 actor 投递复用。
     """
-    from src.services.ws_manager import ws_manager
-
-    event_dict = {
+    return {
         "id": event.id,
         "event_type": event.event_type,
         "actor_type": event.actor_type,
@@ -178,6 +174,18 @@ def _broadcast_event(team_id: str | None, event: Event) -> None:
         "team_id": event.team_id,
         "created_at": event.created_at.isoformat() if event.created_at else None,
     }
+
+
+def _broadcast_event(team_id: str | None, event: Event) -> None:
+    """Fire-and-forget 方式将新记录的事件广播给 WebSocket 客户端。
+
+    作为后台任务运行以避免阻塞 HTTP 响应。
+    失败静默忽略 — WebSocket 是尽力推送；
+    客户端始终可以回退到 REST 轮询。
+    """
+    from src.services.ws_manager import ws_manager
+
+    event_dict = event_to_dict(event)
 
     # 将广播作为后台任务调度 — 不阻塞调用方
     try:

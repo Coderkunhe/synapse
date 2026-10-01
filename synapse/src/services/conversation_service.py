@@ -25,7 +25,7 @@ from src.models.task_worker_conversation import TaskWorkerConversation
 from src.models.task import Task
 from src.models.worker import Worker
 from src.models.workflow import WorkflowRole
-from src.services.event_store import event_store
+from src.services.event_store import event_store, event_to_dict
 from src.utils.id_gen import generate_id
 
 
@@ -273,7 +273,7 @@ async def create_message(
     db.add(message)
     await db.flush()
 
-    await event_store.record(
+    event = await event_store.record(
         db,
         event_type=EventType.CONVERSATION_MESSAGE_CREATED,
         team_id=team_id,
@@ -291,6 +291,16 @@ async def create_message(
             "authorization_request_id": authorization_request_id,
         },
     )
+
+    # ── mention 投递（S-020 · P17-B8）────────────────────────────
+    # team 广播（event_store 内部）依赖客户端订阅 conversation.message.created，
+    # 而 agent worker 未必订阅 → 这里按 resolve_mentions 结果精确送达被 @ 的 worker。
+    if worker_ids:
+        from src.services.ws_manager import ws_manager
+
+        event_dict = event_to_dict(event)
+        for wid in worker_ids:
+            await ws_manager.broadcast_to_actor(wid, {"type": "event", "data": event_dict})
 
     return message
 

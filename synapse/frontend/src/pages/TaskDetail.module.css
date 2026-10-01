@@ -508,6 +508,112 @@
   font-family: var(--gm-font-mono, monospace);
 }
 
+/* ── Collaboration Messages ─────────────────────────────── */
+
+.messageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-3, 12px);
+  margin-bottom: var(--gm-space-4, 16px);
+}
+
+.messageItem {
+  padding: var(--gm-space-3, 12px);
+  background: var(--gm-surface, #141820);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2, 8px);
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gm-space-3, 12px);
+}
+
+.messageType {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gm-primary, #6c8cf5);
+  background: rgba(108, 140, 245, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: capitalize;
+}
+
+.messageMeta {
+  font-size: 12px;
+  color: var(--gm-text-secondary, #8892a6);
+  font-family: var(--gm-font-mono, monospace);
+}
+
+.messageText {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-text, #e4e8f0);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.composer {
+  display: flex;
+  gap: var(--gm-space-2, 8px);
+  align-items: flex-start;
+}
+
+.messageTypeSelect {
+  flex-shrink: 0;
+  padding: 8px;
+  font-size: 13px;
+  background: var(--gm-surface, #141820);
+  color: var(--gm-text, #e4e8f0);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+}
+
+.messageInput {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--gm-surface, #141820);
+  color: var(--gm-text, #e4e8f0);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+  resize: vertical;
+}
+
+.sendButton {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--gm-primary, #6c8cf5);
+  color: #fff;
+  border: none;
+  border-radius: var(--gm-radius, 8px);
+  cursor: pointer;
+}
+
+.sendButton:hover {
+  opacity: 0.85;
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.messageError {
+  margin-top: var(--gm-space-2, 8px);
+  font-size: 13px;
+  color: var(--gm-danger, #ef4444);
+}
+
 /* ── Edit Form ──────────────────────────────────────────── */
 
 .editForm {

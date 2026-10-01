@@ -1,10 +1,11 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
-import { fetchTask, fetchTaskEvents, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
-import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse } from '../api/client'
+import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
+import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse, ConversationMessage } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
+import { useWebSocket } from '../api/ws'
 import { formatDate } from '../utils/format'
 import { hashBatchColor } from '../utils/color'
 import EmptyState from '../components/EmptyState'
@@ -14,6 +15,8 @@ import styles from './TaskDetail.module.css'
 
 const PRIORITIES = ['p0', 'p1', 'p2', 'p3']
 const EFFORTS = ['xs', 's', 'm', 'l', 'xl']
+// 模块级常量 — useWebSocket 用 topics.join(',') 做 stableTopics，内联字面量会触发重连循环
+const MESSAGE_EVENT_TYPES = ['conversation.message.created']
 
 export default function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
@@ -43,6 +46,13 @@ export default function TaskDetail() {
   // ── Worker name fetch ────────────────────────────────────
   const [ownerName, setOwnerName] = useState<string | null>(null)
 
+  // ── Collaboration messages (S-020 · P17-B8) ─────────────
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
+  const [messageType, setMessageType] = useState('clarification')
+  const [messageBody, setMessageBody] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [messageError, setMessageError] = useState<string | null>(null)
+
   // ── Edit state ─────────────────────────────────────────
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -59,7 +69,7 @@ export default function TaskDetail() {
   const [editError, setEditError] = useState<string | null>(null)
   const [dismissedGuidance, setDismissedGuidance] = useState(false)
 
-  const { token, role } = useAuth()
+  const { token, role, logout } = useAuth()
 
   // P12-B18: project-level role for permission checks (not team-level role from AuthContext)
   const [projectRole, setProjectRole] = useState<string | null>(null)
@@ -89,6 +99,13 @@ export default function TaskDetail() {
     completed: 'stCompleted',
     cancelled: 'stCancelled',
     rejected: 'stRejected',
+  }
+
+  const MESSAGE_TYPE_LABELS: Record<string, string> = {
+    clarification: t('taskDetail.msgType.clarification'),
+    blocking: t('taskDetail.msgType.blocking'),
+    review_request: t('taskDetail.msgType.review_request'),
+    proposal: t('taskDetail.msgType.proposal'),
   }
 
   useEffect(() => {
@@ -132,6 +149,50 @@ export default function TaskDetail() {
       })
       .catch(err => { setError(err.message); setLoading(false) })
   }, [taskId, token, t])
+
+  // ── Collaboration messages (S-020 · P17-B8) ─────────────
+  const { lastEvent } = useWebSocket(token, MESSAGE_EVENT_TYPES, logout)
+
+  const loadMessages = useCallback(() => {
+    if (!task?.project_id || !taskId || !token) return
+    fetchTaskMessages(task.project_id, taskId, token)
+      .then(r => setMessages(r.messages))
+      .catch((err) => { console.error('Failed to fetch messages', err) /* Non-critical: message list */ })
+  }, [task?.project_id, taskId, token])
+
+  // 初始拉取
+  useEffect(() => { loadMessages() }, [loadMessages])
+
+  // WS 事件触发刷新（新消息到达 → refetch 线程）
+  useEffect(() => {
+    if (
+      lastEvent &&
+      lastEvent.event_type === 'conversation.message.created' &&
+      lastEvent.payload.task_id === taskId
+    ) {
+      loadMessages()
+    }
+  }, [lastEvent, taskId, loadMessages])
+
+  const handleSendMessage = async () => {
+    if (!task?.project_id || !taskId || !token) return
+    if (!messageBody.trim()) return
+    setMessageError(null)
+    setSendingMessage(true)
+    try {
+      await createTaskMessage(task.project_id, taskId, {
+        task_id: taskId,
+        message_type: messageType,
+        body: messageBody.trim(),
+      }, token)
+      setMessageBody('')
+      loadMessages()
+    } catch {
+      setMessageError(t('taskDetail.failedToSendMessage'))
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const handleClaim = async () => {
     if (!taskId || !token || !task) return
@@ -802,6 +863,61 @@ export default function TaskDetail() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* ── Collaboration Messages (S-020 · P17-B8) ─────── */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>
+          {t('taskDetail.messages')}
+          {messages.length > 0 && <span className={styles.count}>{messages.length}</span>}
+        </h2>
+        {messages.length === 0 ? (
+          <p className={styles.noData}>{t('taskDetail.noMessages')}</p>
+        ) : (
+          <div className={styles.messageList}>
+            {messages.map(msg => (
+              <div key={msg.id} className={styles.messageItem}>
+                <div className={styles.messageHeader}>
+                  <span className={styles.messageType}>
+                    {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
+                  </span>
+                  <span className={styles.messageMeta}>
+                    {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
+                  </span>
+                </div>
+                <span className={styles.messageText}>{msg.body}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className={styles.composer}>
+          <select
+            className={styles.messageTypeSelect}
+            value={messageType}
+            onChange={e => setMessageType(e.target.value)}
+            aria-label={t('taskDetail.msgTypeLabel')}
+          >
+            <option value="clarification">{t('taskDetail.msgType.clarification')}</option>
+            <option value="blocking">{t('taskDetail.msgType.blocking')}</option>
+            <option value="review_request">{t('taskDetail.msgType.review_request')}</option>
+            <option value="proposal">{t('taskDetail.msgType.proposal')}</option>
+          </select>
+          <textarea
+            className={styles.messageInput}
+            value={messageBody}
+            onChange={e => setMessageBody(e.target.value)}
+            placeholder={t('taskDetail.composerPlaceholder')}
+            rows={2}
+          />
+          <button
+            className={styles.sendButton}
+            onClick={handleSendMessage}
+            disabled={sendingMessage || !messageBody.trim()}
+          >
+            {sendingMessage ? t('taskDetail.sending') : t('taskDetail.send')}
+          </button>
+        </div>
+        {messageError && <p className={styles.messageError}>{messageError}</p>}
       </section>
     </div>
   )

@@ -18,6 +18,7 @@ from src.services.conversation_service import (
     parse_mentions, resolve_mentions, update_message,
 )
 from src.utils.id_gen import generate_id
+from unittest.mock import AsyncMock
 
 
 # ══ Fixtures ══
@@ -780,3 +781,64 @@ class TestUpdateMessage:
                 body="新正文",
                 **actor_info,
             )
+
+
+# ══ mention 投递（S-020 · P17-B8） ══
+
+class TestCreateMessageDelivery:
+    """create_message 对被 @ 的 worker 精确 WS 投递."""
+
+    @pytest.mark.asyncio
+    async def test_mention_triggers_actor_broadcast(
+        self, db_session, test_task, test_worker, test_worker_2, actor_info, monkeypatch
+    ):
+        """body 含 @worker:<name> → 被解析到的 worker 收到 event 信封推送."""
+        broadcast_mock = AsyncMock()
+        monkeypatch.setattr(
+            "src.services.ws_manager.ws_manager.broadcast_to_actor", broadcast_mock
+        )
+
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查这个改动。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        assert msg.mentions_json is not None
+        called_ids = [call.args[0] for call in broadcast_mock.call_args_list]
+        assert test_worker_2 in called_ids
+
+        # 信封必须是 {"type": "event", "data": {...}}（前端 ws.ts 只认 type==='event'）
+        for call in broadcast_mock.call_args_list:
+            assert call.args[1]["type"] == "event"
+            assert call.args[1]["data"]["event_type"] == "conversation.message.created"
+
+    @pytest.mark.asyncio
+    async def test_no_mention_no_broadcast(
+        self, db_session, test_task, test_worker, actor_info, monkeypatch
+    ):
+        """无 @mention → 不触发 actor 投递."""
+        broadcast_mock = AsyncMock()
+        monkeypatch.setattr(
+            "src.services.ws_manager.ws_manager.broadcast_to_actor", broadcast_mock
+        )
+
+        await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="普通消息，无 mention。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        broadcast_mock.assert_not_called()
