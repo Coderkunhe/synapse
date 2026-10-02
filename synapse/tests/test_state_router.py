@@ -8,12 +8,13 @@ import pytest
 from httpx import AsyncClient
 
 from src.auth import hash_api_key
-from src.constants import OwnerType, TaskStatus, WorkerActorType, WorkerStatus
+from src.constants import ActorType, OwnerType, TaskStatus, WorkerActorType, WorkerStatus
 from src.db import async_session_factory
 from src.models.project import Project
 from src.models.project_actor_role import ProjectActorRole
 from src.models.task import Task
 from src.models.worker import Worker
+from src.services.conversation_service import create_message
 from src.utils.id_gen import generate_id
 
 from tests.conftest import SeedData
@@ -182,6 +183,97 @@ class TestStateRouter:
         )
         data = await self._heartbeat(client, worker_id, key)
         assert data["next_action"] == "idle"
+
+    # ── mention 维度（P17-B13 · 方案 A）───────────────────────────
+
+    async def _setup_mention(
+        self, *, team_id: str, role: str, ready: bool = False,
+    ) -> tuple[str, str, str]:
+        """建 target worker + sender worker + project + role + 一条 mention。
+
+        mention 消息挂在 paused 载体任务上（不入任何队列桶，不影响 routing）。
+        ``ready=True`` 时额外建一个 ready 任务，用于验证「mention 不抢占 claim」。
+        target/sender 用唯一名，避免 resolve_mentions 模糊 LIKE 跨测试串味。
+        Returns: (project_id, worker_id, raw_key)
+        """
+        raw_key = "sk-test-" + secrets.token_hex(16)
+        worker_id = generate_id("worker")
+        sender_id = generate_id("worker")
+        unique = secrets.token_hex(6)
+        target_name = f"mt-target-{unique}"
+        sender_name = f"mt-sender-{unique}"
+        pid = generate_id("project")
+        carrier_id = generate_id("task")
+
+        async with async_session_factory() as db:
+            db.add(Worker(
+                id=worker_id, name=target_name, team_id=team_id,
+                actor_type=WorkerActorType.AGENT, status=WorkerStatus.ACTIVE,
+                api_key_hash=hash_api_key(raw_key),
+            ))
+            db.add(Worker(
+                id=sender_id, name=sender_name, team_id=team_id,
+                actor_type=WorkerActorType.AGENT, status=WorkerStatus.ACTIVE,
+                api_key_hash=None,
+            ))
+            db.add(Project(
+                id=pid, team_id=team_id, name=f"SR Mention {unique}",
+                slug=f"sr-mention-{pid[-8:]}",
+            ))
+            db.add(ProjectActorRole(
+                id=generate_id("project_actor_role"),
+                project_id=pid, worker_id=worker_id, role=role,
+            ))
+            db.add(Task(
+                id=carrier_id, project_id=pid, title="mention carrier",
+                status=TaskStatus.PAUSED,
+            ))
+            if ready:
+                db.add(Task(
+                    id=generate_id("task"), project_id=pid, title="ready task",
+                    status=TaskStatus.READY,
+                ))
+            await db.commit()
+
+            await create_message(
+                db, task_id=carrier_id, workflow_id=None,
+                message_type="clarification", body=f"@worker:{target_name} 请看这条",
+                in_reply_to_id=None, sender_worker_id=sender_id, team_id=team_id,
+                actor_type=ActorType.WORKER, actor_id=sender_id,
+            )
+            await db.commit()
+
+        return pid, worker_id, raw_key
+
+    @pytest.mark.asyncio
+    async def test_builder_idle_with_unread_mention(self, client: AsyncClient, seed: SeedData):
+        """builder 无 ready 任务但有未读 mention → respond_to_mention。"""
+        _, worker_id, key = await self._setup_mention(
+            team_id=seed.team_id, role="builder",
+        )
+        data = await self._heartbeat(client, worker_id, key)
+        assert data["next_action"] == "respond_to_mention"
+        assert data["unread_mentions"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_builder_ready_not_preempted_by_mention(self, client: AsyncClient, seed: SeedData):
+        """有 ready 任务时 mention 不抢占 → 仍 claim，且不查未读。"""
+        _, worker_id, key = await self._setup_mention(
+            team_id=seed.team_id, role="builder", ready=True,
+        )
+        data = await self._heartbeat(client, worker_id, key)
+        assert data["next_action"] == "claim"
+        assert data["unread_mentions"] == 0
+
+    @pytest.mark.asyncio
+    async def test_orchestrator_unaffected_by_mention(self, client: AsyncClient, seed: SeedData):
+        """orchestrator 不走 mention 维度 → 有未读 mention 仍 idle。"""
+        _, worker_id, key = await self._setup_mention(
+            team_id=seed.team_id, role="orchestrator",
+        )
+        data = await self._heartbeat(client, worker_id, key)
+        assert data["next_action"] == "idle"
+        assert data["unread_mentions"] == 0
 
     # ── queue 计数 ────────────────────────────────────────────────
 

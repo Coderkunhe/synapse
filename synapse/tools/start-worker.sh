@@ -284,6 +284,9 @@ next_action 对应的一个动作单元**（不要空转、不要等待、不要
   - monitor：检查 in_progress 任务的评论区/停滞状态
   - execute：继续执行 active_task_id 任务（或 claim 一个 ready 任务后执行）
   - claim ：认领一个 ready 任务（POST /tasks/{id}/claim）
+  - respond_to_mention：GET /v1/workers/me/mentions?unread=true 拉未读 mention，
+                        对每条 POST /v1/projects/{pid}/tasks/{tid}/messages
+                        （message_type=clarification · in_reply_to_id=该 mention id）回复后退出
 
 完成后用一句话报告你做了什么，然后退出。driver 会立即再次轮询 heartbeat
 拿到新的 next_action，所以不需要你在这里自循环或等待。
@@ -376,7 +379,7 @@ while true; do
             ;;
 
         # ── 有活：分派 claude -p 一个动作单元 ──
-        verify|split|assign|monitor|execute|claim)
+        verify|split|assign|monitor|execute|claim|respond_to_mention)
             idle_sleep="$IDLE_SLEEP_MIN"  # 有活即复位退避
             # P16-B8 (PFL-261)：超时按动作分档——split/execute 重，轻动作短
             case "$NEXT_ACTION" in

@@ -8,8 +8,9 @@ driver loop（P16-B3 ``start-worker.sh``）轮询决策，无需人类读任务�
 
 - orchestrator：``verify`` > ``split`` > ``assign`` > ``monitor`` > ``idle``
   （对应 role-orchestrator.md §「5 态路由矩阵」）
-- builder（及非 orchestrator 角色）：``execute`` > ``claim`` > ``idle``
-  （对应 role-builder.md §「自主驱动循环」）
+- builder（及非 orchestrator 角色）：``execute`` > ``claim`` >
+  ``respond_to_mention`` > ``idle``（对应 role-builder.md §「自主驱动循环」）
+  —— mention 是「空闲唤醒」非「抢占」：只有落到 idle 才查未读 mention。
 
 设计依据：docs/plans/p16-scope.md §「O 驱动模型」+ §「机制方案」。
 """
@@ -26,6 +27,7 @@ from src.services.project_role_service import get_project_role, get_worker_proje
 from src.services.task_query import filter_dependency_blocked
 from src.services.worker_scheduler import get_next_task
 from src.services.template_service import resolve_role
+from src.services.conversation_service import count_unread_mentions
 
 # ── next_action 取值 ────────────────────────────────────────────────
 NEXT_ACTION_VERIFY = "verify"      # O：有 in_verification 待验收
@@ -34,6 +36,7 @@ NEXT_ACTION_ASSIGN = "assign"      # O：有 ready 待分配
 NEXT_ACTION_MONITOR = "monitor"    # O：in_progress 监工
 NEXT_ACTION_EXECUTE = "execute"    # B：有活跃任务执行/提交
 NEXT_ACTION_CLAIM = "claim"        # B：有 ready 待认领
+NEXT_ACTION_RESPOND_TO_MENTION = "respond_to_mention"  # B：idle 且有未读 mention（P17-B13）
 NEXT_ACTION_IDLE = "idle"          # 全空 / 无法路由
 
 # 队列桶用 API 状态名（in_verification → awaiting_verify），
@@ -126,6 +129,7 @@ async def compute_state_router(
                 "next_action": NEXT_ACTION_IDLE,
                 "active_task_id": worker.active_task_id,
                 "queue": None,
+                "unread_mentions": 0,
                 "role_warnings": [
                     "Worker 无 Project 归属，state-router 无法路由，返回 idle。"
                 ],
@@ -137,6 +141,7 @@ async def compute_state_router(
                 "next_action": NEXT_ACTION_IDLE,
                 "active_task_id": worker.active_task_id,
                 "queue": None,
+                "unread_mentions": 0,
                 "role_warnings": [
                     f"Worker 归属 {len(projects)} 个 Project，"
                     "请在 heartbeat 请求体带 project_id 指定作用域。"
@@ -159,10 +164,22 @@ async def compute_state_router(
     queue = await _count_queue(db, project_id)
     next_action = _route(role, queue, active_task_id)
 
+    # ── 5. mention 维度（P17-B13 · 方案 A）─────────────────────────
+    # 空闲唤醒而非抢占：有任务先做任务（active→execute > ready→claim），
+    # 只有 _route 落到 idle 才查未读 mention，且仅非 orchestrator 角色。
+    unread_mentions = 0
+    if role != ProjectRole.ORCHESTRATOR and next_action == NEXT_ACTION_IDLE:
+        unread_mentions = await count_unread_mentions(
+            db, worker.id, project_id=project_id
+        )
+        if unread_mentions > 0:
+            next_action = NEXT_ACTION_RESPOND_TO_MENTION
+
     return {
         "role": role,
         "next_action": next_action,
         "active_task_id": active_task_id,
         "queue": queue,
+        "unread_mentions": unread_mentions,
         "role_warnings": [],
     }

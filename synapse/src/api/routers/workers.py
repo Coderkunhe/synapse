@@ -565,6 +565,7 @@ async def worker_heartbeat(
         role=routing["role"],
         next_action=routing["next_action"],
         active_task_id=routing["active_task_id"],
+        unread_mentions=routing["unread_mentions"],
         queue=HeartbeatQueueState(**routing["queue"]) if routing["queue"] else None,
     )
 

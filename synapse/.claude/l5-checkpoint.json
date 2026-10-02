@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B178→B179 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B178/B179 各自批内完成）· 📚 PFL-273 + PFL-275 收口闭环 · 🎭 e2e 7/7 绿 · counter 2→0 三源对齐",
   "lastL5Timestamp": "2026-10-02",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B178→B179 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B178/B179 各自批内完成）· 📚 PFL-273 + PFL-275 收口闭环 · 🎭 e2e 7/7 绿 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"

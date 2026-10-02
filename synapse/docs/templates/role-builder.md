@@ -225,6 +225,7 @@ POST /tasks/{id}/submit（附 evidence）
 | **心跳保活（PFL-083 · B91）** | 每轮循环决策前检查自心跳：`GET /workers/me` 查看 `last_heartbeat_at`。过期 >120s → 立即 `POST /workers/{id}/heartbeat` 补一跳。**Handshake 是一次性启动事件（更新 `last_seen_at`），Heartbeat 是周期性保活信号（更新 `last_heartbeat_at`）——两者独立，不可互相替代。** O 通过心跳判断你在线——心跳缺失 → O 误判离线 → 拒绝 push assign + 暂停验收 → VDD 断裂。B90 狗粮教训：B 活跃执行 3 Task（claim→submit）但心跳 5.7 小时未更新——O 拒绝 push assign |
 | **写完即 commit（PFL-174 · B6）** | 每次代码修改完成后立即 `git commit` 作为 checkpoint。daemon 死亡时未 commit 的变更会丢失（P14-B4 B1 教训：3 文件修改因 daemon 僵死被 stale revert 清零）。commit message 以 "checkpoint:" 开头。commit 不需要等到测试通过——它是安全网，不是交付物。 |
 | **被动响应者（P11-B74 · P12-B24 强化）** | O assign 是主通道——等待 O 分配 Task 是正常流程。O 沉默判定标准（P12-B24）：每轮循环调 `GET /teams/{id}/orchestrator-status` 检查 `last_assignment_at`（非 `last_heartbeat_at`）。`last_assignment_at` > 5min 或无记录 → O 沉默 → 启用 Pull fallback。⚠️ 心跳正常 ≠ O 在工作 — zombie O（心跳但从不分配）会导致 B 无限等待 |
+| **响应 mention（P17-B13 · PFL-274）** | heartbeat 轮询到 `next_action=respond_to_mention` 时（无任务 + 有未读 mention 才触发，mention **不抢占**任务）：`GET /v1/workers/me/mentions?unread=true` 拉未读 mention → 对每条 `POST /v1/projects/{pid}/tasks/{tid}/messages`（`message_type=clarification` · `in_reply_to_id`=该 mention 消息 id）回复 → 退出，等下一轮 heartbeat。注意 `in_reply_to_id` 精确指向被回复的 mention 消息，否则不标已读 |
 | **Capability 自检 + 自愈（P12-B19 · P14-B10 硬门禁 · PFL-268 自愈）** | Server 在 claim 时强制校验 required_capabilities ⊆ capability_tags.names，不匹配 → 409 `WORKER_MISSING_CAPABILITIES`，body 的 `error.details` 带 `missingCapabilities` / `workerCapabilities` / `requiredCapabilities`。**收到 409 先自愈，不要空转或只报告**：① 读 details，算并集 `workerCapabilities ∪ requiredCapabilities`（**必须并集**——handshake 是整体覆盖，只声明缺失集会丢掉 code-generation/code-review）；② `SYNAPSE_WORKER_CAPABILITIES="<逗号并集>" node scripts/session-init.js` 重新 handshake；③ re-claim **一次**；④ 仍 409 → 才 @Orchestrator 报告。**安全边界**：只对技术栈/语言维度（backend/frontend/python/typescript/…）自愈——你作为通用 code worker 确实具备这些；对确实不具备的专有能力（如 `security-audit`）**不得自声明**，直接 @O。 |
 
 > ⚠️ **WS Push 优先（PFL-071）**：系统已有 WebSocket push（`task.*` 事件）。WS 连接可用时，O verify 结果通过 WS push 即时感知，不等 15s polling。Polling 是 WS 断开时的 fallback。两个通道不互斥——WS push 先到就先处理。详见 `_protocol.md` §4.1.3「WS Push 优先」。
@@ -538,6 +539,7 @@ POST /v1/tasks/{id}/submit
 | 提交验证 | `POST /v1/tasks/{id}/submit` · 必带 `expected_version` |
 | 查看验证结果 | `GET /v1/tasks/{id}/verifications` |
 | 评论/提问 | `POST /v1/projects/{pid}/tasks/{tid}/messages`（**项目域** — 与上面 task 端点前缀不同）|
+| 拉未读 mention | `GET /v1/workers/me/mentions?unread=true`（P17-B13 · 指向我 ∧ 我未 `in_reply_to` 回复 ∧ 非自 @）|
 
 > ⚠️ **前缀不统一，别靠猜（PFL-250 · B4 狗粮实测）**：task 的 claim/submit/update 挂在
 > **全局** `/v1/tasks/...`；`/v1/projects/{pid}/tasks/{id}/claim` 会返回 **404**。

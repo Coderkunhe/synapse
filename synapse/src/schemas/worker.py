@@ -129,7 +129,7 @@ class WorkerHeartbeatResponse(BaseModel):
     )
     next_action: str | None = Field(
         None,
-        description="确定性路由信号 — verify|split|assign|monitor|execute|claim|idle",
+        description="确定性路由信号 — verify|split|assign|monitor|execute|claim|respond_to_mention|idle",
     )
     active_task_id: str | None = Field(
         None,
@@ -137,6 +137,10 @@ class WorkerHeartbeatResponse(BaseModel):
             "Worker 应处理的下一个任务 ID（get_next_task FIFO：活跃 → 其它 "
             "IN_PROGRESS → REJECTED；无/多 project 时为原始指针回显）"
         ),
+    )
+    unread_mentions: int = Field(
+        0,
+        description="未读 mention 计数（P17-B13）— 非 orchestrator 且 idle 时才非零；可观测性字段",
     )
     queue: HeartbeatQueueState | None = Field(
         None,
