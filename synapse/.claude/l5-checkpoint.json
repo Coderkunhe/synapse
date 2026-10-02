@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "B12→B13 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B12/B13 各自批内完成）· 📚 PFL-274 收口闭环（B12 查询层 + B13 触发层 · 🔴→✅）· 🎭 state-router mention 维度 3 测例全绿（idle+未读→respond_to_mention / ready 不抢占 / O 不受影响）· counter 2→0 三源对齐",
+  "lastL5Batch": "B14→B15 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B14 @mention 补全 + B15 渲染高亮 · 均 0 src 后端 · 日期戳新鲜）· 📚 @mention 叙事链 B12查询→B13触发→B14补全→B15高亮 一致无断层 · 🎭 纯 UI 跳过场景遍历 · 修正 p100.md counter=1→0 漂移 · 三源对齐复位 2→0",
   "lastL5Timestamp": "2026-10-02",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "B12→B13 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B12/B13 各自批内完成）· 📚 PFL-274 收口闭环（B12 查询层 + B13 触发层 · 🔴→✅）· 🎭 state-router mention 维度 3 测例全绿（idle+未读→respond_to_mention / ready 不抢占 / O 不受影响）· counter 2→0 三源对齐",
+  "lastL5Evidence": "B14→B15 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B14 @mention 补全 + B15 渲染高亮 · 均 0 src 后端 · 日期戳新鲜）· 📚 @mention 叙事链 B12查询→B13触发→B14补全→B15高亮 一致无断层 · 🎭 纯 UI 跳过场景遍历 · 修正 p100.md counter=1→0 漂移 · 三源对齐复位 2→0",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
