@@ -23,18 +23,35 @@ const MENTION_RE = /@(worker|role):(\S+)/g
 
 // 把正文里的 @worker:<name> / @role:<rolename> token 渲染成高亮 span。
 // 用 React 分段渲染（非 dangerouslySetInnerHTML）→ body 是用户/agent 输入，天然 XSS 安全。
-function renderMentionedBody(body: string): React.ReactNode[] {
+// P17-B16：命中 worker 的 @worker:<name> 渲染成 <Link> 跳 worker detail；@role 或未命中（含尾随标点）保持 span。
+function renderMentionedBody(body: string, workerByName: Map<string, string>): React.ReactNode[] {
   const parts: React.ReactNode[] = []
   let last = 0
   let key = 0
   for (const m of body.matchAll(MENTION_RE)) {
     const i = m.index ?? 0
     if (i > last) parts.push(body.slice(last, i))
-    parts.push(
-      <span key={key++} className={styles.mentionHighlight} data-testid="mention-highlight">
-        {m[0]}
-      </span>,
-    )
+    const kind = m[1]
+    const name = m[2]
+    const workerId = kind === 'worker' ? workerByName.get(name) : undefined
+    if (workerId) {
+      parts.push(
+        <Link
+          key={key++}
+          to={`/workers/${workerId}`}
+          className={`${styles.mentionHighlight} ${styles.mentionLink}`}
+          data-testid="mention-highlight"
+        >
+          {m[0]}
+        </Link>,
+      )
+    } else {
+      parts.push(
+        <span key={key++} className={styles.mentionHighlight} data-testid="mention-highlight">
+          {m[0]}
+        </span>,
+      )
+    }
     last = i + m[0].length
   }
   if (last < body.length) parts.push(body.slice(last))
@@ -93,6 +110,12 @@ export default function TaskDetail() {
     const q = mentionQuery.toLowerCase()
     return mentionCandidates.filter(w => w.name.toLowerCase().includes(q))
   }, [mentionCandidates, mentionQuery])
+
+  // name → worker id 映射（P17-B16：@mention 点击跳 worker detail）
+  const workerByName = useMemo(
+    () => new Map(mentionCandidates.map(w => [w.name, w.id])),
+    [mentionCandidates],
+  )
 
   // ── Edit state ─────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -1039,7 +1062,7 @@ export default function TaskDetail() {
                       {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
                     </span>
                   </div>
-                  <span className={styles.messageText}>{renderMentionedBody(msg.body)}</span>
+                  <span className={styles.messageText}>{renderMentionedBody(msg.body, workerByName)}</span>
                   <div className={styles.messageActions}>
                     <button
                       className={styles.replyButton}

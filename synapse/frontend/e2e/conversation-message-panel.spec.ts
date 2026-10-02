@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import {
+  API_BASE,
   loginAsHunter,
   accessCookie,
   seedProjectAndTasks,
@@ -13,6 +14,7 @@ const MSG_BODY = 'hello from e2e message panel'
 
 let hunter: HunterAuth
 let p: SeededProject
+let clickWorker: { id: string; name: string } | null = null
 
 test.describe.configure({ mode: 'serial' })
 
@@ -22,6 +24,21 @@ test.beforeAll(async ({ request }) => {
   p = await seedProjectAndTasks(request, hunter.teamId, `e2e-msgpanel-${stamp}`, [
     { title: 'MsgTask' },
   ])
+
+  // 注册 + 握手一个 active worker，供 @mention 点击跳转用例使用（DG-2 可复现，
+  // 不依赖 dev DB 预置 worker）。register → pending，handshake(api_key) → active。
+  const regRes = await request.post(`${API_BASE}/v1/teams/${hunter.teamId}/workers`, {
+    headers: { Authorization: `Bearer ${hunter.accessToken}` },
+    data: { name: `e2e-click-${stamp}` },
+  })
+  if (regRes.ok()) {
+    const reg = await regRes.json()
+    const hsRes = await request.post(`${API_BASE}/v1/workers/${reg.worker.id}/handshake`, {
+      headers: { Authorization: `Bearer ${reg.api_key}` },
+      data: {},
+    })
+    if (hsRes.ok()) clickWorker = { id: reg.worker.id, name: reg.worker.name }
+  }
 })
 
 test('发送→渲染→持久：UI composer 发消息 · 断言渲染 + reload 后仍在', async ({ browser }) => {
@@ -89,6 +106,33 @@ test('@mention 往返：composer 发含 @worker:<name> 的 body → 正常创建
   await context.close()
 })
 
+test('@mention 点击跳转：@worker:<真实名> 渲染成链接 → 点击跳 WorkerDetail', async ({ browser }) => {
+  test.skip(!clickWorker, 'worker registration failed — skip click-through')
+
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  const taskId = p.taskIds['MsgTask']
+  await page.goto(`/tasks/${taskId}`)
+
+  // 发含真实 active worker 名的 @mention（后跟空格 → name 精确命中，无尾随标点）
+  const body = `@worker:${clickWorker.name} please look`
+  await page.getByTestId('message-input').fill(body)
+  await page.getByTestId('message-send').click()
+
+  const mention = page.getByTestId('mention-highlight').filter({ hasText: `@worker:${clickWorker.name}` })
+  await expect(mention).toBeVisible({ timeout: 15_000 })
+  // 命中 worker → 渲染成 <a>，href 指向 /workers/<id>
+  await expect(mention).toHaveAttribute('href', `/workers/${clickWorker.id}`)
+
+  // 点击跳转 WorkerDetail（URL 落到 /workers/<id>）
+  await mention.click()
+  await expect(page).toHaveURL(new RegExp(`/workers/${clickWorker.id}`))
+
+  await context.close()
+})
+
 test('threading：回复 → data-in-reply-to 非空 + 回复标识渲染', async ({ browser }) => {
   const context = await browser.newContext()
   await context.addCookies([accessCookie(hunter.accessToken)])
@@ -124,7 +168,15 @@ test('threading：回复 → data-in-reply-to 非空 + 回复标识渲染', asyn
 })
 
 // Best-effort cleanup: cancel the seeded MsgTask so the run leaves no owner=None
-// `ready` residue in the shared dev DB (PFL-275).
+// `ready` residue in the shared dev DB (PFL-275). Also remove the registered
+// click-through worker (DG-3 善后). NOTE: the worker delete FK-fails until
+// PFL-276 (mention 关联表缺 ON DELETE CASCADE) is fixed — best-effort, residue
+// is namespaced (`e2e-click-<stamp>`).
 test.afterAll(async ({ request }) => {
   await cancelSeededTasks(request, hunter.accessToken, p)
+  if (clickWorker) {
+    await request.delete(`${API_BASE}/v1/workers/${clickWorker.id}`, {
+      headers: { Authorization: `Bearer ${hunter.accessToken}` },
+    })
+  }
 })

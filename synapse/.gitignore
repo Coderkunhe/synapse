@@ -36,3 +36,6 @@ Thumbs.db
 _boot-prompt.md
 _task-current.md
 _last-session-init.txt
+
+# Playwright 运行时产物
+test-results/

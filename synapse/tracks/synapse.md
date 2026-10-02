@@ -1,8 +1,8 @@
 ---
 project: synapse
 phase: P17 人机协作协调层 🔄 · 战略重定向（护城河 = 协作层）· 协作第一增量（人认领/读规范/同步）
-last_batch: P17-B15
-next_batch: P17-B16
+last_batch: P17-B16
+next_batch: P17-B17
 description: Synapse 主项目 — 人 + agent 团队的人机协作平台 · 护城河在协作层不在智能层 · P16 全量闭环 → P17 战略重定向 · 能力层善后（资产切分 + 债务清账）→ P100 治理轨
 ---
 

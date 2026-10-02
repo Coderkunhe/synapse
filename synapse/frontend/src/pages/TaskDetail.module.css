@@ -578,6 +578,15 @@
   font-weight: 500;
 }
 
+.mentionLink {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mentionLink:hover {
+  text-decoration: underline;
+}
+
 .replyIndicator {
   font-size: 11px;
   color: var(--gm-text-secondary, #8892a6);
