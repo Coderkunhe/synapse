@@ -36,6 +36,10 @@ from src.schemas.worker import (
 )
 from src.schemas.common import CursorPage
 from src.schemas.protocol import ProtocolResponse
+from src.schemas.task_worker_conversation import (
+    ConversationMentionList,
+    ConversationMessageResponse,
+)
 from src.services.worker_service import (
     worker_to_response,
     get_worker as _get_worker,
@@ -43,6 +47,7 @@ from src.services.worker_service import (
 from src.services.event_store import event_store
 from src.services.pitfall_service import create_pitfall
 from src.services.project_role_service import get_worker_projects, get_project_role
+from src.services.conversation_service import list_mentions
 from src.services.template_service import render_protocol, resolve_role, compute_template_versions
 
 from .helpers import _parse_event_payload, _events_to_error_summaries, get_team_or_404
@@ -240,6 +245,36 @@ async def get_worker_state(
         stale_verification_count=len(stale_vt),
         stale_verification_task_ids=[t.id for t in stale_vt],
         recent_error_reports=recent_errors,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# P17-B12: Worker mention 查询
+# ═══════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/workers/me/mentions",
+    response_model=ConversationMentionList,
+)
+async def get_my_mentions(
+    unread: bool = Query(True, description="只返回未读（我尚未 in_reply_to 回复）的 mention"),
+    project_id: str | None = Query(None, description="按 Project 过滤"),
+    limit: int = Query(50, ge=1, le=100, description="最大返回条数"),
+    actor: ActorInfo = Depends(get_current_actor),
+    db: AsyncSession = Depends(get_db),
+):
+    """列出指向当前 worker 的 mention（P17-B12）。
+
+    ``unread=true``（默认）返回「指向我且我尚未 in_reply_to 回复」的消息，
+    供 headless worker 的 respond_to_mention 动作消费（B13）。
+    """
+    items = await list_mentions(
+        db, actor.actor_id, project_id=project_id, limit=limit, unread=unread,
+    )
+    return ConversationMentionList(
+        messages=[ConversationMessageResponse.model_validate(m) for m in items],
+        total=len(items),
     )
 
 

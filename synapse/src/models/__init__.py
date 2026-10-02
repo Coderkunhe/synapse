@@ -26,7 +26,7 @@ from src.models.user import User
 from src.models.user_auth_method import UserAuthMethod
 from src.models.authorization_request import AuthorizationRequest
 from src.models.workflow import Workflow, WorkflowRole
-from src.models.task_worker_conversation import TaskWorkerConversation
+from src.models.task_worker_conversation import TaskWorkerConversation, TaskWorkerConversationMention
 from src.models.protection_report import ProtectionReport
 from src.models.circuit_breaker import CircuitBreaker
 from src.models.capability_audit import CapabilityAudit
@@ -61,6 +61,7 @@ __all__ = [
     "Workflow",
     "WorkflowRole",
     "TaskWorkerConversation",
+    "TaskWorkerConversationMention",
     "ProtectionReport",
     "CircuitBreaker",
     "CapabilityAudit",

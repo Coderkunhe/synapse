@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import AuditMixin, Base, _utcnow
@@ -107,4 +107,28 @@ class TaskWorkerConversation(Base, AuditMixin):
     )
     resolved_by: Mapped["Worker | None"] = relationship(
         "Worker", foreign_keys=[resolved_by_worker_id],
+    )
+
+
+class TaskWorkerConversationMention(Base):
+    """消息 → 被 @ worker 的关联表（P17-B12 · 可索引 mention 查询）。
+
+    ``mentions_json`` 存 name 供展示；本表存解析后的 worker_id 供查询——
+    根因是「JSON blob 不可索引」，关联表才真正可查。
+    """
+
+    __tablename__ = "task_worker_conversation_mention"
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "worker_id",
+                         name="uq_mention_conv_worker"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    conversation_id: Mapped[str] = mapped_column(
+        ForeignKey("task_worker_conversation.id"), nullable=False, index=True,
+        comment="被 @ 的消息 ID",
+    )
+    worker_id: Mapped[str] = mapped_column(
+        ForeignKey("worker.id"), nullable=False, index=True,
+        comment="被 @ 的 worker ID（resolve_mentions 解析结果落库）",
     )

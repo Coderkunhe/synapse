@@ -68,3 +68,10 @@ class ConversationMessageResponse(AuditFields):
     proposal_status: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ConversationMentionList(BaseModel):
+    """未读 mention 列表响应（P17-B12 · GET /workers/me/mentions）。"""
+
+    messages: list[ConversationMessageResponse]
+    total: int

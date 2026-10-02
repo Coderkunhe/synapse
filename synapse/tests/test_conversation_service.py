@@ -14,8 +14,8 @@ from src.models.worker import Worker
 from src.models.workflow import Workflow, WorkflowRole
 from src.models.project import Project
 from src.services.conversation_service import (
-    create_message, get_message, list_messages,
-    parse_mentions, resolve_mentions, update_message,
+    count_unread_mentions, create_message, get_message, list_messages,
+    list_mentions, parse_mentions, resolve_mentions, update_message,
 )
 from src.utils.id_gen import generate_id
 from unittest.mock import AsyncMock
@@ -842,3 +842,168 @@ class TestCreateMessageDelivery:
         await db_session.commit()
 
         broadcast_mock.assert_not_called()
+
+
+# ══ mention 落库 + 未读查询（P17-B12） ══
+
+class TestMentionPersistence:
+    """create_message 把解析出的 worker_id 落关联表."""
+
+    @pytest.mark.asyncio
+    async def test_create_message_persists_mentions(
+        self, db_session, test_task, test_worker, test_worker_2, actor_info
+    ):
+        """body 含 @worker → 关联表落一条 (conversation_id, worker_id)."""
+        from src.models.task_worker_conversation import TaskWorkerConversationMention
+
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        result = await db_session.execute(
+            select(TaskWorkerConversationMention).where(
+                TaskWorkerConversationMention.conversation_id == msg.id,
+            )
+        )
+        rows = result.scalars().all()
+        assert test_worker_2 in [r.worker_id for r in rows]
+        assert test_worker not in [r.worker_id for r in rows]  # sender 自身不落
+
+    @pytest.mark.asyncio
+    async def test_no_mention_no_persistence(
+        self, db_session, test_task, test_worker, actor_info
+    ):
+        """无 @mention → 不落关联表."""
+        from src.models.task_worker_conversation import TaskWorkerConversationMention
+
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="普通消息。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        result = await db_session.execute(
+            select(TaskWorkerConversationMention).where(
+                TaskWorkerConversationMention.conversation_id == msg.id,
+            )
+        )
+        assert result.scalars().all() == []
+
+
+class TestListMentions:
+    """未读 mention 查询 — 未读语义（决策 3）."""
+
+    @pytest.mark.asyncio
+    async def test_mention_is_unread(
+        self, db_session, test_task, test_worker, test_worker_2, actor_info
+    ):
+        """指向 worker 且未回复 → 未读."""
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        items = await list_mentions(db_session, test_worker_2)
+        assert msg.id in [m.id for m in items]
+        assert await count_unread_mentions(db_session, test_worker_2) == 1
+
+    @pytest.mark.asyncio
+    async def test_reply_marks_read(
+        self, db_session, test_task, test_worker, test_worker_2, actor_info
+    ):
+        """worker in_reply_to 回复后 → 已读（从未读列表消失）."""
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        # test_worker_2 回复
+        await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="收到，这就看。",
+            in_reply_to_id=msg.id,
+            sender_worker_id=test_worker_2,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        items = await list_mentions(db_session, test_worker_2)
+        assert msg.id not in [m.id for m in items]
+        assert await count_unread_mentions(db_session, test_worker_2) == 0
+
+    @pytest.mark.asyncio
+    async def test_self_mention_excluded(
+        self, db_session, test_task, test_worker, actor_info
+    ):
+        """自 @ → 不列入未读."""
+        await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Builder 记录给自己看。",  # test_worker name="Test Builder"
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        items = await list_mentions(db_session, test_worker)
+        assert items == []
+        assert await count_unread_mentions(db_session, test_worker) == 0
+
+    @pytest.mark.asyncio
+    async def test_project_filter(
+        self, db_session, test_task, test_project, test_worker, test_worker_2, actor_info
+    ):
+        """project_id 过滤：正确 project 命中 · 错误 project 空."""
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        items = await list_mentions(db_session, test_worker_2, project_id=test_project)
+        assert msg.id in [m.id for m in items]
+
+        items_wrong = await list_mentions(
+            db_session, test_worker_2, project_id="prj_nonexistent"
+        )
+        assert items_wrong == []

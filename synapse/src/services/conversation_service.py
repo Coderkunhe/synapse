@@ -21,7 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import AuthorizationOperation, EventType
 from src.exceptions import NotFoundError
-from src.models.task_worker_conversation import TaskWorkerConversation
+from src.models.task_worker_conversation import (
+    TaskWorkerConversation,
+    TaskWorkerConversationMention,
+)
 from src.models.task import Task
 from src.models.worker import Worker
 from src.models.workflow import WorkflowRole
@@ -170,6 +173,77 @@ async def list_messages(
     return items, next_cursor, total
 
 
+# ── mention 未读查询（P17-B12）──────────────────────────────────────
+
+
+async def list_mentions(
+    db: AsyncSession,
+    worker_id: str,
+    *,
+    project_id: str | None = None,
+    limit: int = 50,
+    unread: bool = True,
+) -> list[TaskWorkerConversation]:
+    """列出指向 worker 的 mention。
+
+    ``unread=True``（默认）：未读判定（决策 3）——mention 指向该 worker，且该
+    worker 尚未以 ``in_reply_to`` 回复该条 mention，且非该 worker 自 @。
+    ``unread=False``：返回所有指向该 worker 的 mention（含已回复 / 自 @）。
+    """
+    stmt = (
+        select(TaskWorkerConversation)
+        .join(
+            TaskWorkerConversationMention,
+            TaskWorkerConversationMention.conversation_id == TaskWorkerConversation.id,
+        )
+        .where(TaskWorkerConversationMention.worker_id == worker_id)
+    )
+    if unread:
+        replied = (
+            select(TaskWorkerConversation.in_reply_to_id)
+            .where(TaskWorkerConversation.sender_worker_id == worker_id)
+        )
+        stmt = (
+            stmt.where(TaskWorkerConversation.sender_worker_id != worker_id)
+            .where(TaskWorkerConversation.id.notin_(replied))
+        )
+    stmt = stmt.order_by(TaskWorkerConversation.created_at.asc())
+    if project_id is not None:
+        stmt = stmt.join(Task, Task.id == TaskWorkerConversation.task_id).where(
+            Task.project_id == project_id
+        )
+    result = await db.execute(stmt.limit(limit))
+    return list(result.scalars().all())
+
+
+async def count_unread_mentions(
+    db: AsyncSession,
+    worker_id: str,
+    *,
+    project_id: str | None = None,
+) -> int:
+    """未读 mention 计数（state_router 心跳轮询复用 · B13）。"""
+    replied = (
+        select(TaskWorkerConversation.in_reply_to_id)
+        .where(TaskWorkerConversation.sender_worker_id == worker_id)
+    )
+    stmt = (
+        select(func.count(TaskWorkerConversation.id))
+        .join(
+            TaskWorkerConversationMention,
+            TaskWorkerConversationMention.conversation_id == TaskWorkerConversation.id,
+        )
+        .where(TaskWorkerConversationMention.worker_id == worker_id)
+        .where(TaskWorkerConversation.sender_worker_id != worker_id)
+        .where(TaskWorkerConversation.id.notin_(replied))
+    )
+    if project_id is not None:
+        stmt = stmt.join(Task, Task.id == TaskWorkerConversation.task_id).where(
+            Task.project_id == project_id
+        )
+    return int((await db.execute(stmt)).scalar() or 0)
+
+
 # ── 写入 ────────────────────────────────────────────────────────────────
 
 
@@ -272,6 +346,16 @@ async def create_message(
     )
     db.add(message)
     await db.flush()
+
+    # ── P17-B12: mention 落库（可索引 worker 维度查询）────────────
+    # resolve_mentions 结果此前只用于 WS 投递、不回写存储 → 每次查「谁被 @」
+    # 都要重跑 name LIKE。这里落关联表，让「按 worker 查未读 mention」可索引。
+    for wid in worker_ids:
+        db.add(TaskWorkerConversationMention(
+            id=generate_id("task_worker_conversation_mention"),
+            conversation_id=message_id,
+            worker_id=wid,
+        ))
 
     event = await event_store.record(
         db,

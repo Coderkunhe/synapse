@@ -31,6 +31,7 @@ PREFIXES: dict[str, str] = {
     "workflow": "wfl",  # P10-B24
     "workflow_role": "wfr",  # P10-B24
     "task_worker_conversation": "twc",  # P10-B28
+    "task_worker_conversation_mention": "twcm",  # P17-B12
     "protection_report": "prpt",  # P10-B35
     "circuit_breaker": "cb",  # P10-B35
     "capability_audit": "ca",  # P11-B57
