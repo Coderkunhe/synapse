@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "B14→B15 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B14 @mention 补全 + B15 渲染高亮 · 均 0 src 后端 · 日期戳新鲜）· 📚 @mention 叙事链 B12查询→B13触发→B14补全→B15高亮 一致无断层 · 🎭 纯 UI 跳过场景遍历 · 修正 p100.md counter=1→0 漂移 · 三源对齐复位 2→0",
   "lastL5Timestamp": "2026-10-02",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "B14→B15 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B14 @mention 补全 + B15 渲染高亮 · 均 0 src 后端 · 日期戳新鲜）· 📚 @mention 叙事链 B12查询→B13触发→B14补全→B15高亮 一致无断层 · 🎭 纯 UI 跳过场景遍历 · 修正 p100.md counter=1→0 漂移 · 三源对齐复位 2→0",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
