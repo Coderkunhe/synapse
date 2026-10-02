@@ -18,6 +18,29 @@ const EFFORTS = ['xs', 's', 'm', 'l', 'xl']
 // 模块级常量 — useWebSocket 用 topics.join(',') 做 stableTopics，内联字面量会触发重连循环
 const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.message.resolved']
 
+// 与后端 _MENTION_RE = r"@(worker|role):(\S+)"（conversation_service.py:38）一致，保证高亮范围 = 后端实际解析范围
+const MENTION_RE = /@(worker|role):(\S+)/g
+
+// 把正文里的 @worker:<name> / @role:<rolename> token 渲染成高亮 span。
+// 用 React 分段渲染（非 dangerouslySetInnerHTML）→ body 是用户/agent 输入，天然 XSS 安全。
+function renderMentionedBody(body: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let key = 0
+  for (const m of body.matchAll(MENTION_RE)) {
+    const i = m.index ?? 0
+    if (i > last) parts.push(body.slice(last, i))
+    parts.push(
+      <span key={key++} className={styles.mentionHighlight} data-testid="mention-highlight">
+        {m[0]}
+      </span>,
+    )
+    last = i + m[0].length
+  }
+  if (last < body.length) parts.push(body.slice(last))
+  return parts
+}
+
 export default function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
   const { t, lang } = useI18n()
@@ -1016,7 +1039,7 @@ export default function TaskDetail() {
                       {t('taskDetail.by')} {msg.sender_worker_id?.slice(0, 12)} · {formatDate(msg.created_at, lang)}
                     </span>
                   </div>
-                  <span className={styles.messageText}>{msg.body}</span>
+                  <span className={styles.messageText}>{renderMentionedBody(msg.body)}</span>
                   <div className={styles.messageActions}>
                     <button
                       className={styles.replyButton}

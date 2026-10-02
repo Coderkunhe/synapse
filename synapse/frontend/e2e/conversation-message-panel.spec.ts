@@ -83,6 +83,9 @@ test('@mention 往返：composer 发含 @worker:<name> 的 body → 正常创建
 
   await expect(page.getByTestId('message-item').filter({ hasText: body })).toBeVisible({ timeout: 15_000 })
 
+  // @mention 高亮渲染：@worker:somebody token 应包在 .mentionHighlight span 里
+  await expect(page.getByTestId('mention-highlight').filter({ hasText: '@worker:somebody' })).toBeVisible()
+
   await context.close()
 })
 

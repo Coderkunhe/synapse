@@ -569,6 +569,15 @@
   word-break: break-word;
 }
 
+.mentionHighlight {
+  color: var(--gm-primary, #6c8cf5);
+  background: rgba(108, 140, 245, 0.12);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-family: var(--gm-font-mono, monospace);
+  font-weight: 500;
+}
+
 .replyIndicator {
   font-size: 11px;
   color: var(--gm-text-secondary, #8892a6);
