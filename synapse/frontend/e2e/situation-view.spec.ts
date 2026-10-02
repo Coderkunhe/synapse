@@ -4,6 +4,7 @@ import {
   loginAsHunter,
   accessCookie,
   seedProjectAndTasks,
+  cancelSeededTasks,
   type HunterAuth,
   type SeededProject,
 } from './helpers'
@@ -96,22 +97,13 @@ test('#3 claim → DAG 实时变色 + 事件流 prepend + 项目隔离', async (
   await context.close()
 })
 
-// Best-effort cleanup: cancel the claimed smoke tasks. The e2e-smoke-* projects
-// themselves are left for review / cleanup-dogfood-residue.py. The `request`
-// context is already authenticated from beforeAll's login (its cookie jar), so
-// no second login is needed here (P100-B178 · PFL-273 — avoids a 429th login).
+// Best-effort cleanup: cancel ALL seeded smoke tasks (not just the claimable
+// roots A/X — dependents B/C are left `ready` otherwise, polluting the ready
+// queue · PFL-275). The e2e-smoke-* projects themselves are left for review /
+// cleanup-dogfood-residue.py. Auth is explicit `Authorization: Bearer` (the
+// `request` fixture is isolated per hook — beforeAll's login cookie is NOT
+// carried into afterAll, which would otherwise 401).
 test.afterAll(async ({ request }) => {
-  try {
-    for (const [project, key] of [[p1, 'A'], [p2, 'X']] as const) {
-      const taskId = project.taskIds[key]
-      const taskRes = await request.get(`${API_BASE}/v1/tasks/${taskId}`)
-      if (!taskRes.ok()) continue
-      const task = await taskRes.json()
-      await request.post(`${API_BASE}/v1/tasks/${taskId}/cancel`, {
-        data: { expected_version: task.version_no },
-      })
-    }
-  } catch {
-    // Best-effort only — residue is namespaced and handled by cleanup-dogfood-residue.py.
-  }
+  await cancelSeededTasks(request, hunter.accessToken, p1)
+  await cancelSeededTasks(request, hunter.accessToken, p2)
 })

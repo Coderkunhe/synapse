@@ -3,6 +3,7 @@ import {
   loginAsHunter,
   accessCookie,
   seedProjectAndTasks,
+  cancelSeededTasks,
   type HunterAuth,
   type SeededProject,
 } from './helpers'
@@ -58,4 +59,10 @@ test('TaskDetail DAG 渲染传递闭包 · 零 N+1（单次 dependency-graph）'
   expect(dependencyGraphCalls).toBeGreaterThanOrEqual(1)
 
   await context.close()
+})
+
+// Best-effort cleanup: cancel the seeded DepNode chain so the run leaves no
+// owner=None `ready` residue in the shared dev DB (PFL-275).
+test.afterAll(async ({ request }) => {
+  await cancelSeededTasks(request, hunter.accessToken, p)
 })

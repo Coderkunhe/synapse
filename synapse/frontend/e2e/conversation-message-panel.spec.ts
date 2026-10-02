@@ -3,6 +3,7 @@ import {
   loginAsHunter,
   accessCookie,
   seedProjectAndTasks,
+  cancelSeededTasks,
   type HunterAuth,
   type SeededProject,
 } from './helpers'
@@ -117,4 +118,10 @@ test('threading：回复 → data-in-reply-to 非空 + 回复标识渲染', asyn
   await expect(reply.getByText(/↩/)).toBeVisible()
 
   await context.close()
+})
+
+// Best-effort cleanup: cancel the seeded MsgTask so the run leaves no owner=None
+// `ready` residue in the shared dev DB (PFL-275).
+test.afterAll(async ({ request }) => {
+  await cancelSeededTasks(request, hunter.accessToken, p)
 })

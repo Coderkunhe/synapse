@@ -96,3 +96,34 @@ export async function seedProjectAndTasks(
 
   return { projectId, taskIds, versions }
 }
+
+/** Best-effort cancel every task in a seeded project, so an e2e run leaves no
+ * owner=None `ready` residue in the shared dev DB (PFL-275). Generalizes the
+ * situation-view afterAll — cancels ALL tasks, not just the claimable roots,
+ * because dependent tasks (B/C/etc.) are left `ready` otherwise.
+ *
+ * Authenticates via `Authorization: Bearer` rather than the cookie jar: the
+ * Playwright `request` fixture is isolated per hook, so the login cookie set in
+ * `beforeAll` is NOT carried into `afterAll` (a GET there returns 401). Each
+ * task's current version is re-read via GET (a claim in a prior test may have
+ * bumped it past the seeded snapshot in `SeededProject.versions`). */
+export async function cancelSeededTasks(
+  request: APIRequestContext,
+  accessToken: string,
+  project: SeededProject,
+): Promise<void> {
+  const auth = { Authorization: `Bearer ${accessToken}` }
+  try {
+    for (const taskId of Object.values(project.taskIds)) {
+      const taskRes = await request.get(`${API_BASE}/v1/tasks/${taskId}`, { headers: auth })
+      if (!taskRes.ok()) continue
+      const task = await taskRes.json()
+      await request.post(`${API_BASE}/v1/tasks/${taskId}/cancel`, {
+        headers: auth,
+        data: { expected_version: task.version_no },
+      })
+    }
+  } catch {
+    // Best-effort only — residue is namespaced and handled by cleanup-dogfood-residue.py.
+  }
+}
