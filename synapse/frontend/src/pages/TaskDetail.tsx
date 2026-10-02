@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, Search } from 'lucide-react'
-import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, resolveTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole } from '../api/client'
-import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse, ConversationMessage } from '../api/client'
+import { fetchTask, fetchTaskEvents, fetchTaskMessages, createTaskMessage, resolveTaskMessage, claimTask, submitTask, updateTask, fetchVerifications, verifyVerification, fetchBatch, fetchWorker, fetchMyProjectRole, fetchWorkers } from '../api/client'
+import type { TaskDetail as TaskDetailType, EventSummary, VerificationResponse, ConversationMessage, WorkerSummary } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useWebSocket } from '../api/ws'
@@ -55,8 +55,21 @@ export default function TaskDetail() {
   const [replyToId, setReplyToId] = useState<string | null>(null)
   const [messageError, setMessageError] = useState<string | null>(null)
 
+  // ── @mention 补全 (P17-B14) ─────────────────────────────
+  const [mentionCandidates, setMentionCandidates] = useState<WorkerSummary[]>([])
+  const [mentionOpen, setMentionOpen] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionIndex, setMentionIndex] = useState(0)
+  const messageInputRef = useRef<HTMLTextAreaElement>(null)
+
   // 反查父消息（threading：reply 标识展示父 sender）
   const messagesById = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages])
+
+  // 按当前 @ 前缀过滤候选（case-insensitive contains，与后端 resolve_mentions 的 %name% 语义一致）
+  const filteredMentions = useMemo(() => {
+    const q = mentionQuery.toLowerCase()
+    return mentionCandidates.filter(w => w.name.toLowerCase().includes(q))
+  }, [mentionCandidates, mentionQuery])
 
   // ── Edit state ─────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -74,7 +87,15 @@ export default function TaskDetail() {
   const [editError, setEditError] = useState<string | null>(null)
   const [dismissedGuidance, setDismissedGuidance] = useState(false)
 
-  const { token, role, logout } = useAuth()
+  const { token, role, teamId, logout } = useAuth()
+
+  // 拉取团队 worker 作为 @mention 候选（仅 active 且未禁用）
+  useEffect(() => {
+    if (!teamId || !token) return
+    fetchWorkers(teamId, token, { status: 'active' })
+      .then(r => setMentionCandidates(r.items.filter(w => !w.is_disabled)))
+      .catch(() => { /* 非关键：mention 补全失败不阻断消息 */ })
+  }, [teamId, token])
 
   // P12-B18: project-level role for permission checks (not team-level role from AuthContext)
   const [projectRole, setProjectRole] = useState<string | null>(null)
@@ -194,6 +215,7 @@ export default function TaskDetail() {
       }, token)
       setMessageBody('')
       setReplyToId(null)
+      setMentionOpen(false)
       loadMessages()
     } catch {
       setMessageError(t('taskDetail.failedToSendMessage'))
@@ -222,6 +244,69 @@ export default function TaskDetail() {
 
   const handleCancelReply = () => {
     setReplyToId(null)
+  }
+
+  // ── @mention 补全 (P17-B14) ─────────────────────────────
+
+  // 光标前最近的 @ 触发点：@ 必须位于句首或空白之后，且 @ 与光标之间为纯 name 片段
+  const activeMentionTrigger = (value: string, cursor: number): number => {
+    const before = value.slice(0, cursor)
+    const lastAt = before.lastIndexOf('@')
+    if (lastAt === -1) return -1
+    const charBefore = lastAt > 0 ? before[lastAt - 1] : ' '
+    if (!/\s/.test(charBefore)) return -1
+    const query = before.slice(lastAt + 1)
+    // 已成形 mention（含 ':') 或含空白 → 不触发
+    if (!/^[A-Za-z0-9._-]*$/.test(query)) return -1
+    return lastAt
+  }
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    setMessageBody(value)
+    const cursor = e.target.selectionStart ?? value.length
+    const trigger = activeMentionTrigger(value, cursor)
+    if (trigger === -1) {
+      setMentionOpen(false)
+      return
+    }
+    setMentionQuery(value.slice(trigger + 1, cursor))
+    setMentionIndex(0)
+    setMentionOpen(true)
+  }
+
+  const insertMention = (name: string) => {
+    const el = messageInputRef.current
+    const cursor = el?.selectionStart ?? messageBody.length
+    const trigger = activeMentionTrigger(messageBody, cursor)
+    if (trigger === -1) return
+    const insert = `@worker:${name} `
+    const newBody = messageBody.slice(0, trigger) + insert + messageBody.slice(cursor)
+    const newCursor = trigger + insert.length
+    setMessageBody(newBody)
+    setMentionOpen(false)
+    requestAnimationFrame(() => {
+      if (el) {
+        el.focus()
+        el.setSelectionRange(newCursor, newCursor)
+      }
+    })
+  }
+
+  const handleMentionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!mentionOpen || filteredMentions.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setMentionIndex(i => (i + 1) % filteredMentions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setMentionIndex(i => (i - 1 + filteredMentions.length) % filteredMentions.length)
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      insertMention(filteredMentions[mentionIndex]?.name ?? filteredMentions[0].name)
+    } else if (e.key === 'Escape') {
+      setMentionOpen(false)
+    }
   }
 
   const handleClaim = async () => {
@@ -982,14 +1067,34 @@ export default function TaskDetail() {
             <option value="review_request">{t('taskDetail.msgType.review_request')}</option>
             <option value="proposal">{t('taskDetail.msgType.proposal')}</option>
           </select>
-          <textarea
-            className={styles.messageInput}
-            data-testid="message-input"
-            value={messageBody}
-            onChange={e => setMessageBody(e.target.value)}
-            placeholder={t('taskDetail.composerPlaceholder')}
-            rows={2}
-          />
+          <div className={styles.composerInputWrap}>
+            <textarea
+              className={styles.messageInput}
+              data-testid="message-input"
+              ref={messageInputRef}
+              value={messageBody}
+              onChange={handleMessageChange}
+              onKeyDown={handleMentionKeyDown}
+              placeholder={t('taskDetail.composerPlaceholder')}
+              rows={2}
+            />
+            {mentionOpen && filteredMentions.length > 0 && (
+              <ul className={styles.mentionDropdown} data-testid="mention-dropdown" role="listbox" aria-label={t('taskDetail.mentionSuggestions')}>
+                {filteredMentions.map((w, i) => (
+                  <li
+                    key={w.id}
+                    role="option"
+                    aria-selected={i === mentionIndex}
+                    className={`${styles.mentionOption}${i === mentionIndex ? ` ${styles.mentionActive}` : ''}`}
+                    data-testid="mention-option"
+                    onMouseDown={e => { e.preventDefault(); insertMention(w.name) }}
+                  >
+                    {w.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <button
             className={styles.sendButton}
             data-testid="message-send"

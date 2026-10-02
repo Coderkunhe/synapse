@@ -679,9 +679,14 @@
   border-radius: var(--gm-radius, 8px);
 }
 
-.messageInput {
+.composerInputWrap {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.messageInput {
+  width: 100%;
   padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;
@@ -690,6 +695,36 @@
   border: 1px solid var(--gm-border, #272d3a);
   border-radius: var(--gm-radius, 8px);
   resize: vertical;
+}
+
+.mentionDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--gm-surface, #141820);
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: var(--gm-radius, 8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.mentionOption {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--gm-text, #e4e8f0);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mentionActive {
+  background: var(--gm-primary, #6c8cf5);
+  color: #fff;
 }
 
 .sendButton {
