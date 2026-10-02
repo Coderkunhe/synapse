@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B11→B12 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步 B11（会话生命周期 dogfood · 判据 6/6 🟢）· 📚 登记 PFL-274 mention 实时投递 vs worker 轮询消费脱节 + PFL-275 e2e 残留污染 ready 队列 · 🎭 清理 91 个 e2e 残留 ready 任务 · counter 2→0 三源对齐",
+  "lastL5Batch": "B178→B179 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B178/B179 各自批内完成）· 📚 PFL-273 + PFL-275 收口闭环 · 🎭 e2e 7/7 绿 · counter 2→0 三源对齐",
   "lastL5Timestamp": "2026-10-02",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B11→B12 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步 B11（会话生命周期 dogfood · 判据 6/6 🟢）· 📚 登记 PFL-274 mention 实时投递 vs worker 轮询消费脱节 + PFL-275 e2e 残留污染 ready 队列 · 🎭 清理 91 个 e2e 残留 ready 任务 · counter 2→0 三源对齐",
+  "lastL5Evidence": "B178→B179 L5 拉通 — 📄 roadmap.md + requirements-log.md + daily/2026-10-02.md 已同步（B178/B179 各自批内完成）· 📚 PFL-273 + PFL-275 收口闭环 · 🎭 e2e 7/7 绿 · counter 2→0 三源对齐",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
