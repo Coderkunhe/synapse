@@ -929,6 +929,42 @@ class TestListMentions:
         assert await count_unread_mentions(db_session, test_worker_2) == 1
 
     @pytest.mark.asyncio
+    async def test_non_reply_message_does_not_mark_read(
+        self, db_session, test_task, test_worker, test_worker_2, actor_info
+    ):
+        """worker 发过非回复消息（in_reply_to_id=None）→ mention 仍判未读（PFL-277）."""
+        # test_worker_2 先发一条非回复消息，其 in_reply_to_id 为 NULL，
+        # 用于复现 PFL-277：replied 子查询含 NULL 时 NOT IN 恒为 NULL。
+        await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="这是一条非回复消息，in_reply_to_id 为 NULL。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker_2,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        # test_worker @ test_worker_2
+        msg = await create_message(
+            db_session,
+            task_id=test_task,
+            workflow_id=None,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+            in_reply_to_id=None,
+            sender_worker_id=test_worker,
+            **actor_info,
+        )
+        await db_session.commit()
+
+        items = await list_mentions(db_session, test_worker_2)
+        assert msg.id in [m.id for m in items]
+        assert await count_unread_mentions(db_session, test_worker_2) == 1
+
+    @pytest.mark.asyncio
     async def test_reply_marks_read(
         self, db_session, test_task, test_worker, test_worker_2, actor_info
     ):

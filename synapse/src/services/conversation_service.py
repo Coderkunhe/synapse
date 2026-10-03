@@ -202,6 +202,7 @@ async def list_mentions(
         replied = (
             select(TaskWorkerConversation.in_reply_to_id)
             .where(TaskWorkerConversation.sender_worker_id == worker_id)
+            .where(TaskWorkerConversation.in_reply_to_id.isnot(None))
         )
         stmt = (
             stmt.where(TaskWorkerConversation.sender_worker_id != worker_id)
@@ -226,6 +227,7 @@ async def count_unread_mentions(
     replied = (
         select(TaskWorkerConversation.in_reply_to_id)
         .where(TaskWorkerConversation.sender_worker_id == worker_id)
+        .where(TaskWorkerConversation.in_reply_to_id.isnot(None))
     )
     stmt = (
         select(func.count(TaskWorkerConversation.id))
