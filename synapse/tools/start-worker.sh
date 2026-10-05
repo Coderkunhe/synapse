@@ -36,8 +36,13 @@
 #   SYNAPSE_WORKER_ROLE  — 可选（builder/orchestrator · server 端 project role 优先）
 #
 # 可选调参（环境变量覆盖）：
-#   SYNAPSE_IDLE_SLEEP_MIN   idle 初始退避秒数（默认 20）
-#   SYNAPSE_IDLE_SLEEP_MAX   idle 退避上限秒数（默认 300）
+#   SYNAPSE_IDLE_POLL_INTERVAL  idle 固定轮询间隔秒数（默认 5）
+#                            P17-B19 (PFL-278 blade 1)：idle 不再指数退避，改固定短
+#                            间隔轮询，bound mention 唤醒延迟（= 轮询间隔 + claude -p
+#                            处理地板 ~87s）。指数退避会让 idle 越久 mention 检出越慢
+#                            （PFL-278 实测 backoff 等待 ~106s）。
+#   SYNAPSE_IDLE_SLEEP_MIN   API 不可达 / 未知 action 错误路径重试秒数（默认 20）
+#   SYNAPSE_IDLE_SLEEP_MAX   错误路径重试上限秒数（默认 300）
 #   SYNAPSE_CLAUDE_TIMEOUT   claude -p 单次超时兜底秒数（默认 900 · 15min）
 #                            P16-B5 (PFL-249)：旧默认 360 来自 B1 spike「O 单次
 #                            判断 3min21s」，但一个 next_action 是完整 agentic
@@ -59,6 +64,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── 默认值（可被环境变量覆盖）──────────────────────────────
 IDLE_SLEEP_MIN="${SYNAPSE_IDLE_SLEEP_MIN:-20}"
 IDLE_SLEEP_MAX="${SYNAPSE_IDLE_SLEEP_MAX:-300}"
+IDLE_POLL_INTERVAL="${SYNAPSE_IDLE_POLL_INTERVAL:-5}"   # P17-B19 (PFL-278): idle 固定轮询
 CLAUDE_TIMEOUT="${SYNAPSE_CLAUDE_TIMEOUT:-900}"   # 兜底（轻动作默认）
 # P16-B8 (PFL-261)：超时按 next_action 分档，不再单值一刀切
 ACTION_TIMEOUT_SPLIT="${SYNAPSE_TIMEOUT_SPLIT:-1800}"
@@ -345,7 +351,7 @@ echo -e "${BOLD}│  ${CYAN}api=${API_URL}${BOLD}  │${NC}"
 echo -e "${BOLD}└──────────────────────────────────────────────┘${NC}"
 echo ""
 
-idle_sleep="$IDLE_SLEEP_MIN"
+idle_sleep="$IDLE_SLEEP_MIN"   # P17-B19 起仅用于错误路径（API 不可达/未知 action）重试
 fail_sleep="$FAIL_SLEEP_MIN"   # P16-B5 PFL-249: 连续失败/超时的退避
 consecutive_fails=0
 
@@ -370,17 +376,17 @@ while true; do
     fi
 
     case "$NEXT_ACTION" in
-        # ── 无活：指数退避 ──
+        # ── 无活：固定短间隔轮询（P17-B19 PFL-278 · 退避已移除）──
         idle|"")
-            echo -e "$(date -u +%H:%M:%S) ${CYAN}😴 idle（queue=${QUEUE}）· backoff ${idle_sleep}s${NC}"
-            sleep "$idle_sleep"
-            idle_sleep=$((idle_sleep * 2))
-            [[ $idle_sleep -gt $IDLE_SLEEP_MAX ]] && idle_sleep=$IDLE_SLEEP_MAX
+            echo -e "$(date -u +%H:%M:%S) ${CYAN}😴 idle（queue=${QUEUE}）· mention-watch poll ${IDLE_POLL_INTERVAL}s${NC}"
+            # P17-B19 (PFL-278 blade 1)：idle 固定短间隔轮询，不再指数退避 ——
+            # 退避会让 idle 越久 mention 检出越慢（PFL-278 实测 backoff 等待 ~106s）。
+            # 剩余延迟（claude -p 处理地板 ~87s）留给第二刀 daemon 常驻。
+            sleep "$IDLE_POLL_INTERVAL"
             ;;
 
         # ── 有活：分派 claude -p 一个动作单元 ──
         verify|split|assign|monitor|execute|claim|respond_to_mention)
-            idle_sleep="$IDLE_SLEEP_MIN"  # 有活即复位退避
             # P16-B8 (PFL-261)：超时按动作分档——split/execute 重，轻动作短
             case "$NEXT_ACTION" in
                 split)   ACTION_TIMEOUT="$ACTION_TIMEOUT_SPLIT" ;;
