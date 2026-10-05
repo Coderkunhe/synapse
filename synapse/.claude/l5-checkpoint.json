@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B18 L5 拉通 — roadmap.md + requirements-log.md + daily/2026-10-04.md + pitfalls.md 已同步（B18 VDD 修 PFL-277 ✅ · PFL-277 🔴→🟢 闭环）· track last_batch → P17-B18 · 三源对齐复位 2→0",
   "lastL5Timestamp": "2026-10-04",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B18 L5 拉通 — roadmap.md + requirements-log.md + daily/2026-10-04.md + pitfalls.md 已同步（B18 VDD 修 PFL-277 ✅ · PFL-277 🔴→🟢 闭环）· track last_batch → P17-B18 · 三源对齐复位 2→0",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
