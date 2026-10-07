@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B18→B19 拉通完成 — roadmap.md + requirements-log.md + daily/2026-10-05.md + pitfalls.md 已同步（B19 PFL-278 blade 1 砍 idle backoff ✅ · start-worker.sh 固定短间隔轮询 · 193s→~87s · 0 src code）· track last_batch → P17-B19 · 三源对齐复位 2→0",
-  "lastL5Timestamp": "2026-10-05",
+  "lastL5Batch": "P17-B19→B20 L5 拉通 — 📄 roadmap.md + requirements-log.md + pitfalls.md + daily 已同步 B20 claude -p 方差确认（地板 14.6/16.7/29.7/62.1s 方差 4.3× · 判据 #6 未稳健达标 · blade 2 决策推迟）· 📚 叙事一致（B19 单样本结论推翻 · 判据 #6 收口为未稳健达标）· 🎭 4 次 @mention 唤醒场景遍历",
+  "lastL5Timestamp": "2026-10-07",
   "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B18→B19 拉通完成 — roadmap.md + requirements-log.md + daily/2026-10-05.md + pitfalls.md 已同步（B19 PFL-278 blade 1 砍 idle backoff ✅ · start-worker.sh 固定短间隔轮询 · 193s→~87s · 0 src code）· track last_batch → P17-B19 · 三源对齐复位 2→0",
+  "lastL5Evidence": "P17-B19→B20 L5 拉通 — 📄 roadmap.md + requirements-log.md + pitfalls.md + daily 已同步 B20 claude -p 方差确认（地板 14.6/16.7/29.7/62.1s 方差 4.3× · 判据 #6 未稳健达标 · blade 2 决策推迟）· 📚 叙事一致（B19 单样本结论推翻 · 判据 #6 收口为未稳健达标）· 🎭 4 次 @mention 唤醒场景遍历",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
