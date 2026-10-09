@@ -608,6 +608,39 @@
   border-radius: 10px;
 }
 
+.mentionStateBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.mentionStateBadge[data-mention-state='waiting'] {
+  color: var(--gm-text-secondary, #8892a6);
+  background: rgba(136, 146, 166, 0.12);
+}
+
+.mentionStateBadge[data-mention-state='thinking'] {
+  color: var(--gm-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+  animation: mentionPulse 1.5s ease-in-out infinite;
+}
+
+.mentionStateBadge[data-mention-state='replied'] {
+  color: var(--gm-success, #4ade80);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+@keyframes mentionPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 .messageActions {
   display: flex;
   justify-content: flex-end;

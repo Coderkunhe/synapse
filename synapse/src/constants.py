@@ -171,6 +171,9 @@ class EventType(StrEnum):
     WORKER_RUNTIME_BUSY = "worker.runtime.busy"
     WORKER_RUNTIME_ERROR = "worker.runtime.error"
 
+    # P17-B22: 协作层反馈闭环 — 人 @ agent 后「思考中」信号
+    WORKER_MENTION_RESPONDING = "worker.mention.responding"
+
     # Worker project role (P10-B18)
     WORKER_PROJECT_ROLE_ASSIGNED = "worker.project_role.assigned"
     WORKER_PROJECT_ROLE_CHANGED = "worker.project_role.changed"

@@ -15,7 +15,7 @@ from src.db import get_db
 from src.dependencies import ActorInfo, get_current_actor, require_role
 from src.exceptions import AuthenticationError, ForbiddenError, NotFoundError, SynapseError
 from src.models.worker import Worker
-from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, TaskStatus, WorkerActorType, WorkerStatus
+from src.constants import ActorType, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, EventType, TaskStatus, WorkerActorType, WorkerStatus
 from src.models.project import Project
 from src.models.task import Task
 from src.models.authorization_request import AuthorizationRequest
@@ -55,7 +55,7 @@ from src.services.worker_service import (
 )
 from src.services.project_role_service import get_worker_projects
 from src.services.worker_scheduler import start_task as _start_task
-from src.services.state_router import compute_state_router
+from src.services.state_router import NEXT_ACTION_RESPOND_TO_MENTION, compute_state_router
 
 from src.services.template_service import render_protocol, compute_template_versions
 
@@ -555,6 +555,26 @@ async def worker_heartbeat(
     # project 作用域警告，不再误报「默认分配 builder」。
     routing = await compute_state_router(db, worker, body.project_id)
     role_warnings: list[str] = list(routing["role_warnings"])
+
+    # ── P17-B22: mention 响应信号 — 协作层反馈闭环的「思考中」态 ──
+    # 不碰 worker.runtime 状态机：其 BUSY 语义是「任务」非「mention」，
+    # 复用会被下一轮心跳「无任务→IDLE」清回造成抖动。故用专用事件；
+    # event_store.record 自动 broadcast_to_team → 人侧 WS 可见。
+    if routing["next_action"] == NEXT_ACTION_RESPOND_TO_MENTION:
+        await event_store.record(
+            db,
+            event_type=EventType.WORKER_MENTION_RESPONDING,
+            team_id=worker.team_id,
+            actor_type=ActorType.WORKER,
+            actor_id=worker.id,
+            target_type="worker",
+            target_id=worker.id,
+            payload={
+                "worker_id": worker.id,
+                "unread_mentions": routing["unread_mentions"],
+            },
+        )
+        await db.commit()
 
     return WorkerHeartbeatResponse(
         status="ok",

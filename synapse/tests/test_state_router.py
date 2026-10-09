@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import json
 import secrets
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from src.auth import hash_api_key
-from src.constants import ActorType, OwnerType, TaskStatus, WorkerActorType, WorkerStatus
+from src.constants import ActorType, EventType, OwnerType, TaskStatus, WorkerActorType, WorkerStatus
 from src.db import async_session_factory
+from src.models.event import Event
 from src.models.project import Project
 from src.models.project_actor_role import ProjectActorRole
 from src.models.task import Task
@@ -274,6 +277,52 @@ class TestStateRouter:
         data = await self._heartbeat(client, worker_id, key)
         assert data["next_action"] == "idle"
         assert data["unread_mentions"] == 0
+
+    # ── P17-B22: mention 响应信号事件落库 ──────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_mention_responding_emits_event(self, client: AsyncClient, seed: SeedData):
+        """respond_to_mention 心跳 → 落一条 worker.mention.responding 事件。"""
+        _, worker_id, key = await self._setup_mention(team_id=seed.team_id, role="builder")
+        data = await self._heartbeat(client, worker_id, key)
+        assert data["next_action"] == "respond_to_mention"
+
+        async with async_session_factory() as db:
+            result = await db.execute(
+                select(Event).where(
+                    Event.event_type == EventType.WORKER_MENTION_RESPONDING,
+                    Event.actor_id == worker_id,
+                )
+            )
+            events = list(result.scalars().all())
+
+        assert len(events) == 1
+        event = events[0]
+        assert event.actor_type == ActorType.WORKER
+        assert event.target_type == "worker"
+        assert event.target_id == worker_id
+        assert event.team_id == seed.team_id
+        payload = json.loads(event.payload)
+        assert payload["worker_id"] == worker_id
+        assert payload["unread_mentions"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_idle_heartbeat_does_not_emit_mention_event(self, client: AsyncClient, seed: SeedData):
+        """无未读 mention（idle）→ 不落 worker.mention.responding 事件。"""
+        _, worker_id, key = await self._setup(team_id=seed.team_id, role="builder")
+        data = await self._heartbeat(client, worker_id, key)
+        assert data["next_action"] == "idle"
+
+        async with async_session_factory() as db:
+            result = await db.execute(
+                select(Event).where(
+                    Event.event_type == EventType.WORKER_MENTION_RESPONDING,
+                    Event.actor_id == worker_id,
+                )
+            )
+            events = list(result.scalars().all())
+
+        assert events == []
 
     # ── queue 计数 ────────────────────────────────────────────────
 

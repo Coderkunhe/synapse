@@ -16,7 +16,7 @@ import styles from './TaskDetail.module.css'
 const PRIORITIES = ['p0', 'p1', 'p2', 'p3']
 const EFFORTS = ['xs', 's', 'm', 'l', 'xl']
 // 模块级常量 — useWebSocket 用 topics.join(',') 做 stableTopics，内联字面量会触发重连循环
-const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.message.resolved']
+const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.message.resolved', 'worker.mention.responding']
 
 // 与后端 _MENTION_RE = r"@(worker|role):(\S+)"（conversation_service.py:38）一致，保证高亮范围 = 后端实际解析范围
 const MENTION_RE = /@(worker|role):(\S+)/g
@@ -58,6 +58,27 @@ function renderMentionedBody(body: string, workerByName: Map<string, string>): R
   return parts
 }
 
+type MentionState = 'waiting' | 'thinking' | 'replied'
+
+// P17-B22: 正文是否含 @worker:<name>（@role 不算「提到具体 worker」）。
+function hasWorkerMention(body: string): boolean {
+  for (const m of body.matchAll(MENTION_RE)) {
+    if (m[1] === 'worker') return true
+  }
+  return false
+}
+
+// P17-B22: 提取正文里 @worker:<name> 对应的 worker id（用于「思考中」匹配事件 worker_id）。
+function extractMentionedWorkerIds(body: string, workerByName: Map<string, string>): string[] {
+  const ids: string[] = []
+  for (const m of body.matchAll(MENTION_RE)) {
+    if (m[1] !== 'worker') continue
+    const id = workerByName.get(m[2])
+    if (id && !ids.includes(id)) ids.push(id)
+  }
+  return ids
+}
+
 export default function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
   const { t, lang } = useI18n()
@@ -95,6 +116,9 @@ export default function TaskDetail() {
   const [replyToId, setReplyToId] = useState<string | null>(null)
   const [messageError, setMessageError] = useState<string | null>(null)
 
+  // ── P17-B22: mention 响应信号 → 「思考中」态（worker id 集合 · 幂等）─────
+  const [thinkingWorkerIds, setThinkingWorkerIds] = useState<Set<string>>(new Set())
+
   // ── @mention 补全 (P17-B14) ─────────────────────────────
   const [mentionCandidates, setMentionCandidates] = useState<WorkerSummary[]>([])
   const [mentionOpen, setMentionOpen] = useState(false)
@@ -104,6 +128,12 @@ export default function TaskDetail() {
 
   // 反查父消息（threading：reply 标识展示父 sender）
   const messagesById = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages])
+
+  // P17-B22: 已被回复的 message id 集合（in_reply_to_id 指向它）→「已回复」态
+  const repliedIds = useMemo(
+    () => new Set(messages.filter(m => m.in_reply_to_id).map(m => m.in_reply_to_id as string)),
+    [messages],
+  )
 
   // 按当前 @ 前缀过滤候选（case-insensitive contains，与后端 resolve_mentions 的 %name% 语义一致）
   const filteredMentions = useMemo(() => {
@@ -246,6 +276,20 @@ export default function TaskDetail() {
       loadMessages()
     }
   }, [lastEvent, taskId, loadMessages])
+
+  // P17-B22: worker.mention.responding → 记录「思考中」的 worker（幂等，Set 去重）。
+  // 无「响应完成」信号 → thinking 态粘性；但「已回复」优先级更高，会覆盖它。
+  useEffect(() => {
+    if (lastEvent?.event_type !== 'worker.mention.responding') return
+    const wid = lastEvent.payload?.worker_id as string | undefined
+    if (!wid) return
+    setThinkingWorkerIds(prev => {
+      if (prev.has(wid)) return prev
+      const next = new Set(prev)
+      next.add(wid)
+      return next
+    })
+  }, [lastEvent])
 
   const handleSendMessage = async () => {
     if (!task?.project_id || !taskId || !token) return
@@ -1038,6 +1082,14 @@ export default function TaskDetail() {
           <div className={styles.messageList} data-testid="message-list">
             {messages.map(msg => {
               const parent = msg.in_reply_to_id ? messagesById.get(msg.in_reply_to_id) : undefined
+              const mentionedIds = extractMentionedWorkerIds(msg.body, workerByName)
+              const mentionState: MentionState | null = !hasWorkerMention(msg.body)
+                ? null
+                : repliedIds.has(msg.id)
+                  ? 'replied'
+                  : mentionedIds.some(id => thinkingWorkerIds.has(id))
+                    ? 'thinking'
+                    : 'waiting'
               return (
                 <div
                   key={msg.id}
@@ -1056,6 +1108,19 @@ export default function TaskDetail() {
                       <span className={styles.messageType}>
                         {MESSAGE_TYPE_LABELS[msg.message_type] ?? msg.message_type}
                       </span>
+                      {mentionState && (
+                        <span
+                          className={styles.mentionStateBadge}
+                          data-mention-state={mentionState}
+                          data-testid="mention-state"
+                        >
+                          {mentionState === 'replied'
+                            ? t('taskDetail.mentionReplied')
+                            : mentionState === 'thinking'
+                              ? t('taskDetail.mentionThinking')
+                              : t('taskDetail.mentionWaiting')}
+                        </span>
+                      )}
                       {msg.is_resolved && <span className={styles.resolvedBadge}>{t('taskDetail.resolved')}</span>}
                     </span>
                     <span className={styles.messageMeta}>

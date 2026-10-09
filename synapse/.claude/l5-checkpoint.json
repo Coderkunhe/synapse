@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B19→B20 L5 拉通 — 📄 roadmap.md + requirements-log.md + pitfalls.md + daily 已同步 B20 claude -p 方差确认（地板 14.6/16.7/29.7/62.1s 方差 4.3× · 判据 #6 未稳健达标 · blade 2 决策推迟）· 📚 叙事一致（B19 单样本结论推翻 · 判据 #6 收口为未稳健达标）· 🎭 4 次 @mention 唤醒场景遍历",
   "lastL5Timestamp": "2026-10-07",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B19→B20 L5 拉通 — 📄 roadmap.md + requirements-log.md + pitfalls.md + daily 已同步 B20 claude -p 方差确认（地板 14.6/16.7/29.7/62.1s 方差 4.3× · 判据 #6 未稳健达标 · blade 2 决策推迟）· 📚 叙事一致（B19 单样本结论推翻 · 判据 #6 收口为未稳健达标）· 🎭 4 次 @mention 唤醒场景遍历",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
