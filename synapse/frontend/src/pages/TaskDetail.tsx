@@ -21,6 +21,13 @@ const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.messa
 // 与后端 _MENTION_RE = r"@(worker|role):(\S+)"（conversation_service.py:38）一致，保证高亮范围 = 后端实际解析范围
 const MENTION_RE = /@(worker|role):(\S+)/g
 
+// P17-B23: @role 补全静态候选 — 镜像后端 ProjectRole 协作角色（constants.py:135）。
+// admin/lead/member 为权限角色，@ 它们意义弱，暂不列入补全。
+const ROLE_MENTIONS = ['orchestrator', 'builder', 'steward']
+
+// P17-B23: 混合补全候选 — worker 带 id（跳转/高亮），role 仅 name。
+type MentionOption = { kind: 'worker'; name: string; id: string } | { kind: 'role'; name: string }
+
 // 把正文里的 @worker:<name> / @role:<rolename> token 渲染成高亮 span。
 // 用 React 分段渲染（非 dangerouslySetInnerHTML）→ body 是用户/agent 输入，天然 XSS 安全。
 // P17-B16：命中 worker 的 @worker:<name> 渲染成 <Link> 跳 worker detail；@role 或未命中（含尾随标点）保持 span。
@@ -135,11 +142,18 @@ export default function TaskDetail() {
     [messages],
   )
 
+  // 混合补全候选：团队 worker + 静态协作角色（P17-B23 @role 团队点名）
+  const mentionOptions = useMemo<MentionOption[]>(() => {
+    const workers: MentionOption[] = mentionCandidates.map(w => ({ kind: 'worker', name: w.name, id: w.id }))
+    const roles: MentionOption[] = ROLE_MENTIONS.map(r => ({ kind: 'role', name: r }))
+    return [...workers, ...roles]
+  }, [mentionCandidates])
+
   // 按当前 @ 前缀过滤候选（case-insensitive contains，与后端 resolve_mentions 的 %name% 语义一致）
   const filteredMentions = useMemo(() => {
     const q = mentionQuery.toLowerCase()
-    return mentionCandidates.filter(w => w.name.toLowerCase().includes(q))
-  }, [mentionCandidates, mentionQuery])
+    return mentionOptions.filter(o => o.name.toLowerCase().includes(q))
+  }, [mentionOptions, mentionQuery])
 
   // name → worker id 映射（P17-B16：@mention 点击跳 worker detail）
   const workerByName = useMemo(
@@ -365,12 +379,12 @@ export default function TaskDetail() {
     setMentionOpen(true)
   }
 
-  const insertMention = (name: string) => {
+  const insertMention = (name: string, kind: 'worker' | 'role') => {
     const el = messageInputRef.current
     const cursor = el?.selectionStart ?? messageBody.length
     const trigger = activeMentionTrigger(messageBody, cursor)
     if (trigger === -1) return
-    const insert = `@worker:${name} `
+    const insert = kind === 'worker' ? `@worker:${name} ` : `@role:${name} `
     const newBody = messageBody.slice(0, trigger) + insert + messageBody.slice(cursor)
     const newCursor = trigger + insert.length
     setMessageBody(newBody)
@@ -393,7 +407,8 @@ export default function TaskDetail() {
       setMentionIndex(i => (i - 1 + filteredMentions.length) % filteredMentions.length)
     } else if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault()
-      insertMention(filteredMentions[mentionIndex]?.name ?? filteredMentions[0].name)
+      const pick = filteredMentions[mentionIndex] ?? filteredMentions[0]
+      insertMention(pick.name, pick.kind)
     } else if (e.key === 'Escape') {
       setMentionOpen(false)
     }
@@ -1191,16 +1206,17 @@ export default function TaskDetail() {
             />
             {mentionOpen && filteredMentions.length > 0 && (
               <ul className={styles.mentionDropdown} data-testid="mention-dropdown" role="listbox" aria-label={t('taskDetail.mentionSuggestions')}>
-                {filteredMentions.map((w, i) => (
+                {filteredMentions.map((o, i) => (
                   <li
-                    key={w.id}
+                    key={o.kind === 'worker' ? o.id : `role:${o.name}`}
                     role="option"
                     aria-selected={i === mentionIndex}
                     className={`${styles.mentionOption}${i === mentionIndex ? ` ${styles.mentionActive}` : ''}`}
                     data-testid="mention-option"
-                    onMouseDown={e => { e.preventDefault(); insertMention(w.name) }}
+                    onMouseDown={e => { e.preventDefault(); insertMention(o.name, o.kind) }}
                   >
-                    {w.name}
+                    {o.name}
+                    {o.kind === 'role' && <span className={styles.mentionRoleTag}>{t('taskDetail.mentionRole')}</span>}
                   </li>
                 ))}
               </ul>

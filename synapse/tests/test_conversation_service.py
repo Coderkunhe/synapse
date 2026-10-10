@@ -11,7 +11,7 @@ from src.db import async_session_factory
 from src.exceptions import NotFoundError
 from src.models.task import Task
 from src.models.worker import Worker
-from src.models.workflow import Workflow, WorkflowRole
+from src.models.project_actor_role import ProjectActorRole
 from src.models.project import Project
 from src.services.conversation_service import (
     count_unread_mentions, create_message, get_message, list_messages,
@@ -101,20 +101,6 @@ async def test_task(db_session, seed, test_project):
     return task.id
 
 
-@pytest.fixture
-async def test_workflow(db_session, seed, test_project):
-    """创建一个测试用的 Workflow."""
-    wf = Workflow(
-        id=generate_id("workflow"),
-        project_id=test_project,
-        name="Test Workflow",
-        status="active",
-    )
-    db_session.add(wf)
-    await db_session.commit()
-    return wf.id
-
-
 # ══ parse_mentions (unit, no DB) ══
 
 class TestParseMentions:
@@ -190,58 +176,77 @@ class TestResolveMentions:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_resolve_role_with_workflow(
-        self, db_session, seed, test_workflow, test_worker
+    async def test_resolve_role_with_project(
+        self, db_session, test_project, test_worker
     ):
-        """@role 在 workflow 上下文中解析."""
-        # 给 test_worker 在 workflow 中分配 orchestrator 角色
-        wr = WorkflowRole(
-            id=generate_id("workflow_role"),
-            workflow_id=test_workflow,
+        """@role 在 project 上下文中解析."""
+        # 给 test_worker 在 project 中分配 orchestrator 角色
+        par = ProjectActorRole(
+            id=generate_id("project_actor_role"),
+            project_id=test_project,
             worker_id=test_worker,
             role="orchestrator",
         )
-        db_session.add(wr)
+        db_session.add(par)
         await db_session.commit()
 
         mentions = [{"type": "role", "value": "orchestrator"}]
-        result = await resolve_mentions(db_session, mentions, workflow_id=test_workflow)
+        result = await resolve_mentions(db_session, mentions, project_id=test_project)
         assert test_worker in result
 
     @pytest.mark.asyncio
-    async def test_resolve_role_no_workflow_skipped(self, db_session):
-        """无 workflow_id 时 @role 无法解析 → 静默跳过."""
+    async def test_resolve_role_no_project_skipped(self, db_session):
+        """无 project_id 时 @role 无法解析 → 静默跳过."""
         mentions = [{"type": "role", "value": "orchestrator"}]
-        result = await resolve_mentions(db_session, mentions, workflow_id=None)
+        result = await resolve_mentions(db_session, mentions, project_id=None)
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_resolve_role_no_match(self, db_session, test_workflow):
-        """workflow 中存在但无匹配角色."""
+    async def test_resolve_role_no_match(self, db_session, test_project):
+        """project 中存在但无匹配角色."""
         mentions = [{"type": "role", "value": "nonexistent-role"}]
-        result = await resolve_mentions(db_session, mentions, workflow_id=test_workflow)
+        result = await resolve_mentions(db_session, mentions, project_id=test_project)
         assert result == []
 
     @pytest.mark.asyncio
     async def test_resolve_mixed_mentions(
-        self, db_session, test_worker, test_worker_2, test_workflow
+        self, db_session, test_project, test_worker, test_worker_2
     ):
         """混合 @worker + @role 解析."""
         # role 分配
-        wr = WorkflowRole(
-            id=generate_id("workflow_role"),
-            workflow_id=test_workflow,
+        par = ProjectActorRole(
+            id=generate_id("project_actor_role"),
+            project_id=test_project,
             worker_id=test_worker_2,
             role="reviewer",
         )
-        db_session.add(wr)
+        db_session.add(par)
         await db_session.commit()
 
         mentions = [
             {"type": "worker", "value": "Builder"},       # → test_worker
             {"type": "role", "value": "reviewer"},        # → test_worker_2
         ]
-        result = await resolve_mentions(db_session, mentions, workflow_id=test_workflow)
+        result = await resolve_mentions(db_session, mentions, project_id=test_project)
+        assert test_worker in result
+        assert test_worker_2 in result
+
+    @pytest.mark.asyncio
+    async def test_resolve_role_matches_multiple_workers(
+        self, db_session, test_project, test_worker, test_worker_2
+    ):
+        """@role 点名整个角色 — 同 project 多个 builder 都命中."""
+        for wid in (test_worker, test_worker_2):
+            db_session.add(ProjectActorRole(
+                id=generate_id("project_actor_role"),
+                project_id=test_project,
+                worker_id=wid,
+                role="builder",
+            ))
+        await db_session.commit()
+
+        mentions = [{"type": "role", "value": "builder"}]
+        result = await resolve_mentions(db_session, mentions, project_id=test_project)
         assert test_worker in result
         assert test_worker_2 in result
 

@@ -773,6 +773,15 @@
   cursor: pointer;
 }
 
+.mentionRoleTag {
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 11px;
+  border: 1px solid var(--gm-border, #272d3a);
+  border-radius: 4px;
+  opacity: 0.75;
+}
+
 .mentionActive {
   background: var(--gm-primary, #6c8cf5);
   color: #fff;

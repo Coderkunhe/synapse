@@ -27,7 +27,7 @@ from src.models.task_worker_conversation import (
 )
 from src.models.task import Task
 from src.models.worker import Worker
-from src.models.workflow import WorkflowRole
+from src.models.project_actor_role import ProjectActorRole
 from src.services.event_store import event_store, event_to_dict
 from src.utils.id_gen import generate_id
 
@@ -61,12 +61,12 @@ def parse_mentions(body: str) -> list[dict[str, str]]:
 async def resolve_mentions(
     db: AsyncSession,
     mentions: list[dict[str, str]],
-    workflow_id: str | None = None,
+    project_id: str | None = None,
 ) -> list[str]:
     """将 @mention 引用解析为 worker_id 列表。
 
     - @worker:<name> → 模糊匹配 worker.name（case-insensitive LIKE）
-    - @role:<rolename> → 在 Workflow 上下文中查找该角色的 Worker（需 workflow_id）
+    - @role:<rolename> → 在 Project 上下文中查找该角色的 Worker（需 project_id）
 
     无法解析的 mention 静默跳过 — 消息不因 mention 无效而创建失败。
     """
@@ -100,12 +100,12 @@ async def resolve_mentions(
                 worker_ids.append(wid)
 
     # ── 解析 @role:<rolename> ──
-    if role_names and workflow_id:
+    if role_names and project_id:
         result = await db.execute(
-            select(WorkflowRole.worker_id)
+            select(ProjectActorRole.worker_id)
             .where(
-                WorkflowRole.workflow_id == workflow_id,
-                WorkflowRole.role.in_(role_names),
+                ProjectActorRole.project_id == project_id,
+                ProjectActorRole.role.in_(role_names),
             )
         )
         for row in result.all():
@@ -311,7 +311,7 @@ async def create_message(
 
     # ── @mention 解析 ──
     mentions = parse_mentions(body)
-    worker_ids = await resolve_mentions(db, mentions, workflow_id)
+    worker_ids = await resolve_mentions(db, mentions, task_project_id)
     mentions_json_str = json.dumps(mentions) if mentions else None
 
     now = datetime.now(timezone.utc)
