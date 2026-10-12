@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B23→B24 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-11.md 已同步 B24 @role dogfood 验证 · 📚 docs/pitfalls.md 日期同步 · 🎭 tools/p17-b24-role-mention-dogfood.py 断言 @role:builder→3 builder 唤醒 · 0 src code",
   "lastL5Timestamp": "2026-10-11",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B23→B24 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-11.md 已同步 B24 @role dogfood 验证 · 📚 docs/pitfalls.md 日期同步 · 🎭 tools/p17-b24-role-mention-dogfood.py 断言 @role:builder→3 builder 唤醒 · 0 src code",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
