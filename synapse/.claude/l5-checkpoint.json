@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B23→B24 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-11.md 已同步 B24 @role dogfood 验证 · 📚 docs/pitfalls.md 日期同步 · 🎭 tools/p17-b24-role-mention-dogfood.py 断言 @role:builder→3 builder 唤醒 · 0 src code",
-  "lastL5Timestamp": "2026-10-11",
-  "batchesSinceLastL5": 1,
+  "lastL5Batch": "P100-B179→B180 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-12.md 已同步 B180 PFL-276 · 📚 docs/pitfalls.md PFL-276→✅ 已修复 · 🎭 级联删除场景（删 worker / 删 conversation）遍历验证通过",
+  "lastL5Timestamp": "2026-10-12",
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B23→B24 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-11.md 已同步 B24 @role dogfood 验证 · 📚 docs/pitfalls.md 日期同步 · 🎭 tools/p17-b24-role-mention-dogfood.py 断言 @role:builder→3 builder 唤醒 · 0 src code",
+  "lastL5Evidence": "P100-B179→B180 L5 拉通 — 📄 docs/roadmap.md+docs/requirements-log.md+docs/daily/2026-10-12.md 已同步 B180 PFL-276 · 📚 docs/pitfalls.md PFL-276→✅ 已修复 · 🎭 级联删除场景（删 worker / 删 conversation）遍历验证通过",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
