@@ -125,10 +125,11 @@ class TaskWorkerConversationMention(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
     conversation_id: Mapped[str] = mapped_column(
-        ForeignKey("task_worker_conversation.id"), nullable=False, index=True,
-        comment="被 @ 的消息 ID",
+        ForeignKey("task_worker_conversation.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+        comment="被 @ 的消息 ID — 消息删除时级联清理 mention 行（PFL-276）",
     )
     worker_id: Mapped[str] = mapped_column(
-        ForeignKey("worker.id"), nullable=False, index=True,
-        comment="被 @ 的 worker ID（resolve_mentions 解析结果落库）",
+        ForeignKey("worker.id", ondelete="CASCADE"), nullable=False, index=True,
+        comment="被 @ 的 worker ID（resolve_mentions 解析结果落库）— worker 删除时级联清理（PFL-276）",
     )

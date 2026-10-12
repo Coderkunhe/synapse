@@ -1069,3 +1069,85 @@ class TestListMentions:
             db_session, test_worker_2, project_id="prj_nonexistent"
         )
         assert items_wrong == []
+
+
+# ══ mention 级联删除（PFL-276 / P100-B180） ══
+
+class TestMentionCascade:
+    """mention 关联行随 worker / conversation 删除级联清理."""
+
+    async def _make_mention(self, db_session, test_task, test_worker, test_worker_2):
+        """直接构造一条消息 + 一条指向 test_worker_2 的 mention 行。
+
+        不走 create_message（其 resolve_mentions 用 name LIKE 匹配，历史同名
+        worker 会干扰精确断言）。返回 (msg, mention)。
+        """
+        from src.models.task_worker_conversation import (
+            TaskWorkerConversation,
+            TaskWorkerConversationMention,
+        )
+
+        msg = TaskWorkerConversation(
+            id=generate_id("task_worker_conversation"),
+            task_id=test_task,
+            sender_worker_id=test_worker,
+            message_type="clarification",
+            body="@worker:Claude 请审查。",
+        )
+        mention = TaskWorkerConversationMention(
+            id=generate_id("task_worker_conversation_mention"),
+            conversation_id=msg.id,
+            worker_id=test_worker_2,
+        )
+        db_session.add_all([msg, mention])
+        await db_session.commit()
+        return msg, mention
+
+    @pytest.mark.asyncio
+    async def test_mention_cascade_on_worker_delete(
+        self, db_session, test_task, test_worker, test_worker_2
+    ):
+        """删除被 @ 的 worker → 指向它的 mention 行级联删除（此前 FK 无 CASCADE 报 500）."""
+        from src.models.task_worker_conversation import TaskWorkerConversationMention
+
+        _, mention = await self._make_mention(
+            db_session, test_task, test_worker, test_worker_2
+        )
+
+        # 删除被 @ 的 worker → 指向它的 mention 行随 FK CASCADE 清理
+        target = await db_session.get(Worker, test_worker_2)
+        await db_session.delete(target)
+        await db_session.commit()
+
+        remaining = await db_session.execute(
+            select(TaskWorkerConversationMention).where(
+                TaskWorkerConversationMention.id == mention.id,
+            )
+        )
+        assert remaining.scalars().all() == []
+
+    @pytest.mark.asyncio
+    async def test_mention_cascade_on_conversation_delete(
+        self, db_session, test_task, test_worker, test_worker_2
+    ):
+        """删除消息 → 其 mention 关联行级联删除."""
+        from src.models.task_worker_conversation import (
+            TaskWorkerConversation,
+            TaskWorkerConversationMention,
+        )
+
+        msg, mention = await self._make_mention(
+            db_session, test_task, test_worker, test_worker_2
+        )
+
+        # 删除消息 → mention 行随 FK CASCADE 清理
+        conv = await db_session.get(TaskWorkerConversation, msg.id)
+        await db_session.delete(conv)
+        await db_session.commit()
+
+        remaining = await db_session.execute(
+            select(TaskWorkerConversationMention).where(
+                TaskWorkerConversationMention.id == mention.id,
+            )
+        )
+        assert remaining.scalars().all() == []
