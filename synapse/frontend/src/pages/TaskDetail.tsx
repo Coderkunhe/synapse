@@ -18,8 +18,9 @@ const EFFORTS = ['xs', 's', 'm', 'l', 'xl']
 // 模块级常量 — useWebSocket 用 topics.join(',') 做 stableTopics，内联字面量会触发重连循环
 const MESSAGE_EVENT_TYPES = ['conversation.message.created', 'conversation.message.resolved', 'worker.mention.responding']
 
-// 与后端 _MENTION_RE = r"@(worker|role):(\S+)"（conversation_service.py:38）一致，保证高亮范围 = 后端实际解析范围
-const MENTION_RE = /@(worker|role):(\S+)/g
+// 与后端 _MENTION_RE = r"@(worker|role):([A-Za-z0-9_.-]*[A-Za-z0-9_])"（conversation_service.py:38）一致，保证高亮范围 = 后端实际解析范围
+// P17-B25：尾随标点（逗号/句号/全角）不进 token —— token 须以字母/数字/下划线结尾。
+const MENTION_RE = /@(worker|role):([A-Za-z0-9_.-]*[A-Za-z0-9_])/g
 
 // P17-B23: @role 补全静态候选 — 镜像后端 ProjectRole 协作角色（constants.py:135）。
 // admin/lead/member 为权限角色，@ 它们意义弱，暂不列入补全。

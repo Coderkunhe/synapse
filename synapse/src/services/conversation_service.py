@@ -34,8 +34,10 @@ from src.utils.id_gen import generate_id
 
 # ── @mention 解析 ───────────────────────────────────────────────────────
 
-# 匹配 @worker:<name> 和 @role:<rolename>，name/rolename 不含空白字符
-_MENTION_RE = re.compile(r"@(worker|role):(\S+)")
+# 匹配 @worker:<name> 和 @role:<rolename>。
+# name/rolename 由 [A-Za-z0-9_.-] 组成且须以字母/数字/下划线结尾 —— 尾随标点（逗号/句号/全角标点）不进 token。
+# 与前端 MENTION_RE（TaskDetail.tsx:22）逐字符一致，保证「高亮范围 == 解析范围」契约不破（B15）。
+_MENTION_RE = re.compile(r"@(worker|role):([A-Za-z0-9_.-]*[A-Za-z0-9_])")
 
 
 def parse_mentions(body: str) -> list[dict[str, str]]:

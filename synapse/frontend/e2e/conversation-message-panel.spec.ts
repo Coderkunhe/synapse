@@ -106,6 +106,28 @@ test('@mention 往返：composer 发含 @worker:<name> 的 body → 正常创建
   await context.close()
 })
 
+test('尾随标点不进高亮：@role:builder, 的逗号在 span 外', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  const taskId = p.taskIds['MsgTask']
+  await page.goto(`/tasks/${taskId}`)
+
+  // 发含尾随逗号的 @role mention —— 逗号应被排除在 token 外（高亮范围 == 解析范围）
+  const body = '@role:builder, please look'
+  await page.getByTestId('message-input').fill(body)
+  await page.getByTestId('message-send').click()
+
+  const item = page.getByTestId('message-item').filter({ hasText: body })
+  await expect(item).toBeVisible({ timeout: 15_000 })
+
+  // 高亮 span 精确等于 @role:builder（不含逗号）；逗号作为纯文本渲染在 span 外
+  await expect(item.getByTestId('mention-highlight')).toHaveText('@role:builder')
+
+  await context.close()
+})
+
 test('@mention 点击跳转：@worker:<真实名> 渲染成链接 → 点击跳 WorkerDetail', async ({ browser }) => {
   test.skip(!clickWorker, 'worker registration failed — skip click-through')
 

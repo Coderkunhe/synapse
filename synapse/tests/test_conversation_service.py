@@ -154,6 +154,27 @@ class TestParseMentions:
         mentions = parse_mentions("@worker:claude-builder_v2")
         assert mentions == [{"type": "worker", "value": "claude-builder_v2"}]
 
+    def test_trailing_punctuation_not_captured(self):
+        """P17-B25：尾随标点不进 token —— `@role:builder,` 解析为 `builder` 而非 `builder,`."""
+        # 半角逗号
+        assert parse_mentions("@role:builder, 请协助") == [
+            {"type": "role", "value": "builder"}
+        ]
+        # 半角句号
+        assert parse_mentions("@worker:claude-builder.") == [
+            {"type": "worker", "value": "claude-builder"}
+        ]
+        # 全角逗号/句号
+        assert parse_mentions("@worker:alice，请协助。") == [
+            {"type": "worker", "value": "alice"}
+        ]
+
+    def test_internal_dot_preserved(self):
+        """名称中间的点保留（v1.2）—— 只剥尾随标点，不误伤中间点."""
+        assert parse_mentions("@worker:v1.2 审查") == [
+            {"type": "worker", "value": "v1.2"}
+        ]
+
 
 # ══ resolve_mentions (DB integration) ══
 
