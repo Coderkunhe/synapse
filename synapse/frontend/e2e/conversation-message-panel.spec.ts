@@ -128,6 +128,58 @@ test('尾随标点不进高亮：@role:builder, 的逗号在 span 外', async ({
   await context.close()
 })
 
+test('@ 补全下拉 @role：输入 @ 出混合候选 → 点选 builder → 插入 @role:builder', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  const taskId = p.taskIds['MsgTask']
+  await page.goto(`/tasks/${taskId}`)
+
+  const input = page.getByTestId('message-input')
+
+  // 输入 @ → 混合候选下拉出现（@worker 命中 + @role 静态三项）
+  await input.fill('@')
+  const dropdown = page.getByTestId('mention-dropdown')
+  await expect(dropdown).toBeVisible()
+  // builder 是静态 role（非 worker）—— 逗号/空白前触发，query 空 → 全候选
+  const builderOption = dropdown.getByTestId('mention-option').filter({ hasText: 'builder' })
+  await expect(builderOption).toBeVisible()
+
+  // 点选 → 插入 `@role:builder `（尾空格 · 消歧自证：误点 worker 会得到 @worker:*）
+  await builderOption.click()
+  await expect(input).toHaveValue('@role:builder ')
+
+  // 发消息 → 渲染 @role:builder 高亮（补全 → 消息完整闭环）
+  await page.getByTestId('message-send').click()
+  const item = page.getByTestId('message-item').filter({ hasText: '@role:builder' })
+  await expect(item).toBeVisible({ timeout: 15_000 })
+  await expect(item.getByTestId('mention-highlight')).toHaveText('@role:builder')
+
+  await context.close()
+})
+
+test('@ 补全下拉 @worker：点选真实 worker 候选 → 插入 @worker:<name>', async ({ browser }) => {
+  test.skip(!clickWorker, 'worker registration failed — skip worker completion')
+
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  const taskId = p.taskIds['MsgTask']
+  await page.goto(`/tasks/${taskId}`)
+
+  const input = page.getByTestId('message-input')
+  await input.fill('@')
+  const dropdown = page.getByTestId('mention-dropdown')
+  await expect(dropdown).toBeVisible()
+
+  await dropdown.getByTestId('mention-option').filter({ hasText: clickWorker.name }).click()
+  await expect(input).toHaveValue(`@worker:${clickWorker.name} `)
+
+  await context.close()
+})
+
 test('@mention 点击跳转：@worker:<真实名> 渲染成链接 → 点击跳 WorkerDetail', async ({ browser }) => {
   test.skip(!clickWorker, 'worker registration failed — skip click-through')
 
@@ -261,9 +313,8 @@ test('mention 三态：等待 → 思考中 → 已回复 ✓', async ({ browser
 
 // Best-effort cleanup: cancel the seeded MsgTask so the run leaves no owner=None
 // `ready` residue in the shared dev DB (PFL-275). Also remove the registered
-// click-through worker (DG-3 善后). NOTE: the worker delete FK-fails until
-// PFL-276 (mention 关联表缺 ON DELETE CASCADE) is fixed — best-effort, residue
-// is namespaced (`e2e-click-<stamp>`).
+// click-through worker (DG-3 善后). Worker delete now cascades cleanly — the
+// mention 关联表 FK was given ON DELETE CASCADE (PFL-276 → P100-B180).
 test.afterAll(async ({ request }) => {
   await cancelSeededTasks(request, hunter.accessToken, p)
   if (clickWorker) {
