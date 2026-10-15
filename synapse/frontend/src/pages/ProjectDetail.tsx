@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, AlertTriangle, ChevronLeft, Shield, ShieldOff, Trash2, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -68,14 +68,18 @@ export default function ProjectDetail() {
   const { t, lang } = useI18n()
   const { token, teamId } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Project data
   const [project, setProject] = useState<ProjectSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Tab
-  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions' | 'overview'>('info')
+  // Tab — 支持 ?tab=overview 钻取（团队态势 → 项目态势落地 overview tab）
+  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions' | 'overview'>(() => {
+    const tab = searchParams.get('tab')
+    return tab === 'info' || tab === 'roles' || tab === 'conventions' || tab === 'overview' ? tab : 'info'
+  })
 
   // Info tab edit mode
   const [editing, setEditing] = useState(false)

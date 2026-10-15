@@ -201,7 +201,16 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
 
             return (
               <div key={p.project_id} className={styles.projectCard}>
-                <div className={styles.projectName}>{p.project_name}</div>
+                <div className={styles.projectNameRow}>
+                  <Link to={`/projects/${p.project_id}?tab=overview`} className={styles.projectNameLink}>
+                    {p.project_name}
+                  </Link>
+                  {p.dependency_blocked > 0 && (
+                    <span className={styles.blockedBadge}>
+                      🔒 {t('dashboard.blocked', { count: p.dependency_blocked })}
+                    </span>
+                  )}
+                </div>
 
                 {p.total_tasks === 0 ? (
                   <p className={styles.progressText}>

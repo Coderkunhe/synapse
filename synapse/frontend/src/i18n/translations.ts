@@ -173,6 +173,7 @@ const en: TranslationMap = {
     noProjects: 'No Projects',
     noProjectsHint: 'Create a project to see progress here.',
     emptyProject: '{count} tasks',
+    blocked: '{count} blocked',
   },
 
   // ── Docs ───────────────────────────────────────────────────────────────
@@ -1054,6 +1055,7 @@ const zh: TranslationMap = {
     noProjects: '暂无项目',
     noProjectsHint: '创建一个项目来查看进度。',
     emptyProject: '{count} 个任务',
+    blocked: '{count} 阻塞',
   },
 
   projects: {

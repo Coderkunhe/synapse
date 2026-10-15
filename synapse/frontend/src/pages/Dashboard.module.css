@@ -161,11 +161,37 @@
   padding: var(--gm-space-4);
 }
 
-.projectName {
+.projectNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gm-space-2);
+  margin-bottom: var(--gm-space-3);
+}
+
+.projectNameLink {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: var(--gm-space-3);
   color: var(--gm-text-primary);
+  text-decoration: none;
+}
+
+.projectNameLink:hover {
+  color: var(--gm-primary);
+  text-decoration: underline;
+}
+
+.blockedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--gm-font-mono);
+  padding: 2px 6px;
+  border-radius: var(--gm-radius-sm);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--gm-danger);
+  white-space: nowrap;
 }
 
 .progressBar {

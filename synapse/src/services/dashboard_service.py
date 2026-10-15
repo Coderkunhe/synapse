@@ -16,6 +16,7 @@ from src.models.event import Event
 from src.models.project import Project
 from src.models.task import Task
 from src.models.token_usage import TokenUsage
+from src.services.task_query import filter_dependency_blocked
 
 # ── 活跃任务状态（非终态）──────────────────────────────────────────
 
@@ -137,6 +138,25 @@ async def get_projects_breakdown(db: AsyncSession, team_id: str) -> dict:
         if status is not None:
             projects_map[pid]["by_status"][status] = cnt or 0
 
+    # dependency-blocked 计数（叠加字段 · 非破坏性 · 不改写 ready 计数）
+    # 「什么叫 blocked」复用 filter_dependency_blocked 单一定义（P16-B5 PFL-248），
+    # 前端不重算。团队内一次取全部 ready task（单查询非逐项目 N+1）→ 差集 = blocked，按 project 分组。
+    ready_rows = await db.execute(
+        select(Task).where(
+            Task.project_id.in_(
+                select(Project.id).where(Project.team_id == team_id)
+            ),
+            Task.status == TaskStatus.READY,
+        )
+    )
+    ready_tasks = list(ready_rows.scalars().all())
+    unblocked = await filter_dependency_blocked(db, ready_tasks)
+    unblocked_ids = {t.id for t in unblocked}
+    blocked_by_project: dict[str, int] = {}
+    for task in ready_tasks:
+        if task.id not in unblocked_ids:
+            blocked_by_project[task.project_id] = blocked_by_project.get(task.project_id, 0) + 1
+
     projects = []
     for p in projects_map.values():
         by_status = p["by_status"]
@@ -148,6 +168,7 @@ async def get_projects_breakdown(db: AsyncSession, team_id: str) -> dict:
             "total_tasks": total,
             "completed_tasks": completed,
             "by_status": by_status,
+            "dependency_blocked": blocked_by_project.get(p["project_id"], 0),
         })
 
     return {"team_id": team_id, "projects": projects}

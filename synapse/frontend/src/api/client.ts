@@ -307,6 +307,7 @@ export interface ProjectBreakdown {
   project_name: string
   total_tasks: number
   completed_tasks: number
+  dependency_blocked: number
   by_status: {
     backlog: number
     ready: number
