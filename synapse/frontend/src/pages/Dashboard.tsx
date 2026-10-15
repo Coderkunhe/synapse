@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Bot, ClipboardList, FolderOpen, Radio, Lock, Zap, ExternalLink } from 'lucide-react'
 import StatCard from '../components/StatCard'
@@ -8,14 +8,31 @@ import { fetchTeamStats, fetchTeamEvents, fetchProjectsBreakdown, fetchWorkers }
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useFeatures } from '../contexts/FeaturesContext'
+import { useWebSocket } from '../api/ws'
 import { formatDate } from '../utils/format'
 import type { TeamStats, EventSummary, ProjectBreakdown, WorkerSummary } from '../api/client'
 import styles from './Dashboard.module.css'
 
+/** Task lifecycle topics the server auto-subscribes humans to (ws.py task_topics).
+ *  Identical to ProjectOverview's list — a second consumer; extract to api/ws.ts
+ *  when a third appears (rule of three). */
+const TASK_EVENT_TYPES = [
+  'task.created',
+  'task.readied',
+  'task.assigned',
+  'task.claimed',
+  'task.submitted',
+  'task.completed',
+  'task.rejected',
+  'task.cancelled',
+  'task.paused',
+  'task.resumed',
+]
+
 export default function Dashboard() {
   const { t, lang } = useI18n()
   const { isMinimalProject } = useFeatures()
-  const { token, teamId } = useAuth()
+  const { token, teamId, logout } = useAuth()
   const [stats, setStats] = useState<TeamStats | null>(null)
   const [events, setEvents] = useState<EventSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,6 +72,33 @@ export default function Dashboard() {
     workers.forEach(w => map.set(w.id, w.name))
     return map
   }, [workers])
+
+  // ── P17-B28: team rollup WS real-time ─────────────────────────────
+  const { status, lastEvent } = useWebSocket(token, TASK_EVENT_TYPES, logout)
+  const breakdownRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Any task.* event reshapes the per-project breakdown (team-scoped rollup, no
+  // project isolation needed — unlike B6's single-project DAG view). 300ms
+  // debounce aggregates a burst (claim→submit→complete) into a single fetch.
+  useEffect(() => {
+    if (!lastEvent) return
+    if (!TASK_EVENT_TYPES.includes(lastEvent.event_type)) return
+
+    if (breakdownRefreshRef.current) clearTimeout(breakdownRefreshRef.current)
+    breakdownRefreshRef.current = setTimeout(() => {
+      if (!token || !teamId) return
+      fetchProjectsBreakdown(teamId, token)
+        .then(res => setProjects(res.projects))
+        .catch(() => { /* keep last known breakdown — non-critical refresh */ })
+    }, 300)
+  }, [lastEvent, token, teamId])
+
+  // Clear the pending breakdown refresh on unmount
+  useEffect(() => {
+    return () => {
+      if (breakdownRefreshRef.current) clearTimeout(breakdownRefreshRef.current)
+    }
+  }, [])
 
   if (error) {
     return (
@@ -102,6 +146,7 @@ export default function Dashboard() {
         error={breakdownError}
         isMinimalProject={isMinimalProject}
         t={t}
+        liveStatus={status}
       />
 
       <section className={styles.section}>
@@ -164,13 +209,21 @@ interface ProjectBreakdownSectionProps {
   error: string | null
   isMinimalProject: boolean
   t: (key: string, vars?: Record<string, string | number>) => string
+  liveStatus: string
 }
 
-function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t }: ProjectBreakdownSectionProps) {
+function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t, liveStatus }: ProjectBreakdownSectionProps) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>{t('dashboard.projectsBreakdown')}</h2>
+        <h2 className={styles.sectionTitle}>
+          {t('dashboard.projectsBreakdown')}
+          <span
+            className={`${styles.liveDot} ${liveStatus === 'connected' ? styles.liveDotOn : ''}`}
+            data-testid="dashboard-live-dot"
+            title={liveStatus}
+          />
+        </h2>
         {!isMinimalProject && projects.length > 0 && (
           <Link to="/projects" className={styles.sectionLink}>
             {t('dashboard.viewAllProjects')} <ExternalLink size={12} />
@@ -200,7 +253,7 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
               : 0
 
             return (
-              <div key={p.project_id} className={styles.projectCard}>
+              <div key={p.project_id} className={styles.projectCard} data-project-id={p.project_id}>
                 <div className={styles.projectNameRow}>
                   <Link to={`/projects/${p.project_id}?tab=overview`} className={styles.projectNameLink}>
                     {p.project_name}
@@ -236,7 +289,7 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
                         const count = p.by_status[status as keyof typeof p.by_status] ?? 0
                         if (count === 0) return null
                         return (
-                          <span key={status} className={styles.statusChip}>
+                          <span key={status} className={styles.statusChip} data-status={status} data-count={count}>
                             <span
                               className={styles.statusDot}
                               style={{ background: cfg.color }}
