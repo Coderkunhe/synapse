@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B26 L5 拉通 — 📄 roadmap+requirements-log+daily/2026-10-14.md 已同步 B26 · 📚 mention 叙事链 B22→B26 一致 · 🎭 纯 e2e 0 src code 跳过场景遍历",
-  "lastL5Timestamp": "2026-10-14",
-  "batchesSinceLastL5": 1,
+  "lastL5Batch": "P17-B27→B28 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/daily/2026-10-15.md 已同步 B28 · 📚 tracks/synapse.md 指针 last→B28 next→B29 + CLAUDE.md 头部/状态表 · 🎭 团队 rollup WS 实时化（frontend/src/pages/Dashboard.tsx useWebSocket + 300ms debounced refetch）叙事链 B27→B28 一致",
+  "lastL5Timestamp": "2026-10-15",
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B26 L5 拉通 — 📄 roadmap+requirements-log+daily/2026-10-14.md 已同步 B26 · 📚 mention 叙事链 B22→B26 一致 · 🎭 纯 e2e 0 src code 跳过场景遍历",
+  "lastL5Evidence": "P17-B27→B28 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/daily/2026-10-15.md 已同步 B28 · 📚 tracks/synapse.md 指针 last→B28 next→B29 + CLAUDE.md 头部/状态表 · 🎭 团队 rollup WS 实时化（frontend/src/pages/Dashboard.tsx useWebSocket + 300ms debounced refetch）叙事链 B27→B28 一致",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
