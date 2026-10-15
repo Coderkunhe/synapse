@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import TaskStatus
 from src.exceptions import NotFoundError
+from src.models.member import Member
 from src.models.project import Project
 from src.models.task import Task
 from src.utils.json_utils import safe_loads
@@ -123,3 +124,59 @@ async def get_tasks(db, project_id, *, status=None, owner_id=None,
     count_stmt = select(func.count(Task.id)).where(*conditions)
     total = (await db.execute(count_stmt)).scalar()
     return items, next_cursor, total
+
+
+async def get_my_tasks(db: AsyncSession, team_id: str, actor) -> list[dict]:
+    """查询「我」名下所有任务（team 内 · 任意状态 · 带 dependency_blocked）。
+
+    P17-B29 个人工作台：跨项目聚合一个人的「任务切片 + 依赖阻塞」，
+    卸载 human-as-context-bus（第三刀：项目 B5/B6 → 团队 B27/B28 → 个人 B29）。
+
+    owner 匹配覆盖两条人路径：
+    - claim（P17-B3）写 ``owner_type=human`` + ``owner_id=derived worker_id``（= actor.actor_id）
+    - assign（P8-B3）写 ``owner_type=member`` + ``owner_id=member.id``（≠ actor_id）
+    worker actor 则 ``actor.user_id`` 为 None，仅匹配 actor_id。
+    """
+    owner_ids = [actor.actor_id]
+    if getattr(actor, "user_id", None):
+        member = await db.scalar(
+            select(Member).where(
+                Member.user_id == actor.user_id,
+                Member.team_id == team_id,
+            )
+        )
+        if member is not None:
+            owner_ids.append(member.id)
+
+    rows = await db.execute(
+        select(Task, Project.name)
+        .join(Project, Project.id == Task.project_id)
+        .where(Project.team_id == team_id, Task.owner_id.in_(owner_ids))
+        .order_by(Task.id)
+    )
+    tasks = list(rows.all())
+
+    # dependency_blocked 只对 ready 有意义（in_progress = 「已在做」非「被阻塞」）。
+    # 复用 filter_dependency_blocked 单一定义（P16-B5 PFL-248 · B27 同源）。
+    ready_tasks = [t for t, _ in tasks if t.status == TaskStatus.READY]
+    blocked_ids: set[str] = set()
+    if ready_tasks:
+        unblocked = await filter_dependency_blocked(db, ready_tasks)
+        unblocked_ids = {t.id for t in unblocked}
+        blocked_ids = {t.id for t in ready_tasks if t.id not in unblocked_ids}
+
+    result: list[dict] = []
+    for task, project_name in tasks:
+        result.append({
+            "task_id": task.id,
+            "title": task.title,
+            "status": task.status,
+            "priority": task.priority,
+            "project_id": task.project_id,
+            "project_name": project_name,
+            "claimed_at": task.claimed_at,
+            "deadline_at": task.deadline_at,
+            "depends_on": safe_loads(task.depends_on),
+            "dependency_blocked": task.id in blocked_ids,
+        })
+    return result

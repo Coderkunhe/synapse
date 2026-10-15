@@ -50,6 +50,7 @@ EXEMPT_CLASSES = frozenset({
     "ErrorReportResponse",  # P14-B2: transient error report response (event-sourced, not a DB entity)
     "ErrorReportSummary",  # P14-B2: transient error report summary embedded in WorkerStateResponse
     "WorkerHealthSummaryResponse",  # P16-B6: heartbeat aggregation over events, not a persisted entity
+    "WorkbenchResponse",  # P17-B29: personal workbench task projection (cross-project aggregation, not a persisted entity)
 })
 
 AUDIT_FIELDS_CLASS = "AuditFields"

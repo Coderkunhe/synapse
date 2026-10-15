@@ -9,6 +9,7 @@ import Scans from './pages/Scans'
 import Skills from './pages/Skills'
 import Docs from './pages/Docs'
 import Dashboard from './pages/Dashboard'
+import Workbench from './pages/Workbench'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -119,6 +120,7 @@ function AppRoutes() {
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/workbench" element={<Workbench />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:projectId" element={<ProjectDetail />} />
           {!isMinimalBatch && (

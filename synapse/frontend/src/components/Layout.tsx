@@ -10,6 +10,7 @@ import {
   Bell,
   BellOff,
   FolderOpen,
+  Briefcase,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -20,6 +21,7 @@ import styles from './Layout.module.css'
 
 const NAV_ITEMS = [
   { to: '/dashboard', i18nKey: 'nav.dashboard', icon: LayoutDashboard },
+  { to: '/workbench', i18nKey: 'nav.workbench', icon: Briefcase },
   { to: '/tasks', i18nKey: 'nav.tasks', icon: ListTodo },
   { to: '/workers', i18nKey: 'nav.workers', icon: Users },
   { to: '/projects', i18nKey: 'nav.projects', icon: FolderOpen },

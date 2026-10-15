@@ -56,6 +56,7 @@ const en: TranslationMap = {
   // ── Navigation ────────────────────────────────────────────────────────
   nav: {
     dashboard: 'Dashboard',
+    workbench: 'Workbench',
     projects: 'Projects',
     batches: 'Batches',
     tasks: 'Tasks',
@@ -68,6 +69,13 @@ const en: TranslationMap = {
     teams: 'Teams',
     apiDocs: 'API Docs',
     logout: 'Logout',
+  },
+
+  workbench: {
+    heading: 'My Tasks',
+    subtitle: 'Tasks assigned to me across all projects',
+    empty: 'No tasks assigned to you yet.',
+    blocked: 'blocked',
   },
 
   // ── Brand / Shell ─────────────────────────────────────────────────────
@@ -941,6 +949,7 @@ const zh: TranslationMap = {
 
   nav: {
     dashboard: '仪表盘',
+    workbench: '工作台',
     projects: '项目',
     batches: '任务包',
     tasks: '任务',
@@ -953,6 +962,13 @@ const zh: TranslationMap = {
     teams: '团队',
     apiDocs: 'API 文档',
     logout: '退出登录',
+  },
+
+  workbench: {
+    heading: '我的任务',
+    subtitle: '跨项目聚合的我的任务',
+    empty: '你还没有认领的任务。',
+    blocked: '阻塞',
   },
 
   brand: {

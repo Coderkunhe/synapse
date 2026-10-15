@@ -1,0 +1,98 @@
+.loading {
+  color: var(--gm-text-secondary);
+  font-size: 14px;
+  padding: var(--gm-space-4);
+}
+
+.empty {
+  color: var(--gm-text-secondary);
+  padding: var(--gm-space-4);
+}
+
+.taskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-2);
+}
+
+.taskCard {
+  padding: var(--gm-space-3);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  background: var(--gm-surface);
+}
+
+.taskMain {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2);
+}
+
+.taskTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gm-text-primary);
+  text-decoration: none;
+}
+
+.taskTitle:hover {
+  color: var(--gm-primary);
+}
+
+.blockedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--gm-font-mono);
+  padding: 2px 6px;
+  border-radius: var(--gm-radius-sm);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--gm-danger);
+  white-space: nowrap;
+}
+
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-space-2);
+  margin-top: var(--gm-space-2);
+  flex-wrap: wrap;
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--gm-font-mono);
+  padding: 2px 6px;
+  border-radius: var(--gm-radius-sm);
+  background: var(--gm-bg-secondary);
+  color: var(--gm-text-secondary);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.projectName {
+  font-size: 12px;
+  color: var(--gm-text-secondary);
+  text-decoration: none;
+}
+
+.projectName:hover {
+  color: var(--gm-primary);
+}
+
+.deadline {
+  font-size: 12px;
+  color: var(--gm-text-tertiary);
+}

@@ -327,6 +327,29 @@ export function fetchProjectsBreakdown(teamId: string, token: string) {
   return request<ProjectsBreakdownResponse>(`/v1/dashboard/teams/${teamId}/projects-breakdown`, { token })
 }
 
+// ── Workbench: My Tasks (P17-B29) ──────────────────────────────────────
+
+export interface WorkbenchTask {
+  task_id: string
+  title: string
+  status: string
+  priority: string
+  project_id: string
+  project_name: string | null
+  claimed_at: string | null
+  deadline_at: string | null
+  depends_on: Array<{ task_id: string; type?: string }> | null
+  dependency_blocked: boolean
+}
+
+export interface WorkbenchResponse {
+  tasks: WorkbenchTask[]
+}
+
+export function fetchMyTasks(token: string) {
+  return request<WorkbenchResponse>(`/v1/me/tasks`, { token })
+}
+
 // ── Tasks ─────────────────────────────────────────────────
 
 export interface TaskSummary {
