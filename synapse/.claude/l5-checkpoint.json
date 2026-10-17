@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B29→B30 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B30 · 📚 tracks/synapse.md 指针 last→B30 next→B31 + CLAUDE.md 头部/状态表 · 🎭 个人工作台 WS 实时化（Workbench.tsx useWebSocket + 300ms debounced refetch + TASK_EVENT_TYPES 抽取 rule-of-three）叙事链 B27→B28→B29→B30 一致",
   "lastL5Timestamp": "2026-10-17",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B29→B30 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B30 · 📚 tracks/synapse.md 指针 last→B30 next→B31 + CLAUDE.md 头部/状态表 · 🎭 个人工作台 WS 实时化（Workbench.tsx useWebSocket + 300ms debounced refetch + TASK_EVENT_TYPES 抽取 rule-of-three）叙事链 B27→B28→B29→B30 一致",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
