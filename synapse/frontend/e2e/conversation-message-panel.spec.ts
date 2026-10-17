@@ -15,6 +15,10 @@ const MSG_BODY = 'hello from e2e message panel'
 let hunter: HunterAuth
 let p: SeededProject
 let clickWorker: { id: string; name: string } | null = null
+// mention 三态测试（test 7）注册的 worker + 赋 builder 角色 — 历史上从不清理，
+// 累积 e2e-mention-* 残留（B26 遗留 debt · B31 收口）。删除前须先 revoke 角色：
+// project_actor_roles FK 无 CASCADE，hard_delete_worker 遇角色 worker 直删 500（PFL-279）。
+let mentionWorker: { id: string; projectId: string } | null = null
 
 test.describe.configure({ mode: 'serial' })
 
@@ -266,6 +270,7 @@ test('mention 三态：等待 → 思考中 → 已回复 ✓', async ({ browser
   })
   if (!regRes.ok()) throw new Error(`register worker failed: ${regRes.status()}`)
   const reg = await regRes.json()
+  mentionWorker = { id: reg.worker.id, projectId: proj.id }
   await request.post(`${API_BASE}/v1/workers/${reg.worker.id}/handshake`, {
     headers: { Authorization: `Bearer ${reg.api_key}` },
     data: {},
@@ -319,6 +324,19 @@ test.afterAll(async ({ request }) => {
   await cancelSeededTasks(request, hunter.accessToken, p)
   if (clickWorker) {
     await request.delete(`${API_BASE}/v1/workers/${clickWorker.id}`, {
+      headers: { Authorization: `Bearer ${hunter.accessToken}` },
+    })
+  }
+  // B26 遗留 debt · B31 收口：删除 mention 三态测试注册的 worker（此前只删 clickWorker，
+  // e2e-mention-* 每次跑累积一个残留）。须先 revoke builder 角色再删 worker ——
+  // project_actor_roles FK 无 CASCADE，直删 worker 会 500（PFL-279）。项目/task 无
+  // DELETE 端点，仍走 cleanup-dogfood-residue.py。
+  if (mentionWorker) {
+    await request.delete(
+      `${API_BASE}/v1/admin/projects/${mentionWorker.projectId}/roles/${mentionWorker.id}`,
+      { headers: { Authorization: `Bearer ${hunter.accessToken}` } },
+    )
+    await request.delete(`${API_BASE}/v1/workers/${mentionWorker.id}`, {
       headers: { Authorization: `Bearer ${hunter.accessToken}` },
     })
   }

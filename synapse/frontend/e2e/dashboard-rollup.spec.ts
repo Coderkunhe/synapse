@@ -24,7 +24,31 @@ test.beforeAll(async ({ request }) => {
   ])
 })
 
-test('#1 团队 rollup live 绿点 + claim 实时变色', async ({ browser }) => {
+test('#1 项目名钻取 → overview 态势 tab（DAG 渲染）', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  await page.goto('/dashboard')
+
+  const taskA = p1.taskIds['A']
+  const projectCard = page.locator(`[data-project-id="${p1.projectId}"]`)
+  await expect(projectCard).toBeVisible()
+
+  // B27 钻取：点项目名 Link → /projects/:id?tab=overview（团队态势 → 项目态势）。
+  // 项目卡内唯一 <a> 即项目名链接（Dashboard.tsx projectNameLink）。
+  await projectCard.locator('a').click()
+  await expect(page).toHaveURL(new RegExp(`/projects/${p1.projectId}\\?tab=overview`))
+
+  // overview tab 由 ?tab=overview 直接激活（ProjectDetail 初始化 activeTab）→
+  // 态势 DAG 渲染，证明钻取真正落地了态势视图，而非只改了 URL。
+  await expect(page.getByTestId(`dag-node-${taskA}`)).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId(`dag-node-${taskA}`)).toHaveAttribute('data-status', 'ready')
+
+  await context.close()
+})
+
+test('#2 团队 rollup live 绿点 + claim 实时变色', async ({ browser }) => {
   const context = await browser.newContext()
   await context.addCookies([accessCookie(hunter.accessToken)])
   const page = await context.newPage()
