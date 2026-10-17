@@ -1,8 +1,8 @@
 {
-  "lastL5Batch": "P17-B29→B30 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B30 · 📚 tracks/synapse.md 指针 last→B30 next→B31 + CLAUDE.md 头部/状态表 · 🎭 个人工作台 WS 实时化（Workbench.tsx useWebSocket + 300ms debounced refetch + TASK_EVENT_TYPES 抽取 rule-of-three）叙事链 B27→B28→B29→B30 一致",
+  "lastL5Batch": "P17-B31→B32 L5 拉通完成 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B32 · 📚 tracks/synapse.md 指针 last→B32 next→B33 + CLAUDE.md 头部/状态表 · 🎭 上下文卸载链 dogfood 脚本化 live 断言 3/3 PASS（breakdown dependency_blocked + /me/tasks claim 聚合 + @worker mention 唤醒）叙事链 B27→B32 一致",
   "lastL5Timestamp": "2026-10-17",
-  "batchesSinceLastL5": 1,
+  "batchesSinceLastL5": 0,
   "completedBatches": [],
-  "lastL5Evidence": "P17-B29→B30 L5 拉通 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B30 · 📚 tracks/synapse.md 指针 last→B30 next→B31 + CLAUDE.md 头部/状态表 · 🎭 个人工作台 WS 实时化（Workbench.tsx useWebSocket + 300ms debounced refetch + TASK_EVENT_TYPES 抽取 rule-of-three）叙事链 B27→B28→B29→B30 一致",
+  "lastL5Evidence": "P17-B31→B32 L5 拉通完成 — 📄 docs/roadmap.md + docs/requirements-log.md + docs/pitfalls.md + docs/daily/2026-10-17.md 已同步 B32 · 📚 tracks/synapse.md 指针 last→B32 next→B33 + CLAUDE.md 头部/状态表 · 🎭 上下文卸载链 dogfood 脚本化 live 断言 3/3 PASS（breakdown dependency_blocked + /me/tasks claim 聚合 + @worker mention 唤醒）叙事链 B27→B32 一致",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
 }
