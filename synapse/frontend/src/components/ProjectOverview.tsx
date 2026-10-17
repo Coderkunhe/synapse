@@ -9,7 +9,7 @@ import type {
   ProjectDependencyGraph,
   WorkerSummary,
 } from '../api/client'
-import { useWebSocket, type WSEvent } from '../api/ws'
+import { useWebSocket, TASK_EVENT_TYPES, type WSEvent } from '../api/ws'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { formatDate } from '../utils/format'
@@ -121,20 +121,6 @@ function eventBadgeClass(type: string): string {
   if (type.includes('assigned') || type.includes('claimed')) return styles.evtWarning
   return styles.evtInfo
 }
-
-/** Task lifecycle topics the server auto-subscribes humans to (ws.py task_topics). */
-const TASK_EVENT_TYPES = [
-  'task.created',
-  'task.readied',
-  'task.assigned',
-  'task.claimed',
-  'task.submitted',
-  'task.completed',
-  'task.rejected',
-  'task.cancelled',
-  'task.paused',
-  'task.resumed',
-]
 
 /** WSEvent → EventSummary (drop the extra `team_id` WS carries). */
 function toEventSummary(evt: WSEvent): EventSummary {

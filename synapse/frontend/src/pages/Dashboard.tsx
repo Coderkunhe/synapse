@@ -8,26 +8,10 @@ import { fetchTeamStats, fetchTeamEvents, fetchProjectsBreakdown, fetchWorkers }
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { useFeatures } from '../contexts/FeaturesContext'
-import { useWebSocket } from '../api/ws'
+import { useWebSocket, TASK_EVENT_TYPES } from '../api/ws'
 import { formatDate } from '../utils/format'
 import type { TeamStats, EventSummary, ProjectBreakdown, WorkerSummary } from '../api/client'
 import styles from './Dashboard.module.css'
-
-/** Task lifecycle topics the server auto-subscribes humans to (ws.py task_topics).
- *  Identical to ProjectOverview's list — a second consumer; extract to api/ws.ts
- *  when a third appears (rule of three). */
-const TASK_EVENT_TYPES = [
-  'task.created',
-  'task.readied',
-  'task.assigned',
-  'task.claimed',
-  'task.submitted',
-  'task.completed',
-  'task.rejected',
-  'task.cancelled',
-  'task.paused',
-  'task.resumed',
-]
 
 export default function Dashboard() {
   const { t, lang } = useI18n()

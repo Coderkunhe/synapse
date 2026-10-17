@@ -44,6 +44,22 @@ interface WSMessage {
   team_id?: string
 }
 
+/** Task lifecycle topics the server auto-subscribes humans to (ws.py task_topics).
+ *  Shared by ProjectOverview (project DAG), Dashboard (team rollup), and
+ *  Workbench (my tasks) — three consumers, so it lives here (rule of three). */
+export const TASK_EVENT_TYPES = [
+  'task.created',
+  'task.readied',
+  'task.assigned',
+  'task.claimed',
+  'task.submitted',
+  'task.completed',
+  'task.rejected',
+  'task.cancelled',
+  'task.paused',
+  'task.resumed',
+]
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useWebSocket(

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
 import { fetchMyTasks } from '../api/client'
+import { useWebSocket, TASK_EVENT_TYPES } from '../api/ws'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
 import { formatDate } from '../utils/format'
@@ -23,7 +24,7 @@ const STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
 
 export default function Workbench() {
   const { t, lang } = useI18n()
-  const { token } = useAuth()
+  const { token, logout } = useAuth()
   const [tasks, setTasks] = useState<WorkbenchTask[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,13 +41,45 @@ export default function Workbench() {
       .finally(() => setLoading(false))
   }, [token, t])
 
+  // ── P17-B30: my-tasks WS real-time ───────────────────────────────
+  const { status, lastEvent } = useWebSocket(token, TASK_EVENT_TYPES, logout)
+  const refreshRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Any task.* event reshapes "my tasks" (claim flips ownership → a task appears
+  // or leaves). 300ms debounce aggregates a burst into a single fetch.
+  useEffect(() => {
+    if (!lastEvent) return
+    if (!TASK_EVENT_TYPES.includes(lastEvent.event_type)) return
+
+    if (refreshRef.current) clearTimeout(refreshRef.current)
+    refreshRef.current = setTimeout(() => {
+      if (!token) return
+      fetchMyTasks(token)
+        .then(res => setTasks(res.tasks))
+        .catch(() => { /* keep last known list — non-critical refresh */ })
+    }, 300)
+  }, [lastEvent, token])
+
+  // Clear the pending refresh on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshRef.current) clearTimeout(refreshRef.current)
+    }
+  }, [])
+
   if (error) {
     return <EmptyState icon={Lock} title={t('workbench.heading')} description={error} />
   }
 
   return (
     <div>
-      <PageHeader title={t('workbench.heading')} subtitle={t('workbench.subtitle')} />
+      <PageHeader title={t('workbench.heading')} subtitle={t('workbench.subtitle')}>
+        <span
+          className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
+          data-testid="workbench-live-dot"
+          title={status}
+        />
+      </PageHeader>
 
       {loading && <p className={styles.loading}>{t('common.loading')}</p>}
 
@@ -59,7 +92,7 @@ export default function Workbench() {
           {tasks.map(task => {
             const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.backlog
             return (
-              <li key={task.task_id} className={styles.taskCard}>
+              <li key={task.task_id} className={styles.taskCard} data-task-id={task.task_id}>
                 <div className={styles.taskMain}>
                   <Link to={`/tasks/${task.task_id}`} className={styles.taskTitle}>
                     {task.title}
@@ -69,7 +102,7 @@ export default function Workbench() {
                   )}
                 </div>
                 <div className={styles.taskMeta}>
-                  <span className={styles.statusChip}>
+                  <span className={styles.statusChip} data-status={task.status}>
                     <span className={styles.statusDot} style={{ background: cfg.color }} />
                     {t(cfg.labelKey)}
                   </span>
