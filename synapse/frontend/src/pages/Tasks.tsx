@@ -40,6 +40,7 @@ export default function Tasks() {
   const [resolving, setResolving] = useState(false)
   const { token, teamId } = useAuth()
   const { isMinimalBatch } = useFeatures()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const STATUS_COLUMNS = [
     { status: 'backlog', label: t('tasks.columns.backlog') },
@@ -71,6 +72,12 @@ export default function Tasks() {
 
   useEffect(() => {
     if (!token || !teamId) return
+    // P17-B34: ?project=<name> deep-link wins over localStorage restore.
+    const projectParam = searchParams.get('project')
+    if (projectParam) {
+      doResolve(projectParam)
+      return
+    }
     const savedId = localStorage.getItem('synapse_project_id')
     if (savedId) {
       setProjectId(savedId)
@@ -81,7 +88,7 @@ export default function Tasks() {
     }
     // No saved project — auto-create "Default"
     doResolve('Default')
-  }, [token, teamId, doResolve])
+  }, [token, teamId, doResolve, searchParams])
 
   // ── Filter state (P9-B18) ──────────────────────────────
   const [filterSearch, setFilterSearch] = useState('')
@@ -90,19 +97,32 @@ export default function Tasks() {
   const [filterBatchId, setFilterBatchId] = useState('')
   const [workers, setWorkers] = useState<WorkerSummary[]>([])
 
-  // ── Tab state (P9-B36) ─────────────────────────────────
-  const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'unclaimed'>('all')
+  // ── Tab state (P9-B36) — URL-addressable via ?filter (P17-B34) ──
+  const filterParam = searchParams.get('filter')
+  const activeTab: 'all' | 'mine' | 'unclaimed' =
+    filterParam === 'mine' || filterParam === 'unclaimed' || filterParam === 'all'
+      ? filterParam
+      : 'all'
+
+  const setActiveTab = (tab: 'all' | 'mine' | 'unclaimed') => {
+    const params = new URLSearchParams(searchParams)
+    if (tab === 'all') params.delete('filter')
+    else params.set('filter', tab)
+    setSearchParams(params, { replace: true })
+  }
 
   // ── View tab: active board vs history (P9-B47) ──────────
-  const [searchParams, setSearchParams] = useSearchParams()
   const viewTab = (searchParams.get('tab') === 'history' ? 'history' : 'active') as 'active' | 'history'
   const historyBatchId = searchParams.get('batch') || undefined
 
   const setViewTab = (tab: 'active' | 'history', batchId?: string) => {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(searchParams)
     if (tab === 'history') {
       params.set('tab', 'history')
       if (batchId) params.set('batch', batchId)
+    } else {
+      params.delete('tab')
+      params.delete('batch')
     }
     setSearchParams(params, { replace: true })
   }
@@ -1162,6 +1182,8 @@ export default function Tasks() {
             <button
               type="button"
               className={`${styles.tab} ${activeTab === 'all' ? styles.tabActive : ''}`}
+              data-testid="filter-tab-all"
+              data-active={activeTab === 'all' ? 'true' : 'false'}
               onClick={() => setActiveTab('all')}
             >
               {t('tasks.tabs.all')}
@@ -1169,6 +1191,8 @@ export default function Tasks() {
             <button
               type="button"
               className={`${styles.tab} ${activeTab === 'mine' ? styles.tabActive : ''}`}
+              data-testid="filter-tab-mine"
+              data-active={activeTab === 'mine' ? 'true' : 'false'}
               onClick={() => setActiveTab('mine')}
             >
               {t('tasks.tabs.mine')}
@@ -1176,6 +1200,8 @@ export default function Tasks() {
             <button
               type="button"
               className={`${styles.tab} ${activeTab === 'unclaimed' ? styles.tabActive : ''}`}
+              data-testid="filter-tab-unclaimed"
+              data-active={activeTab === 'unclaimed' ? 'true' : 'false'}
               onClick={() => setActiveTab('unclaimed')}
             >
               {t('tasks.tabs.unclaimed')}

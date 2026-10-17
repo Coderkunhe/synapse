@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
-import { fetchMyTasks } from '../api/client'
+import { fetchMyTasks, fetchProjectsBreakdown } from '../api/client'
 import { useWebSocket, TASK_EVENT_TYPES } from '../api/ws'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
@@ -24,10 +24,11 @@ const STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
 
 export default function Workbench() {
   const { t, lang } = useI18n()
-  const { token, logout } = useAuth()
+  const { token, teamId, logout } = useAuth()
   const [tasks, setTasks] = useState<WorkbenchTask[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [claimableCount, setClaimableCount] = useState(0)
 
   useEffect(() => {
     if (!token) {
@@ -39,7 +40,16 @@ export default function Workbench() {
       .then(res => setTasks(res.tasks))
       .catch(err => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false))
-  }, [token, t])
+
+    if (teamId) {
+      fetchProjectsBreakdown(teamId, token)
+        .then(res => {
+          const total = res.projects.reduce((sum, p) => sum + (p.by_status.ready ?? 0), 0)
+          setClaimableCount(total)
+        })
+        .catch(() => { /* non-critical — claimable count is a convenience entry */ })
+    }
+  }, [token, teamId, t])
 
   // ── P17-B30: my-tasks WS real-time ───────────────────────────────
   const { status, lastEvent } = useWebSocket(token, TASK_EVENT_TYPES, logout)
@@ -57,8 +67,16 @@ export default function Workbench() {
       fetchMyTasks(token)
         .then(res => setTasks(res.tasks))
         .catch(() => { /* keep last known list — non-critical refresh */ })
+      if (teamId) {
+        fetchProjectsBreakdown(teamId, token)
+          .then(res => {
+            const total = res.projects.reduce((sum, p) => sum + (p.by_status.ready ?? 0), 0)
+            setClaimableCount(total)
+          })
+          .catch(() => { /* keep last known count — non-critical refresh */ })
+      }
     }, 300)
-  }, [lastEvent, token])
+  }, [lastEvent, token, teamId])
 
   // Clear the pending refresh on unmount
   useEffect(() => {
@@ -74,6 +92,15 @@ export default function Workbench() {
   return (
     <div>
       <PageHeader title={t('workbench.heading')} subtitle={t('workbench.subtitle')}>
+        {claimableCount > 0 && (
+          <Link
+            to="/tasks?filter=unclaimed"
+            className={styles.claimableLink}
+            data-testid="workbench-claimable"
+          >
+            {t('workbench.claimable', { count: claimableCount })} →
+          </Link>
+        )}
         <span
           className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
           data-testid="workbench-live-dot"

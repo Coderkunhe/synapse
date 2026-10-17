@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, AlertTriangle, ChevronLeft, Shield, ShieldOff, Trash2, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
-import type { ProjectSummary, WorkerSummary, ProjectRoleEntry } from '../api/client'
+import type { ProjectSummary, TaskSummary, WorkerSummary, ProjectRoleEntry } from '../api/client'
 import {
   fetchProject,
   updateProject,
@@ -14,11 +14,17 @@ import {
   assignProjectRole,
   revokeProjectRole,
   fetchWorkers,
+  fetchTasks,
+  fetchBatches,
+  readyTask,
+  claimTask,
+  ApiError,
 } from '../api/client'
 import ConfirmModal from '../components/ConfirmModal'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
 import ProjectOverview from '../components/ProjectOverview'
+import TaskColumn from '../components/TaskColumn'
 import { formatDate } from '../utils/format'
 import styles from './ProjectDetail.module.css'
 
@@ -76,9 +82,12 @@ export default function ProjectDetail() {
   const [error, setError] = useState<string | null>(null)
 
   // Tab — 支持 ?tab=overview 钻取（团队态势 → 项目态势落地 overview tab）
-  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions' | 'overview'>(() => {
+  // P17-B34: + tasks tab（项目详情补任务列表，同样走 ?tab 校验白名单）
+  const [activeTab, setActiveTab] = useState<'info' | 'roles' | 'conventions' | 'overview' | 'tasks'>(() => {
     const tab = searchParams.get('tab')
-    return tab === 'info' || tab === 'roles' || tab === 'conventions' || tab === 'overview' ? tab : 'info'
+    return tab === 'info' || tab === 'roles' || tab === 'conventions' || tab === 'overview' || tab === 'tasks'
+      ? tab
+      : 'info'
   })
 
   // Info tab edit mode
@@ -105,6 +114,14 @@ export default function ProjectDetail() {
   const [selectedRole, setSelectedRole] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [revokingId, setRevokingId] = useState<string | null>(null)
+
+  // Tasks tab (P17-B34)
+  const [tasks, setTasks] = useState<TaskSummary[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [tasksError, setTasksError] = useState<string | null>(null)
+  const [batchNames, setBatchNames] = useState<Map<string, string>>(new Map())
+  const [workerNames, setWorkerNames] = useState<Map<string, string>>(new Map())
+  const [quickActionError, setQuickActionError] = useState<string | null>(null)
 
   // Conventions tab
   const [conventions, setConventions] = useState<ProjectConventions>(EMPTY_CONVENTIONS)
@@ -169,6 +186,44 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (activeTab === 'roles') loadWorkers()
   }, [activeTab, loadWorkers])
+
+  // ── Load tasks (P17-B34) ─────────────────────────────────
+
+  const loadTasks = useCallback(() => {
+    if (!token || !projectId) return
+    setTasksLoading(true)
+    setTasksError(null)
+    fetchTasks(projectId, token)
+      .then(res => setTasks(res.items))
+      .catch(err => setTasksError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setTasksLoading(false))
+  }, [projectId, token])
+
+  useEffect(() => {
+    if (activeTab === 'tasks') loadTasks()
+  }, [activeTab, loadTasks])
+
+  useEffect(() => {
+    if (!token || !projectId) return
+    fetchBatches(projectId, token)
+      .then(res => {
+        const map = new Map<string, string>()
+        res.items.forEach(b => map.set(b.id, b.name))
+        setBatchNames(map)
+      })
+      .catch(() => { /* non-critical name enrichment */ })
+  }, [projectId, token])
+
+  useEffect(() => {
+    if (!token || !teamId) return
+    fetchWorkers(teamId, token)
+      .then(res => {
+        const map = new Map<string, string>()
+        res.items.forEach(w => map.set(w.id, w.name))
+        setWorkerNames(map)
+      })
+      .catch(() => { /* non-critical name enrichment */ })
+  }, [teamId, token])
 
   // ── Info tab handlers ─────────────────────────────────────
 
@@ -269,6 +324,32 @@ export default function ProjectDetail() {
       setRolesError(err instanceof Error ? err.message : 'Revoke failed')
     } finally {
       setRevokingId(null)
+    }
+  }
+
+  // ── Task quick actions (P17-B34 · mirror Tasks.tsx) ──────
+
+  const handlePromote = async (taskId: string, version: number) => {
+    if (!token) return
+    setQuickActionError(null)
+    try {
+      await readyTask(taskId, version, token)
+      loadTasks()
+    } catch (err: unknown) {
+      setQuickActionError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Promote failed'))
+      setTimeout(() => setQuickActionError(null), 5000)
+    }
+  }
+
+  const handleClaim = async (taskId: string, version: number) => {
+    if (!token) return
+    setQuickActionError(null)
+    try {
+      await claimTask(taskId, version, token)
+      loadTasks()
+    } catch (err: unknown) {
+      setQuickActionError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Claim failed'))
+      setTimeout(() => setQuickActionError(null), 5000)
     }
   }
 
@@ -401,7 +482,7 @@ export default function ProjectDetail() {
 
       {/* Tab bar */}
       <div className={styles.tabBar}>
-        {(['info', 'roles', 'conventions', 'overview'] as const).map(tab => (
+        {(['info', 'roles', 'conventions', 'overview', 'tasks'] as const).map(tab => (
           <button
             key={tab}
             type="button"
@@ -776,6 +857,30 @@ export default function ProjectDetail() {
       {activeTab === 'overview' && (
         <div className={styles.tabContent}>
           <ProjectOverview projectId={projectId!} teamId={project.team_id} />
+        </div>
+      )}
+
+      {/* ── Tab: Tasks (P17-B34) ──────────────────────────── */}
+      {activeTab === 'tasks' && (
+        <div className={styles.tabContent}>
+          {tasksError && <p className={styles.error}>{tasksError}</p>}
+          {quickActionError && <p className={styles.error}>{quickActionError}</p>}
+          {tasksLoading && <p className={styles.loading}>{t('common.loading')}</p>}
+          {!tasksLoading && !tasksError && (
+            <div className={styles.tasksBoard}>
+              {(['backlog', 'ready', 'in_progress', 'in_verification'] as const).map(status => (
+                <TaskColumn
+                  key={status}
+                  label={t(`tasks.columns.${status === 'in_progress' ? 'inProgress' : status === 'in_verification' ? 'inVerification' : status}`)}
+                  tasks={tasks.filter(tk => tk.status === status)}
+                  batchNames={batchNames}
+                  workerNames={workerNames}
+                  onPromote={handlePromote}
+                  onClaim={handleClaim}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

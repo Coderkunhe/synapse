@@ -55,8 +55,8 @@ const en: TranslationMap = {
 
   // ── Navigation ────────────────────────────────────────────────────────
   nav: {
-    dashboard: 'Dashboard',
-    workbench: 'Workbench',
+    dashboard: 'Situation',
+    workbench: 'My Tasks',
     projects: 'Projects',
     batches: 'Batches',
     tasks: 'Tasks',
@@ -76,6 +76,7 @@ const en: TranslationMap = {
     subtitle: 'Tasks assigned to me across all projects',
     empty: 'No tasks assigned to you yet.',
     blocked: 'blocked',
+    claimable: 'Claimable {count}',
   },
 
   // ── Brand / Shell ─────────────────────────────────────────────────────
@@ -165,7 +166,9 @@ const en: TranslationMap = {
 
   // ── Dashboard ─────────────────────────────────────────────────────────
   dashboard: {
-    heading: 'Dashboard',
+    heading: 'Situation',
+    subtitle: 'Team-wide task & dependency situation',
+    claimable: 'Claimable {count}',
     recentEvents: 'Recent Events',
     noEvents: 'No events yet.',
     agentCount: 'Workers',
@@ -270,6 +273,7 @@ const en: TranslationMap = {
     roles: 'Roles',
     conventions: 'Conventions',
     overview: 'Overview',
+    tasks: 'Tasks',
     addRole: 'Add Role',
     selectWorker: 'Select Worker…',
     selectRole: 'Select Role…',
@@ -948,8 +952,8 @@ const zh: TranslationMap = {
   },
 
   nav: {
-    dashboard: '仪表盘',
-    workbench: '工作台',
+    dashboard: '态势',
+    workbench: '我的任务',
     projects: '项目',
     batches: '任务包',
     tasks: '任务',
@@ -969,6 +973,7 @@ const zh: TranslationMap = {
     subtitle: '跨项目聚合的我的任务',
     empty: '你还没有认领的任务。',
     blocked: '阻塞',
+    claimable: '可认领 {count}',
   },
 
   brand: {
@@ -1055,7 +1060,9 @@ const zh: TranslationMap = {
   },
 
   dashboard: {
-    heading: '仪表盘',
+    heading: '态势',
+    subtitle: '全团队任务与依赖态势',
+    claimable: '可认领 {count}',
     recentEvents: '最近事件',
     noEvents: '暂无事件。',
     agentCount: '工作者',
@@ -1141,6 +1148,7 @@ const zh: TranslationMap = {
     roles: '角色',
     conventions: '约定',
     overview: '态势',
+    tasks: '任务',
     addRole: '分配角色',
     selectWorker: '选择 Worker…',
     selectRole: '选择角色…',

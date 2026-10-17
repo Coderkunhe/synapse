@@ -36,8 +36,8 @@ test('#1 项目名钻取 → overview 态势 tab（DAG 渲染）', async ({ brow
   await expect(projectCard).toBeVisible()
 
   // B27 钻取：点项目名 Link → /projects/:id?tab=overview（团队态势 → 项目态势）。
-  // 项目卡内唯一 <a> 即项目名链接（Dashboard.tsx projectNameLink）。
-  await projectCard.locator('a').click()
+  // P17-B34 项目卡新增「可认领」深链 <a>，因此精确锚定 projectNameLink。
+  await projectCard.getByTestId('project-name-link').click()
   await expect(page).toHaveURL(new RegExp(`/projects/${p1.projectId}\\?tab=overview`))
 
   // overview tab 由 ?tab=overview 直接激活（ProjectDetail 初始化 activeTab）→

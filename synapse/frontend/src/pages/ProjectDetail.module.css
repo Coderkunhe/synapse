@@ -113,6 +113,14 @@
   animation: fadeIn 0.15s ease;
 }
 
+.tasksBoard {
+  display: flex;
+  gap: var(--gm-space-3, 12px);
+  overflow-x: auto;
+  padding-bottom: var(--gm-space-4, 20px);
+  min-height: 40vh;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

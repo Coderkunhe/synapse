@@ -101,7 +101,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title={t('dashboard.heading')} subtitle={t('brand.slogan')} />
+      <PageHeader title={t('dashboard.heading')} subtitle={t('dashboard.subtitle')} />
 
       {stats && (
         <div className={styles.stats}>
@@ -239,7 +239,11 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
             return (
               <div key={p.project_id} className={styles.projectCard} data-project-id={p.project_id}>
                 <div className={styles.projectNameRow}>
-                  <Link to={`/projects/${p.project_id}?tab=overview`} className={styles.projectNameLink}>
+                  <Link
+                    to={`/projects/${p.project_id}?tab=overview`}
+                    className={styles.projectNameLink}
+                    data-testid="project-name-link"
+                  >
                     {p.project_name}
                   </Link>
                   {p.dependency_blocked > 0 && (
@@ -272,6 +276,27 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
                       {Object.entries(STATUS_CONFIG).map(([status, cfg]) => {
                         const count = p.by_status[status as keyof typeof p.by_status] ?? 0
                         if (count === 0) return null
+                        // P17-B34: `ready` becomes the primary discoverability
+                        // entry point — a deep link straight to the claimable
+                        // board. `data-status`/`data-count` stay for e2e compat.
+                        if (status === 'ready') {
+                          return (
+                            <Link
+                              key={status}
+                              to={`/tasks?project=${encodeURIComponent(p.project_name)}&filter=unclaimed`}
+                              className={`${styles.statusChip} ${styles.statusChipLink}`}
+                              data-status={status}
+                              data-count={count}
+                              data-testid={`claimable-${p.project_id}`}
+                            >
+                              <span
+                                className={styles.statusDot}
+                                style={{ background: cfg.color }}
+                              />
+                              {t('dashboard.claimable', { count })}
+                            </Link>
+                          )
+                        }
                         return (
                           <span key={status} className={styles.statusChip} data-status={status} data-count={count}>
                             <span

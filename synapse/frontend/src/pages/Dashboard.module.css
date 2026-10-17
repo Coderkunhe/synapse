@@ -247,6 +247,16 @@
   color: var(--gm-text-secondary);
 }
 
+.statusChipLink {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.statusChipLink:hover {
+  color: var(--gm-primary);
+  background: rgba(91, 126, 245, 0.1);
+}
+
 .statusDot {
   width: 6px;
   height: 6px;

@@ -107,6 +107,24 @@
   vertical-align: middle;
 }
 
+.claimableLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-primary);
+  text-decoration: none;
+  padding: 2px 8px;
+  border: 1px solid var(--gm-primary-dim);
+  border-radius: var(--gm-radius-sm);
+  white-space: nowrap;
+}
+
+.claimableLink:hover {
+  background: rgba(91, 126, 245, 0.1);
+}
+
 .liveDotOn {
   background: #4ade80;
   box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
