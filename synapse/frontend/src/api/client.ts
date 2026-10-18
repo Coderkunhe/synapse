@@ -401,6 +401,8 @@ export function fetchTasks(projectId: string, token: string, opts?: {
   status?: string
   cursor?: string
   limit?: number
+  unclaimed?: boolean
+  mine?: boolean
 }) {
   const params = new URLSearchParams({ limit: String(opts?.limit ?? 100) })
   if (opts?.ownerId) params.set('owner_id', opts.ownerId)
@@ -408,6 +410,8 @@ export function fetchTasks(projectId: string, token: string, opts?: {
   if (opts?.search) params.set('search', opts.search)
   if (opts?.status) params.set('status', opts.status)
   if (opts?.cursor) params.set('cursor', opts.cursor)
+  if (opts?.unclaimed) params.set('unclaimed', 'true')
+  if (opts?.mine) params.set('mine', 'true')
   return request<{ items: TaskSummary[]; total: number; next_cursor: string | null }>(
     `/v1/projects/${projectId}/tasks?${params}`,
     { token },

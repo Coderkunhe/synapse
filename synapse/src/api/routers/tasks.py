@@ -41,6 +41,7 @@ from src.services.batch_service import create_tasks_batch as _create_tasks_batch
 from src.services.task_query import (
     get_available_tasks as _get_available_tasks,
     get_tasks as _get_tasks,
+    resolve_my_owner_ids as _resolve_my_owner_ids,
 )
 from src.services.task_service import (
     assign_batch as _assign_batch,
@@ -298,8 +299,10 @@ async def create_tasks_batch(
 )
 async def list_tasks(
     project_id: str,
-    status: str | None = Query(None, description="Filter by task status, or 'overdue' for deadline-passed tasks"),
+    status: str | None = Query(None, description="Filter by task status, comma-separated multi-values supported, or 'overdue' for deadline-passed tasks"),
     owner_id: str | None = Query(None, description="Filter by owner ID (worker or member)"),
+    unclaimed: bool | None = Query(None, description="Filter to ready tasks with no owner"),
+    mine: bool | None = Query(None, description="Filter to tasks owned by the current actor (claim + assign paths)"),
     batch_id: str | None = Query(None, description="Filter by batch ID"),
     search: str | None = Query(None, description="Search in task title (ILIKE)"),
     cursor: str | None = Query(None, max_length=40),
@@ -315,9 +318,11 @@ async def list_tasks(
     if project.team_id != actor.team_id:
         raise NotFoundError("project", project_id)
 
+    owner_ids = await _resolve_my_owner_ids(db, actor.team_id, actor) if mine else None
+
     tasks, next_cursor, total = await _get_tasks(
-        db, project_id, status=status, owner_id=owner_id,
-        batch_id=batch_id, search=search, cursor=cursor, limit=limit,
+        db, project_id, status=status, owner_id=owner_id, owner_ids=owner_ids,
+        unclaimed=unclaimed, batch_id=batch_id, search=search, cursor=cursor, limit=limit,
     )
     items = [TaskResponse.model_validate(await task_to_response(t, db, current_actor_id=actor.actor_id)) for t in tasks]
     return CursorPage(items=items, next_cursor=next_cursor, total=total)

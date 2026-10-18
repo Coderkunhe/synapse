@@ -87,12 +87,35 @@ async def filter_dependency_blocked(
     return filtered
 
 
-async def get_tasks(db, project_id, *, status=None, owner_id=None,
-                    batch_id=None, search=None, cursor=None, limit=50):
+async def resolve_my_owner_ids(db: AsyncSession, team_id: str, actor) -> list[str]:
+    """解析「我」名下任务的 owner_id 列表（team 内 · 双路径）。
+
+    owner 匹配覆盖两条人路径（P17-B3 / P8-B3）：
+    - claim 写 ``owner_type=human`` + ``owner_id=derived worker_id``（= actor.actor_id）
+    - assign 写 ``owner_type=member`` + ``owner_id=member.id``（≠ actor_id）
+    worker actor 则 ``actor.user_id`` 为 None，仅匹配 actor_id。
+    """
+    owner_ids = [actor.actor_id]
+    if getattr(actor, "user_id", None):
+        member = await db.scalar(
+            select(Member).where(
+                Member.user_id == actor.user_id,
+                Member.team_id == team_id,
+            )
+        )
+        if member is not None:
+            owner_ids.append(member.id)
+    return owner_ids
+
+
+async def get_tasks(db, project_id, *, status=None, owner_id=None, owner_ids=None,
+                    unclaimed=None, batch_id=None, search=None, cursor=None, limit=50):
     """获取项目中所有 Task，可选过滤，游标分页。
 
     与 ``get_available_tasks`` 不同：默认不过滤 status，返回所有状态的 Task。
-    ``status`` 接受 TaskStatus 值或特殊值 ``"overdue"``（deadline 已过且未完成/取消的任务）。
+    ``status`` 接受 TaskStatus 值、逗号分隔的多值（如 ``"completed,cancelled"``），
+    或特殊值 ``"overdue"``（deadline 已过且未完成/取消的任务）。
+    ``unclaimed`` 为 True 时只回 ready 且无主（owner_id 为 NULL）的任务。
     """
     project = await db.get(Project, project_id)
     if project is None:
@@ -104,9 +127,19 @@ async def get_tasks(db, project_id, *, status=None, owner_id=None,
         conditions.append(Task.deadline_at < now)
         conditions.append(Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.CANCELLED]))
     elif status:
-        conditions.append(Task.status == status)
+        if "," in status:
+            statuses = [s.strip() for s in status.split(",") if s.strip()]
+            if statuses:
+                conditions.append(Task.status.in_(statuses))
+        else:
+            conditions.append(Task.status == status)
     if owner_id:
         conditions.append(Task.owner_id == owner_id)
+    if owner_ids:
+        conditions.append(Task.owner_id.in_(owner_ids))
+    if unclaimed:
+        conditions.append(Task.status == TaskStatus.READY)
+        conditions.append(Task.owner_id.is_(None))
     if batch_id:
         conditions.append(Task.batch_id == batch_id)
     if search:
@@ -137,16 +170,7 @@ async def get_my_tasks(db: AsyncSession, team_id: str, actor) -> list[dict]:
     - assign（P8-B3）写 ``owner_type=member`` + ``owner_id=member.id``（≠ actor_id）
     worker actor 则 ``actor.user_id`` 为 None，仅匹配 actor_id。
     """
-    owner_ids = [actor.actor_id]
-    if getattr(actor, "user_id", None):
-        member = await db.scalar(
-            select(Member).where(
-                Member.user_id == actor.user_id,
-                Member.team_id == team_id,
-            )
-        )
-        if member is not None:
-            owner_ids.append(member.id)
+    owner_ids = await resolve_my_owner_ids(db, team_id, actor)
 
     rows = await db.execute(
         select(Task, Project.name)

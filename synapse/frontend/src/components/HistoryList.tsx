@@ -7,8 +7,6 @@ import { useI18n } from '../contexts/I18nContext'
 import { formatDate } from '../utils/format'
 import styles from './HistoryList.module.css'
 
-const HISTORY_STATUSES = new Set(['completed', 'cancelled'])
-
 interface HistoryListProps {
   projectId: string
   token: string
@@ -25,6 +23,8 @@ interface BatchGroup {
 export default function HistoryList({ projectId, token, initialBatchId, onBackToBoard }: HistoryListProps) {
   const { t, lang } = useI18n()
   const [allTasks, setAllTasks] = useState<TaskSummary[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [batchNames, setBatchNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,14 +47,15 @@ export default function HistoryList({ projectId, token, initialBatchId, onBackTo
     setLoading(true)
     setError(null)
 
-    // Fetch tasks (all statuses — we filter client-side) and batches in parallel
+    // Fetch terminal tasks server-side (P17-B38) — no client-side truncation.
+    // Batches are still fetched in parallel for group name enrichment.
     Promise.all([
-      fetchTasks(projectId, token),
+      fetchTasks(projectId, token, { status: 'completed,cancelled' }),
       fetchBatches(projectId, token).catch(() => ({ items: [] as Array<{ id: string; name: string }> })),
     ])
       .then(([taskRes, batchRes]) => {
-        const historyTasks = taskRes.items.filter(t => HISTORY_STATUSES.has(t.status))
-        setAllTasks(historyTasks)
+        setAllTasks(taskRes.items)
+        setNextCursor(taskRes.next_cursor)
         const map = new Map<string, string>()
         batchRes.items.forEach((b: { id: string; name: string }) => map.set(b.id, b.name))
         setBatchNames(map)
@@ -150,6 +151,24 @@ export default function HistoryList({ projectId, token, initialBatchId, onBackTo
     } else {
       setExpandedGroups(new Set(groups.map(g => g.batchId)))
       setExpandFlag(true)
+    }
+  }
+
+  // ── Load more terminal tasks (cursor pagination · P17-B38) ──
+  const handleLoadMore = async () => {
+    if (!token || !projectId || !nextCursor) return
+    setLoadingMore(true)
+    try {
+      const res = await fetchTasks(projectId, token, {
+        status: 'completed,cancelled',
+        cursor: nextCursor,
+      })
+      setAllTasks(prev => [...prev, ...res.items])
+      setNextCursor(res.next_cursor)
+    } catch {
+      /* load-more failure is non-blocking — the user can retry via the button */
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -292,6 +311,20 @@ export default function HistoryList({ projectId, token, initialBatchId, onBackTo
           </div>
         )
       })}
+
+      {/* ── Load More ──────────────────────────────────── */}
+      {nextCursor && (
+        <div className={styles.loadMoreBar}>
+          <button
+            type="button"
+            className={styles.loadMoreBtn}
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? t('common.loading') : t('tasks.loadMore')}
+          </button>
+        </div>
+      )}
 
       {/* ── Footer count ────────────────────────────────── */}
       {filteredCount !== totalCount && (

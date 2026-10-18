@@ -117,7 +117,9 @@ export default function ProjectDetail() {
 
   // Tasks tab (P17-B34)
   const [tasks, setTasks] = useState<TaskSummary[]>([])
+  const [tasksNextCursor, setTasksNextCursor] = useState<string | null>(null)
   const [tasksLoading, setTasksLoading] = useState(false)
+  const [tasksLoadingMore, setTasksLoadingMore] = useState(false)
   const [tasksError, setTasksError] = useState<string | null>(null)
   const [batchNames, setBatchNames] = useState<Map<string, string>>(new Map())
   const [workerNames, setWorkerNames] = useState<Map<string, string>>(new Map())
@@ -194,10 +196,27 @@ export default function ProjectDetail() {
     setTasksLoading(true)
     setTasksError(null)
     fetchTasks(projectId, token)
-      .then(res => setTasks(res.items))
+      .then(res => {
+        setTasks(res.items)
+        setTasksNextCursor(res.next_cursor)
+      })
       .catch(err => setTasksError(err instanceof Error ? err.message : String(err)))
       .finally(() => setTasksLoading(false))
   }, [projectId, token])
+
+  const handleTasksLoadMore = async () => {
+    if (!token || !projectId || !tasksNextCursor) return
+    setTasksLoadingMore(true)
+    try {
+      const res = await fetchTasks(projectId, token, { cursor: tasksNextCursor })
+      setTasks(prev => [...prev, ...res.items])
+      setTasksNextCursor(res.next_cursor)
+    } catch (err) {
+      setTasksError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setTasksLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     if (activeTab === 'tasks') loadTasks()
@@ -867,19 +886,33 @@ export default function ProjectDetail() {
           {quickActionError && <p className={styles.error}>{quickActionError}</p>}
           {tasksLoading && <p className={styles.loading}>{t('common.loading')}</p>}
           {!tasksLoading && !tasksError && (
-            <div className={styles.tasksBoard}>
-              {(['backlog', 'ready', 'in_progress', 'in_verification'] as const).map(status => (
-                <TaskColumn
-                  key={status}
-                  label={t(`tasks.columns.${status === 'in_progress' ? 'inProgress' : status === 'in_verification' ? 'inVerification' : status}`)}
-                  tasks={tasks.filter(tk => tk.status === status)}
-                  batchNames={batchNames}
-                  workerNames={workerNames}
-                  onPromote={handlePromote}
-                  onClaim={handleClaim}
-                />
-              ))}
-            </div>
+            <>
+              <div className={styles.tasksBoard}>
+                {(['backlog', 'ready', 'in_progress', 'in_verification'] as const).map(status => (
+                  <TaskColumn
+                    key={status}
+                    label={t(`tasks.columns.${status === 'in_progress' ? 'inProgress' : status === 'in_verification' ? 'inVerification' : status}`)}
+                    tasks={tasks.filter(tk => tk.status === status)}
+                    batchNames={batchNames}
+                    workerNames={workerNames}
+                    onPromote={handlePromote}
+                    onClaim={handleClaim}
+                  />
+                ))}
+              </div>
+              {tasksNextCursor && (
+                <div className={styles.loadMoreBar}>
+                  <button
+                    type="button"
+                    className={styles.loadMoreBtn}
+                    onClick={handleTasksLoadMore}
+                    disabled={tasksLoadingMore}
+                  >
+                    {tasksLoadingMore ? t('common.loading') : t('tasks.loadMore')}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
