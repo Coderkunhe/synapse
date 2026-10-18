@@ -1,7 +1,7 @@
 {
   "lastL5Batch": "P17-B35→B36 L5 拉通 — UX 扫描盘点（scan-only）· 三源对齐 checkpoint+CLAUDE.md+memory",
   "lastL5Timestamp": "2026-10-18",
-  "batchesSinceLastL5": 0,
+  "batchesSinceLastL5": 1,
   "completedBatches": [],
   "lastL5Evidence": "P17-B35→B36 L5 拉通 — UX 扫描盘点（scan-only）· 三源对齐 checkpoint+CLAUDE.md+memory",
   "notes": "L5 拉通完成，计数器复位 — V-023 防呆: --yes 已确认"
