@@ -1,9 +1,9 @@
 {
-  "lastReviewBatch": "P17 违纪回顾 — B26~B30 无新增违纪 · 30/30 🟢 · 0 🔴 · counter 5→0",
-  "lastReviewTimestamp": "2026-10-17",
-  "totalViolations": 30,
+  "lastReviewBatch": "P17 违纪回顾 — B31~B34 无新增违纪 · 31/31 🟢 · 0 🔴 · 登记 V-031（B4-F6 偏差）· counter 4→0",
+  "lastReviewTimestamp": "2026-10-18",
+  "totalViolations": 31,
   "recurringCount": 0,
-  "unguardedCount": 3,
-  "batchesSinceLastReview": 4,
+  "unguardedCount": 4,
+  "batchesSinceLastReview": 0,
   "notes": "违纪回顾完成，计数器复位"
 }
