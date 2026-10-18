@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Users,
+  UsersRound,
   LogOut,
   Zap,
   BookOpen,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useI18n } from '../contexts/I18nContext'
+import { useFeatures } from '../contexts/FeaturesContext'
 import { useWebSocket } from '../api/ws'
 import { usePushNotification } from '../api/usePushNotification'
 import WSStatus from './WSStatus'
@@ -31,7 +33,12 @@ export default function Layout() {
   const { token, displayName, logout } = useAuth()
   const { status } = useWebSocket(token, [], logout)
   const { t, lang, setLang } = useI18n()
+  const { isMinimalTeams } = useFeatures()
   const push = usePushNotification()
+
+  const navItems = isMinimalTeams
+    ? NAV_ITEMS
+    : [...NAV_ITEMS, { to: '/teams', i18nKey: 'nav.teams', icon: UsersRound }]
 
   return (
     <div className={styles.shell}>
@@ -42,7 +49,7 @@ export default function Layout() {
           <span className={styles.slogan}>{t('brand.slogan')}</span>
         </div>
         <nav className={styles.nav}>
-          {NAV_ITEMS.map(({ to, i18nKey, icon: Icon }) => (
+          {navItems.map(({ to, i18nKey, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}

@@ -254,11 +254,14 @@ export default function ProjectOverview({ projectId, teamId }: Props) {
         <h3 className={styles.sectionTitle}>
           {t('overview.dependencyGraph')}
           <span className={styles.count}>{t('overview.nodeCount', { count: dagNodes.length })}</span>
-          <span
-            className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
-            data-testid="live-dot"
-            title={status}
-          />
+          <span className={styles.liveIndicator}>
+            <span
+              className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
+              data-testid="live-dot"
+              title={status}
+            />
+            <span className={styles.liveLabel} data-testid="live-label">{t('common.live')}</span>
+          </span>
         </h3>
         {dagNodes.length === 0 ? (
           <p className={styles.emptyText}>{t('overview.noTasks')}</p>

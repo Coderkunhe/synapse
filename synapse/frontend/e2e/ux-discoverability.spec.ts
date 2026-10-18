@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import {
+  API_BASE,
   loginAsHunter,
   accessCookie,
   seedProjectAndTasks,
@@ -75,6 +76,76 @@ test('#3 nav 标签文案自解释（态势 / My Tasks）', async ({ browser }) 
   const nav = page.locator('nav')
   await expect(nav.getByText('Situation')).toBeVisible()
   await expect(nav.getByText('My Tasks')).toBeVisible()
+
+  await context.close()
+})
+
+test('#4 live 绿点标签在 dashboard/workbench 页头可见', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  await page.goto('/dashboard')
+  await expect(page.getByTestId('dashboard-live-label')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('dashboard-live-label')).toHaveText('Live')
+
+  await page.goto('/workbench')
+  await expect(page.getByTestId('workbench-live-label')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('workbench-live-label')).toHaveText('Live')
+
+  await context.close()
+})
+
+test('#5 侧边导航 Teams 入口可见 + 跳转 /teams', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  await page.goto('/dashboard')
+
+  const teamsNav = page.locator('nav').getByText('Teams')
+  await expect(teamsNav).toBeVisible({ timeout: 15_000 })
+  await teamsNav.click()
+
+  await expect(page).toHaveURL(/\/teams$/)
+
+  await context.close()
+})
+
+test('#6 历史任务首载默认折叠，点击批次头才展开', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  // Seed via the authenticated browser context (`page.request` shares its
+  // cookies) — the test-scoped `request` fixture has no login cookie.
+  const stamp = Date.now().toString(36)
+  const p2 = await seedProjectAndTasks(page.request, hunter.teamId, `e2e-uxhist-${stamp}`, [
+    { title: 'UX-History' },
+  ])
+  const taskId = p2.taskIds['UX-History']
+
+  // Cancel the seeded task so it shows up in the history view (completed/cancelled).
+  const taskRes = await page.request.get(`${API_BASE}/v1/tasks/${taskId}`)
+  const task = await taskRes.json()
+  const cancelRes = await page.request.post(`${API_BASE}/v1/tasks/${taskId}/cancel`, {
+    data: { expected_version: task.version_no },
+  })
+  expect(cancelRes.ok()).toBeTruthy()
+
+  // Tasks deep link resolves `project` by *name* (not id) — P17-B34.
+  const projectName = `E2E Smoke e2e-uxhist-${stamp}`
+  await page.goto(`/tasks?project=${encodeURIComponent(projectName)}&tab=history`)
+
+  // Batch group header is visible (null-batch → "No batch"), but its task rows
+  // stay collapsed until the group header is clicked.
+  const groupHeader = page.getByText('No batch')
+  await expect(groupHeader).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('1 history')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'UX-History' })).toHaveCount(0)
+
+  await groupHeader.click()
+  await expect(page.getByRole('link', { name: 'UX-History' })).toBeVisible()
 
   await context.close()
 })

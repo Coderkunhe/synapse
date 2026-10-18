@@ -74,10 +74,10 @@ export default function HistoryList({ projectId, token, initialBatchId, onBackTo
       // Expand only the linked batch group
       setExpandedGroups(new Set([initialBatchId]))
     } else {
-      // Expand all groups so the user sees data immediately
-      const allIds = new Set<string | null>()
-      allTasks.forEach(t => allIds.add(t.batch_id))
-      setExpandedGroups(allIds)
+      // Default collapsed on first load — 150+ completed/cancelled tasks
+      // auto-expanding was overwhelming. The user expands a batch by clicking
+      // its group header (or one-click expands all via the expandAll toggle).
+      setExpandedGroups(new Set())
     }
   }, [allTasks, initialBatchId, hasInitialExpanded])
 

@@ -51,6 +51,7 @@ const en: TranslationMap = {
     by: 'by',
     or: 'or',
     view: 'View',
+    live: 'Live',
   },
 
   // ── Navigation ────────────────────────────────────────────────────────
@@ -949,6 +950,7 @@ const zh: TranslationMap = {
     by: '由',
     or: '或',
     view: '查看',
+    live: '实时',
   },
 
   nav: {

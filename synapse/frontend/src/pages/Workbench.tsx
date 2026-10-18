@@ -101,11 +101,14 @@ export default function Workbench() {
             {t('workbench.claimable', { count: claimableCount })} →
           </Link>
         )}
-        <span
-          className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
-          data-testid="workbench-live-dot"
-          title={status}
-        />
+        <span className={styles.liveIndicator}>
+          <span
+            className={`${styles.liveDot} ${status === 'connected' ? styles.liveDotOn : ''}`}
+            data-testid="workbench-live-dot"
+            title={status}
+          />
+          <span className={styles.liveLabel} data-testid="workbench-live-label">{t('common.live')}</span>
+        </span>
       </PageHeader>
 
       {loading && <p className={styles.loading}>{t('common.loading')}</p>}

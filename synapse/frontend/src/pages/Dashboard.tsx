@@ -202,11 +202,14 @@ function ProjectBreakdownSection({ projects, loading, error, isMinimalProject, t
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>
           {t('dashboard.projectsBreakdown')}
-          <span
-            className={`${styles.liveDot} ${liveStatus === 'connected' ? styles.liveDotOn : ''}`}
-            data-testid="dashboard-live-dot"
-            title={liveStatus}
-          />
+          <span className={styles.liveIndicator}>
+            <span
+              className={`${styles.liveDot} ${liveStatus === 'connected' ? styles.liveDotOn : ''}`}
+              data-testid="dashboard-live-dot"
+              title={liveStatus}
+            />
+            <span className={styles.liveLabel} data-testid="dashboard-live-label">{t('common.live')}</span>
+          </span>
         </h2>
         {!isMinimalProject && projects.length > 0 && (
           <Link to="/projects" className={styles.sectionLink}>
