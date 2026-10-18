@@ -11,6 +11,7 @@ import {
 
 let hunter: HunterAuth
 let p1: SeededProject
+let p1Name: string
 
 test.describe.configure({ mode: 'serial' })
 
@@ -18,6 +19,7 @@ test.beforeAll(async ({ request }) => {
   hunter = await loginAsHunter(request)
   const stamp = Date.now().toString(36)
   // One claimable (ready + no owner) task drives the discoverability deep link.
+  p1Name = `E2E Smoke e2e-ux-${stamp}`
   p1 = await seedProjectAndTasks(request, hunter.teamId, `e2e-ux-${stamp}`, [
     { title: 'UX-A' },
   ])
@@ -146,6 +148,32 @@ test('#6 历史任务首载默认折叠，点击批次头才展开', async ({ br
 
   await groupHeader.click()
   await expect(page.getByRole('link', { name: 'UX-History' })).toBeVisible()
+
+  await context.close()
+})
+
+test('#7 My Tasks tab 无 worker 下拉即显示本人已认领任务', async ({ browser }) => {
+  const context = await browser.newContext()
+  await context.addCookies([accessCookie(hunter.accessToken)])
+  const page = await context.newPage()
+
+  // Claim UX-A as the logged-in human (browser context cookie carries the
+  // identity). The mine tab must resolve "me" from /me/tasks — not from the
+  // worker filter dropdown.
+  const taskA = p1.taskIds['UX-A']
+  const claimRes = await page.request.post(`${API_BASE}/v1/tasks/${taskA}/claim`, {
+    data: { expected_version: p1.versions[taskA] },
+  })
+  expect(claimRes.ok()).toBeTruthy()
+
+  // Deep-link into the mine tab WITHOUT selecting any worker in the dropdown.
+  await page.goto(`/tasks?project=${encodeURIComponent(p1Name)}&filter=mine`)
+
+  await expect(page.getByTestId('filter-tab-mine')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('filter-tab-mine')).toHaveAttribute('data-active', 'true')
+
+  // The claimed task appears on the board even though the worker filter is empty.
+  await expect(page.getByRole('link', { name: 'UX-A' })).toBeVisible({ timeout: 15_000 })
 
   await context.close()
 })

@@ -6,7 +6,7 @@ import HistoryList from '../components/HistoryList'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
 import BatchSelect from '../components/BatchSelect'
-import { fetchTasks, fetchBatches, fetchWorkers, createTask, cancelTask, resolveProject, readyTask, claimTask, batchReadyTasks, batchUpdateTasks, assignBatchTasks, ApiError } from '../api/client'
+import { fetchTasks, fetchBatches, fetchWorkers, fetchMyTasks, createTask, cancelTask, resolveProject, readyTask, claimTask, batchReadyTasks, batchUpdateTasks, assignBatchTasks, ApiError } from '../api/client'
 import type { TaskSummary, WorkerSummary } from '../api/client'
 import type { TaskDetail } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -96,6 +96,7 @@ export default function Tasks() {
   const [filterWorkerId, setFilterWorkerId] = useState('')
   const [filterBatchId, setFilterBatchId] = useState('')
   const [workers, setWorkers] = useState<WorkerSummary[]>([])
+  const [myTaskIds, setMyTaskIds] = useState<Set<string>>(new Set())
 
   // ── Tab state (P9-B36) — URL-addressable via ?filter (P17-B34) ──
   const filterParam = searchParams.get('filter')
@@ -143,7 +144,7 @@ export default function Tasks() {
 
   // ── Filter-aware task fetch ───────────────────────────
   const filterOpts = {
-    ownerId: filterWorkerId || undefined,
+    ownerId: activeTab === 'mine' ? undefined : (filterWorkerId || undefined),
     batchId: filterBatchId || undefined,
     search: debouncedSearch || undefined,
   }
@@ -171,7 +172,22 @@ export default function Tasks() {
         setError({ message: err.message, status })
       })
       .finally(() => setLoading(false))
-  }, [projectId, token, doResolve, filterWorkerId, filterBatchId, debouncedSearch])
+  }, [projectId, token, doResolve, filterWorkerId, filterBatchId, debouncedSearch, activeTab])
+
+  // ── Mine tab: resolve current identity via /me/tasks (P17-B37) ──
+  useEffect(() => {
+    if (activeTab !== 'mine' || !token || !projectId) return
+    fetchMyTasks(token)
+      .then(res => {
+        const ids = new Set(
+          res.tasks
+            .filter(wt => wt.project_id === projectId)
+            .map(wt => wt.task_id),
+        )
+        setMyTaskIds(ids)
+      })
+      .catch(err => { console.error('Failed to fetch my tasks', err) /* Non-critical: mine tab falls back to empty */ })
+  }, [activeTab, token, projectId])
 
   // ── Build worker name map ─────────────────────────────────
   const workerNames = useMemo(() => {
@@ -599,27 +615,21 @@ export default function Tasks() {
     }
   }
 
-  // ── Worker filter → auto-activate "mine" tab (P9-B36) ──
+  // ── Worker filter (all tab owner scoping · P17-B37) ──
   const handleWorkerFilterChange = (workerId: string) => {
     setFilterWorkerId(workerId)
-    if (workerId) {
-      setActiveTab('mine')
-    } else if (activeTab === 'mine') {
-      setActiveTab('all')
-    }
   }
 
-  // ── Client-side tab filter (P9-B36) ─────────────────────
+  // ── Client-side tab filter (P9-B36 · P17-B37) ────────────
   const displayTasks = useMemo(() => {
     if (activeTab === 'mine') {
-      if (!filterWorkerId) return [] // no worker selected → empty
-      return tasks.filter(t => t.owner_id === filterWorkerId)
+      return tasks.filter(t => myTaskIds.has(t.id))
     }
     if (activeTab === 'unclaimed') {
       return tasks.filter(t => t.status === 'ready' && !t.owner_id)
     }
     return tasks // 'all'
-  }, [tasks, activeTab, filterWorkerId])
+  }, [tasks, activeTab, myTaskIds])
 
   // ── Unclaimed count for tab badge ───────────────────────
   const unclaimedCount = useMemo(
@@ -1211,13 +1221,6 @@ export default function Tasks() {
             </button>
           </div>
 
-          {/* ── Mine tab hint (no worker selected) ──────── */}
-          {activeTab === 'mine' && !filterWorkerId && (
-            <div className={styles.tabHint}>
-              {t('tasks.mineHint')}
-            </div>
-          )}
-
           {/* ── Board ──────────────────────────────────── */}
           {displayTasks.length === 0 && activeTab === 'all' && !filterSearch && !filterWorkerId && !filterBatchId ? (
             <EmptyState
@@ -1238,17 +1241,13 @@ export default function Tasks() {
             <EmptyState
               icon={ClipboardList}
               title={
-                activeTab === 'mine' && !filterWorkerId
-                  ? t('tasks.mineHint')
+                activeTab === 'mine'
+                  ? t('tasks.mineEmpty')
                   : activeTab === 'unclaimed'
                     ? t('tasks.unclaimedEmpty')
                     : t('tasks.emptyBoardTitle')
               }
-              description={
-                activeTab === 'mine' && filterWorkerId
-                  ? t('tasks.mineEmpty')
-                  : ''
-              }
+              description=""
             >
               {activeTab === 'unclaimed' && (
                 <button
